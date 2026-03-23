@@ -57,7 +57,7 @@ export default function PayrollEngine() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [activeTab, setActiveTab] = useState('test-mode');
-  const [registerViewMode, setRegisterViewMode] = useState('detailed'); // 'detailed' or 'table'
+  const [registerViewMode, setRegisterViewMode] = useState('detailed'); // 'detailed', 'table', or 'excel'
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -1243,7 +1243,7 @@ export default function PayrollEngine() {
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* View Mode Toggle */}
+                  {/* View Mode Toggle - 3 options */}
                   <div className={`flex rounded-lg p-1 ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
                     <button
                       onClick={() => setRegisterViewMode('table')}
@@ -1253,7 +1253,7 @@ export default function PayrollEngine() {
                           : (isDark ? 'text-zinc-400' : 'text-gray-500')
                       }`}
                     >
-                      Table View
+                      Summary
                     </button>
                     <button
                       onClick={() => setRegisterViewMode('detailed')}
@@ -1263,7 +1263,17 @@ export default function PayrollEngine() {
                           : (isDark ? 'text-zinc-400' : 'text-gray-500')
                       }`}
                     >
-                      Detailed View
+                      Cards
+                    </button>
+                    <button
+                      onClick={() => setRegisterViewMode('excel')}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                        registerViewMode === 'excel' 
+                          ? (isDark ? 'bg-zinc-700 text-white' : 'bg-white text-gray-900 shadow') 
+                          : (isDark ? 'text-zinc-400' : 'text-gray-500')
+                      }`}
+                    >
+                      Full Excel View
                     </button>
                   </div>
                   <Button variant="outline" onClick={handleExport} data-testid="btn-export">
@@ -1641,6 +1651,224 @@ export default function PayrollEngine() {
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                  
+                  {/* FULL EXCEL VIEW - All columns like Excel export */}
+                  {registerViewMode === 'excel' && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr className={`${isDark ? 'bg-zinc-800' : 'bg-gray-100'} sticky top-0`}>
+                            {/* Employee Info */}
+                            <th className="text-left p-2 font-semibold border-r whitespace-nowrap" style={{minWidth: '140px'}}>Employee</th>
+                            <th className="text-left p-2 font-semibold whitespace-nowrap">Code</th>
+                            <th className="text-left p-2 font-semibold whitespace-nowrap">Status</th>
+                            <th className="text-left p-2 font-semibold border-r whitespace-nowrap">Dept</th>
+                            {/* Attendance */}
+                            <th className="text-center p-2 font-semibold whitespace-nowrap bg-blue-50 dark:bg-blue-900/20">Work Days</th>
+                            <th className="text-center p-2 font-semibold whitespace-nowrap bg-blue-50 dark:bg-blue-900/20">Present</th>
+                            <th className="text-center p-2 font-semibold whitespace-nowrap bg-blue-50 dark:bg-blue-900/20">Absent</th>
+                            <th className="text-center p-2 font-semibold whitespace-nowrap bg-blue-50 dark:bg-blue-900/20">Paid Leave</th>
+                            <th className="text-center p-2 font-semibold whitespace-nowrap bg-blue-50 dark:bg-blue-900/20">LOP Days</th>
+                            <th className="text-center p-2 font-semibold border-r whitespace-nowrap bg-blue-50 dark:bg-blue-900/20">Payable Days</th>
+                            {/* Salary */}
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-green-50 dark:bg-green-900/20">Salary/Month</th>
+                            <th className="text-right p-2 font-semibold border-r whitespace-nowrap bg-green-50 dark:bg-green-900/20">Salary/Day</th>
+                            {/* Earnings */}
+                            <th className="text-right p-2 font-semibold whitespace-nowrap">Basic</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap">HRA</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap">Special</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap">Incentive</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap">Arrears</th>
+                            <th className="text-right p-2 font-semibold border-r whitespace-nowrap text-green-600">Gross</th>
+                            {/* Deductions */}
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-red-50 dark:bg-red-900/20">LOP Ded.</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-red-50 dark:bg-red-900/20">PF</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-red-50 dark:bg-red-900/20">PT</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-red-50 dark:bg-red-900/20">TDS</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-red-50 dark:bg-red-900/20">ESI</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-red-50 dark:bg-red-900/20">Advance</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-red-50 dark:bg-red-900/20">Loan EMI</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-orange-50 dark:bg-orange-900/20">Penalty</th>
+                            <th className="text-left p-2 font-semibold whitespace-nowrap bg-orange-50 dark:bg-orange-900/20">Penalty Source</th>
+                            <th className="text-right p-2 font-semibold border-r whitespace-nowrap text-red-600">Total Ded.</th>
+                            {/* Expenses */}
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-amber-50 dark:bg-amber-900/20">Travel</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-amber-50 dark:bg-amber-900/20">Medical</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-amber-50 dark:bg-amber-900/20">Food</th>
+                            <th className="text-right p-2 font-semibold whitespace-nowrap bg-amber-50 dark:bg-amber-900/20">Other</th>
+                            <th className="text-right p-2 font-semibold border-r whitespace-nowrap text-amber-600">Total Reimb.</th>
+                            {/* Net */}
+                            <th className="text-right p-2 font-semibold whitespace-nowrap text-blue-600" style={{minWidth: '100px'}}>Net Payable</th>
+                            {/* Banking */}
+                            <th className="text-left p-2 font-semibold whitespace-nowrap bg-purple-50 dark:bg-purple-900/20">Bank</th>
+                            <th className="text-left p-2 font-semibold whitespace-nowrap bg-purple-50 dark:bg-purple-900/20">A/C No.</th>
+                            <th className="text-left p-2 font-semibold whitespace-nowrap bg-purple-50 dark:bg-purple-900/20">IFSC</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {registerDetails.calculations.map((calc, i) => {
+                            // Parse all data
+                            const earnings = calc.earnings || [];
+                            const deductions = calc.deductions || [];
+                            const attendance = calc.attendance_summary || {};
+                            const expenseBreakdown = calc.expense_breakdown || {};
+                            const bankDetails = calc.bank_details || {};
+                            
+                            const basic = earnings.find(e => e.key === 'basic_salary' || e.key === 'basic')?.amount || 0;
+                            const hra = earnings.find(e => e.key === 'hra')?.amount || 0;
+                            const special = earnings.find(e => e.key === 'special_allowance')?.amount || 0;
+                            const incentive = earnings.find(e => e.key === 'incentive')?.amount || 0;
+                            const arrears = earnings.find(e => e.key === 'arrears')?.amount || 0;
+                            
+                            const lopDed = Math.abs(deductions.find(d => d.key === 'lop')?.amount || 0);
+                            const pfDed = Math.abs(deductions.find(d => d.key === 'pf')?.amount || 0);
+                            const ptDed = Math.abs(deductions.find(d => d.key === 'pt' || d.key === 'professional_tax')?.amount || 0);
+                            const tdsDed = Math.abs(calc.tds_details?.monthly_tds || 0);
+                            const esiDed = Math.abs(deductions.find(d => d.key === 'esi')?.amount || 0);
+                            const advanceDed = Math.abs(deductions.find(d => d.key === 'advance_recovery')?.amount || 0);
+                            const loanEmi = Math.abs(deductions.find(d => d.key === 'loan_emi')?.amount || 0);
+                            
+                            // Penalty - aggregate all penalty types
+                            const penaltyItems = deductions.filter(d => d.key?.includes('penalty'));
+                            const totalPenalty = penaltyItems.reduce((s, p) => s + Math.abs(p.amount || 0), 0);
+                            const penaltySources = penaltyItems.map(p => p.details || p.name || 'Manual').join(', ');
+                            
+                            const workingDays = attendance.working_days || calc.working_days || 22;
+                            const payableDays = workingDays - (attendance.lop_days || calc.lop_days || 0);
+                            const salaryPerDay = calc.gross_monthly && workingDays > 0 ? (calc.gross_monthly / workingDays) : 0;
+                            
+                            // Expenses
+                            const travelExp = expenseBreakdown.travel || 0;
+                            const medicalExp = expenseBreakdown.medical || 0;
+                            const foodExp = expenseBreakdown.food || 0;
+                            const otherExp = (expenseBreakdown.other || 0) + (expenseBreakdown.telephone || 0);
+                            const totalReimb = calc.total_reimbursements || calc.reimbursements || (travelExp + medicalExp + foodExp + otherExp);
+                            
+                            // Status
+                            const status = calc.exit_status ? `F&F (${calc.exit_status})` : (calc.is_active === false ? 'Inactive' : 'Active');
+                            
+                            return (
+                              <tr 
+                                key={i} 
+                                className={`border-t ${isDark ? 'border-zinc-800 hover:bg-zinc-800/50' : 'border-gray-100 hover:bg-gray-50'}`}
+                              >
+                                {/* Employee Info */}
+                                <td className="p-2 border-r">
+                                  <p className="font-medium truncate" style={{maxWidth: '130px'}}>{calc.employee_name}</p>
+                                </td>
+                                <td className="p-2 text-xs text-gray-500">{calc.employee_code}</td>
+                                <td className="p-2">
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                    status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                                  }`}>{status}</span>
+                                </td>
+                                <td className="p-2 border-r">{calc.department}</td>
+                                
+                                {/* Attendance */}
+                                <td className="p-2 text-center bg-blue-50/50 dark:bg-blue-900/10">{workingDays}</td>
+                                <td className="p-2 text-center bg-blue-50/50 dark:bg-blue-900/10">{attendance.present_days || attendance.present || '-'}</td>
+                                <td className="p-2 text-center bg-blue-50/50 dark:bg-blue-900/10">{attendance.absent_days || '-'}</td>
+                                <td className="p-2 text-center bg-blue-50/50 dark:bg-blue-900/10">{attendance.paid_leave_days || '-'}</td>
+                                <td className="p-2 text-center bg-blue-50/50 dark:bg-blue-900/10 text-red-600 font-medium">{attendance.lop_days || calc.lop_days || 0}</td>
+                                <td className="p-2 text-center border-r bg-blue-50/50 dark:bg-blue-900/10 font-medium">{payableDays.toFixed(1)}</td>
+                                
+                                {/* Salary */}
+                                <td className="p-2 text-right bg-green-50/50 dark:bg-green-900/10 font-medium">{formatCurrency(calc.gross_monthly)}</td>
+                                <td className="p-2 text-right border-r bg-green-50/50 dark:bg-green-900/10">{formatCurrency(salaryPerDay)}</td>
+                                
+                                {/* Earnings */}
+                                <td className="p-2 text-right">{formatCurrency(basic)}</td>
+                                <td className="p-2 text-right">{formatCurrency(hra)}</td>
+                                <td className="p-2 text-right">{formatCurrency(special)}</td>
+                                <td className="p-2 text-right">{incentive > 0 ? formatCurrency(incentive) : '-'}</td>
+                                <td className="p-2 text-right">{arrears > 0 ? formatCurrency(arrears) : '-'}</td>
+                                <td className="p-2 text-right border-r font-medium text-green-600">{formatCurrency(calc.total_earnings || calc.gross_monthly)}</td>
+                                
+                                {/* Deductions */}
+                                <td className="p-2 text-right bg-red-50/50 dark:bg-red-900/10 text-red-600">{lopDed > 0 ? formatCurrency(lopDed) : '-'}</td>
+                                <td className="p-2 text-right bg-red-50/50 dark:bg-red-900/10 text-red-600">{pfDed > 0 ? formatCurrency(pfDed) : '-'}</td>
+                                <td className="p-2 text-right bg-red-50/50 dark:bg-red-900/10 text-red-600">{ptDed > 0 ? formatCurrency(ptDed) : '-'}</td>
+                                <td className="p-2 text-right bg-red-50/50 dark:bg-red-900/10 text-red-600">{tdsDed > 0 ? formatCurrency(tdsDed) : '-'}</td>
+                                <td className="p-2 text-right bg-red-50/50 dark:bg-red-900/10 text-red-600">{esiDed > 0 ? formatCurrency(esiDed) : '-'}</td>
+                                <td className="p-2 text-right bg-red-50/50 dark:bg-red-900/10 text-red-600">{advanceDed > 0 ? formatCurrency(advanceDed) : '-'}</td>
+                                <td className="p-2 text-right bg-red-50/50 dark:bg-red-900/10 text-red-600">{loanEmi > 0 ? formatCurrency(loanEmi) : '-'}</td>
+                                <td className="p-2 text-right bg-orange-50/50 dark:bg-orange-900/10 text-orange-600 font-medium">{totalPenalty > 0 ? formatCurrency(totalPenalty) : '-'}</td>
+                                <td className="p-2 text-left bg-orange-50/50 dark:bg-orange-900/10 text-xs text-orange-700 truncate" style={{maxWidth: '120px'}} title={penaltySources}>{penaltySources || '-'}</td>
+                                <td className="p-2 text-right border-r font-medium text-red-600">{formatCurrency(calc.total_deductions)}</td>
+                                
+                                {/* Expenses */}
+                                <td className="p-2 text-right bg-amber-50/50 dark:bg-amber-900/10">{travelExp > 0 ? formatCurrency(travelExp) : '-'}</td>
+                                <td className="p-2 text-right bg-amber-50/50 dark:bg-amber-900/10">{medicalExp > 0 ? formatCurrency(medicalExp) : '-'}</td>
+                                <td className="p-2 text-right bg-amber-50/50 dark:bg-amber-900/10">{foodExp > 0 ? formatCurrency(foodExp) : '-'}</td>
+                                <td className="p-2 text-right bg-amber-50/50 dark:bg-amber-900/10">{otherExp > 0 ? formatCurrency(otherExp) : '-'}</td>
+                                <td className="p-2 text-right border-r font-medium text-amber-600">{totalReimb > 0 ? formatCurrency(totalReimb) : '-'}</td>
+                                
+                                {/* Net */}
+                                <td className="p-2 text-right font-bold text-blue-600">{formatCurrency(calc.net_payable)}</td>
+                                
+                                {/* Banking */}
+                                <td className="p-2 bg-purple-50/50 dark:bg-purple-900/10 text-xs">{bankDetails.bank_name || '-'}</td>
+                                <td className="p-2 bg-purple-50/50 dark:bg-purple-900/10 text-xs">{bankDetails.account_number || '-'}</td>
+                                <td className="p-2 bg-purple-50/50 dark:bg-purple-900/10 text-xs">{bankDetails.ifsc_code || '-'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className={`font-bold border-t-2 ${isDark ? 'border-zinc-600 bg-zinc-800' : 'border-gray-300 bg-gray-100'}`}>
+                            <td className="p-2" colSpan={4}>Total ({registerDetails.calculations.length} employees)</td>
+                            <td colSpan={6}></td>
+                            <td className="p-2 text-right text-green-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.gross_monthly || 0), 0))}
+                            </td>
+                            <td></td>
+                            <td colSpan={5}></td>
+                            <td className="p-2 text-right text-green-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_earnings || c.gross_monthly || 0), 0))}
+                            </td>
+                            <td colSpan={8}></td>
+                            <td className="p-2 text-right text-orange-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => {
+                                const penalties = (c.deductions || []).filter(d => d.key?.includes('penalty'));
+                                return s + penalties.reduce((ps, p) => ps + Math.abs(p.amount || 0), 0);
+                              }, 0))}
+                            </td>
+                            <td></td>
+                            <td className="p-2 text-right text-red-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_deductions || 0), 0))}
+                            </td>
+                            <td colSpan={4}></td>
+                            <td className="p-2 text-right text-amber-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_reimbursements || c.reimbursements || 0), 0))}
+                            </td>
+                            <td className="p-2 text-right text-blue-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.net_payable || 0), 0))}
+                            </td>
+                            <td colSpan={3}></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                      
+                      {/* Legend for penalty sources */}
+                      <div className={`mt-4 p-3 rounded-lg text-xs ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
+                        <p className="font-semibold mb-2">Penalty Sources:</p>
+                        <div className="flex flex-wrap gap-4">
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                            <strong>Manual</strong> - HR/Admin entered directly
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                            <strong>AT002</strong> - Late Arrival Rule ({'>'}3 lates = 0.5 day LOP each)
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                            <strong>Policy Violation</strong> - Business rule triggered
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
