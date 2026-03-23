@@ -450,6 +450,52 @@ Centralized page for all company policies and rules. Single source of navigation
 
 ---
 
+## Rule Engine with CTC Component Linkage (March 23, 2026)
+
+### Overview
+A comprehensive rule engine service that evaluates complex business conditions and links to CTC components for automatic payroll calculations.
+
+### Features
+1. **Condition Evaluation** - Parse and evaluate expressions like `basic_salary > 15000 AND department == 'Sales'`
+2. **Formula Calculation** - Evaluate formulas like `basic_salary * 0.12` with context variables
+3. **Statutory Deductions** - Auto-calculate PF, ESI, PT based on business rules
+4. **LOP Calculation** - Calculate Loss of Pay using configurable formulas
+5. **Payroll Simulation** - Full payroll simulation with all rules applied
+
+### CTC Components Supported
+| Component | Type | Taxable | Notes |
+|-----------|------|---------|-------|
+| basic_salary | earning | Yes | Base component (typically 40% of CTC) |
+| hra | earning | Yes | 50% of basic |
+| special_allowance | earning | Yes | Balancing component |
+| pf_employee | deduction | - | 12% of basic (max ₹15000) |
+| pf_employer | employer_contribution | - | 12% of basic |
+| esi_employee | deduction | - | 0.75% of gross (if gross <= ₹21000) |
+| professional_tax | deduction | - | Slab-based (max ₹200) |
+
+### API Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/business-rules/engine/evaluate-condition` | POST | Evaluate a condition |
+| `/api/business-rules/engine/evaluate-formula` | POST | Evaluate a formula |
+| `/api/business-rules/engine/calculate-statutory` | POST | Calculate statutory deductions |
+| `/api/business-rules/engine/calculate-lop` | POST | Calculate LOP deduction |
+| `/api/business-rules/engine/simulate-payroll` | POST | Full payroll simulation |
+| `/api/business-rules/engine/ctc-components` | GET | Get all CTC components |
+
+### Payroll Simulator UI
+- Located in Business Rules page → "Payroll Simulator" button
+- Input: Annual CTC, Basic %, HRA %, Working Days, Present Days, LOP Days, Expense Reimbursement
+- Output: Earnings breakdown, Deductions, Employer Contributions, Net Salary
+- Shows which rules were applied (PY005, PY006, PY007, etc.)
+
+### Files
+- Backend: `/app/backend/services/rule_engine.py`
+- API: `/app/backend/routers/business_rules.py` (engine endpoints)
+- Frontend: `/app/frontend/src/pages/hr/BusinessRules.js` (simulator dialog)
+
+---
+
 ## Last Updated
 - Date: March 23, 2026
-- Status: Business Rules Page Implemented & Tested
+- Status: Rule Engine with CTC Linkage & Payroll Simulator Implemented

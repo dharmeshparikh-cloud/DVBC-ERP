@@ -838,3 +838,310 @@ async def initialize_default_policies(db, user_id: str):
             policy["effective_from"] = today
             policy["is_active"] = True
             await db.business_policies.insert_one(policy)
+
+
+
+# ==================== RULE ENGINE ENDPOINTS ====================
+
+@router.post("/engine/evaluate-condition")
+async def evaluate_condition(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Evaluate a condition expression with given context.
+    
+    Body: {
+        "condition": "basic_salary > 15000 AND department == 'Sales'",
+        "context": {"basic_salary": 20000, "department": "Sales"}
+    }
+    """
+    from services.rule_engine import create_rule_engine
+    
+    condition = data.get("condition", "")
+    context = data.get("context", {})
+    
+    if not condition:
+        raise HTTPException(status_code=400, detail="Condition is required")
+    
+    try:
+        engine = create_rule_engine(context)
+        result, explanation = engine.evaluate_condition(condition)
+        
+        return {
+            "condition": condition,
+            "result": result,
+            "explanation": explanation,
+            "context_used": context
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/engine/evaluate-formula")
+async def evaluate_formula(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Evaluate a formula expression with given context.
+    
+    Body: {
+        "formula": "basic_salary * 0.12",
+        "context": {"basic_salary": 20000}
+    }
+    """
+    from services.rule_engine import create_rule_engine
+    
+    formula = data.get("formula", "")
+    context = data.get("context", {})
+    
+    if not formula:
+        raise HTTPException(status_code=400, detail="Formula is required")
+    
+    try:
+        engine = create_rule_engine(context)
+        result, explanation = engine.evaluate_formula(formula)
+        
+        return {
+            "formula": formula,
+            "result": result,
+            "explanation": explanation,
+            "context_used": context
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/engine/calculate-statutory")
+async def calculate_statutory_deductions(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calculate statutory deductions (PF, ESI, PT) based on payroll rules.
+    
+    Body: {
+        "basic_salary": 25000,
+        "gross_salary": 50000,
+        "employee_id": "EMP001" (optional)
+    }
+    """
+    from services.rule_engine import create_rule_engine
+    
+    db = get_db()
+    
+    employee_data = {
+        "basic_salary": data.get("basic_salary", 0),
+        "gross_salary": data.get("gross_salary", 0),
+        "department": data.get("department", ""),
+        "designation": data.get("designation", ""),
+    }
+    
+    # Get payroll rules
+    payroll_policy = await db.business_policies.find_one(
+        {"policy_type": "payroll", "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not payroll_policy:
+        raise HTTPException(status_code=404, detail="No active payroll policy found")
+    
+    try:
+        engine = create_rule_engine(employee_data)
+        statutory = engine.apply_statutory_rules(employee_data, payroll_policy.get("rules", []))
+        
+        return {
+            "input": employee_data,
+            "statutory_deductions": statutory,
+            "policy_used": payroll_policy.get("name")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/engine/calculate-lop")
+async def calculate_lop_deduction(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calculate Loss of Pay deduction.
+    
+    Body: {
+        "basic_salary": 25000,
+        "working_days": 26,
+        "lop_days": 2
+    }
+    """
+    from services.rule_engine import create_rule_engine
+    
+    db = get_db()
+    
+    employee_data = {
+        "basic_salary": data.get("basic_salary", 0),
+        "gross_salary": data.get("gross_salary", data.get("basic_salary", 0)),
+        "working_days": data.get("working_days", 26),
+        "lop_days": data.get("lop_days", 0),
+    }
+    
+    # Get payroll rules
+    payroll_policy = await db.business_policies.find_one(
+        {"policy_type": "payroll", "is_active": True},
+        {"_id": 0}
+    )
+    
+    rules = payroll_policy.get("rules", []) if payroll_policy else []
+    
+    try:
+        engine = create_rule_engine(employee_data)
+        lop_result = engine.calculate_lop_deduction(employee_data, rules)
+        
+        return {
+            "input": employee_data,
+            "lop_deduction": lop_result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/engine/ctc-components")
+async def get_ctc_components(current_user: User = Depends(get_current_user)):
+    """Get all available CTC components with their properties"""
+    from services.rule_engine import RuleEngine
+    
+    components = []
+    for key, info in RuleEngine.CTC_COMPONENTS.items():
+        components.append({
+            "key": key,
+            "name": key.replace("_", " ").title(),
+            **info
+        })
+    
+    # Group by type
+    grouped = {
+        "earnings": [c for c in components if c.get("type") == "earning"],
+        "deductions": [c for c in components if c.get("type") == "deduction"],
+        "employer_contributions": [c for c in components if c.get("type") == "employer_contribution"],
+        "reimbursements": [c for c in components if c.get("type") == "reimbursement"],
+    }
+    
+    return {
+        "components": components,
+        "grouped": grouped,
+        "total_count": len(components)
+    }
+
+
+@router.post("/engine/simulate-payroll")
+async def simulate_payroll(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Simulate payroll calculation with all rules applied.
+    
+    Body: {
+        "annual_ctc": 600000,
+        "basic_percentage": 40,
+        "hra_percentage": 50,
+        "working_days": 26,
+        "present_days": 24,
+        "lop_days": 2,
+        "expense_reimbursement": 5000
+    }
+    """
+    from services.rule_engine import (
+        create_rule_engine, calculate_basic_salary, 
+        calculate_hra, calculate_pf, calculate_esi
+    )
+    
+    db = get_db()
+    
+    # Extract inputs
+    annual_ctc = data.get("annual_ctc", 600000)
+    basic_pct = data.get("basic_percentage", 40)
+    hra_pct = data.get("hra_percentage", 50)
+    working_days = data.get("working_days", 26)
+    present_days = data.get("present_days", working_days)
+    lop_days = data.get("lop_days", 0)
+    expense_reimbursement = data.get("expense_reimbursement", 0)
+    
+    # Calculate base components
+    monthly_ctc = annual_ctc / 12
+    basic_salary = calculate_basic_salary(annual_ctc, basic_pct)
+    hra = calculate_hra(basic_salary, hra_pct)
+    
+    # Calculate gross (before special allowance balancing)
+    initial_gross = basic_salary + hra
+    special_allowance = round(monthly_ctc - initial_gross, 2)
+    if special_allowance < 0:
+        special_allowance = 0
+    
+    gross_salary = basic_salary + hra + special_allowance
+    
+    # Get payroll policy
+    payroll_policy = await db.business_policies.find_one(
+        {"policy_type": "payroll", "is_active": True},
+        {"_id": 0}
+    )
+    
+    # Calculate statutory deductions
+    employee_data = {
+        "basic_salary": basic_salary,
+        "gross_salary": gross_salary,
+        "working_days": working_days,
+        "lop_days": lop_days,
+        "annual_ctc": annual_ctc
+    }
+    
+    engine = create_rule_engine(employee_data)
+    rules = payroll_policy.get("rules", []) if payroll_policy else []
+    
+    statutory = engine.apply_statutory_rules(employee_data, rules)
+    lop = engine.calculate_lop_deduction(employee_data, rules)
+    
+    # Calculate net salary
+    total_earnings = gross_salary + expense_reimbursement
+    total_deductions = statutory["total_deductions"] + lop["total_deduction"]
+    net_salary = round(total_earnings - total_deductions, 2)
+    
+    return {
+        "input": {
+            "annual_ctc": annual_ctc,
+            "basic_percentage": basic_pct,
+            "hra_percentage": hra_pct,
+            "working_days": working_days,
+            "present_days": present_days,
+            "lop_days": lop_days,
+            "expense_reimbursement": expense_reimbursement
+        },
+        "earnings": {
+            "basic_salary": basic_salary,
+            "hra": hra,
+            "special_allowance": special_allowance,
+            "gross_salary": gross_salary,
+            "expense_reimbursement": expense_reimbursement,
+            "total_earnings": total_earnings
+        },
+        "deductions": {
+            "pf_employee": statutory["pf_employee"],
+            "esi_employee": statutory["esi_employee"],
+            "professional_tax": statutory["professional_tax"],
+            "lop_deduction": lop["total_deduction"],
+            "total_deductions": total_deductions
+        },
+        "employer_contributions": {
+            "pf_employer": statutory["pf_employer"],
+            "esi_employer": statutory["esi_employer"],
+            "total": statutory["total_employer_contribution"]
+        },
+        "summary": {
+            "gross_salary": gross_salary,
+            "total_deductions": total_deductions,
+            "net_salary": net_salary,
+            "cost_to_company_monthly": round(gross_salary + statutory["total_employer_contribution"], 2)
+        },
+        "rules_applied": statutory["rules_applied"],
+        "breakdown": statutory["breakdown"] + [lop] if lop["total_deduction"] > 0 else statutory["breakdown"]
+    }

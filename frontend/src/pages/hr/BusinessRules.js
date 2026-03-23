@@ -67,6 +67,18 @@ const BusinessRules = () => {
   const [editingRule, setEditingRule] = useState(null);
   const [showPolicyDialog, setShowPolicyDialog] = useState(false);
   const [showRuleDialog, setShowRuleDialog] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [simulatorData, setSimulatorData] = useState({
+    annual_ctc: 600000,
+    basic_percentage: 40,
+    hra_percentage: 50,
+    working_days: 26,
+    present_days: 26,
+    lop_days: 0,
+    expense_reimbursement: 0
+  });
+  const [simulationResult, setSimulationResult] = useState(null);
+  const [simulating, setSimulating] = useState(false);
   
   // Fetch all policies
   const { data: policies = [], isLoading: loading, refetch } = useQuery({
@@ -387,6 +399,16 @@ const BusinessRules = () => {
         
         {/* Search */}
         <div className="flex items-center gap-3">
+          {canEdit && (
+            <Button
+              onClick={() => setShowSimulator(true)}
+              className="bg-emerald-600 hover:bg-emerald-700"
+              data-testid="open-simulator-btn"
+            >
+              <Calculator className="w-4 h-4 mr-2" />
+              Payroll Simulator
+            </Button>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <Input
@@ -578,6 +600,251 @@ const BusinessRules = () => {
                 <Save className="w-4 h-4 mr-2" />
               )}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payroll Simulator Dialog */}
+      <Dialog open={showSimulator} onOpenChange={setShowSimulator}>
+        <DialogContent className={`max-w-4xl max-h-[90vh] overflow-y-auto ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-emerald-500" />
+              Payroll Simulator - Rule Engine
+            </DialogTitle>
+            <DialogDescription>
+              Test payroll calculations with live rule evaluation. All business rules are applied automatically.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-6 py-4">
+            {/* Input Section */}
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <Edit2 className="w-4 h-4" />
+                Input Parameters
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Annual CTC (₹)</Label>
+                  <Input
+                    type="number"
+                    value={simulatorData.annual_ctc}
+                    onChange={(e) => setSimulatorData({...simulatorData, annual_ctc: parseFloat(e.target.value) || 0})}
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Basic %</Label>
+                  <Input
+                    type="number"
+                    value={simulatorData.basic_percentage}
+                    onChange={(e) => setSimulatorData({...simulatorData, basic_percentage: parseFloat(e.target.value) || 40})}
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">HRA %</Label>
+                  <Input
+                    type="number"
+                    value={simulatorData.hra_percentage}
+                    onChange={(e) => setSimulatorData({...simulatorData, hra_percentage: parseFloat(e.target.value) || 50})}
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Working Days</Label>
+                  <Input
+                    type="number"
+                    value={simulatorData.working_days}
+                    onChange={(e) => setSimulatorData({...simulatorData, working_days: parseInt(e.target.value) || 26})}
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Present Days</Label>
+                  <Input
+                    type="number"
+                    value={simulatorData.present_days}
+                    onChange={(e) => setSimulatorData({...simulatorData, present_days: parseInt(e.target.value) || 26})}
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">LOP Days</Label>
+                  <Input
+                    type="number"
+                    value={simulatorData.lop_days}
+                    onChange={(e) => setSimulatorData({...simulatorData, lop_days: parseInt(e.target.value) || 0})}
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Expense Reimbursement (₹)</Label>
+                  <Input
+                    type="number"
+                    value={simulatorData.expense_reimbursement}
+                    onChange={(e) => setSimulatorData({...simulatorData, expense_reimbursement: parseFloat(e.target.value) || 0})}
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
+                </div>
+              </div>
+              
+              <Button
+                onClick={async () => {
+                  setSimulating(true);
+                  try {
+                    const res = await axios.post(`${API}/business-rules/engine/simulate-payroll`, simulatorData);
+                    setSimulationResult(res.data);
+                  } catch (err) {
+                    toast.error(err.response?.data?.detail || 'Simulation failed');
+                  } finally {
+                    setSimulating(false);
+                  }
+                }}
+                disabled={simulating}
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                data-testid="run-simulation-btn"
+              >
+                {simulating ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Calculator className="w-4 h-4 mr-2" />
+                )}
+                Run Simulation
+              </Button>
+            </div>
+            
+            {/* Results Section */}
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Calculation Results
+              </h4>
+              
+              {simulationResult ? (
+                <div className="space-y-3">
+                  {/* Earnings */}
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-emerald-900/20 border border-emerald-800' : 'bg-emerald-50 border border-emerald-200'}`}>
+                    <h5 className="text-xs font-medium text-emerald-600 mb-2">EARNINGS</h5>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Basic Salary</span>
+                        <span className="font-mono">₹{simulationResult.earnings?.basic_salary?.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>HRA</span>
+                        <span className="font-mono">₹{simulationResult.earnings?.hra?.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Special Allowance</span>
+                        <span className="font-mono">₹{simulationResult.earnings?.special_allowance?.toLocaleString('en-IN')}</span>
+                      </div>
+                      {simulationResult.earnings?.expense_reimbursement > 0 && (
+                        <div className="flex justify-between">
+                          <span>Expense Reimbursement</span>
+                          <span className="font-mono">₹{simulationResult.earnings?.expense_reimbursement?.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-medium pt-1 border-t border-emerald-300">
+                        <span>Total Earnings</span>
+                        <span className="font-mono">₹{simulationResult.earnings?.total_earnings?.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Deductions */}
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-red-900/20 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
+                    <h5 className="text-xs font-medium text-red-600 mb-2">DEDUCTIONS</h5>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>PF (Employee)</span>
+                        <span className="font-mono">₹{simulationResult.deductions?.pf_employee?.toLocaleString('en-IN')}</span>
+                      </div>
+                      {simulationResult.deductions?.esi_employee > 0 && (
+                        <div className="flex justify-between">
+                          <span>ESI (Employee)</span>
+                          <span className="font-mono">₹{simulationResult.deductions?.esi_employee?.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span>Professional Tax</span>
+                        <span className="font-mono">₹{simulationResult.deductions?.professional_tax?.toLocaleString('en-IN')}</span>
+                      </div>
+                      {simulationResult.deductions?.lop_deduction > 0 && (
+                        <div className="flex justify-between text-red-600">
+                          <span>LOP Deduction</span>
+                          <span className="font-mono">₹{simulationResult.deductions?.lop_deduction?.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-medium pt-1 border-t border-red-300">
+                        <span>Total Deductions</span>
+                        <span className="font-mono">₹{simulationResult.deductions?.total_deductions?.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Employer Contributions */}
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
+                    <h5 className="text-xs font-medium text-blue-600 mb-2">EMPLOYER CONTRIBUTIONS</h5>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>PF (Employer)</span>
+                        <span className="font-mono">₹{simulationResult.employer_contributions?.pf_employer?.toLocaleString('en-IN')}</span>
+                      </div>
+                      {simulationResult.employer_contributions?.esi_employer > 0 && (
+                        <div className="flex justify-between">
+                          <span>ESI (Employer)</span>
+                          <span className="font-mono">₹{simulationResult.employer_contributions?.esi_employer?.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Summary */}
+                  <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900 border border-zinc-700' : 'bg-zinc-100 border border-zinc-200'}`}>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-lg font-bold">
+                        <span>Net Salary</span>
+                        <span className="text-emerald-600 font-mono">₹{simulationResult.summary?.net_salary?.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>CTC (Monthly)</span>
+                        <span className="font-mono">₹{simulationResult.summary?.cost_to_company_monthly?.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Rules Applied */}
+                  {simulationResult.rules_applied?.length > 0 && (
+                    <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                      <h5 className="text-xs font-medium mb-2">Rules Applied</h5>
+                      <div className="flex flex-wrap gap-1">
+                        {simulationResult.rules_applied.map(rule => (
+                          <Badge key={rule} variant="outline" className="text-xs">
+                            {rule}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className={`p-8 rounded-lg text-center ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                  <Calculator className="w-12 h-12 mx-auto mb-3 text-zinc-400" />
+                  <p className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
+                    Enter parameters and click "Run Simulation" to see calculated payroll
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSimulator(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
