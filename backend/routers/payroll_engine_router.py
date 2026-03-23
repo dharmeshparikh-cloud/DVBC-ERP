@@ -1801,53 +1801,270 @@ async def send_payroll_for_approval(
     if not calculations:
         raise HTTPException(status_code=404, detail=f"No payroll data for {month}")
     
-    # Build Excel data (same as export)
+    # Get employee details (for banking info and status)
+    emp_ids = [c.get("employee_id") for c in calculations]
+    employees = await db.employees.find(
+        {"id": {"$in": emp_ids}},
+        {"_id": 0, "id": 1, "bank_details": 1, "status": 1, "go_live_status": 1}
+    ).to_list(500)
+    emp_map = {e["id"]: e for e in employees}
+    
+    # Check for F&F/Exit status
+    exits = await db.exits.find(
+        {"employee_id": {"$in": emp_ids}, "status": {"$nin": ["completed", "cancelled"]}},
+        {"_id": 0, "employee_id": 1, "status": 1}
+    ).to_list(500)
+    exit_map = {e["employee_id"]: e.get("status", "") for e in exits}
+    
+    # Get approved expenses for reimbursements
+    expenses_agg = await db.expenses.aggregate([
+        {"$match": {"status": "approved", "month": month}},
+        {"$group": {
+            "_id": "$employee_id",
+            "travel": {"$sum": {"$cond": [{"$eq": ["$category", "travel"]}, "$amount", 0]}},
+            "medical": {"$sum": {"$cond": [{"$eq": ["$category", "medical"]}, "$amount", 0]}},
+            "food": {"$sum": {"$cond": [{"$eq": ["$category", "food"]}, "$amount", 0]}},
+            "conveyance": {"$sum": {"$cond": [{"$eq": ["$category", "conveyance"]}, "$amount", 0]}},
+            "telephone": {"$sum": {"$cond": [{"$eq": ["$category", "telephone"]}, "$amount", 0]}},
+            "total": {"$sum": "$amount"}
+        }}
+    ]).to_list(500)
+    expenses_map = {e["_id"]: e for e in expenses_agg}
+    
+    # Build detailed Excel data (same format as export-excel with 53 columns)
     rows = []
     for calc in calculations:
-        earnings = calc.get("earnings", [])
-        deductions = calc.get("deductions", [])
+        emp_id = calc.get("employee_id")
+        emp_data = emp_map.get(emp_id, {})
+        exp_data = expenses_map.get(emp_id, {})
+        
+        # Determine Active/F&F Stage
+        exit_status = exit_map.get(emp_id, "")
+        if exit_status:
+            stage = f"F&F ({exit_status})"
+        elif emp_data.get("status") == "inactive":
+            stage = "Inactive"
+        else:
+            stage = "Active"
+        
+        # Parse attendance
         attendance = calc.get("attendance_summary", {})
+        days_in_month = attendance.get("days_in_month", calc.get("days_in_month", 30))
+        working_days = attendance.get("working_days", calc.get("working_days", 22))
+        present_days = attendance.get("present_days", 0)
+        absent_days = attendance.get("absent_days", 0)
+        paid_leave_days = attendance.get("paid_leave_days", 0)
+        unpaid_leave_days = attendance.get("unpaid_leave_days", 0)
+        total_leave_days = attendance.get("total_leave_days", 0)
+        holidays = attendance.get("holidays", 0)
+        lop_days = calc.get("lop_days", attendance.get("calculated_lop", 0))
+        
+        # Calculate payable days and salary/day
+        gross_monthly = calc.get("gross_monthly", 0)
+        total_payable_days = working_days - lop_days if working_days > lop_days else working_days
+        salary_per_day = round(gross_monthly / working_days, 2) if working_days > 0 else 0
+        
+        # Parse earnings
+        earnings = calc.get("earnings", [])
+        basic = next((e.get("amount", 0) for e in earnings if e.get("key") in ["basic_salary", "basic"]), 0)
+        hra = next((e.get("amount", 0) for e in earnings if e.get("key") == "hra"), 0)
+        special = next((e.get("amount", 0) for e in earnings if e.get("key") == "special_allowance"), 0)
+        bonus = next((e.get("amount", 0) for e in earnings if e.get("key") == "bonus"), 0)
+        incentive = next((e.get("amount", 0) for e in earnings if e.get("key") == "incentive"), 0)
+        overtime = next((e.get("amount", 0) for e in earnings if e.get("key") == "overtime"), 0)
+        arrears = next((e.get("amount", 0) for e in earnings if e.get("key") == "arrears"), 0)
+        conveyance_allowance = next((e.get("amount", 0) for e in earnings if e.get("key") == "conveyance"), 0)
+        leave_encashment = next((e.get("amount", 0) for e in earnings if e.get("key") == "leave_encashment"), 0)
+        
+        # Parse deductions
+        deductions = calc.get("deductions", [])
+        lop_deduction = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "lop"), 0))
+        pf = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "pf"), 0))
+        pt = abs(next((d.get("amount", 0) for d in deductions if d.get("key") in ["pt", "professional_tax"]), 0))
+        tds = abs(calc.get("tds_details", {}).get("monthly_tds", 0))
+        esi = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "esi"), 0))
+        advance = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "advance_recovery"), 0))
+        loan_emi = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "loan_emi"), 0))
+        penalty = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "penalty"), 0))
+        
+        penalty_type = ""
+        for d in deductions:
+            if d.get("key") == "penalty" and d.get("details"):
+                penalty_type = d.get("details", "")
+                break
+        
+        # Banking details
+        bank_details = emp_data.get("bank_details", {}) or {}
+        
+        # Expense reimbursements
+        stored_exp = calc.get("expense_breakdown", {})
+        travel_exp = exp_data.get("travel", 0) or stored_exp.get("travel", 0)
+        medical_exp = exp_data.get("medical", 0) or stored_exp.get("medical", 0)
+        food_exp = exp_data.get("food", 0) or stored_exp.get("food", 0)
+        conveyance_exp = exp_data.get("conveyance", 0) or stored_exp.get("conveyance", 0)
+        telephone_exp = exp_data.get("telephone", 0) or stored_exp.get("telephone", 0)
+        total_exp = exp_data.get("total", 0) or stored_exp.get("total", 0) or calc.get("total_reimbursements", 0)
+        other_exp = total_exp - (travel_exp + medical_exp + food_exp + conveyance_exp + telephone_exp)
+        if other_exp < 0:
+            other_exp = stored_exp.get("other", 0)
+        total_reimbursements = total_exp or calc.get("total_reimbursements", 0)
         
         rows.append({
-            "Employee Code": calc.get("employee_code", ""),
+            # Employee Info
             "Employee Name": calc.get("employee_name", ""),
+            "Employee Code": calc.get("employee_code", ""),
+            "Active/F&F Stage": stage,
             "Department": calc.get("department", ""),
-            "Basic Salary": round(next((e.get("amount", 0) for e in earnings if e.get("key") == "basic_salary"), 0), 2),
-            "HRA": round(next((e.get("amount", 0) for e in earnings if e.get("key") == "hra"), 0), 2),
-            "Special Allowance": round(next((e.get("amount", 0) for e in earnings if e.get("key") == "special_allowance"), 0), 2),
-            "Bonus": round(next((e.get("amount", 0) for e in earnings if e.get("key") == "bonus"), 0), 2),
-            "Gross Salary": round(calc.get("gross_monthly", 0), 2),
-            "Working Days": attendance.get("working_days", calc.get("working_days", 0)),
-            "LOP Days": attendance.get("lop_days", calc.get("lop_days", 0)),
-            "LOP Deduction": round(abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "lop"), 0)), 2),
-            "PF": round(abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "pf"), 0)), 2),
-            "PT": round(abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "pt"), 0)), 2),
-            "TDS": round(calc.get("tds_details", {}).get("monthly_tds", 0), 2),
-            "Total Reimbursements": round(calc.get("reimbursements", 0) or 0, 2),
+            "Designation": calc.get("designation", "") or "",
+            
+            # Attendance
+            "Days in Month": days_in_month,
+            "Working Days": working_days,
+            "Present Days": present_days,
+            "Absent Days": absent_days,
+            "Paid Leave": paid_leave_days,
+            "Unpaid Leave": unpaid_leave_days,
+            "Total Leave": total_leave_days,
+            "Weekends/Holidays": holidays,
+            "LOP Days": lop_days,
+            "Total Payable Days": round(total_payable_days, 2),
+            
+            # Salary
+            "Salary/Month": round(gross_monthly, 2),
+            "Salary/Day": salary_per_day,
+            
+            # Earnings
+            "Basic Salary": round(basic, 2),
+            "HRA": round(hra, 2),
+            "Special Allowance": round(special, 2),
+            "Conveyance Allowance": round(conveyance_allowance, 2),
+            "Incentive": round(incentive, 2),
+            "Bonus": round(bonus, 2),
+            "Overtime": round(overtime, 2),
+            "Last Month Arrears": round(arrears, 2),
+            "Leave Encashment": round(leave_encashment, 2),
+            "Gross Earnings": round(calc.get("total_earnings", 0), 2),
+            
+            # Deductions
+            "LOP Deduction": round(lop_deduction, 2),
+            "PF (Employee)": round(pf, 2),
+            "Professional Tax (PT)": round(pt, 2),
+            "TDS": round(tds, 2),
+            "ESI": round(esi, 2),
+            "Advance Recovery": round(advance, 2),
+            "Loan EMI": round(loan_emi, 2),
+            "Penalty Amount": round(penalty, 2),
+            "Penalty Type": penalty_type,
             "Total Deductions": round(calc.get("total_deductions", 0), 2),
-            "Net Payable": round(calc.get("net_payable", 0), 2)
+            
+            # Expenses
+            "Travel Reimbursement": round(travel_exp, 2),
+            "Medical Reimbursement": round(medical_exp, 2),
+            "Food Reimbursement": round(food_exp, 2),
+            "Conveyance Reimbursement": round(conveyance_exp, 2),
+            "Telephone Reimbursement": round(telephone_exp, 2),
+            "Other Reimbursement": round(other_exp, 2),
+            "Total Reimbursements": round(total_reimbursements, 2),
+            
+            # Net
+            "Net Payable": round(calc.get("net_payable", 0), 2),
+            
+            # Banking
+            "Bank Name": bank_details.get("bank_name", ""),
+            "Account Number": bank_details.get("account_number", ""),
+            "IFSC Code": bank_details.get("ifsc_code", ""),
+            "Account Holder Name": bank_details.get("account_holder_name", "") or calc.get("employee_name", ""),
+            
+            # Compliance
+            "Annual CTC": round(calc.get("gross_annual", 0), 2),
+            "Taxable Income": round(calc.get("tds_details", {}).get("taxable_income", 0), 2),
+            "Tax Regime": calc.get("tds_details", {}).get("regime", "new").upper(),
+            "87A Rebate Applied": "Yes" if calc.get("tds_details", {}).get("rebate_87a", 0) > 0 else "No"
         })
     
     df = pd.DataFrame(rows)
     
-    # Create Excel file
+    # Create Excel file with 3 sheets
     excel_buffer = io.BytesIO()
     with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Payroll Register', index=False)
         
-        # Summary
-        summary = {
-            "Metric": ["Month", "Total Employees", "Total Gross", "Total Deductions", "Net Payable", "Generated On"],
+        # Summary sheet with comprehensive stats
+        total_gross = sum(c.get("gross_monthly", 0) for c in calculations)
+        total_deductions = sum(c.get("total_deductions", 0) for c in calculations)
+        total_net = sum(c.get("net_payable", 0) for c in calculations)
+        total_tds = sum(c.get("tds_details", {}).get("monthly_tds", 0) for c in calculations)
+        total_pf = sum(abs(next((d.get("amount", 0) for d in c.get("deductions", []) if d.get("key") == "pf"), 0)) for c in calculations)
+        total_pt = sum(abs(next((d.get("amount", 0) for d in c.get("deductions", []) if d.get("key") in ["pt", "professional_tax"]), 0)) for c in calculations)
+        total_reimbursements = sum(r.get("Total Reimbursements", 0) for r in rows)
+        
+        summary_data = {
+            "Metric": [
+                "Payroll Month",
+                "Total Employees",
+                "",
+                "EARNINGS",
+                "Total Gross Salary",
+                "Total Reimbursements",
+                "",
+                "DEDUCTIONS",
+                "Total Deductions",
+                "Total TDS",
+                "Total PF (Employee)",
+                "Total PT",
+                "",
+                "NET PAYABLE",
+                "Total Net Payable",
+                "",
+                "REPORT INFO",
+                "Generated On",
+                "Generated By"
+            ],
             "Value": [
                 month,
                 len(calculations),
-                round(sum(c.get("gross_monthly", 0) for c in calculations), 2),
-                round(sum(c.get("total_deductions", 0) for c in calculations), 2),
-                round(sum(c.get("net_payable", 0) for c in calculations), 2),
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "",
+                "",
+                f"₹{total_gross:,.2f}",
+                f"₹{total_reimbursements:,.2f}",
+                "",
+                "",
+                f"₹{total_deductions:,.2f}",
+                f"₹{total_tds:,.2f}",
+                f"₹{total_pf:,.2f}",
+                f"₹{total_pt:,.2f}",
+                "",
+                "",
+                f"₹{total_net:,.2f}",
+                "",
+                "",
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                current_user.employee_id
             ]
         }
-        pd.DataFrame(summary).to_excel(writer, sheet_name='Summary', index=False)
+        pd.DataFrame(summary_data).to_excel(writer, sheet_name='Summary', index=False)
+        
+        # Department-wise summary
+        dept_summary = {}
+        for calc in calculations:
+            dept = calc.get("department", "Unknown")
+            if dept not in dept_summary:
+                dept_summary[dept] = {"count": 0, "gross": 0, "deductions": 0, "net": 0}
+            dept_summary[dept]["count"] += 1
+            dept_summary[dept]["gross"] += calc.get("gross_monthly", 0)
+            dept_summary[dept]["deductions"] += calc.get("total_deductions", 0)
+            dept_summary[dept]["net"] += calc.get("net_payable", 0)
+        
+        dept_rows = []
+        for dept, data in dept_summary.items():
+            dept_rows.append({
+                "Department": dept,
+                "Employee Count": data["count"],
+                "Total Gross": round(data["gross"], 2),
+                "Total Deductions": round(data["deductions"], 2),
+                "Total Net Payable": round(data["net"], 2)
+            })
+        pd.DataFrame(dept_rows).to_excel(writer, sheet_name='Department Summary', index=False)
     
     excel_buffer.seek(0)
     
