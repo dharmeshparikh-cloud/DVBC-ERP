@@ -39,7 +39,7 @@
   },
   "test_credentials": {
     "admin_login": "ADMIN001 / Admin@2026",
-    "test_onboarding_link": "https://expense-sync-test.preview.emergentagent.com/onboarding/candidate/i2R0in6CxB8wfWQLB85A1qD7yuxNBqmdPe174t3mChM"
+    "test_onboarding_link": "https://attendance-engine-3.preview.emergentagent.com/onboarding/candidate/i2R0in6CxB8wfWQLB85A1qD7yuxNBqmdPe174t3mChM"
   },
   "screenshots": [
     ".screenshots/test3_blur_validation.png - Shows inline error after blur",

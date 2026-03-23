@@ -1,0 +1,137 @@
+<analysis>original_problem_statement: 
+The user wants to establish a robust, governed HR and Payroll ERP. The primary goal is to integrate all data related to attendance, expenses, business rules, compliance, F&F, and arrears into a single source of truth (). 
+*PRODUCT REQUIREMENTS:*
+- Payroll register Excel export must strictly match the provided 53-column target format (including Attendance breakdown, Net Payable, Banking Details, and granular compliance deductions).
+- Full Excel View toggle in the frontend UI to display all 53 columns without downloading.
+- Single Source of Truth (SSOT) architecture for all business policies. No hardcoded fallbacks.
+- F&F and Exit processes must reside in a unified UI screen, avoiding duplicate tools.
+- HR must be able to configure Working Days, Core Hours, and Role/Employee-specific policy overrides from the frontend UI.
+
+**User's preferred language**: English (INSTRUCT next agent to respond in English only)
+
+**what currently exists?** 
+A robust Payroll Engine and Exit Management flow. The  UI now handles the complete lifecycle (Resignation -> Clearance -> F&F -> Settlement) in one place. The Payroll Engine features a 53-column Excel Export matching the user's template, integrated with an SMTP email approval workflow. The frontend  features a Full Excel View table toggle. The backend was severely refactored to remove all hardcoded attendance policies— now strictly inherits from  collection as the sole SSOT.
+
+**Last working item**: 
+    - Last item agent was working: Making the Attendance Policy fully configurable via the Business Rules UI. The agent was editing  in  to change the default core hours to 10:00-19:00 and add configurable working days.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? Both (Backend curl to verify SSOT payload, Frontend screenshot to verify HR can edit working days, core hours, and role-specific rules).
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**: 
+  - Issue 1: End-to-End Penalty Flow Verification (P0)
+     - Attempted fixes: Agent mapped the Business Rules to , but testing the actual penalty trigger was interrupted by the user requesting UI configurability first.
+     - Next debug checklist: Once the Attendance Policy UI config is complete, simulate attendance violations (e.g., late check-ins > 3 times) to trigger penalties. Verify that  picks up these penalties and displays them correctly with their source in the Payroll Register.
+     - Why fix this issue and what will be achieved with the fix? Ensures the newly implemented SSOT business rules actually execute and mathematically impact the employee's net pay.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on other issue: Task 1
+
+**In progress Task List**: 
+  - Task 1: Configurable Attendance Policy in Business Rules UI (P0)
+     - Where to resume: Resume in  (updating defaults) and . Allow HR to edit Working Days, Core Hours (defaulting to 10-19), and manage Role-wise/Employee-wise overrides visually.
+     - What will be achieved with this? Gives HR full control over attendance policies without needing backend code changes, maintaining the SSOT architecture.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on something: None
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - (P1) Appraisals Integration: Auto-reflect salary revisions in the payroll engine.
+    - (P1) Onboarding Pro-rata: Auto-calculate mid-month joiner salaries.
+    - (P1) 54 Business Rules Full Integration: Ensure *all* defined business rules (Leave, Travel, etc.) impact payroll calculations as seamlessly as Attendance now does.
+    - (P2) HR Dashboard Frontend UI: The backend API for scorecards is built (), needs frontend UI implementation with clickable drill-downs.
+    - (P2) Bank Details Management UI: A screen where HR can bulk upload/edit employee banking information for accurate payroll disbursement.
+    Future Tasks:
+    - (P2) Salary Slip PDF generation.
+    - (P2) Refactor  (technical debt).
+
+**Completed work in this session**
+- Unified Exit Management & F&F Settlement UI into a single flow () (DONE)
+- 53-Column Excel Export for Payroll Register (DONE)
+- Email Approval Workflow with 53-column Excel attachment (DONE)
+- Auto-fetching approved expenses from  collection into Payroll calculations (DONE)
+- Full Excel View UI toggle in Payroll Register (DONE)
+- Removed hardcoded attendance policies, strictly enforcing Business Rules as SSOT (DONE)
+
+**Earlier issues found/mentioned but not fixed**
+   - None
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork:  file size complexity (needs refactoring).
+  - Recurrence count: 7
+  - Status: BLOCKED (Deferred to future task).
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+- **SSOT (Single Source of Truth):** Hardcoded dictionaries (like ) were aggressively removed. Services like  MUST query  collection. If not found, it must trigger the seeder, but NEVER fallback to hardcoded times.
+- **Data Tracing:** Penalties in the payroll engine now explicitly track their  (e.g., Manual, AT002) to resolve conflicts from multi-source deductions.
+- **Expense Auto-Fetch:**  runs dynamically during payroll generation to query the  collection and categorize them into Travel, Medical, Food, etc.
+
+**key DB schema**
+  - : {policy_type, rules: [{rule_id, value, description}]}
+  - : {employee_id, month, amount, category, status}
+  - : {employee_id, rule_id, penalty_amount, status}
+
+**changes in tech stack**
+  - None
+
+**All files of reference** 
+1.  (Currently being edited for attendance defaults).
+2.  (Contains the new SSOT inheritance logic).
+3.  (Target file for next UI task).
+4.  (Auto-expense fetching logic and penalty aggregations).
+5.  (Contains the new 'Full Excel View' table).
+
+**Areas that need refactoring**: 
+-  (High technical debt).
+
+**key api endpoints**
+-  (Now produces 53 columns & 3 sheets)
+- 
+-  (Now returns SSOT  source)
+
+**Critical Info for New Agent** 
+- **DO NOT hardcode policy rules anywhere.** The attendance backend crashed earlier because Business Rules had 10-17 hours while Attendance had 10-19 hours. Rely strictly on  pulling from the database.
+- The user specifically requested that HR can configure Working Days and Core Hours via the UI. Ensure  gets these new interactive fields.
+- The SMTP credentials for  are already successfully mapped and verified working.
+
+**documents and test reports created in this job** 
+  - 
+  -  (Testing subagent passed the frontend unification of ).
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1. User asked for high/medium priority columns to be added to the Excel export. (Completed)
+2. User requested tracking expenses reimbursement in the export. (Completed)
+3. User verified the UI Excel download and asked to test the email with payroll data. (Completed)
+4. User noticed the email attached an older template with fewer columns. (Fixed)
+5. User asked for a UI toggle to view the full Excel format in the app. (Completed)
+6. User asked how penalties and expenses sync from different conditions. (Agent explained the multi-source tracker).
+7. User requested testing 3 different attendance penalties and seeing them in payroll. (Paused to handle SSOT config).
+8. User noticed Core Hours were misaligned and questioned the SSOT integrity. (Agent found and ripped out hardcoded  rules).
+9. User stressed avoiding duplication, using ONLY SSOT. (Completed)
+10. **(PENDING)** User requested making the attendance policy configurable via UI (Working Days, Core Hours defaulting to 10-7, Role-wise, Employee-wise overrides). 
+
+**Project Health Check:**
+- Broken: None. 
+- Mocked: None.
+
+**3rd Party Integrations** 
+- Standard SMTP ()
+
+**Testing status**
+  - Testing agent used after significant changes: YES (iteration_201.json)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None this session
+  - Known regressions: None
+
+**Credentials to test flow:**
+- Admin:  / 
+- HR:  / 
+
+**What agent forgot to execute**
+- The agent was about to test the end-to-end penalty flow (triggering an actual attendance violation and seeing it hit ) but was redirected by the user to fix the UI configuration first. This end-to-end test remains a high priority (P0 Issue 1).</analysis>

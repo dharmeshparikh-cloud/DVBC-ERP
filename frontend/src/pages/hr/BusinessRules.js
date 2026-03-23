@@ -1347,6 +1347,24 @@ const BusinessRules = () => {
   const [testResult, setTestResult] = useState(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   
+  // Attendance Configuration State
+  const [attendanceConfig, setAttendanceConfig] = useState(null);
+  const [attendanceOverrides, setAttendanceOverrides] = useState({ role_overrides: [], employee_overrides: [] });
+  const [showAttendanceConfig, setShowAttendanceConfig] = useState(true);
+  const [savingAttendanceConfig, setSavingAttendanceConfig] = useState(false);
+  const [showAddOverrideDialog, setShowAddOverrideDialog] = useState(false);
+  const [newOverride, setNewOverride] = useState({
+    scope: 'role',
+    scope_value: '',
+    name: '',
+    working_days: [],
+    core_hours_start: '10:00',
+    core_hours_end: '19:00',
+    grace_period_minutes: 30,
+    wfh_days_per_week: 2,
+    reason: ''
+  });
+  
   // Fetch all employees for dropdown
   const { data: employeesList = [] } = useQuery({
     queryKey: ['employees-for-test'],
@@ -1376,6 +1394,47 @@ const BusinessRules = () => {
     },
     staleTime: 30 * 60 * 1000
   });
+  
+  // Fetch attendance configuration when attendance tab is active
+  const { data: fetchedAttendanceConfig, refetch: refetchAttendanceConfig } = useQuery({
+    queryKey: ['attendance-config'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/business-rules/attendance/config`);
+      return res.data;
+    },
+    enabled: activeTab === 'attendance',
+    staleTime: 2 * 60 * 1000,
+    onSuccess: (data) => {
+      setAttendanceConfig(data);
+    }
+  });
+  
+  // Fetch attendance overrides
+  const { data: fetchedOverrides, refetch: refetchOverrides } = useQuery({
+    queryKey: ['attendance-overrides'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/business-rules/attendance/overrides`);
+      return res.data;
+    },
+    enabled: activeTab === 'attendance' && canEdit,
+    staleTime: 2 * 60 * 1000,
+    onSuccess: (data) => {
+      setAttendanceOverrides(data);
+    }
+  });
+  
+  // Update attendance config when fetched data changes
+  React.useEffect(() => {
+    if (fetchedAttendanceConfig) {
+      setAttendanceConfig(fetchedAttendanceConfig);
+    }
+  }, [fetchedAttendanceConfig]);
+  
+  React.useEffect(() => {
+    if (fetchedOverrides) {
+      setAttendanceOverrides(fetchedOverrides);
+    }
+  }, [fetchedOverrides]);
   
   // Update rule mutation
   const updateRuleMutation = useMutation({
@@ -1429,6 +1488,104 @@ const BusinessRules = () => {
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed to delete rule')
   });
+  
+  // Save attendance configuration
+  const handleSaveAttendanceConfig = async () => {
+    if (!attendanceConfig) return;
+    
+    setSavingAttendanceConfig(true);
+    try {
+      await axios.put(`${API}/business-rules/attendance/config`, {
+        working_days: attendanceConfig.working_days,
+        core_hours_start: attendanceConfig.core_hours_start,
+        core_hours_end: attendanceConfig.core_hours_end,
+        grace_period_minutes: attendanceConfig.grace_period_minutes,
+        grace_days_per_month: attendanceConfig.grace_days_per_month,
+        late_penalty_amount: attendanceConfig.late_penalty_amount,
+        wfh_days_per_week: attendanceConfig.wfh_days_per_week
+      });
+      toast.success('Attendance configuration saved successfully');
+      refetchAttendanceConfig();
+      queryClient.invalidateQueries(['business-policies']);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to save attendance configuration');
+    } finally {
+      setSavingAttendanceConfig(false);
+    }
+  };
+  
+  // Create attendance override
+  const handleCreateOverride = async () => {
+    if (!newOverride.scope_value) {
+      toast.error(`Please select a ${newOverride.scope}`);
+      return;
+    }
+    
+    try {
+      await axios.post(`${API}/business-rules/attendance/override`, {
+        ...newOverride,
+        working_days: newOverride.working_days.length > 0 ? newOverride.working_days : attendanceConfig?.working_days
+      });
+      toast.success('Override created successfully');
+      setShowAddOverrideDialog(false);
+      setNewOverride({
+        scope: 'role',
+        scope_value: '',
+        name: '',
+        working_days: [],
+        core_hours_start: '10:00',
+        core_hours_end: '19:00',
+        grace_period_minutes: 30,
+        wfh_days_per_week: 2,
+        reason: ''
+      });
+      refetchOverrides();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to create override');
+    }
+  };
+  
+  // Delete attendance override
+  const handleDeleteOverride = async (policyId) => {
+    if (!window.confirm('Delete this override? The affected employees will use company defaults.')) return;
+    
+    try {
+      await axios.delete(`${API}/business-rules/attendance/override/${policyId}`);
+      toast.success('Override deleted');
+      refetchOverrides();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to delete override');
+    }
+  };
+  
+  // Toggle working day in attendance config
+  const toggleWorkingDay = (day) => {
+    if (!attendanceConfig) return;
+    
+    const currentDays = attendanceConfig.working_days || [];
+    const newDays = currentDays.includes(day)
+      ? currentDays.filter(d => d !== day)
+      : [...currentDays, day];
+    
+    // Maintain day order
+    const orderedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const sortedDays = newDays.sort((a, b) => orderedDays.indexOf(a) - orderedDays.indexOf(b));
+    
+    setAttendanceConfig({ ...attendanceConfig, working_days: sortedDays });
+  };
+  
+  // Toggle working day in new override
+  const toggleOverrideWorkingDay = (day) => {
+    const currentDays = newOverride.working_days || [];
+    const newDays = currentDays.includes(day)
+      ? currentDays.filter(d => d !== day)
+      : [...currentDays, day];
+    
+    const orderedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const sortedDays = newDays.sort((a, b) => orderedDays.indexOf(a) - orderedDays.indexOf(b));
+    
+    setNewOverride({ ...newOverride, working_days: sortedDays });
+  };
   
   // Filter policies
   const filteredPolicies = policies.filter(p => {
@@ -2009,6 +2166,317 @@ const BusinessRules = () => {
           );
         })}
       </div>
+      
+      {/* ==================== ATTENDANCE CONFIGURATION PANEL ==================== */}
+      {activeTab === 'attendance' && attendanceConfig && canEdit && (
+        <Card className={`${isDark ? 'bg-gradient-to-br from-emerald-900/20 to-zinc-800 border-emerald-700' : 'bg-gradient-to-br from-emerald-50 to-white border-emerald-200'}`}>
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
+                  <Clock className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    Attendance Policy Configuration
+                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                      Company-Wide
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Configure working days, core hours, and penalty rules for all employees
+                  </CardDescription>
+                </div>
+              </div>
+              <Button
+                onClick={() => setShowAttendanceConfig(!showAttendanceConfig)}
+                variant="ghost"
+                size="sm"
+              >
+                {showAttendanceConfig ? 'Collapse' : 'Expand'}
+                <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${showAttendanceConfig ? 'rotate-90' : ''}`} />
+              </Button>
+            </div>
+          </CardHeader>
+          
+          {showAttendanceConfig && (
+            <CardContent className="space-y-6">
+              {/* Working Days Configuration */}
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900/50 border border-zinc-700' : 'bg-white border border-zinc-200'}`}>
+                <h4 className="font-semibold flex items-center gap-2 mb-4">
+                  <Calendar className="w-4 h-4 text-blue-500" />
+                  Working Days Schedule
+                  <Badge variant="outline" className="text-xs">AT009</Badge>
+                </h4>
+                
+                <div className="flex flex-wrap gap-2">
+                  {(attendanceConfig.all_weekdays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).map(day => {
+                    const isSelected = attendanceConfig.working_days?.includes(day);
+                    const shortDay = day.slice(0, 3);
+                    
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => toggleWorkingDay(day)}
+                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                          isSelected
+                            ? 'bg-emerald-600 text-white shadow-md'
+                            : isDark 
+                              ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700' 
+                              : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 border border-zinc-200'
+                        }`}
+                        data-testid={`working-day-${shortDay.toLowerCase()}`}
+                      >
+                        {shortDay}
+                        {isSelected && <CheckCircle className="w-3 h-3 ml-1 inline" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <p className={`text-xs mt-3 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  Selected: {attendanceConfig.working_days?.length || 0} working days per week
+                  ({attendanceConfig.working_days?.map(d => d.slice(0, 3)).join(', ') || 'None'})
+                </p>
+              </div>
+              
+              {/* Core Hours Configuration */}
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900/50 border border-zinc-700' : 'bg-white border border-zinc-200'}`}>
+                <h4 className="font-semibold flex items-center gap-2 mb-4">
+                  <Clock className="w-4 h-4 text-purple-500" />
+                  Core Hours (Mandatory Presence)
+                  <Badge variant="outline" className="text-xs">AT002 & AT003</Badge>
+                </h4>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-xs mb-1 block">Start Time</Label>
+                    <Select
+                      value={attendanceConfig.core_hours_start || '10:00'}
+                      onValueChange={(val) => setAttendanceConfig({ ...attendanceConfig, core_hours_start: val })}
+                    >
+                      <SelectTrigger className={isDark ? 'bg-zinc-800 border-zinc-700' : ''} data-testid="core-hours-start">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00'].map(time => (
+                          <SelectItem key={time} value={time}>{time}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs mb-1 block">End Time</Label>
+                    <Select
+                      value={attendanceConfig.core_hours_end || '19:00'}
+                      onValueChange={(val) => setAttendanceConfig({ ...attendanceConfig, core_hours_end: val })}
+                    >
+                      <SelectTrigger className={isDark ? 'bg-zinc-800 border-zinc-700' : ''} data-testid="core-hours-end">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'].map(time => (
+                          <SelectItem key={time} value={time}>{time}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs mb-1 block">Grace Period (mins)</Label>
+                    <Input
+                      type="number"
+                      value={attendanceConfig.grace_period_minutes || 30}
+                      onChange={(e) => setAttendanceConfig({ ...attendanceConfig, grace_period_minutes: parseInt(e.target.value) || 0 })}
+                      className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+                      min={0}
+                      max={60}
+                      data-testid="grace-period-minutes"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs mb-1 block">WFH Days/Week</Label>
+                    <Input
+                      type="number"
+                      value={attendanceConfig.wfh_days_per_week || 2}
+                      onChange={(e) => setAttendanceConfig({ ...attendanceConfig, wfh_days_per_week: parseInt(e.target.value) || 0 })}
+                      className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+                      min={0}
+                      max={7}
+                      data-testid="wfh-days"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <Label className="text-xs mb-1 block">Grace Days/Month</Label>
+                    <Input
+                      type="number"
+                      value={attendanceConfig.grace_days_per_month || 3}
+                      onChange={(e) => setAttendanceConfig({ ...attendanceConfig, grace_days_per_month: parseInt(e.target.value) || 0 })}
+                      className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+                      min={0}
+                      max={10}
+                      data-testid="grace-days-month"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs mb-1 block">Late Penalty (₹/day)</Label>
+                    <Input
+                      type="number"
+                      value={attendanceConfig.late_penalty_amount || 100}
+                      onChange={(e) => setAttendanceConfig({ ...attendanceConfig, late_penalty_amount: parseInt(e.target.value) || 0 })}
+                      className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+                      min={0}
+                      data-testid="late-penalty-amount"
+                    />
+                  </div>
+                  
+                  <div className="flex items-end">
+                    <Button
+                      onClick={handleSaveAttendanceConfig}
+                      disabled={savingAttendanceConfig}
+                      className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                      data-testid="save-attendance-config"
+                    >
+                      {savingAttendanceConfig ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Save Configuration
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className={`mt-4 p-3 rounded-lg ${isDark ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
+                  <p className={`text-xs ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                    <strong>Summary:</strong> Employees work {attendanceConfig.working_days?.length || 0} days/week, 
+                    core hours {attendanceConfig.core_hours_start || '10:00'} - {attendanceConfig.core_hours_end || '19:00'}, 
+                    with {attendanceConfig.grace_period_minutes || 30} mins grace period, 
+                    {attendanceConfig.grace_days_per_month || 3} grace days/month, 
+                    and ₹{attendanceConfig.late_penalty_amount || 100}/day penalty for violations.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Role-wise & Employee-wise Overrides */}
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900/50 border border-zinc-700' : 'bg-white border border-zinc-200'}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <Users className="w-4 h-4 text-amber-500" />
+                    Policy Overrides
+                    <Badge variant="outline" className="text-xs">
+                      {(attendanceOverrides.total_role_overrides || 0) + (attendanceOverrides.total_employee_overrides || 0)} active
+                    </Badge>
+                  </h4>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowAddOverrideDialog(true)}
+                    className="flex items-center gap-1"
+                    data-testid="add-override-btn"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Override
+                  </Button>
+                </div>
+                
+                {/* Role Overrides */}
+                {attendanceOverrides.role_overrides?.length > 0 && (
+                  <div className="mb-4">
+                    <p className={`text-xs font-medium mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                      <Briefcase className="w-3 h-3 inline mr-1" />
+                      Role-wise Overrides ({attendanceOverrides.total_role_overrides})
+                    </p>
+                    <div className="space-y-2">
+                      {attendanceOverrides.role_overrides.map(override => {
+                        const rules = override.rules?.reduce((acc, r) => ({ ...acc, [r.rule_id]: r }), {}) || {};
+                        return (
+                          <div 
+                            key={override.id} 
+                            className={`p-3 rounded-lg flex items-center justify-between ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}
+                          >
+                            <div>
+                              <p className="font-medium text-sm">{override.scope_value}</p>
+                              <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                {rules.AT002?.value || '10:00'} - {rules.AT003?.value || '19:00'} | 
+                                {rules.AT009?.list_value?.length || 6} days/week
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteOverride(override.id)}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Employee Overrides */}
+                {attendanceOverrides.employee_overrides?.length > 0 && (
+                  <div>
+                    <p className={`text-xs font-medium mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                      <User className="w-3 h-3 inline mr-1" />
+                      Employee-wise Overrides ({attendanceOverrides.total_employee_overrides})
+                    </p>
+                    <div className="space-y-2">
+                      {attendanceOverrides.employee_overrides.map(override => {
+                        const rules = override.rules?.reduce((acc, r) => ({ ...acc, [r.rule_id]: r }), {}) || {};
+                        return (
+                          <div 
+                            key={override.id} 
+                            className={`p-3 rounded-lg flex items-center justify-between ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}
+                          >
+                            <div>
+                              <p className="font-medium text-sm">
+                                {override.employee_name || override.scope_value}
+                                <span className={`text-xs ml-2 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                  ({override.employee_code || '-'})
+                                </span>
+                              </p>
+                              <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                {rules.AT002?.value || '10:00'} - {rules.AT003?.value || '19:00'} | 
+                                {rules.AT009?.list_value?.length || 6} days/week
+                                {override.description && ` | ${override.description}`}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteOverride(override.id)}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {/* No overrides message */}
+                {(!attendanceOverrides.role_overrides?.length && !attendanceOverrides.employee_overrides?.length) && (
+                  <p className={`text-sm text-center py-4 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                    No overrides configured. All employees use company-wide settings.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
       
       {/* Policies Grid */}
       <div className="space-y-4">
@@ -3207,6 +3675,201 @@ const BusinessRules = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSimulator(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Override Dialog */}
+      <Dialog open={showAddOverrideDialog} onOpenChange={setShowAddOverrideDialog}>
+        <DialogContent className={`max-w-lg ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-emerald-500" />
+              Create Attendance Override
+            </DialogTitle>
+            <DialogDescription>
+              Create custom attendance rules for specific roles or employees
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Override Type */}
+            <div>
+              <Label className="mb-2 block">Override Type</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant={newOverride.scope === 'role' ? 'default' : 'outline'}
+                  onClick={() => setNewOverride({ ...newOverride, scope: 'role', scope_value: '' })}
+                  className={newOverride.scope === 'role' ? 'bg-emerald-600' : ''}
+                  data-testid="override-type-role"
+                >
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Role-wise
+                </Button>
+                <Button
+                  variant={newOverride.scope === 'employee' ? 'default' : 'outline'}
+                  onClick={() => setNewOverride({ ...newOverride, scope: 'employee', scope_value: '' })}
+                  className={newOverride.scope === 'employee' ? 'bg-emerald-600' : ''}
+                  data-testid="override-type-employee"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Employee-wise
+                </Button>
+              </div>
+            </div>
+            
+            {/* Select Role or Employee */}
+            {newOverride.scope === 'role' ? (
+              <div>
+                <Label className="mb-2 block">Select Role</Label>
+                <Select
+                  value={newOverride.scope_value}
+                  onValueChange={(val) => setNewOverride({ ...newOverride, scope_value: val })}
+                >
+                  <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''} data-testid="override-role-select">
+                    <SelectValue placeholder="Select a role..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {APPLIES_TO_OPTIONS.roles.map(role => (
+                      <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label className="mb-2 block">Select Employee</Label>
+                <Select
+                  value={newOverride.scope_value}
+                  onValueChange={(val) => setNewOverride({ ...newOverride, scope_value: val })}
+                >
+                  <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''} data-testid="override-employee-select">
+                    <SelectValue placeholder="Select an employee..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {employeesList.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.employee_id} - {emp.first_name} {emp.last_name} ({emp.department || '-'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {/* Working Days */}
+            <div>
+              <Label className="mb-2 block">Working Days (leave empty to inherit)</Label>
+              <div className="flex flex-wrap gap-2">
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                  const isSelected = newOverride.working_days?.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleOverrideWorkingDay(day)}
+                      className={`px-3 py-1 rounded text-sm transition-all ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white'
+                          : isDark 
+                            ? 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600' 
+                            : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                      }`}
+                    >
+                      {day.slice(0, 3)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Core Hours */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-2 block">Core Hours Start</Label>
+                <Select
+                  value={newOverride.core_hours_start}
+                  onValueChange={(val) => setNewOverride({ ...newOverride, core_hours_start: val })}
+                >
+                  <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00'].map(time => (
+                      <SelectItem key={time} value={time}>{time}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label className="mb-2 block">Core Hours End</Label>
+                <Select
+                  value={newOverride.core_hours_end}
+                  onValueChange={(val) => setNewOverride({ ...newOverride, core_hours_end: val })}
+                >
+                  <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'].map(time => (
+                      <SelectItem key={time} value={time}>{time}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Grace & WFH */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-2 block">Grace Period (mins)</Label>
+                <Input
+                  type="number"
+                  value={newOverride.grace_period_minutes}
+                  onChange={(e) => setNewOverride({ ...newOverride, grace_period_minutes: parseInt(e.target.value) || 0 })}
+                  className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  min={0}
+                  max={60}
+                />
+              </div>
+              
+              <div>
+                <Label className="mb-2 block">WFH Days/Week</Label>
+                <Input
+                  type="number"
+                  value={newOverride.wfh_days_per_week}
+                  onChange={(e) => setNewOverride({ ...newOverride, wfh_days_per_week: parseInt(e.target.value) || 0 })}
+                  className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  min={0}
+                  max={7}
+                />
+              </div>
+            </div>
+            
+            {/* Reason */}
+            <div>
+              <Label className="mb-2 block">Reason for Override</Label>
+              <Input
+                value={newOverride.reason}
+                onChange={(e) => setNewOverride({ ...newOverride, reason: e.target.value })}
+                placeholder="e.g., Consulting role with flexible schedule"
+                className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddOverrideDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateOverride}
+              className="bg-emerald-600 hover:bg-emerald-700"
+              data-testid="create-override-btn"
+            >
+              Create Override
             </Button>
           </DialogFooter>
         </DialogContent>

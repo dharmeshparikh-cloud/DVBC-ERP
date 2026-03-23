@@ -13,7 +13,7 @@ Employees: View-only access
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, date
 import uuid
 from pydantic import BaseModel
@@ -286,9 +286,9 @@ DEFAULT_ATTENDANCE_POLICY = {
             "rule_name": "Core Hours End",
             "rule_type": "threshold",
             "category": "timing",
-            "numeric_value": 17,
-            "unit": "PM (5:00)",
-            "value": "17:00",
+            "numeric_value": 19,
+            "unit": "PM (7:00)",
+            "value": "19:00",
             "description": "Core hours end time (mandatory presence)",
             "is_enabled": True
         },
@@ -340,6 +340,46 @@ DEFAULT_ATTENDANCE_POLICY = {
             "numeric_value": 10,
             "unit": "hours",
             "description": "Hours after which overtime kicks in",
+            "is_enabled": True
+        },
+        {
+            "rule_id": "AT009",
+            "rule_name": "Working Days",
+            "rule_type": "config",
+            "category": "schedule",
+            "value": "Mon,Tue,Wed,Thu,Fri,Sat",
+            "list_value": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            "description": "Company working days (comma separated)",
+            "is_enabled": True
+        },
+        {
+            "rule_id": "AT010",
+            "rule_name": "Grace Period Minutes",
+            "rule_type": "threshold",
+            "category": "timing",
+            "numeric_value": 30,
+            "unit": "minutes",
+            "description": "Grace period for late arrivals before penalty",
+            "is_enabled": True
+        },
+        {
+            "rule_id": "AT011",
+            "rule_name": "Grace Days Per Month",
+            "rule_type": "limit",
+            "category": "timing",
+            "numeric_value": 3,
+            "unit": "days/month",
+            "description": "Number of grace late days allowed per month",
+            "is_enabled": True
+        },
+        {
+            "rule_id": "AT012",
+            "rule_name": "Late Penalty Amount",
+            "rule_type": "penalty",
+            "category": "penalty",
+            "numeric_value": 100,
+            "unit": "INR/day",
+            "description": "Penalty amount per late day beyond grace limit",
             "is_enabled": True
         }
     ],
@@ -984,6 +1024,395 @@ async def delete_policy(policy_id: str, current_user: User = Depends(get_current
         raise HTTPException(status_code=404, detail="Policy not found")
     
     return {"message": "Policy deleted successfully"}
+
+
+# ==================== ATTENDANCE POLICY CONFIGURATION ====================
+
+WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+DEFAULT_WORKING_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+class AttendanceConfigUpdate(BaseModel):
+    """Update attendance configuration"""
+    working_days: Optional[List[str]] = None  # ["Monday", "Tuesday", ...]
+    core_hours_start: Optional[str] = None  # "10:00"
+    core_hours_end: Optional[str] = None  # "19:00"
+    grace_period_minutes: Optional[int] = None
+    grace_days_per_month: Optional[int] = None
+    late_penalty_amount: Optional[float] = None
+    wfh_days_per_week: Optional[int] = None
+
+
+@router.get("/attendance/config")
+async def get_attendance_config(current_user: User = Depends(get_current_user)):
+    """
+    Get current attendance policy configuration (company-wide).
+    Returns the structured configuration from Business Rules SSOT.
+    """
+    db = get_db()
+    
+    # Get company-wide attendance policy
+    attendance_policy = await db.business_policies.find_one(
+        {"policy_type": "attendance", "scope": "company", "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not attendance_policy:
+        raise HTTPException(status_code=404, detail="Attendance policy not configured. Initialize default policies first.")
+    
+    # Extract rules into structured format
+    rules = {r["rule_id"]: r for r in attendance_policy.get("rules", [])}
+    
+    config = {
+        "policy_id": attendance_policy.get("id"),
+        "policy_name": attendance_policy.get("name"),
+        "working_days": rules.get("AT009", {}).get("list_value", DEFAULT_WORKING_DAYS),
+        "working_days_short": rules.get("AT009", {}).get("value", "Mon,Tue,Wed,Thu,Fri,Sat"),
+        "core_hours_start": rules.get("AT002", {}).get("value", "10:00"),
+        "core_hours_end": rules.get("AT003", {}).get("value", "19:00"),
+        "standard_work_hours": rules.get("AT001", {}).get("numeric_value", 9),
+        "late_threshold_minutes": rules.get("AT004", {}).get("numeric_value", 15),
+        "half_day_hours": rules.get("AT005", {}).get("numeric_value", 4),
+        "full_day_hours": rules.get("AT006", {}).get("numeric_value", 8),
+        "wfh_days_per_week": rules.get("AT007", {}).get("numeric_value", 2),
+        "overtime_threshold_hours": rules.get("AT008", {}).get("numeric_value", 10),
+        "grace_period_minutes": rules.get("AT010", {}).get("numeric_value", 30),
+        "grace_days_per_month": rules.get("AT011", {}).get("numeric_value", 3),
+        "late_penalty_amount": rules.get("AT012", {}).get("numeric_value", 100),
+        "all_weekdays": WEEKDAYS,
+        "updated_at": attendance_policy.get("updated_at"),
+        "updated_by_name": attendance_policy.get("updated_by_name")
+    }
+    
+    return config
+
+
+@router.put("/attendance/config")
+async def update_attendance_config(config: AttendanceConfigUpdate, current_user: User = Depends(get_current_user)):
+    """
+    Update company-wide attendance configuration.
+    HR/Admin only. Updates the relevant rules in Business Rules SSOT.
+    """
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    
+    if not has_role(current_user.role, hr_admin_roles + hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR/Admin can update attendance configuration")
+    
+    db = get_db()
+    
+    # Get existing attendance policy
+    attendance_policy = await db.business_policies.find_one(
+        {"policy_type": "attendance", "scope": "company", "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not attendance_policy:
+        raise HTTPException(status_code=404, detail="Attendance policy not found")
+    
+    # Update rules based on config
+    rules = attendance_policy.get("rules", [])
+    updated_rules = []
+    changes = []
+    
+    for rule in rules:
+        rule_id = rule.get("rule_id")
+        updated_rule = {**rule}
+        
+        # AT002: Core Hours Start
+        if rule_id == "AT002" and config.core_hours_start:
+            old_val = rule.get("value")
+            updated_rule["value"] = config.core_hours_start
+            updated_rule["numeric_value"] = int(config.core_hours_start.split(":")[0])
+            if old_val != config.core_hours_start:
+                changes.append(f"Core Hours Start: {old_val} → {config.core_hours_start}")
+        
+        # AT003: Core Hours End
+        if rule_id == "AT003" and config.core_hours_end:
+            old_val = rule.get("value")
+            updated_rule["value"] = config.core_hours_end
+            updated_rule["numeric_value"] = int(config.core_hours_end.split(":")[0])
+            if old_val != config.core_hours_end:
+                changes.append(f"Core Hours End: {old_val} → {config.core_hours_end}")
+        
+        # AT007: WFH Days
+        if rule_id == "AT007" and config.wfh_days_per_week is not None:
+            old_val = rule.get("numeric_value")
+            updated_rule["numeric_value"] = config.wfh_days_per_week
+            if old_val != config.wfh_days_per_week:
+                changes.append(f"WFH Days: {old_val} → {config.wfh_days_per_week}")
+        
+        # AT009: Working Days
+        if rule_id == "AT009" and config.working_days:
+            old_val = rule.get("list_value", [])
+            short_names = [d[:3] for d in config.working_days]
+            updated_rule["list_value"] = config.working_days
+            updated_rule["value"] = ",".join(short_names)
+            if old_val != config.working_days:
+                changes.append(f"Working Days: {len(old_val)} days → {len(config.working_days)} days")
+        
+        # AT010: Grace Period Minutes
+        if rule_id == "AT010" and config.grace_period_minutes is not None:
+            old_val = rule.get("numeric_value")
+            updated_rule["numeric_value"] = config.grace_period_minutes
+            if old_val != config.grace_period_minutes:
+                changes.append(f"Grace Period: {old_val} → {config.grace_period_minutes} mins")
+        
+        # AT011: Grace Days Per Month
+        if rule_id == "AT011" and config.grace_days_per_month is not None:
+            old_val = rule.get("numeric_value")
+            updated_rule["numeric_value"] = config.grace_days_per_month
+            if old_val != config.grace_days_per_month:
+                changes.append(f"Grace Days: {old_val} → {config.grace_days_per_month}/month")
+        
+        # AT012: Late Penalty Amount
+        if rule_id == "AT012" and config.late_penalty_amount is not None:
+            old_val = rule.get("numeric_value")
+            updated_rule["numeric_value"] = config.late_penalty_amount
+            if old_val != config.late_penalty_amount:
+                changes.append(f"Late Penalty: ₹{old_val} → ₹{config.late_penalty_amount}")
+        
+        updated_rules.append(updated_rule)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.business_policies.update_one(
+        {"id": attendance_policy["id"]},
+        {"$set": {
+            "rules": updated_rules,
+            "updated_at": now,
+            "updated_by": current_user.id,
+            "updated_by_name": current_user.full_name
+        }}
+    )
+    
+    # Audit log
+    if changes:
+        await db.audit_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "action": "attendance_config_updated",
+            "entity_type": "business_policy",
+            "entity_id": attendance_policy["id"],
+            "user_id": current_user.id,
+            "user_name": current_user.full_name,
+            "details": {"changes": changes},
+            "created_at": now
+        })
+    
+    return {
+        "message": "Attendance configuration updated successfully",
+        "changes": changes
+    }
+
+
+@router.get("/attendance/overrides")
+async def get_attendance_overrides(current_user: User = Depends(get_current_user)):
+    """
+    Get all role-wise and employee-wise attendance policy overrides.
+    """
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    
+    if not has_role(current_user.role, hr_admin_roles + hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR/Admin can view overrides")
+    
+    db = get_db()
+    
+    # Get role-specific overrides
+    role_overrides = await db.business_policies.find(
+        {"policy_type": "attendance", "scope": "role", "is_active": True},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get employee-specific overrides
+    employee_overrides = await db.business_policies.find(
+        {"policy_type": "attendance", "scope": "employee", "is_active": True},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get employee details for employee overrides
+    for override in employee_overrides:
+        emp_id = override.get("scope_value")
+        if emp_id:
+            employee = await db.employees.find_one(
+                {"id": emp_id},
+                {"_id": 0, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1}
+            )
+            if employee:
+                override["employee_code"] = employee.get("employee_id")
+                override["employee_name"] = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
+                override["department"] = employee.get("department")
+    
+    return {
+        "role_overrides": role_overrides,
+        "employee_overrides": employee_overrides,
+        "total_role_overrides": len(role_overrides),
+        "total_employee_overrides": len(employee_overrides)
+    }
+
+
+@router.post("/attendance/override")
+async def create_attendance_override(data: dict, current_user: User = Depends(get_current_user)):
+    """
+    Create a role-wise or employee-wise attendance policy override.
+    
+    Body: {
+        "scope": "role" | "employee",
+        "scope_value": "consultant" | "EMP001",
+        "name": "Consultant Attendance Policy",
+        "working_days": ["Monday", "Tuesday", ...],
+        "core_hours_start": "10:30",
+        "core_hours_end": "19:30",
+        "reason": "Flexible schedule for consulting roles"
+    }
+    """
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    
+    if not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can create overrides")
+    
+    db = get_db()
+    
+    scope = data.get("scope")  # "role" or "employee"
+    scope_value = data.get("scope_value")  # role name or employee ID
+    
+    if scope not in ["role", "employee"]:
+        raise HTTPException(status_code=400, detail="scope must be 'role' or 'employee'")
+    
+    if not scope_value:
+        raise HTTPException(status_code=400, detail="scope_value is required")
+    
+    # Validate scope_value
+    if scope == "employee":
+        employee = await db.employees.find_one({"id": scope_value}, {"_id": 0, "employee_id": 1, "first_name": 1, "last_name": 1})
+        if not employee:
+            # Try by employee_id code
+            employee = await db.employees.find_one({"employee_id": scope_value}, {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1})
+            if employee:
+                scope_value = employee["id"]  # Use internal ID
+        if not employee:
+            raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Check for existing override
+    existing = await db.business_policies.find_one({
+        "policy_type": "attendance",
+        "scope": scope,
+        "scope_value": scope_value,
+        "is_active": True
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail=f"An override already exists for this {scope}. Delete it first or update it.")
+    
+    # Get company policy as base
+    company_policy = await db.business_policies.find_one(
+        {"policy_type": "attendance", "scope": "company", "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not company_policy:
+        raise HTTPException(status_code=404, detail="Company attendance policy not found")
+    
+    # Build override rules - copy from company and modify
+    base_rules = {r["rule_id"]: r for r in company_policy.get("rules", [])}
+    override_rules = []
+    
+    for rule_id, rule in base_rules.items():
+        updated_rule = {**rule}
+        
+        # Apply overrides
+        if rule_id == "AT002" and data.get("core_hours_start"):
+            updated_rule["value"] = data["core_hours_start"]
+            updated_rule["numeric_value"] = int(data["core_hours_start"].split(":")[0])
+        
+        if rule_id == "AT003" and data.get("core_hours_end"):
+            updated_rule["value"] = data["core_hours_end"]
+            updated_rule["numeric_value"] = int(data["core_hours_end"].split(":")[0])
+        
+        if rule_id == "AT009" and data.get("working_days"):
+            short_names = [d[:3] for d in data["working_days"]]
+            updated_rule["list_value"] = data["working_days"]
+            updated_rule["value"] = ",".join(short_names)
+        
+        if rule_id == "AT010" and data.get("grace_period_minutes") is not None:
+            updated_rule["numeric_value"] = data["grace_period_minutes"]
+        
+        if rule_id == "AT011" and data.get("grace_days_per_month") is not None:
+            updated_rule["numeric_value"] = data["grace_days_per_month"]
+        
+        if rule_id == "AT007" and data.get("wfh_days_per_week") is not None:
+            updated_rule["numeric_value"] = data["wfh_days_per_week"]
+        
+        override_rules.append(updated_rule)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    policy_name = data.get("name", f"Attendance Policy - {scope.title()}: {scope_value}")
+    
+    override_policy = {
+        "id": str(uuid.uuid4()),
+        "name": policy_name,
+        "policy_type": "attendance",
+        "description": data.get("reason", f"Custom attendance policy for {scope}: {scope_value}"),
+        "scope": scope,
+        "scope_value": scope_value,
+        "rules": override_rules,
+        "is_active": True,
+        "effective_from": today,
+        "created_at": now,
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "updated_at": now,
+        "base_policy_id": company_policy.get("id")
+    }
+    
+    await db.business_policies.insert_one(override_policy)
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "attendance_override_created",
+        "entity_type": "business_policy",
+        "entity_id": override_policy["id"],
+        "user_id": current_user.id,
+        "user_name": current_user.full_name,
+        "details": {"scope": scope, "scope_value": scope_value, "name": policy_name},
+        "created_at": now
+    })
+    
+    return {
+        "message": f"Attendance override created for {scope}: {scope_value}",
+        "policy_id": override_policy["id"]
+    }
+
+
+@router.delete("/attendance/override/{policy_id}")
+async def delete_attendance_override(policy_id: str, current_user: User = Depends(get_current_user)):
+    """Delete an attendance policy override (reverts to company default)."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    
+    if not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can delete overrides")
+    
+    db = get_db()
+    
+    # Ensure it's an override (not company policy)
+    policy = await db.business_policies.find_one({"id": policy_id}, {"_id": 0})
+    
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    
+    if policy.get("scope") == "company":
+        raise HTTPException(status_code=400, detail="Cannot delete company-wide policy through this endpoint")
+    
+    result = await db.business_policies.delete_one({"id": policy_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    
+    return {
+        "message": f"Override deleted. {policy.get('scope')}: {policy.get('scope_value')} will use company defaults."
+    }
 
 
 @router.get("/effective/{policy_type}/{employee_id}")

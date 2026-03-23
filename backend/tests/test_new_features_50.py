@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 import uuid
 
 # API Configuration
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://expense-sync-test.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://attendance-engine-3.preview.emergentagent.com')
 
 # Test Credentials - Verified working credentials
 TEST_CREDENTIALS = {

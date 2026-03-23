@@ -15,7 +15,7 @@ import os
 from typing import Optional
 
 # Get API URL from environment or use default
-API_URL = os.environ.get("API_URL", "https://expense-sync-test.preview.emergentagent.com/api")
+API_URL = os.environ.get("API_URL", "https://attendance-engine-3.preview.emergentagent.com/api")
 
 # Test credentials
 CREDENTIALS = {
