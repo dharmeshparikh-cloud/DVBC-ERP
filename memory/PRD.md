@@ -1,8 +1,74 @@
-# MOM Workflow - Product Requirements Document
+# NETRA ERP - Product Requirements Document
+
+## Payroll Engine - COMPLETE ✅ (March 23, 2026)
+
+Production-grade payroll calculation system with field-level traceability.
+
+### Key Features Implemented
+
+#### 1. Payroll Calculation Engine
+- **LOP Formula**: `(Gross Monthly / Actual Days in Month) × LOP Days`
+  - March: 31 days, February: 28/29 days, April: 30 days
+- **PF Calculation**: `min(Basic, ₹15,000) × 12%` (employee + employer)
+- **ESI**: 0.75% employee + 3.25% employer (if gross ≤ ₹21,000)
+- **Professional Tax**: Maharashtra slabs (₹0/₹175/₹200)
+- **Earnings**: Basic (40%), HRA (20%), Special Allowance (40%)
+
+#### 2. Field-Level Traceability
+Every calculation stores:
+- `input_values`: Raw input data
+- `formula_used`: Exact formula applied
+- `output_value`: Calculated result
+- `rule_version`: Version of rule used
+
+#### 3. HR Test Mode (Simulation)
+- Select employee from dropdown
+- Enter LOP days, bonus, incentive, penalty, overtime, reimbursements
+- Click "Calculate Payroll" to simulate
+- View breakdown with formulas (NOT saved to database)
+
+#### 4. Run Payroll
+- Calculates payroll for all active employees
+- Creates draft payroll register
+- Shows department-wise summary
+- Flags errors for employees with missing data
+
+#### 5. Approval Workflow
+```
+Draft → HR Manager Submit → Admin Approve → Locked
+```
+- HR Manager creates and submits
+- Admin approves/rejects
+- Locked payroll cannot be edited (adjustment entries only)
+
+#### 6. Payroll Register
+- Employee-wise breakdown with all components
+- Export to CSV/Excel
+- View calculation breakdown for each employee
+
+### APIs
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/payroll/engine/simulate` | POST | HR Test Mode simulation |
+| `/api/payroll/engine/run` | POST | Run payroll for month |
+| `/api/payroll/engine/register` | GET | Get payroll registers |
+| `/api/payroll/engine/register/{month}/details` | GET | Detailed register |
+| `/api/payroll/engine/breakdown/{emp}/{month}` | GET | Calculation breakdown |
+| `/api/payroll/engine/submit-for-approval` | POST | HR submits for approval |
+| `/api/payroll/engine/approve` | POST | Admin approves |
+| `/api/payroll/engine/export/{month}` | GET | Export data |
+
+### Files
+- Backend Engine: `/app/backend/services/payroll_engine.py`
+- Backend Router: `/app/backend/routers/payroll_engine_router.py`
+- Frontend Page: `/app/frontend/src/pages/PayrollEngine.js`
+- Frontend Hooks: `/app/frontend/src/hooks/usePayrollEngine.js`
+
+---
 
 ## Business Rules & Policies - COMPLETE ✅
 
-### Test My Rule Feature (NEW) - March 23, 2026
+### Test My Rule Feature (March 23, 2026)
 Interactive employee-based rule testing with auto-fill:
 
 #### Employee Selection Dropdown
@@ -13,61 +79,14 @@ Interactive employee-based rule testing with auto-fill:
 
 #### Auto-Calculated Fields
 - Basic Salary = 40% of Annual CTC (auto-calculated)
-- LOP Daily Rate = Gross CTC Monthly / 30 days
-
-#### Rule Testing Workflow
-1. Select employee from dropdown (or enter manually)
-2. Enter scenario value (expense amount, days, etc.)
-3. Click "Calculate Impact" 
-4. View result: APPROVED/REJECTED/CALCULATED with breakdown
-
----
+- LOP Daily Rate = Gross CTC Monthly / Actual Days in Month
 
 ### Rule Impact Simulation Feature
 Shows real-world examples with CTC impact for each rule type:
 
-#### LIMIT Rules
-- **Example 1 (Within Limit):** Employee CTC ₹8L, requests 20000 days → APPROVED
-- **Example 2 (Exceeds Limit):** Employee CTC ₹12L, claims ₹75,000 vs ₹50,000 limit → REJECTED
-
-#### THRESHOLD Rules
-- **Example 1 (Below):** Expense ₹300 auto-approved (threshold ₹500)
-- **Example 2 (Above):** 5 late arrivals vs 3 threshold → PENALTY (1 day LOP = ₹1,333)
-
 #### FORMULA Rules  
 - **Example 1 (PF):** Basic ₹33,333 × 12% = ₹4,000/month PF contribution
-- **Example 2 (LOP):** Gross CTC/30 × 3 LOP days = ₹10,000 deduction (UPDATED: Uses Gross CTC, not Basic)
-
-#### CONDITION Rules
-- **Example 1 (Met):** Manager + 5hr travel → Business class allowed
-- **Example 2 (Not Met):** Developer + 5hr travel → Economy only
-
-#### APPROVAL Rules
-- **Example 1 (Correct):** Employee → Manager approval → APPROVED
-- **Example 2 (Blocked):** Manager self-approve → BLOCKED → redirected to HR
-
-### CTC Components Affected by Rule Type
-| Rule Type | CTC Components |
-|-----------|----------------|
-| FORMULA | Basic, PF, ESI, Gross |
-| LIMIT | Reimbursements, Encashment, Travel |
-| THRESHOLD | LOP, Attendance Bonus, Overtime |
-| CONDITION | Allowances, Grade Benefits |
-| APPROVAL | Expense Reimbursements, Leave |
-
----
-
-### Form Features
-1. **Rule Type** - LIMIT, THRESHOLD, CONDITION, FORMULA, APPROVAL
-2. **Category** - Policy-specific (8-10 per type)
-3. **Applies To** - All Employees, By Dept/Role/Grade/Location/CTC
-4. **Unit** - 25 options (days/year, INR, percent, etc.)
-5. **Value Templates** - Formula-specific dropdowns
-6. **Condition Builder** - 17 fields × 10 operators
-7. **Rule Preview** - Live preview
-8. **Impact Simulation** - 2 examples per rule type with CTC calculations
-9. **Test My Rule** - Interactive employee-based testing with auto-fill
-10. **Apply Rule & Close** - One-click save and close
+- **Example 2 (LOP):** Gross CTC/31 × 3 LOP days = ₹6,290 deduction (Uses Actual Days)
 
 ---
 
@@ -76,9 +95,18 @@ Shows real-world examples with CTC impact for each rule type:
 |------|-------------|----------|
 | Admin | EMP001 | admin123 |
 | HR Manager | EMP002 | hr123 |
+| Sales | EMP003 | sales123 |
+| Consultant | EMP004 | consultant123 |
+
+---
+
+## Test Reports
+- `/app/test_reports/iteration_199.json` - Payroll Engine (18 tests passed)
+- `/app/test_reports/iteration_198.json` - Business Rules CRUD
+- `/app/test_reports/iteration_197.json` - Rule Stress Test (54 rules)
 
 ---
 
 ## Last Updated
 - Date: March 23, 2026
-- Status: Test My Rule with Employee Auto-Fill + LOP Formula Fix - COMPLETE
+- Status: Payroll Engine with Field-Level Traceability - COMPLETE
