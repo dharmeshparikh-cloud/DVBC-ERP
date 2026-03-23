@@ -18,8 +18,45 @@
 - **Max Rebate:** ₹60,000
 - **Result:** Zero tax up to ₹12.75L gross income (after ₹75K standard deduction)
 
+### Professional Tax - Gujarat Slabs ✅
+| Monthly Salary | PT Amount |
+|---------------|-----------|
+| Up to ₹5,999 | Nil |
+| ₹6,000 - ₹8,999 | ₹80 |
+| ₹9,000 - ₹11,999 | ₹150 |
+| ₹12,000 and above | ₹200 |
+
 ### Standard Deduction (Section 16ia)
 - Amount: ₹75,000
+
+---
+
+## Exit Settlement & F&F Module ✅ (NEW)
+
+### Features Implemented
+1. **Exit Initiation** - Resignation/Termination/Retirement/Death
+2. **Clearance Workflow** - HR, Finance, IT, Admin, Manager
+3. **Gratuity Calculation** - Per Gratuity Act 1972 (5+ years, max ₹20L)
+4. **Leave Encashment** - Policy-based (Earned/Privilege leaves)
+5. **Notice Period** - Recovery or Payment calculation
+6. **Loan Recovery** - Auto-deduct from F&F
+7. **Settlement Approval** - HR → Admin workflow
+
+### Loan Management ✅
+- Tenure: 1-6 months (configurable)
+- Interest: 0% (salary advance) or interest-bearing
+- EMI: Equally divided, auto-deducted from payroll
+- Schedule: Month-wise breakdown generated
+
+### HR Dashboard Payroll Scorecards ✅
+| Scorecard | Description |
+|-----------|-------------|
+| Current Payroll | Monthly net payable with status |
+| YTD Payroll | Year-to-date total |
+| TDS Liability | Monthly TDS amount |
+| PF Contribution | Employee + Employer |
+| F&F Pipeline | Pending exits |
+| Loan Recovery | Monthly recovery amount |
 
 ---
 

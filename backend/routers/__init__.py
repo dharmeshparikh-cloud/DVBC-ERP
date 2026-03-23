@@ -34,6 +34,7 @@ from . import payments
 from . import project_payments
 from . import payroll
 from . import payroll_engine_router
+from . import exit_settlement
 
 # Analytics & Reports
 from . import analytics
@@ -75,7 +76,7 @@ __all__ = [
     # Sales
     'sales', 'enhanced_sow', 'sow_masters', 'masters', 'kickoff',
     # Finance
-    'payments', 'project_payments', 'payroll', 'payroll_engine_router',
+    'payments', 'project_payments', 'payroll', 'payroll_engine_router', 'exit_settlement',
     # Analytics
     'analytics', 'stats', 'project_pnl', 'reports',
     # Admin

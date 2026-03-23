@@ -245,27 +245,57 @@ class PayrollCalculationEngine:
     async def calculate_professional_tax(
         self,
         gross_monthly: float,
-        state: str = "Maharashtra"
+        state: str = "Gujarat"
     ) -> Dict[str, Any]:
         """
         Calculate Professional Tax based on state slabs.
-        Default: Maharashtra slabs.
+        
+        Gujarat PT Slabs (default):
+        - Up to ₹5,999: Nil
+        - ₹6,000 to ₹8,999: ₹80
+        - ₹9,000 to ₹11,999: ₹150
+        - ₹12,000 and above: ₹200
+        
+        Maharashtra PT Slabs (for reference):
+        - Up to ₹7,500: Nil
+        - ₹7,501 to ₹10,000: ₹175
+        - Above ₹10,000: ₹200
         """
-        # Maharashtra PT slabs
         pt_amount = 0
         slab_used = ""
         
-        if gross_monthly <= 7500:
-            pt_amount = 0
-            slab_used = "Up to ₹7,500 - Nil"
-        elif gross_monthly <= 10000:
-            pt_amount = 175
-            slab_used = "₹7,501 to ₹10,000 - ₹175"
+        if state.lower() == "gujarat":
+            # Gujarat PT slabs
+            if gross_monthly < 6000:
+                pt_amount = 0
+                slab_used = "Up to ₹5,999 - Nil"
+            elif gross_monthly < 9000:
+                pt_amount = 80
+                slab_used = "₹6,000 to ₹8,999 - ₹80"
+            elif gross_monthly < 12000:
+                pt_amount = 150
+                slab_used = "₹9,000 to ₹11,999 - ₹150"
+            else:
+                pt_amount = 200
+                slab_used = "₹12,000 and above - ₹200"
+        elif state.lower() == "maharashtra":
+            # Maharashtra PT slabs
+            if gross_monthly <= 7500:
+                pt_amount = 0
+                slab_used = "Up to ₹7,500 - Nil"
+            elif gross_monthly <= 10000:
+                pt_amount = 175
+                slab_used = "₹7,501 to ₹10,000 - ₹175"
+            else:
+                pt_amount = 200
+                slab_used = "Above ₹10,000 - ₹200 (max)"
         else:
-            pt_amount = 200
-            slab_used = "Above ₹10,000 - ₹200 (max)"
+            # Default Gujarat
+            if gross_monthly >= 12000:
+                pt_amount = 200
+                slab_used = f"{state} - Default ₹200"
         
-        formula = f"Gross ₹{gross_monthly:,.2f} → Slab: {slab_used}"
+        formula = f"Gross ₹{gross_monthly:,.2f} → {state} Slab: {slab_used}"
         
         calc = self._log_calculation(
             component_name="Professional Tax",
@@ -276,12 +306,13 @@ class PayrollCalculationEngine:
             },
             formula=formula,
             output_value=pt_amount,
-            rule_id="PROFESSIONAL_TAX",
-            rule_version="1.0"
+            rule_id="PROFESSIONAL_TAX_GUJARAT",
+            rule_version="2.0"
         )
         
         return {
             "amount": round(pt_amount, 2),
+            "state": state,
             "slab": slab_used,
             "calculation": calc
         }
@@ -396,6 +427,399 @@ class PayrollCalculationEngine:
             "calculation": calc
         }
     
+    # ==================== F&F CALCULATIONS ====================
+    
+    async def calculate_gratuity(
+        self,
+        basic_monthly: float,
+        da_monthly: float,
+        tenure_years: float,
+        tenure_months: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Calculate Gratuity as per Payment of Gratuity Act, 1972.
+        
+        Formula: (Basic + DA) × 15 × Years of Service / 26
+        
+        Eligibility: Minimum 5 years of continuous service
+        Maximum: ₹20,00,000 (as per 2019 amendment)
+        """
+        total_tenure_years = tenure_years + (tenure_months / 12)
+        
+        # Eligibility check
+        eligible = total_tenure_years >= 5
+        
+        if not eligible:
+            return {
+                "amount": 0,
+                "eligible": False,
+                "reason": f"Minimum 5 years required. Current tenure: {total_tenure_years:.2f} years",
+                "tenure_years": round(total_tenure_years, 2)
+            }
+        
+        # Gratuity calculation
+        last_drawn = basic_monthly + da_monthly
+        gratuity = (last_drawn * 15 * total_tenure_years) / 26
+        
+        # Cap at maximum
+        max_gratuity = 2000000  # ₹20 Lakhs
+        final_gratuity = min(gratuity, max_gratuity)
+        capped = gratuity > max_gratuity
+        
+        formula = f"(₹{last_drawn:,.0f} × 15 × {total_tenure_years:.2f}) / 26 = ₹{gratuity:,.2f}"
+        if capped:
+            formula += f" (Capped at ₹{max_gratuity:,})"
+        
+        calc = self._log_calculation(
+            component_name="Gratuity",
+            input_values={
+                "basic_monthly": basic_monthly,
+                "da_monthly": da_monthly,
+                "last_drawn": last_drawn,
+                "tenure_years": total_tenure_years
+            },
+            formula=formula,
+            output_value=final_gratuity,
+            rule_id="GRATUITY_ACT_1972",
+            rule_version="1.0"
+        )
+        
+        return {
+            "amount": round(final_gratuity, 2),
+            "eligible": True,
+            "tenure_years": round(total_tenure_years, 2),
+            "last_drawn": round(last_drawn, 2),
+            "capped": capped,
+            "formula": formula,
+            "calculation": calc
+        }
+    
+    async def calculate_leave_encashment(
+        self,
+        basic_monthly: float,
+        leave_balance: Dict[str, float],
+        encashment_policy: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Calculate Leave Encashment based on policy.
+        
+        Default Policy:
+        - Earned/Privilege Leave: Fully encashable
+        - Casual Leave: Not encashable (lapses)
+        - Sick Leave: Not encashable (lapses)
+        - Compensatory Off: Encashable if policy allows
+        
+        Formula: (Basic / 30) × Encashable Leave Days
+        """
+        per_day_rate = basic_monthly / 30
+        
+        # Get encashment rules from policy
+        encashable_types = encashment_policy.get("encashable_leave_types", ["earned", "privilege", "el", "pl"])
+        max_encashable_days = encashment_policy.get("max_encashable_days", 300)  # Lifetime cap
+        
+        total_encashable = 0
+        breakdown = {}
+        
+        for leave_type, balance in leave_balance.items():
+            leave_type_lower = leave_type.lower()
+            if any(enc_type in leave_type_lower for enc_type in encashable_types):
+                encashable_days = min(balance, max_encashable_days - total_encashable)
+                if encashable_days > 0:
+                    breakdown[leave_type] = {
+                        "balance": balance,
+                        "encashable": encashable_days,
+                        "amount": round(encashable_days * per_day_rate, 2)
+                    }
+                    total_encashable += encashable_days
+            else:
+                breakdown[leave_type] = {
+                    "balance": balance,
+                    "encashable": 0,
+                    "amount": 0,
+                    "reason": "Not encashable as per policy"
+                }
+        
+        total_amount = total_encashable * per_day_rate
+        
+        formula = f"(₹{basic_monthly:,.0f} / 30) × {total_encashable} days = ₹{total_amount:,.2f}"
+        
+        calc = self._log_calculation(
+            component_name="Leave Encashment",
+            input_values={
+                "basic_monthly": basic_monthly,
+                "per_day_rate": per_day_rate,
+                "leave_balance": leave_balance,
+                "total_encashable_days": total_encashable
+            },
+            formula=formula,
+            output_value=total_amount,
+            rule_id="LEAVE_ENCASHMENT",
+            rule_version="1.0"
+        )
+        
+        return {
+            "amount": round(total_amount, 2),
+            "total_encashable_days": total_encashable,
+            "per_day_rate": round(per_day_rate, 2),
+            "breakdown": breakdown,
+            "calculation": calc
+        }
+    
+    async def calculate_notice_period(
+        self,
+        gross_monthly: float,
+        notice_period_days: int,
+        days_served: int,
+        is_employee_resignation: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Calculate Notice Period Recovery/Payment.
+        
+        If employee resigns and doesn't serve full notice:
+        - Recovery = (Gross / 30) × Shortfall Days
+        
+        If company terminates without notice:
+        - Payment = (Gross / 30) × Notice Period Days
+        """
+        per_day_rate = gross_monthly / 30
+        shortfall_days = max(0, notice_period_days - days_served)
+        
+        if is_employee_resignation:
+            # Employee resigned - check if notice served
+            if shortfall_days > 0:
+                recovery_amount = shortfall_days * per_day_rate
+                return {
+                    "type": "recovery",
+                    "amount": round(recovery_amount, 2),
+                    "notice_period_days": notice_period_days,
+                    "days_served": days_served,
+                    "shortfall_days": shortfall_days,
+                    "per_day_rate": round(per_day_rate, 2),
+                    "formula": f"(₹{gross_monthly:,.0f} / 30) × {shortfall_days} = ₹{recovery_amount:,.2f}"
+                }
+            else:
+                return {
+                    "type": "none",
+                    "amount": 0,
+                    "notice_period_days": notice_period_days,
+                    "days_served": days_served,
+                    "message": "Full notice period served"
+                }
+        else:
+            # Company termination - pay notice period
+            payment_amount = notice_period_days * per_day_rate
+            return {
+                "type": "payment",
+                "amount": round(payment_amount, 2),
+                "notice_period_days": notice_period_days,
+                "per_day_rate": round(per_day_rate, 2),
+                "formula": f"(₹{gross_monthly:,.0f} / 30) × {notice_period_days} = ₹{payment_amount:,.2f}"
+            }
+    
+    async def calculate_loan_emi_schedule(
+        self,
+        loan_amount: float,
+        tenure_months: int,
+        interest_rate: float = 0  # Annual interest rate (0 for interest-free)
+    ) -> Dict[str, Any]:
+        """
+        Calculate Loan/Advance EMI schedule for payroll deduction.
+        
+        Supports:
+        - Interest-free advances (simple division)
+        - Interest-bearing loans (EMI formula)
+        
+        Tenure: 1-6 months configurable
+        """
+        if tenure_months < 1 or tenure_months > 6:
+            return {
+                "error": True,
+                "message": "Tenure must be between 1 and 6 months"
+            }
+        
+        if interest_rate == 0:
+            # Interest-free advance - simple division
+            monthly_emi = loan_amount / tenure_months
+            total_payable = loan_amount
+            total_interest = 0
+        else:
+            # EMI calculation with interest
+            monthly_rate = interest_rate / 12 / 100
+            emi = loan_amount * monthly_rate * ((1 + monthly_rate) ** tenure_months) / (((1 + monthly_rate) ** tenure_months) - 1)
+            monthly_emi = emi
+            total_payable = emi * tenure_months
+            total_interest = total_payable - loan_amount
+        
+        # Generate schedule
+        schedule = []
+        remaining = loan_amount
+        for month in range(1, tenure_months + 1):
+            principal = loan_amount / tenure_months if interest_rate == 0 else monthly_emi - (remaining * (interest_rate / 12 / 100))
+            interest = 0 if interest_rate == 0 else remaining * (interest_rate / 12 / 100)
+            remaining = max(0, remaining - principal)
+            schedule.append({
+                "month": month,
+                "emi": round(monthly_emi, 2),
+                "principal": round(principal, 2),
+                "interest": round(interest, 2),
+                "remaining": round(remaining, 2)
+            })
+        
+        return {
+            "loan_amount": loan_amount,
+            "tenure_months": tenure_months,
+            "interest_rate": interest_rate,
+            "monthly_emi": round(monthly_emi, 2),
+            "total_payable": round(total_payable, 2),
+            "total_interest": round(total_interest, 2),
+            "schedule": schedule
+        }
+    
+    async def fetch_approved_expenses(
+        self,
+        employee_id: str,
+        month: str
+    ) -> Dict[str, Any]:
+        """
+        Fetch approved expense reimbursements for an employee for a month.
+        Auto-integrates with expense module.
+        """
+        year, mon = map(int, month.split('-'))
+        start_date = f"{year}-{mon:02d}-01"
+        if mon == 12:
+            end_date = f"{year + 1}-01-01"
+        else:
+            end_date = f"{year}-{mon + 1:02d}-01"
+        
+        # Fetch approved expenses
+        expenses = await self.db.expenses.find({
+            "employee_id": employee_id,
+            "status": "approved",
+            "submitted_date": {"$gte": start_date, "$lt": end_date}
+        }, {"_id": 0}).to_list(100)
+        
+        # Categorize expenses
+        categories = {
+            "travel": 0,
+            "medical": 0,
+            "food": 0,
+            "telephone": 0,
+            "internet": 0,
+            "other": 0
+        }
+        
+        total = 0
+        expense_list = []
+        
+        for exp in expenses:
+            amount = exp.get("amount", 0)
+            category = exp.get("category", "other").lower()
+            
+            if category in categories:
+                categories[category] += amount
+            else:
+                categories["other"] += amount
+            
+            total += amount
+            expense_list.append({
+                "id": exp.get("id"),
+                "category": category,
+                "amount": amount,
+                "description": exp.get("description", ""),
+                "approved_date": exp.get("approved_date")
+            })
+        
+        return {
+            "total": round(total, 2),
+            "categories": {k: round(v, 2) for k, v in categories.items()},
+            "expense_count": len(expense_list),
+            "expenses": expense_list
+        }
+    
+    async def calculate_prorata_salary(
+        self,
+        gross_monthly: float,
+        joining_date: str,
+        month: str
+    ) -> Dict[str, Any]:
+        """
+        Calculate pro-rata salary for mid-month joiners.
+        
+        Formula: (Gross / Days in Month) × Working Days
+        """
+        from datetime import datetime
+        import calendar
+        
+        year, mon = map(int, month.split('-'))
+        days_in_month = calendar.monthrange(year, mon)[1]
+        
+        join_dt = datetime.strptime(joining_date, "%Y-%m-%d")
+        join_year, join_month, join_day = join_dt.year, join_dt.month, join_dt.day
+        
+        # Check if joining in this month
+        if join_year == year and join_month == mon:
+            working_days = days_in_month - join_day + 1
+            prorata_salary = (gross_monthly / days_in_month) * working_days
+            is_prorata = True
+        else:
+            working_days = days_in_month
+            prorata_salary = gross_monthly
+            is_prorata = False
+        
+        return {
+            "gross_monthly": gross_monthly,
+            "days_in_month": days_in_month,
+            "working_days": working_days,
+            "joining_date": joining_date,
+            "is_prorata": is_prorata,
+            "prorata_salary": round(prorata_salary, 2),
+            "formula": f"(₹{gross_monthly:,.0f} / {days_in_month}) × {working_days} = ₹{prorata_salary:,.2f}" if is_prorata else "Full month salary"
+        }
+    
+    async def apply_appraisal_increment(
+        self,
+        employee_id: str,
+        current_ctc: float,
+        effective_date: str
+    ) -> Dict[str, Any]:
+        """
+        Fetch and apply appraisal increment from appraisals collection.
+        """
+        # Fetch latest approved appraisal
+        appraisal = await self.db.appraisals.find_one({
+            "employee_id": employee_id,
+            "status": "approved",
+            "effective_date": {"$lte": effective_date}
+        }, {"_id": 0}, sort=[("effective_date", -1)])
+        
+        if not appraisal:
+            return {
+                "has_increment": False,
+                "current_ctc": current_ctc,
+                "new_ctc": current_ctc,
+                "message": "No approved appraisal found"
+            }
+        
+        increment_type = appraisal.get("increment_type", "percentage")
+        increment_value = appraisal.get("increment_value", 0)
+        
+        if increment_type == "percentage":
+            increment_amount = current_ctc * (increment_value / 100)
+            new_ctc = current_ctc + increment_amount
+        else:
+            increment_amount = increment_value
+            new_ctc = current_ctc + increment_value
+        
+        return {
+            "has_increment": True,
+            "current_ctc": current_ctc,
+            "new_ctc": round(new_ctc, 2),
+            "increment_amount": round(increment_amount, 2),
+            "increment_percentage": round((increment_amount / current_ctc) * 100, 2),
+            "effective_date": appraisal.get("effective_date"),
+            "appraisal_id": appraisal.get("id")
+        }
+
     async def fetch_attendance_summary(
         self,
         employee_id: str,
