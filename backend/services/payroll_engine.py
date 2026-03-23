@@ -286,6 +286,258 @@ class PayrollCalculationEngine:
             "calculation": calc
         }
     
+    async def calculate_tds(
+        self,
+        gross_annual: float,
+        regime: str = "new"
+    ) -> Dict[str, Any]:
+        """
+        Calculate TDS (Tax Deduction at Source) based on income tax slabs.
+        
+        New Regime (FY 2024-25):
+        - Up to ₹3,00,000: Nil
+        - ₹3,00,001 to ₹7,00,000: 5%
+        - ₹7,00,001 to ₹10,00,000: 10%
+        - ₹10,00,001 to ₹12,00,000: 15%
+        - ₹12,00,001 to ₹15,00,000: 20%
+        - Above ₹15,00,000: 30%
+        
+        Standard deduction: ₹75,000
+        """
+        standard_deduction = 75000
+        taxable_income = max(0, gross_annual - standard_deduction)
+        
+        # Calculate tax based on slabs
+        tax = 0
+        slab_details = []
+        remaining = taxable_income
+        
+        slabs = [
+            (300000, 0, "Up to ₹3L"),
+            (400000, 5, "₹3L - ₹7L @ 5%"),
+            (300000, 10, "₹7L - ₹10L @ 10%"),
+            (200000, 15, "₹10L - ₹12L @ 15%"),
+            (300000, 20, "₹12L - ₹15L @ 20%"),
+            (float('inf'), 30, "Above ₹15L @ 30%")
+        ]
+        
+        for limit, rate, desc in slabs:
+            if remaining <= 0:
+                break
+            taxable_in_slab = min(remaining, limit)
+            tax_in_slab = taxable_in_slab * (rate / 100)
+            if tax_in_slab > 0:
+                slab_details.append(f"{desc}: ₹{tax_in_slab:,.0f}")
+            tax += tax_in_slab
+            remaining -= taxable_in_slab
+        
+        # Add 4% health & education cess
+        cess = tax * 0.04
+        total_tax = tax + cess
+        
+        # Monthly TDS
+        monthly_tds = total_tax / 12
+        
+        formula = f"Annual: ₹{gross_annual:,.0f} - SD ₹{standard_deduction:,.0f} = ₹{taxable_income:,.0f} taxable"
+        
+        calc = self._log_calculation(
+            component_name="TDS (Income Tax)",
+            input_values={
+                "gross_annual": gross_annual,
+                "standard_deduction": standard_deduction,
+                "taxable_income": taxable_income,
+                "regime": regime,
+                "annual_tax": round(tax, 2),
+                "cess_4_percent": round(cess, 2)
+            },
+            formula=formula,
+            output_value=monthly_tds,
+            rule_id="TDS_NEW_REGIME",
+            rule_version="1.0"
+        )
+        
+        return {
+            "monthly_tds": round(monthly_tds, 2),
+            "annual_tax": round(total_tax, 2),
+            "taxable_income": round(taxable_income, 2),
+            "slab_breakdown": slab_details,
+            "regime": regime,
+            "calculation": calc
+        }
+    
+    async def fetch_attendance_summary(
+        self,
+        employee_id: str,
+        month: str
+    ) -> Dict[str, Any]:
+        """
+        Fetch attendance summary for an employee for a month.
+        Returns present, absent, leave, holiday breakdown.
+        """
+        year, mon = map(int, month.split('-'))
+        start_date = f"{year}-{mon:02d}-01"
+        end_date = f"{year}-{mon:02d}-{self._get_days_in_month(month):02d}"
+        
+        # Fetch attendance records
+        attendance_records = await self.db.attendance.find({
+            "employee_id": employee_id,
+            "date": {"$gte": start_date, "$lte": end_date}
+        }, {"_id": 0}).to_list(50)
+        
+        # Fetch approved leaves
+        leave_records = await self.db.leave_requests.find({
+            "employee_id": employee_id,
+            "status": "approved",
+            "$or": [
+                {"start_date": {"$gte": start_date, "$lte": end_date}},
+                {"end_date": {"$gte": start_date, "$lte": end_date}}
+            ]
+        }, {"_id": 0}).to_list(20)
+        
+        # Count days
+        days_in_month = self._get_days_in_month(month)
+        present_days = len([a for a in attendance_records if a.get("status") == "present"])
+        half_days = len([a for a in attendance_records if a.get("status") == "half_day"])
+        wfh_days = len([a for a in attendance_records if a.get("work_location") == "wfh"])
+        absent_days = len([a for a in attendance_records if a.get("status") == "absent"])
+        
+        # Calculate leave days
+        total_leave_days = 0
+        paid_leave_days = 0
+        unpaid_leave_days = 0
+        
+        for leave in leave_records:
+            leave_days = leave.get("days", 0) or leave.get("total_days", 0)
+            total_leave_days += leave_days
+            if leave.get("leave_type") in ["casual", "sick", "earned", "privilege"]:
+                paid_leave_days += leave_days
+            else:
+                unpaid_leave_days += leave_days
+        
+        # Assume weekends as holidays (simplified - can be enhanced with holiday calendar)
+        # Count Saturdays and Sundays in the month
+        from datetime import date
+        holidays = 0
+        for day in range(1, days_in_month + 1):
+            d = date(year, mon, day)
+            if d.weekday() in [5, 6]:  # Saturday, Sunday
+                holidays += 1
+        
+        # Calculate LOP (unpaid leaves + unrecorded absents)
+        working_days = days_in_month - holidays
+        effective_present = present_days + (half_days * 0.5) + paid_leave_days
+        lop_days = max(0, working_days - effective_present - unpaid_leave_days)
+        
+        # If no attendance records, use payroll input LOP
+        if len(attendance_records) == 0:
+            lop_days = 0  # Will be taken from payroll_input
+        
+        return {
+            "days_in_month": days_in_month,
+            "working_days": working_days,
+            "holidays": holidays,
+            "present_days": present_days,
+            "half_days": half_days,
+            "wfh_days": wfh_days,
+            "absent_days": absent_days,
+            "total_leave_days": total_leave_days,
+            "paid_leave_days": paid_leave_days,
+            "unpaid_leave_days": unpaid_leave_days,
+            "calculated_lop": lop_days,
+            "attendance_records": len(attendance_records)
+        }
+    
+    async def fetch_rule_based_deductions(
+        self,
+        employee: Dict[str, Any],
+        month: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch deductions from Business Rules based on employee violations.
+        e.g., Late arrival penalties, travel policy violations, etc.
+        """
+        employee_id = employee.get("id")
+        deductions = []
+        
+        # Fetch any penalty records for this employee/month
+        penalties = await self.db.employee_penalties.find({
+            "employee_id": employee_id,
+            "month": month,
+            "status": "active"
+        }, {"_id": 0}).to_list(20)
+        
+        for penalty in penalties:
+            calc = self._log_calculation(
+                component_name=penalty.get("name", "Penalty"),
+                input_values={
+                    "rule_id": penalty.get("rule_id"),
+                    "reason": penalty.get("reason"),
+                    "violation_count": penalty.get("violation_count", 1)
+                },
+                formula=penalty.get("formula", "Rule-based penalty"),
+                output_value=penalty.get("amount", 0),
+                rule_id=penalty.get("rule_id", "PENALTY"),
+                rule_version="1.0"
+            )
+            deductions.append({
+                "key": f"penalty_{penalty.get('rule_id', 'unknown')}",
+                "name": penalty.get("name", "Policy Violation Penalty"),
+                "amount": round(penalty.get("amount", 0), 2),
+                "details": penalty.get("reason", ""),
+                "calculation": calc
+            })
+        
+        # Fetch late arrival deductions from attendance rules
+        late_policy = await self.db.business_policies.find_one(
+            {"policy_type": "attendance", "is_active": True},
+            {"_id": 0}
+        )
+        
+        if late_policy:
+            late_rule = next(
+                (r for r in late_policy.get("rules", []) 
+                 if r.get("rule_id") == "AT002" and r.get("is_enabled", True)),
+                None
+            )
+            if late_rule:
+                # Check late arrivals for this month
+                late_threshold = late_rule.get("numeric_value", 3)
+                late_count = await self.db.attendance.count_documents({
+                    "employee_id": employee_id,
+                    "date": {"$regex": f"^{month}"},
+                    "late_arrival": True
+                })
+                
+                if late_count > late_threshold:
+                    excess_late = late_count - late_threshold
+                    gross = employee.get("salary", 0) or employee.get("gross_salary", 0)
+                    daily_rate = gross / self._get_days_in_month(month)
+                    penalty_amount = daily_rate * 0.5 * excess_late  # Half day LOP per excess late
+                    
+                    calc = self._log_calculation(
+                        component_name="Late Arrival Penalty",
+                        input_values={
+                            "late_count": late_count,
+                            "threshold": late_threshold,
+                            "excess_late": excess_late,
+                            "daily_rate": round(daily_rate, 2),
+                            "penalty_per_late": "0.5 day LOP"
+                        },
+                        formula=f"{excess_late} excess × ₹{daily_rate:,.2f} × 0.5",
+                        output_value=penalty_amount,
+                        rule_id="AT002",
+                        rule_version=late_policy.get("version", "1.0")
+                    )
+                    deductions.append({
+                        "key": "late_arrival_penalty",
+                        "name": "Late Arrival Penalty (Rule: AT002)",
+                        "amount": round(penalty_amount, 2),
+                        "details": f"{excess_late} late arrivals above threshold of {late_threshold}",
+                        "calculation": calc
+                    })
+        
+        return deductions
+    
     async def calculate_earnings(
         self,
         gross_monthly: float,
@@ -469,12 +721,19 @@ class PayrollCalculationEngine:
         # === DEDUCTIONS ===
         deductions = []
         
+        # Fetch attendance summary
+        attendance_summary = await self.fetch_attendance_summary(employee_id, month)
+        
+        # Use attendance-calculated LOP if available and no manual LOP provided
+        if lop_days == 0 and attendance_summary.get("calculated_lop", 0) > 0:
+            lop_days = attendance_summary["calculated_lop"]
+        
         # LOP Deduction
         if lop_days > 0:
             lop_result = await self.calculate_lop(gross_monthly, lop_days, month, working_days)
             deductions.append({
                 "key": "lop",
-                "name": "Loss of Pay",
+                "name": "Loss of Pay (LOP)",
                 "amount": lop_result["amount"],
                 "details": f"{lop_days} days @ ₹{lop_result['daily_rate']:,.2f}/day",
                 "calculation": lop_result["calculation"]
@@ -485,7 +744,7 @@ class PayrollCalculationEngine:
         if pf_result["employee_contribution"] > 0:
             deductions.append({
                 "key": "pf",
-                "name": "Provident Fund",
+                "name": "Provident Fund (PF)",
                 "amount": pf_result["employee_contribution"],
                 "details": f"12% of ₹{pf_result['pf_base']:,.2f}",
                 "calculation": pf_result["calculation"]
@@ -496,7 +755,7 @@ class PayrollCalculationEngine:
         if esi_result.get("applicable") and esi_result["employee_contribution"] > 0:
             deductions.append({
                 "key": "esi",
-                "name": "ESI",
+                "name": "ESI (Employee State Insurance)",
                 "amount": esi_result["employee_contribution"],
                 "details": f"0.75% of ₹{gross_monthly:,.2f}",
                 "calculation": esi_result.get("calculation")
@@ -507,24 +766,40 @@ class PayrollCalculationEngine:
         if pt_result["amount"] > 0:
             deductions.append({
                 "key": "professional_tax",
-                "name": "Professional Tax",
+                "name": "Professional Tax (PT)",
                 "amount": pt_result["amount"],
                 "details": pt_result["slab"],
                 "calculation": pt_result["calculation"]
             })
         
-        # Penalty deduction
+        # TDS (Income Tax) - New Regime
+        gross_annual = gross_monthly * 12
+        tds_result = await self.calculate_tds(gross_annual, "new")
+        if tds_result["monthly_tds"] > 0:
+            deductions.append({
+                "key": "tds",
+                "name": "TDS (Income Tax)",
+                "amount": tds_result["monthly_tds"],
+                "details": f"New Regime - Annual Tax: ₹{tds_result['annual_tax']:,.0f}",
+                "calculation": tds_result["calculation"]
+            })
+        
+        # Rule-based deductions (from Business Rules)
+        rule_deductions = await self.fetch_rule_based_deductions(employee, month)
+        deductions.extend(rule_deductions)
+        
+        # Penalty deduction (manual)
         if penalty > 0:
             deductions.append({
                 "key": "penalty",
-                "name": "Penalty",
+                "name": "Penalty (Manual)",
                 "amount": round(penalty, 2),
                 "details": payroll_input.get("penalty_reason", ""),
                 "calculation": self._log_calculation(
-                    "Penalty",
+                    "Penalty (Manual)",
                     {"penalty": penalty, "reason": payroll_input.get("penalty_reason", "")},
                     "Direct deduction",
-                    penalty, "PENALTY", "1.0"
+                    penalty, "PENALTY_MANUAL", "1.0"
                 )
             })
         
@@ -564,6 +839,7 @@ class PayrollCalculationEngine:
             "working_days": working_days,
             "lop_days": lop_days,
             "gross_monthly": round(gross_monthly, 2),
+            "gross_annual": round(gross_monthly * 12, 2),
             "basic_monthly": round(basic_monthly, 2),
             "earnings": earnings,
             "total_earnings": round(total_earnings, 2),
@@ -572,6 +848,14 @@ class PayrollCalculationEngine:
             "net_salary": round(net_salary, 2),
             "reimbursements": round(total_reimbursements, 2),
             "net_payable": round(net_payable, 2),
+            "attendance_summary": attendance_summary,
+            "tds_details": {
+                "monthly_tds": tds_result.get("monthly_tds", 0),
+                "annual_tax": tds_result.get("annual_tax", 0),
+                "taxable_income": tds_result.get("taxable_income", 0),
+                "regime": tds_result.get("regime", "new"),
+                "slab_breakdown": tds_result.get("slab_breakdown", [])
+            },
             "employer_contributions": {
                 "pf": pf_result.get("employer_contribution", 0),
                 "esi": esi_result.get("employer_contribution", 0) if esi_result.get("applicable") else 0

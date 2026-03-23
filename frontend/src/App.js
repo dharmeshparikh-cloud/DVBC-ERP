@@ -283,7 +283,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="org-chart" element={<OrgChart />} />
         <Route path="leave-management" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><LeaveManagement /></RoleGuard>} />
         <Route path="attendance" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><Attendance /></RoleGuard>} />
-        <Route path="payroll" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Finance']}><Payroll /></RoleGuard>} />
+        <Route path="payroll" element={<Navigate to="/payroll-engine" replace />} />
         <Route path="payroll-engine" element={<RoleGuard allowedRoles={['admin', 'hr_manager']} allowedDepts={['HR', 'Finance', 'Admin']}><PayrollEngine /></RoleGuard>} />
         <Route path="ctc-designer" element={<CTCDesigner />} />
         <Route path="document-center" element={<DocumentCenter />} />

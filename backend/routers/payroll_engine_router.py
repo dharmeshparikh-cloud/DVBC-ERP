@@ -741,3 +741,275 @@ async def export_payroll_excel(
         "data": export_data,
         "columns": list(export_data[0].keys()) if export_data else []
     }
+
+
+
+# ==================== TEMPLATE DOWNLOAD/UPLOAD ====================
+
+@router.get("/template/download")
+async def download_payroll_template(
+    month: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Download payroll input template with employee data pre-filled.
+    Template columns match exactly with upload format.
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can download template")
+    
+    db = get_db()
+    
+    # Get all active employees
+    employees = await db.employees.find(
+        {"is_active": True, "go_live_status": "active"},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Get existing payroll inputs for this month
+    existing_inputs = await db.payroll_inputs.find(
+        {"month": month},
+        {"_id": 0}
+    ).to_list(1000)
+    inputs_map = {i["employee_id"]: i for i in existing_inputs}
+    
+    # Build template data
+    template_data = []
+    for emp in employees:
+        emp_id = emp.get("id")
+        existing = inputs_map.get(emp_id, {})
+        
+        # Fetch attendance summary for the month
+        engine = get_payroll_engine(db)
+        attendance = await engine.fetch_attendance_summary(emp_id, month)
+        
+        template_data.append({
+            "employee_id": emp.get("employee_id", ""),
+            "employee_name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+            "department": emp.get("department", ""),
+            "gross_monthly": emp.get("salary", 0) or emp.get("gross_salary", 0),
+            "days_in_month": attendance.get("days_in_month", 30),
+            "working_days": attendance.get("working_days", 22),
+            "present_days": attendance.get("present_days", 0),
+            "leave_days": attendance.get("total_leave_days", 0),
+            "lop_days": existing.get("lop_days", attendance.get("calculated_lop", 0)),
+            "bonus": existing.get("bonus", 0),
+            "incentive": existing.get("incentive", 0),
+            "overtime_hours": existing.get("overtime_hours", 0),
+            "penalty": existing.get("penalty", 0),
+            "penalty_reason": existing.get("penalty_reason", ""),
+            "advance_recovery": existing.get("advance", 0),
+            "reimbursements": existing.get("expense_reimbursement", 0),
+            "notes": existing.get("notes", "")
+        })
+    
+    columns = [
+        "employee_id", "employee_name", "department", "gross_monthly",
+        "days_in_month", "working_days", "present_days", "leave_days",
+        "lop_days", "bonus", "incentive", "overtime_hours",
+        "penalty", "penalty_reason", "advance_recovery", "reimbursements", "notes"
+    ]
+    
+    return {
+        "month": month,
+        "template": template_data,
+        "columns": columns,
+        "instructions": {
+            "editable_fields": ["lop_days", "bonus", "incentive", "overtime_hours", "penalty", "penalty_reason", "advance_recovery", "reimbursements", "notes"],
+            "readonly_fields": ["employee_id", "employee_name", "department", "gross_monthly", "days_in_month", "working_days", "present_days", "leave_days"],
+            "notes": "Edit only the editable fields. Do not change employee_id column."
+        }
+    }
+
+
+@router.post("/template/upload-preview")
+async def upload_payroll_template_preview(
+    month: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload payroll template and preview changes before applying.
+    Returns comparison of old vs new values.
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can upload payroll data")
+    
+    if not file.filename.endswith(('.xlsx', '.xls', '.csv')):
+        raise HTTPException(status_code=400, detail="Only Excel/CSV files allowed")
+    
+    try:
+        contents = await file.read()
+        
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(contents))
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+        
+        # Validate required columns
+        required_cols = ['employee_id']
+        for col in required_cols:
+            if col not in df.columns:
+                raise HTTPException(status_code=400, detail=f"Column '{col}' is required")
+        
+        db = get_db()
+        
+        # Get existing inputs
+        existing_inputs = await db.payroll_inputs.find(
+            {"month": month},
+            {"_id": 0}
+        ).to_list(1000)
+        
+        # Map by employee_id code (EMP001, etc.)
+        emp_code_to_id = {}
+        employees = await db.employees.find({"is_active": True}, {"_id": 0, "id": 1, "employee_id": 1}).to_list(1000)
+        for emp in employees:
+            emp_code_to_id[emp.get("employee_id", "")] = emp.get("id")
+        
+        existing_map = {i.get("employee_id"): i for i in existing_inputs}
+        
+        # Build preview with changes
+        preview_data = []
+        for _, row in df.iterrows():
+            emp_code = str(row.get("employee_id", ""))
+            emp_id = emp_code_to_id.get(emp_code)
+            
+            if not emp_id:
+                preview_data.append({
+                    "employee_id": emp_code,
+                    "status": "error",
+                    "error": "Employee not found"
+                })
+                continue
+            
+            existing = existing_map.get(emp_id, {})
+            
+            # Build change comparison
+            changes = []
+            new_values = {}
+            
+            editable_fields = ["lop_days", "bonus", "incentive", "overtime_hours", "penalty", "penalty_reason", "advance_recovery", "reimbursements", "notes"]
+            
+            for field in editable_fields:
+                if field in df.columns:
+                    new_val = row.get(field, 0)
+                    if pd.isna(new_val):
+                        new_val = 0 if field not in ["penalty_reason", "notes"] else ""
+                    
+                    old_val = existing.get(field, 0)
+                    if field in ["penalty_reason", "notes"]:
+                        old_val = existing.get(field, "")
+                    
+                    if new_val != old_val:
+                        changes.append({
+                            "field": field,
+                            "old_value": old_val,
+                            "new_value": new_val
+                        })
+                    
+                    new_values[field] = new_val
+            
+            preview_data.append({
+                "employee_id": emp_code,
+                "employee_name": row.get("employee_name", ""),
+                "internal_id": emp_id,
+                "status": "changed" if changes else "unchanged",
+                "changes": changes,
+                "new_values": new_values
+            })
+        
+        changed_count = len([p for p in preview_data if p.get("status") == "changed"])
+        error_count = len([p for p in preview_data if p.get("status") == "error"])
+        
+        return {
+            "success": True,
+            "month": month,
+            "total_rows": len(preview_data),
+            "changed_count": changed_count,
+            "unchanged_count": len(preview_data) - changed_count - error_count,
+            "error_count": error_count,
+            "preview": preview_data
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error processing file: {str(e)}")
+
+
+@router.post("/template/apply")
+async def apply_payroll_template(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Apply the uploaded payroll data after preview confirmation.
+    Expects the preview data returned from upload-preview endpoint.
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can apply payroll data")
+    
+    db = get_db()
+    month = data.get("month")
+    preview_data = data.get("preview", [])
+    
+    if not month or not preview_data:
+        raise HTTPException(status_code=400, detail="Month and preview data required")
+    
+    updated_count = 0
+    errors = []
+    
+    for item in preview_data:
+        if item.get("status") != "changed":
+            continue
+        
+        emp_id = item.get("internal_id")
+        new_values = item.get("new_values", {})
+        
+        if not emp_id:
+            errors.append({"employee_id": item.get("employee_id"), "error": "Missing internal ID"})
+            continue
+        
+        try:
+            # Prepare payroll input document
+            payroll_input = {
+                "employee_id": emp_id,
+                "month": month,
+                "lop_days": float(new_values.get("lop_days", 0) or 0),
+                "bonus": float(new_values.get("bonus", 0) or 0),
+                "incentive": float(new_values.get("incentive", 0) or 0),
+                "overtime_hours": float(new_values.get("overtime_hours", 0) or 0),
+                "penalty": float(new_values.get("penalty", 0) or 0),
+                "penalty_reason": str(new_values.get("penalty_reason", "") or ""),
+                "advance": float(new_values.get("advance_recovery", 0) or 0),
+                "expense_reimbursement": float(new_values.get("reimbursements", 0) or 0),
+                "notes": str(new_values.get("notes", "") or ""),
+                "updated_by": current_user.id,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Upsert
+            await db.payroll_inputs.update_one(
+                {"employee_id": emp_id, "month": month},
+                {"$set": payroll_input},
+                upsert=True
+            )
+            updated_count += 1
+            
+        except Exception as e:
+            errors.append({"employee_id": item.get("employee_id"), "error": str(e)})
+    
+    # Audit log
+    await log_audit(
+        action="payroll.template_applied",
+        entity_type="payroll_inputs",
+        entity_id=month,
+        performed_by=current_user.id,
+        metadata={"month": month, "updated_count": updated_count, "errors": len(errors)}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Applied payroll data for {updated_count} employees",
+        "updated_count": updated_count,
+        "error_count": len(errors),
+        "errors": errors[:10]  # First 10 errors
+    }

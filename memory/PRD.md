@@ -12,6 +12,10 @@ Production-grade payroll calculation system with field-level traceability.
 - **PF Calculation**: `min(Basic, ₹15,000) × 12%` (employee + employer)
 - **ESI**: 0.75% employee + 3.25% employer (if gross ≤ ₹21,000)
 - **Professional Tax**: Maharashtra slabs (₹0/₹175/₹200)
+- **TDS (NEW)**: New Regime income tax calculation with slabs
+  - ₹0-3L: Nil | ₹3-7L: 5% | ₹7-10L: 10% | ₹10-12L: 15% | ₹12-15L: 20% | >₹15L: 30%
+  - Standard deduction: ₹75,000
+  - 4% Health & Education Cess
 - **Earnings**: Basic (40%), HRA (20%), Special Allowance (40%)
 
 #### 2. Field-Level Traceability
@@ -21,30 +25,49 @@ Every calculation stores:
 - `output_value`: Calculated result
 - `rule_version`: Version of rule used
 
-#### 3. HR Test Mode (Simulation)
+#### 3. HR Test Mode (Simulation) - Enhanced
 - Select employee from dropdown
 - Enter LOP days, bonus, incentive, penalty, overtime, reimbursements
 - Click "Calculate Payroll" to simulate
 - View breakdown with formulas (NOT saved to database)
+- **Attendance Summary**: Days, Present, Leaves, Holidays
+- **TDS Details**: Taxable income, slab breakdown, annual/monthly tax
 
-#### 4. Run Payroll
-- Calculates payroll for all active employees
-- Creates draft payroll register
-- Shows department-wise summary
-- Flags errors for employees with missing data
+#### 4. Template Upload - NEW
+- **Download Template**: Pre-filled with employee data + attendance
+- **Upload & Preview**: See changes before applying
+- **Apply Changes**: Bulk update payroll inputs
+- Columns: employee_id, name, department, gross, working_days, present, leaves, lop_days, bonus, incentive, overtime, penalty, reimbursements
 
-#### 5. Approval Workflow
-```
-Draft → HR Manager Submit → Admin Approve → Locked
-```
-- HR Manager creates and submits
-- Admin approves/rejects
-- Locked payroll cannot be edited (adjustment entries only)
+#### 5. Attendance Integration - NEW
+Auto-fetches from attendance records:
+- Days in month
+- Working days (excludes weekends)
+- Present days
+- Leave days (paid/unpaid)
+- Holiday count
+- Calculated LOP
 
-#### 6. Payroll Register
-- Employee-wise breakdown with all components
-- Export to CSV/Excel
-- View calculation breakdown for each employee
+#### 6. Rule-Based Deductions - NEW
+- Late arrival penalties from Business Rules (AT002)
+- Custom employee penalties from penalty records
+- Formula: `excess_late × daily_rate × 0.5`
+
+#### 7. Deduction Names (Clear Labels)
+| Key | Display Name |
+|-----|--------------|
+| lop | Loss of Pay (LOP) |
+| pf | Provident Fund (PF) |
+| esi | ESI (Employee State Insurance) |
+| professional_tax | Professional Tax (PT) |
+| tds | TDS (Income Tax) |
+| late_arrival_penalty | Late Arrival Penalty (Rule: AT002) |
+| penalty | Penalty (Manual) |
+| advance_recovery | Advance Recovery |
+
+#### 8. Single Payroll System
+- Old `/payroll` page redirects to `/payroll-engine`
+- All payroll operations now in one unified system
 
 ### APIs
 | Endpoint | Method | Description |

@@ -80,6 +80,11 @@ export default function PayrollEngine() {
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalRemarks, setApprovalRemarks] = useState('');
   
+  // Template upload states
+  const [uploadPreview, setUploadPreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  
   // Mutations
   const simulateMutation = useSimulatePayroll();
   const runPayrollMutation = useRunPayroll();
@@ -263,6 +268,10 @@ export default function PayrollEngine() {
           <TabsTrigger value="test-mode" data-testid="tab-test-mode">
             <Calculator className="w-4 h-4 mr-2" />
             HR Test Mode
+          </TabsTrigger>
+          <TabsTrigger value="template" data-testid="tab-template">
+            <Upload className="w-4 h-4 mr-2" />
+            Template Upload
           </TabsTrigger>
           <TabsTrigger value="run-payroll" data-testid="tab-run-payroll">
             <Play className="w-4 h-4 mr-2" />
@@ -470,6 +479,61 @@ export default function PayrollEngine() {
                           </p>
                         </div>
                       )}
+                      
+                      {/* Attendance Summary */}
+                      {simulationResult.attendance_summary && (
+                        <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
+                          <p className={`text-xs font-medium mb-2 ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>
+                            Attendance Summary - {simulationResult.month}
+                          </p>
+                          <div className="grid grid-cols-4 gap-2 text-xs">
+                            <div className={`p-2 rounded text-center ${isDark ? 'bg-zinc-700' : 'bg-white'}`}>
+                              <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Days</p>
+                              <p className="font-bold">{simulationResult.attendance_summary.days_in_month}</p>
+                            </div>
+                            <div className={`p-2 rounded text-center ${isDark ? 'bg-green-900/30' : 'bg-green-50'}`}>
+                              <p className="text-green-600">Present</p>
+                              <p className="font-bold text-green-600">{simulationResult.attendance_summary.present_days}</p>
+                            </div>
+                            <div className={`p-2 rounded text-center ${isDark ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+                              <p className="text-blue-600">Leaves</p>
+                              <p className="font-bold text-blue-600">{simulationResult.attendance_summary.total_leave_days}</p>
+                            </div>
+                            <div className={`p-2 rounded text-center ${isDark ? 'bg-amber-900/30' : 'bg-amber-50'}`}>
+                              <p className="text-amber-600">Holidays</p>
+                              <p className="font-bold text-amber-600">{simulationResult.attendance_summary.holidays}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* TDS Details */}
+                      {simulationResult.tds_details && simulationResult.tds_details.monthly_tds > 0 && (
+                        <div className={`p-3 rounded-lg border-l-4 border-purple-500 ${isDark ? 'bg-purple-900/20' : 'bg-purple-50'}`}>
+                          <p className={`text-xs font-medium ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                            TDS (Income Tax) - {simulationResult.tds_details.regime?.toUpperCase()} Regime
+                          </p>
+                          <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                            <div>
+                              <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Annual CTC</p>
+                              <p className="font-medium">{formatCurrency(simulationResult.gross_annual)}</p>
+                            </div>
+                            <div>
+                              <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Taxable Income</p>
+                              <p className="font-medium">{formatCurrency(simulationResult.tds_details.taxable_income)}</p>
+                            </div>
+                            <div>
+                              <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Annual Tax</p>
+                              <p className="font-medium text-purple-600">{formatCurrency(simulationResult.tds_details.annual_tax)}</p>
+                            </div>
+                          </div>
+                          {simulationResult.tds_details.slab_breakdown?.length > 0 && (
+                            <p className={`text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+                              {simulationResult.tds_details.slab_breakdown.join(' | ')}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className={`p-4 rounded-lg ${isDark ? 'bg-red-900/30 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
@@ -486,6 +550,193 @@ export default function PayrollEngine() {
                   <div className={`text-center py-12 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
                     <Calculator className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>Select an employee and click "Calculate Payroll" to simulate</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        {/* ==================== TEMPLATE UPLOAD ==================== */}
+        <TabsContent value="template">
+          <div className="grid grid-cols-2 gap-6">
+            {/* Download Template */}
+            <Card className={isDark ? 'bg-zinc-900 border-zinc-800' : ''}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="w-5 h-5 text-blue-500" />
+                  Download Template
+                </CardTitle>
+                <CardDescription>
+                  Download payroll input template with employee data pre-filled
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
+                  <p className={`text-sm mb-3 ${isDark ? 'text-zinc-300' : ''}`}>
+                    Template includes:
+                  </p>
+                  <ul className={`text-xs space-y-1 ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>
+                    <li>• Employee ID, Name, Department (read-only)</li>
+                    <li>• Gross Monthly Salary (read-only)</li>
+                    <li>• Attendance summary: Days, Present, Leaves, Holidays</li>
+                    <li>• LOP Days, Bonus, Incentive, Overtime Hours (editable)</li>
+                    <li>• Penalty, Advance Recovery, Reimbursements (editable)</li>
+                  </ul>
+                </div>
+                
+                <Button
+                  onClick={async () => {
+                    try {
+                      const res = await axios.get(`${API}/payroll/engine/template/download?month=${selectedMonth}`);
+                      const { template, columns } = res.data;
+                      
+                      // Convert to CSV
+                      const csvContent = [
+                        columns.join(','),
+                        ...template.map(row => columns.map(col => {
+                          const val = row[col];
+                          return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+                        }).join(','))
+                      ].join('\n');
+                      
+                      const blob = new Blob([csvContent], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `payroll_template_${selectedMonth}.csv`;
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      
+                      toast.success('Template downloaded successfully');
+                    } catch (err) {
+                      toast.error('Failed to download template');
+                    }
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  data-testid="btn-download-template"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Template for {selectedMonth}
+                </Button>
+              </CardContent>
+            </Card>
+            
+            {/* Upload Template */}
+            <Card className={isDark ? 'bg-zinc-900 border-zinc-800' : ''}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-green-500" />
+                  Upload & Preview
+                </CardTitle>
+                <CardDescription>
+                  Upload edited template and preview changes before applying
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className={`p-4 rounded-lg border-2 border-dashed ${isDark ? 'border-zinc-700 bg-zinc-800/50' : 'border-gray-300 bg-gray-50'}`}>
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      setIsUploading(true);
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      
+                      try {
+                        const res = await axios.post(
+                          `${API}/payroll/engine/template/upload-preview?month=${selectedMonth}`,
+                          formData,
+                          { headers: { 'Content-Type': 'multipart/form-data' } }
+                        );
+                        setUploadPreview(res.data);
+                        toast.success(`Processed ${res.data.total_rows} rows`);
+                      } catch (err) {
+                        toast.error(err.response?.data?.detail || 'Upload failed');
+                      } finally {
+                        setIsUploading(false);
+                      }
+                    }}
+                    className="hidden"
+                    id="template-upload"
+                  />
+                  <label
+                    htmlFor="template-upload"
+                    className={`flex flex-col items-center justify-center py-6 cursor-pointer ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                    ) : (
+                      <Upload className="w-8 h-8 mb-2" />
+                    )}
+                    <span className="text-sm">Click to upload CSV/Excel file</span>
+                    <span className="text-xs mt-1">or drag and drop</span>
+                  </label>
+                </div>
+                
+                {/* Preview Results */}
+                {uploadPreview && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className={`p-2 rounded text-center ${isDark ? 'bg-green-900/30' : 'bg-green-50'}`}>
+                        <p className="text-green-600 font-bold">{uploadPreview.changed_count}</p>
+                        <p className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'}`}>Changed</p>
+                      </div>
+                      <div className={`p-2 rounded text-center ${isDark ? 'bg-zinc-700' : 'bg-gray-100'}`}>
+                        <p className="font-bold">{uploadPreview.unchanged_count}</p>
+                        <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Unchanged</p>
+                      </div>
+                      <div className={`p-2 rounded text-center ${isDark ? 'bg-red-900/30' : 'bg-red-50'}`}>
+                        <p className="text-red-600 font-bold">{uploadPreview.error_count}</p>
+                        <p className={`text-xs ${isDark ? 'text-red-400' : 'text-red-600'}`}>Errors</p>
+                      </div>
+                    </div>
+                    
+                    {/* Changes List */}
+                    <div className={`max-h-48 overflow-y-auto rounded-lg border ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+                      {uploadPreview.preview?.filter(p => p.status === 'changed').map((item, i) => (
+                        <div key={i} className={`p-2 border-b text-sm ${isDark ? 'border-zinc-700' : 'border-gray-100'}`}>
+                          <p className="font-medium">{item.employee_id} - {item.employee_name}</p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {item.changes?.map((c, j) => (
+                              <span key={j} className={`text-xs px-2 py-0.5 rounded ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
+                                {c.field}: {c.old_value} → {c.new_value}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Button
+                      onClick={async () => {
+                        setIsApplying(true);
+                        try {
+                          const res = await axios.post(`${API}/payroll/engine/template/apply`, {
+                            month: selectedMonth,
+                            preview: uploadPreview.preview
+                          });
+                          toast.success(res.data.message);
+                          setUploadPreview(null);
+                        } catch (err) {
+                          toast.error(err.response?.data?.detail || 'Failed to apply');
+                        } finally {
+                          setIsApplying(false);
+                        }
+                      }}
+                      disabled={isApplying || uploadPreview.changed_count === 0}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      {isApplying ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4 mr-2" />
+                      )}
+                      Apply {uploadPreview.changed_count} Changes
+                    </Button>
                   </div>
                 )}
               </CardContent>
