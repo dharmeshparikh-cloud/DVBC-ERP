@@ -14,7 +14,7 @@ from typing import Dict, List, Any
 import calendar
 
 # Configuration
-API_BASE = "https://govpay-system-2.preview.emergentagent.com/api"
+API_BASE = "https://expense-sync-test.preview.emergentagent.com/api"
 
 # Test credentials
 CREDENTIALS = {

@@ -38,7 +38,9 @@ import {
   FileText,
   Send,
   Check,
-  X
+  X,
+  Mail,
+  FileDown
 } from 'lucide-react';
 import {
   useSimulatePayroll,
@@ -104,6 +106,13 @@ export default function PayrollEngine() {
   const [uploadPreview, setUploadPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  
+  // Email approval states
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState('dharmesh.parikh@dvconsulting.co.in');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isDownloadingExcel, setIsDownloadingExcel] = useState(false);
   
   // Mutations
   const simulateMutation = useSimulatePayroll();
@@ -237,6 +246,58 @@ export default function PayrollEngine() {
       toast.success('Payroll exported successfully');
     } catch (err) {
       toast.error('Failed to export payroll');
+    }
+  };
+  
+  // Download Excel file directly
+  const handleDownloadExcel = async () => {
+    setIsDownloadingExcel(true);
+    try {
+      const response = await axios.get(`${API}/payroll/engine/export-excel?month=${selectedMonth}`, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Payroll_Register_${selectedMonth}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Excel downloaded successfully');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to download Excel');
+    } finally {
+      setIsDownloadingExcel(false);
+    }
+  };
+  
+  // Send payroll for email approval
+  const handleSendForEmailApproval = async () => {
+    if (!emailRecipient.trim()) {
+      toast.error('Please enter recipient email');
+      return;
+    }
+    
+    setIsSendingEmail(true);
+    try {
+      const res = await axios.post(`${API}/payroll/engine/send-for-approval`, {
+        month: selectedMonth,
+        recipient_email: emailRecipient,
+        cc_emails: [],
+        message: emailMessage || `Please review and approve the payroll for ${selectedMonth}`
+      });
+      
+      toast.success(res.data.message || 'Payroll sent for approval');
+      setShowEmailDialog(false);
+      setEmailMessage('');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to send email');
+    } finally {
+      setIsSendingEmail(false);
     }
   };
   
@@ -1209,6 +1270,27 @@ export default function PayrollEngine() {
                     <Download className="w-4 h-4 mr-2" />
                     Export CSV
                   </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleDownloadExcel}
+                    disabled={isDownloadingExcel}
+                    data-testid="btn-download-excel"
+                  >
+                    {isDownloadingExcel ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileDown className="w-4 h-4 mr-2" />
+                    )}
+                    Download Excel
+                  </Button>
+                  <Button 
+                    onClick={() => setShowEmailDialog(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    data-testid="btn-email-approval"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Email for Approval
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -1834,6 +1916,100 @@ export default function PayrollEngine() {
                 </>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* ==================== EMAIL APPROVAL DIALOG ==================== */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className={isDark ? 'bg-zinc-900 border-zinc-800' : ''}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-blue-500" />
+              Send Payroll for Email Approval
+            </DialogTitle>
+            <DialogDescription>
+              Send the payroll register as an Excel attachment for approval
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Summary */}
+            {registerDetails?.calculations?.length > 0 && (
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
+                <p className={`text-sm font-medium mb-2 ${isDark ? 'text-zinc-300' : ''}`}>
+                  Payroll Summary - {selectedMonth}
+                </p>
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>Employees</p>
+                    <p className="font-bold">{registerDetails.calculations.length}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>Total Gross</p>
+                    <p className="font-bold text-green-600">
+                      {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.gross_monthly || 0), 0))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>Net Payable</p>
+                    <p className="font-bold text-blue-600">
+                      {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.net_payable || 0), 0))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Recipient Email */}
+            <div>
+              <Label>Recipient Email *</Label>
+              <Input
+                type="email"
+                value={emailRecipient}
+                onChange={(e) => setEmailRecipient(e.target.value)}
+                placeholder="approver@company.com"
+                className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+              />
+            </div>
+            
+            {/* Custom Message */}
+            <div>
+              <Label>Message (Optional)</Label>
+              <Input
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                placeholder="Please review and approve the payroll..."
+                className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+              />
+            </div>
+            
+            {/* Info */}
+            <div className={`p-3 rounded-lg border-l-4 border-blue-500 ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
+              <p className={`text-xs ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                The detailed payroll register will be attached as an Excel file (.xlsx) with all earnings, 
+                deductions, attendance, and compliance data.
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendForEmailApproval}
+              disabled={isSendingEmail || !emailRecipient.trim()}
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="btn-send-email"
+            >
+              {isSendingEmail ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              Send for Approval
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

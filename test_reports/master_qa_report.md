@@ -1,7 +1,7 @@
 # 🧪 MASTER QA TEST REPORT: Consulting Workflow
 **Date:** March 18-19, 2026  
 **Tester:** Automated E2E Testing  
-**App URL:** https://govpay-system-2.preview.emergentagent.com
+**App URL:** https://expense-sync-test.preview.emergentagent.com
 **Status:** ✅ ALL CRITICAL ISSUES FIXED
 
 ---

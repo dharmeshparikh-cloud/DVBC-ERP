@@ -9,14 +9,23 @@ APIs:
 - GET /payroll/engine/breakdown/{employee_id} - Field-level breakdown
 - POST /payroll/engine/approve - Approval workflow
 - GET /payroll/engine/comparison - Before/After comparison
+- GET /payroll/engine/export-excel - Download payroll as Excel
+- POST /payroll/engine/send-for-approval - Email payroll for approval
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 import io
+import os
 import pandas as pd
+import aiosmtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
 
 from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, get_current_user
 from .models import User
@@ -24,6 +33,12 @@ from .audit_logging import log_audit
 from services.payroll_engine import get_payroll_engine
 
 router = APIRouter(prefix="/payroll/engine", tags=["Payroll Engine"])
+
+# SMTP Configuration
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 
 
 # ==================== PAYROLL RUN ====================
@@ -1439,3 +1454,480 @@ async def apply_payroll_template(
         "error_count": len(errors),
         "errors": errors[:10]  # First 10 errors
     }
+
+
+
+# ==================== EXCEL EXPORT & EMAIL ====================
+
+@router.get("/export-excel")
+async def export_payroll_excel(
+    month: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Export detailed payroll register as Excel file.
+    Includes all earnings, deductions, attendance, expenses, and compliance data.
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can export payroll")
+    
+    db = get_db()
+    
+    # Get payroll calculations for the month
+    calculations = await db.payroll_calculations.find(
+        {"month": month},
+        {"_id": 0}
+    ).to_list(500)
+    
+    if not calculations:
+        raise HTTPException(status_code=404, detail=f"No payroll data for {month}")
+    
+    # Build detailed data for Excel
+    rows = []
+    for calc in calculations:
+        # Parse earnings
+        earnings = calc.get("earnings", [])
+        basic = next((e.get("amount", 0) for e in earnings if e.get("key") == "basic_salary"), 0)
+        hra = next((e.get("amount", 0) for e in earnings if e.get("key") == "hra"), 0)
+        special = next((e.get("amount", 0) for e in earnings if e.get("key") == "special_allowance"), 0)
+        bonus = next((e.get("amount", 0) for e in earnings if e.get("key") == "bonus"), 0)
+        incentive = next((e.get("amount", 0) for e in earnings if e.get("key") == "incentive"), 0)
+        overtime = next((e.get("amount", 0) for e in earnings if e.get("key") == "overtime"), 0)
+        arrears = next((e.get("amount", 0) for e in earnings if e.get("key") == "arrears"), 0)
+        
+        # Parse deductions
+        deductions = calc.get("deductions", [])
+        lop = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "lop"), 0))
+        pf = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "pf"), 0))
+        pt = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "pt"), 0))
+        tds = calc.get("tds_details", {}).get("monthly_tds", 0)
+        esi = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "esi"), 0))
+        advance = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "advance_recovery"), 0))
+        loan_emi = abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "loan_emi"), 0))
+        
+        # Attendance
+        attendance = calc.get("attendance_summary", {})
+        
+        # Expenses
+        expenses = calc.get("reimbursements", 0) or 0
+        expense_breakdown = calc.get("expense_breakdown", {})
+        
+        rows.append({
+            "Employee Code": calc.get("employee_code", ""),
+            "Employee Name": calc.get("employee_name", ""),
+            "Department": calc.get("department", ""),
+            "Designation": calc.get("designation", ""),
+            
+            # Earnings
+            "Basic Salary": round(basic, 2),
+            "HRA": round(hra, 2),
+            "Special Allowance": round(special, 2),
+            "Bonus": round(bonus, 2),
+            "Incentive": round(incentive, 2),
+            "Overtime": round(overtime, 2),
+            "Arrears": round(arrears, 2),
+            "Gross Salary": round(calc.get("gross_monthly", 0), 2),
+            
+            # Attendance
+            "Working Days": attendance.get("working_days", calc.get("working_days", 0)),
+            "Present Days": attendance.get("present", 0),
+            "Leaves": attendance.get("leaves", 0),
+            "LOP Days": attendance.get("lop_days", calc.get("lop_days", 0)),
+            "Holidays": attendance.get("holidays", 0),
+            
+            # Deductions
+            "LOP Deduction": round(lop, 2),
+            "PF (Employee)": round(pf, 2),
+            "Professional Tax": round(pt, 2),
+            "TDS": round(tds, 2),
+            "ESI": round(esi, 2),
+            "Advance Recovery": round(advance, 2),
+            "Loan EMI": round(loan_emi, 2),
+            "Total Deductions": round(calc.get("total_deductions", 0), 2),
+            
+            # Expenses/Reimbursements
+            "Travel Expense": round(expense_breakdown.get("travel", 0), 2),
+            "Medical Expense": round(expense_breakdown.get("medical", 0), 2),
+            "Food Expense": round(expense_breakdown.get("food", 0), 2),
+            "Other Expense": round(expense_breakdown.get("other", 0), 2),
+            "Total Reimbursements": round(expenses, 2),
+            
+            # Compliance
+            "Annual CTC": round(calc.get("gross_annual", 0), 2),
+            "Taxable Income": round(calc.get("tds_details", {}).get("taxable_income", 0), 2),
+            "87A Rebate": round(calc.get("tds_details", {}).get("rebate_87a", 0), 2),
+            
+            # Net
+            "Net Payable": round(calc.get("net_payable", 0), 2),
+            
+            # Rules Applied
+            "LOP Rule": "LOP_DEDUCTION" if lop > 0 else "",
+            "PF Rule": "PF_CONTRIBUTION" if pf > 0 else "",
+            "PT Rule": "PT_GUJARAT" if pt > 0 else "",
+            "TDS Rule": "TDS_NEW_REGIME_87A" if calc.get("tds_details", {}).get("monthly_tds", 0) >= 0 else ""
+        })
+    
+    # Create DataFrame
+    df = pd.DataFrame(rows)
+    
+    # Create Excel file in memory
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Main payroll sheet
+        df.to_excel(writer, sheet_name='Payroll Register', index=False)
+        
+        # Summary sheet
+        summary_data = {
+            "Metric": [
+                "Month", "Total Employees", "Total Gross Salary", "Total Deductions",
+                "Total Net Payable", "Total TDS", "Total PF", "Total PT",
+                "Total Expenses", "Generated On", "Generated By"
+            ],
+            "Value": [
+                month,
+                len(calculations),
+                round(sum(c.get("gross_monthly", 0) for c in calculations), 2),
+                round(sum(c.get("total_deductions", 0) for c in calculations), 2),
+                round(sum(c.get("net_payable", 0) for c in calculations), 2),
+                round(sum(c.get("tds_details", {}).get("monthly_tds", 0) for c in calculations), 2),
+                round(sum(abs(next((d.get("amount", 0) for d in c.get("deductions", []) if d.get("key") == "pf"), 0)) for c in calculations), 2),
+                round(sum(abs(next((d.get("amount", 0) for d in c.get("deductions", []) if d.get("key") == "pt"), 0)) for c in calculations), 2),
+                round(sum(c.get("reimbursements", 0) or 0 for c in calculations), 2),
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                current_user.id
+            ]
+        }
+        pd.DataFrame(summary_data).to_excel(writer, sheet_name='Summary', index=False)
+    
+    output.seek(0)
+    
+    # Return as downloadable file
+    filename = f"Payroll_Register_{month}.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.post("/send-for-approval")
+async def send_payroll_for_approval(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Send payroll Excel file via email for approval.
+    
+    Input:
+    {
+        "month": "2026-03",
+        "recipient_email": "approver@company.com",
+        "cc_emails": ["hr@company.com"],
+        "message": "Please review and approve the payroll for March 2026"
+    }
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can send for approval")
+    
+    db = get_db()
+    month = data.get("month")
+    recipient_email = data.get("recipient_email")
+    cc_emails = data.get("cc_emails", [])
+    custom_message = data.get("message", "")
+    
+    if not month or not recipient_email:
+        raise HTTPException(status_code=400, detail="month and recipient_email required")
+    
+    # Get payroll calculations
+    calculations = await db.payroll_calculations.find(
+        {"month": month},
+        {"_id": 0}
+    ).to_list(500)
+    
+    if not calculations:
+        raise HTTPException(status_code=404, detail=f"No payroll data for {month}")
+    
+    # Build Excel data (same as export)
+    rows = []
+    for calc in calculations:
+        earnings = calc.get("earnings", [])
+        deductions = calc.get("deductions", [])
+        attendance = calc.get("attendance_summary", {})
+        
+        rows.append({
+            "Employee Code": calc.get("employee_code", ""),
+            "Employee Name": calc.get("employee_name", ""),
+            "Department": calc.get("department", ""),
+            "Basic Salary": round(next((e.get("amount", 0) for e in earnings if e.get("key") == "basic_salary"), 0), 2),
+            "HRA": round(next((e.get("amount", 0) for e in earnings if e.get("key") == "hra"), 0), 2),
+            "Special Allowance": round(next((e.get("amount", 0) for e in earnings if e.get("key") == "special_allowance"), 0), 2),
+            "Bonus": round(next((e.get("amount", 0) for e in earnings if e.get("key") == "bonus"), 0), 2),
+            "Gross Salary": round(calc.get("gross_monthly", 0), 2),
+            "Working Days": attendance.get("working_days", calc.get("working_days", 0)),
+            "LOP Days": attendance.get("lop_days", calc.get("lop_days", 0)),
+            "LOP Deduction": round(abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "lop"), 0)), 2),
+            "PF": round(abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "pf"), 0)), 2),
+            "PT": round(abs(next((d.get("amount", 0) for d in deductions if d.get("key") == "pt"), 0)), 2),
+            "TDS": round(calc.get("tds_details", {}).get("monthly_tds", 0), 2),
+            "Total Reimbursements": round(calc.get("reimbursements", 0) or 0, 2),
+            "Total Deductions": round(calc.get("total_deductions", 0), 2),
+            "Net Payable": round(calc.get("net_payable", 0), 2)
+        })
+    
+    df = pd.DataFrame(rows)
+    
+    # Create Excel file
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Payroll Register', index=False)
+        
+        # Summary
+        summary = {
+            "Metric": ["Month", "Total Employees", "Total Gross", "Total Deductions", "Net Payable", "Generated On"],
+            "Value": [
+                month,
+                len(calculations),
+                round(sum(c.get("gross_monthly", 0) for c in calculations), 2),
+                round(sum(c.get("total_deductions", 0) for c in calculations), 2),
+                round(sum(c.get("net_payable", 0) for c in calculations), 2),
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ]
+        }
+        pd.DataFrame(summary).to_excel(writer, sheet_name='Summary', index=False)
+    
+    excel_buffer.seek(0)
+    
+    # Build email
+    msg = MIMEMultipart()
+    msg['From'] = SMTP_USER
+    msg['To'] = recipient_email
+    if cc_emails:
+        msg['Cc'] = ", ".join(cc_emails)
+    msg['Subject'] = f"Payroll Approval Request - {month}"
+    
+    # Email body
+    total_employees = len(calculations)
+    total_gross = sum(c.get("gross_monthly", 0) for c in calculations)
+    total_net = sum(c.get("net_payable", 0) for c in calculations)
+    
+    body = f"""
+Dear Approver,
+
+Please review and approve the payroll for {month}.
+
+PAYROLL SUMMARY:
+================
+Month: {month}
+Total Employees: {total_employees}
+Total Gross Salary: ₹{total_gross:,.2f}
+Total Net Payable: ₹{total_net:,.2f}
+
+{custom_message}
+
+The detailed payroll register is attached as an Excel file.
+
+Best regards,
+{current_user.id}
+HR Team
+
+---
+This is an automated email from the Payroll System.
+    """
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    # Attach Excel file
+    attachment = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    attachment.set_payload(excel_buffer.read())
+    encoders.encode_base64(attachment)
+    attachment.add_header('Content-Disposition', f'attachment; filename=Payroll_{month}.xlsx')
+    msg.attach(attachment)
+    
+    # Send email
+    try:
+        all_recipients = [recipient_email] + cc_emails
+        
+        await aiosmtplib.send(
+            msg,
+            hostname=SMTP_HOST,
+            port=SMTP_PORT,
+            start_tls=True,
+            username=SMTP_USER,
+            password=SMTP_PASSWORD,
+            recipients=all_recipients
+        )
+        
+        # Log audit
+        await log_audit(
+            action="payroll.sent_for_approval",
+            entity_type="payroll",
+            entity_id=month,
+            performed_by=current_user.id,
+            metadata={
+                "month": month,
+                "recipient": recipient_email,
+                "cc": cc_emails,
+                "total_employees": total_employees,
+                "total_net": total_net
+            }
+        )
+        
+        # Update register status
+        await db.payroll_register.update_one(
+            {"month": month, "status": "draft"},
+            {"$set": {"status": "pending_admin_approval", "sent_for_approval_at": datetime.now().isoformat()}}
+        )
+        
+        return {
+            "success": True,
+            "message": f"Payroll sent for approval to {recipient_email}",
+            "details": {
+                "month": month,
+                "recipient": recipient_email,
+                "cc": cc_emails,
+                "total_employees": total_employees,
+                "total_net": round(total_net, 2)
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+
+@router.get("/template/download-excel")
+async def download_payroll_template_excel(
+    month: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Download payroll INPUT template as Excel file.
+    This template can be filled and uploaded back.
+    Columns match exactly with upload format.
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can download template")
+    
+    db = get_db()
+    
+    # Get all active employees
+    employees = await db.employees.find(
+        {"status": {"$ne": "inactive"}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Get existing payroll inputs for this month
+    existing_inputs = await db.payroll_inputs.find(
+        {"month": month},
+        {"_id": 0}
+    ).to_list(1000)
+    inputs_map = {i["employee_id"]: i for i in existing_inputs}
+    
+    # Get approved expenses for the month
+    expenses_map = {}
+    expenses = await db.expenses.find(
+        {"status": "approved", "month": month},
+        {"_id": 0}
+    ).to_list(1000)
+    for exp in expenses:
+        emp_id = exp.get("employee_id")
+        if emp_id not in expenses_map:
+            expenses_map[emp_id] = {"travel": 0, "medical": 0, "food": 0, "other": 0, "total": 0}
+        cat = exp.get("category", "other").lower()
+        amount = exp.get("amount", 0)
+        if cat in expenses_map[emp_id]:
+            expenses_map[emp_id][cat] += amount
+        else:
+            expenses_map[emp_id]["other"] += amount
+        expenses_map[emp_id]["total"] += amount
+    
+    # Build template data
+    rows = []
+    engine = get_payroll_engine(db)
+    
+    for emp in employees:
+        emp_id = emp.get("id")
+        existing = inputs_map.get(emp_id, {})
+        exp_data = expenses_map.get(emp_id, {})
+        
+        # Fetch attendance summary
+        attendance = await engine.fetch_attendance_summary(emp_id, month)
+        
+        rows.append({
+            # Read-only columns (for reference)
+            "Employee Code": emp.get("employee_id", ""),
+            "Employee Name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+            "Department": emp.get("department", ""),
+            "Gross Monthly (CTC/12)": emp.get("salary", 0) or emp.get("gross_salary", 0) or (emp.get("ctc", 0) / 12),
+            
+            # Attendance (auto-fetched, can override)
+            "Days in Month": attendance.get("days_in_month", 30),
+            "Working Days": attendance.get("working_days", 22),
+            "Present Days": attendance.get("present_days", 0),
+            "Leave Days": attendance.get("total_leave_days", 0),
+            
+            # Editable - Deductions
+            "LOP Days": existing.get("lop_days", attendance.get("calculated_lop", 0)),
+            
+            # Editable - Earnings
+            "Bonus": existing.get("bonus", 0),
+            "Incentive": existing.get("incentive", 0),
+            "Arrears": existing.get("arrears", 0),
+            "Arrears Reason": existing.get("arrears_reason", ""),
+            "Overtime Hours": existing.get("overtime_hours", 0),
+            
+            # Editable - Deductions
+            "Penalty": existing.get("penalty", 0),
+            "Penalty Reason": existing.get("penalty_reason", ""),
+            "Advance Recovery": existing.get("advance_recovery", 0),
+            "Loan EMI": existing.get("loan_emi", 0),
+            
+            # Expenses (auto-fetched from expenses module)
+            "Travel Expense": exp_data.get("travel", 0),
+            "Medical Expense": exp_data.get("medical", 0),
+            "Food Expense": exp_data.get("food", 0),
+            "Other Expense": exp_data.get("other", 0),
+            "Total Reimbursements": exp_data.get("total", 0),
+            
+            # Notes
+            "Notes": existing.get("notes", "")
+        })
+    
+    df = pd.DataFrame(rows)
+    
+    # Create Excel with formatting
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Payroll Input', index=False)
+        
+        # Instructions sheet
+        instructions = {
+            "Column": [
+                "Employee Code", "Employee Name", "Department", "Gross Monthly",
+                "Days in Month", "Working Days", "Present Days", "Leave Days",
+                "LOP Days", "Bonus", "Incentive", "Arrears", "Overtime Hours",
+                "Penalty", "Advance Recovery", "Loan EMI", "Expenses", "Notes"
+            ],
+            "Type": [
+                "READ-ONLY", "READ-ONLY", "READ-ONLY", "READ-ONLY",
+                "AUTO", "AUTO", "AUTO", "AUTO",
+                "EDITABLE", "EDITABLE", "EDITABLE", "EDITABLE", "EDITABLE",
+                "EDITABLE", "EDITABLE", "EDITABLE", "AUTO (from Expenses)", "EDITABLE"
+            ],
+            "Description": [
+                "Do not modify", "Do not modify", "Do not modify", "From employee master",
+                "Auto-calculated", "Auto-calculated", "From attendance", "From leave module",
+                "Override if needed", "One-time bonus", "Performance incentive", "Salary revision arrears", "OT hours (1.5x rate)",
+                "Policy violation", "Salary advance payback", "Monthly loan EMI", "From approved expenses", "Any additional notes"
+            ]
+        }
+        pd.DataFrame(instructions).to_excel(writer, sheet_name='Instructions', index=False)
+    
+    output.seek(0)
+    filename = f"Payroll_Input_Template_{month}.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
