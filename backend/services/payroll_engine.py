@@ -294,31 +294,40 @@ class PayrollCalculationEngine:
         """
         Calculate TDS (Tax Deduction at Source) based on income tax slabs.
         
-        New Regime (FY 2024-25):
-        - Up to ₹3,00,000: Nil
-        - ₹3,00,001 to ₹7,00,000: 5%
-        - ₹7,00,001 to ₹10,00,000: 10%
-        - ₹10,00,001 to ₹12,00,000: 15%
-        - ₹12,00,001 to ₹15,00,000: 20%
-        - Above ₹15,00,000: 30%
+        Finance Act 2025 - New Tax Regime (FY 2025-26):
         
-        Standard deduction: ₹75,000
+        Tax Slabs:
+        - Up to ₹4,00,000: Nil
+        - ₹4,00,001 to ₹8,00,000: 5%
+        - ₹8,00,001 to ₹12,00,000: 10%
+        - ₹12,00,001 to ₹16,00,000: 15%
+        - ₹16,00,001 to ₹20,00,000: 20%
+        - ₹20,00,001 to ₹24,00,000: 25%
+        - Above ₹24,00,000: 30%
+        
+        Standard Deduction (Section 16ia): ₹75,000
+        
+        Section 87A Rebate (FY 2025-26):
+        - If taxable income ≤ ₹12,00,000: Full rebate up to ₹60,000
+        - Effectively zero tax up to ₹12,75,000 gross income
         """
         standard_deduction = 75000
         taxable_income = max(0, gross_annual - standard_deduction)
         
-        # Calculate tax based on slabs
+        # Calculate tax based on FY 2025-26 slabs
         tax = 0
         slab_details = []
         remaining = taxable_income
         
+        # Finance Act 2025 - New Tax Regime Slabs
         slabs = [
-            (300000, 0, "Up to ₹3L"),
-            (400000, 5, "₹3L - ₹7L @ 5%"),
-            (300000, 10, "₹7L - ₹10L @ 10%"),
-            (200000, 15, "₹10L - ₹12L @ 15%"),
-            (300000, 20, "₹12L - ₹15L @ 20%"),
-            (float('inf'), 30, "Above ₹15L @ 30%")
+            (400000, 0, "Up to ₹4L"),
+            (400000, 5, "₹4L - ₹8L @ 5%"),
+            (400000, 10, "₹8L - ₹12L @ 10%"),
+            (400000, 15, "₹12L - ₹16L @ 15%"),
+            (400000, 20, "₹16L - ₹20L @ 20%"),
+            (400000, 25, "₹20L - ₹24L @ 25%"),
+            (float('inf'), 30, "Above ₹24L @ 30%")
         ]
         
         for limit, rate, desc in slabs:
@@ -331,7 +340,20 @@ class PayrollCalculationEngine:
             tax += tax_in_slab
             remaining -= taxable_in_slab
         
-        # Add 4% health & education cess
+        # Section 87A Rebate - Finance Act 2025 (FY 2025-26)
+        # If taxable income ≤ ₹12,00,000: Full rebate up to ₹60,000
+        rebate_87a = 0
+        rebate_limit = 1200000  # ₹12 Lakh threshold
+        max_rebate = 60000     # Maximum rebate amount (₹60,000)
+        
+        tax_before_rebate = tax
+        if regime == "new" and taxable_income <= rebate_limit:
+            rebate_87a = min(tax, max_rebate)  # Rebate cannot exceed actual tax
+            tax = max(0, tax - rebate_87a)
+            if rebate_87a > 0:
+                slab_details.append(f"87A Rebate: -₹{rebate_87a:,.0f}")
+        
+        # Add 4% health & education cess (on tax AFTER rebate)
         cess = tax * 0.04
         total_tax = tax + cess
         
@@ -339,6 +361,8 @@ class PayrollCalculationEngine:
         monthly_tds = total_tax / 12
         
         formula = f"Annual: ₹{gross_annual:,.0f} - SD ₹{standard_deduction:,.0f} = ₹{taxable_income:,.0f} taxable"
+        if rebate_87a > 0:
+            formula += f" | 87A Rebate: ₹{rebate_87a:,.0f} (Zero Tax)"
         
         calc = self._log_calculation(
             component_name="TDS (Income Tax)",
@@ -347,21 +371,28 @@ class PayrollCalculationEngine:
                 "standard_deduction": standard_deduction,
                 "taxable_income": taxable_income,
                 "regime": regime,
-                "annual_tax": round(tax, 2),
-                "cess_4_percent": round(cess, 2)
+                "tax_before_rebate": round(tax_before_rebate, 2),
+                "rebate_87a": round(rebate_87a, 2),
+                "tax_after_rebate": round(tax, 2),
+                "cess_4_percent": round(cess, 2),
+                "finance_act": "2025",
+                "fy": "2025-26"
             },
             formula=formula,
             output_value=monthly_tds,
-            rule_id="TDS_NEW_REGIME",
-            rule_version="1.0"
+            rule_id="TDS_NEW_REGIME_87A_FY2025",
+            rule_version="3.0"
         )
         
         return {
             "monthly_tds": round(monthly_tds, 2),
             "annual_tax": round(total_tax, 2),
             "taxable_income": round(taxable_income, 2),
+            "rebate_87a": round(rebate_87a, 2),
+            "tax_before_rebate": round(tax_before_rebate, 2),
             "slab_breakdown": slab_details,
             "regime": regime,
+            "finance_act": "2025",
             "calculation": calc
         }
     
@@ -1031,7 +1062,10 @@ class PayrollCalculationEngine:
                 "monthly_tds": tds_result.get("monthly_tds", 0),
                 "annual_tax": tds_result.get("annual_tax", 0),
                 "taxable_income": tds_result.get("taxable_income", 0),
+                "rebate_87a": tds_result.get("rebate_87a", 0),
+                "tax_before_rebate": tds_result.get("tax_before_rebate", 0),
                 "regime": tds_result.get("regime", "new"),
+                "finance_act": tds_result.get("finance_act", "2025"),
                 "slab_breakdown": tds_result.get("slab_breakdown", [])
             },
             "employer_contributions": {

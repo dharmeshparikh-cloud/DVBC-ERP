@@ -719,7 +719,7 @@ export default function PayrollEngine() {
                       {simulationResult.tds_details && simulationResult.tds_details.monthly_tds > 0 && (
                         <div className={`p-3 rounded-lg border-l-4 border-purple-500 ${isDark ? 'bg-purple-900/20' : 'bg-purple-50'}`}>
                           <p className={`text-xs font-medium ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
-                            TDS (Income Tax) - {simulationResult.tds_details.regime?.toUpperCase()} Regime
+                            TDS (Income Tax) - {simulationResult.tds_details.regime?.toUpperCase()} Regime (FY 2025-26)
                           </p>
                           <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
                             <div>
@@ -740,6 +740,33 @@ export default function PayrollEngine() {
                               {simulationResult.tds_details.slab_breakdown.join(' | ')}
                             </p>
                           )}
+                        </div>
+                      )}
+                      
+                      {/* Show 87A Rebate Info when applied (zero TDS) - Finance Act 2025 */}
+                      {simulationResult.tds_details && simulationResult.tds_details.monthly_tds === 0 && simulationResult.tds_details.rebate_87a > 0 && (
+                        <div className={`p-3 rounded-lg border-l-4 border-green-500 ${isDark ? 'bg-green-900/20' : 'bg-green-50'}`}>
+                          <p className={`text-xs font-medium flex items-center gap-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                            <CheckCircle2 className="w-4 h-4" />
+                            Section 87A Rebate Applied - Zero TDS (Finance Act 2025)
+                          </p>
+                          <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                            <div>
+                              <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Taxable Income</p>
+                              <p className="font-medium">{formatCurrency(simulationResult.tds_details.taxable_income)}</p>
+                            </div>
+                            <div>
+                              <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Tax Before Rebate</p>
+                              <p className="font-medium">{formatCurrency(simulationResult.tds_details.tax_before_rebate)}</p>
+                            </div>
+                            <div>
+                              <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>87A Rebate</p>
+                              <p className="font-medium text-green-600">-{formatCurrency(simulationResult.tds_details.rebate_87a)}</p>
+                            </div>
+                          </div>
+                          <p className={`text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+                            Taxable income ≤ ₹12,00,000 qualifies for full rebate (up to ₹60,000) under Section 87A • Zero tax up to ₹12.75L gross
+                          </p>
                         </div>
                       )}
                       

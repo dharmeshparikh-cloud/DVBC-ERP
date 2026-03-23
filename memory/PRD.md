@@ -1,5 +1,28 @@
 # NETRA ERP - Product Requirements Document
 
+## TDS Configuration - Finance Act 2025 (FY 2025-26) ✅
+
+### New Tax Regime Slabs (Updated)
+| Income Slab | Tax Rate |
+|------------|----------|
+| Up to ₹4,00,000 | Nil |
+| ₹4,00,001 - ₹8,00,000 | 5% |
+| ₹8,00,001 - ₹12,00,000 | 10% |
+| ₹12,00,001 - ₹16,00,000 | 15% |
+| ₹16,00,001 - ₹20,00,000 | 20% |
+| ₹20,00,001 - ₹24,00,000 | 25% |
+| Above ₹24,00,000 | 30% |
+
+### Section 87A Rebate (Finance Act 2025)
+- **Threshold:** Taxable income ≤ ₹12,00,000
+- **Max Rebate:** ₹60,000
+- **Result:** Zero tax up to ₹12.75L gross income (after ₹75K standard deduction)
+
+### Standard Deduction (Section 16ia)
+- Amount: ₹75,000
+
+---
+
 ## Payroll Engine - PRODUCTION READY ✅ (March 23, 2026)
 
 ### Latest Update - Granular Inputs Complete + Month-over-Month Comparison
