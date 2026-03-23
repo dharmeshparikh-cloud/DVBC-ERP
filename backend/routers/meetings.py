@@ -41,7 +41,7 @@ MOM_UPLOAD_DIR = "/app/uploads/mom_documents"
 os.makedirs(MOM_UPLOAD_DIR, exist_ok=True)
 
 # App URL for email links
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://expense-tracker-3627.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://rule-simulator.preview.emergentagent.com").replace("/api", "")
 
 
 @router.post("", response_model=Meeting)

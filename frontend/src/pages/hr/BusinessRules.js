@@ -263,7 +263,7 @@ const STRING_VALUE_TEMPLATES = {
     { value: 'basic_salary * 0.12', label: 'Basic × 12% (PF Standard)' },
     { value: 'basic_salary * 0.0325', label: 'Basic × 3.25% (ESI Employer)' },
     { value: 'basic_salary * 0.0075', label: 'Basic × 0.75% (ESI Employee)' },
-    { value: '(basic_salary / 30) * lop_days', label: 'Basic/30 × LOP Days' },
+    { value: '(gross_ctc / 30) * lop_days', label: 'Gross CTC/30 × LOP Days' },
     { value: '(basic_salary / working_days) * present_days', label: 'Pro-rata Basic' },
     { value: 'gross_salary * tax_rate', label: 'Gross × Tax Rate (TDS)' },
     { value: 'basic_per_day', label: 'Basic Per Day Calculation' },
@@ -1332,6 +1332,30 @@ const BusinessRules = () => {
   const [simulating, setSimulating] = useState(false);
   const [showSOPModal, setShowSOPModal] = useState(false);
   const [selectedSOPType, setSelectedSOPType] = useState(null);
+  const [showTestMyRule, setShowTestMyRule] = useState(false);
+  const [testRuleData, setTestRuleData] = useState({
+    employee_name: '',
+    employee_ctc: 800000,
+    basic_salary: 320000,
+    department: 'Engineering',
+    role: 'employee',
+    grade: 'L3',
+    location: 'bangalore',
+    scenario_value: 0,  // The value being tested (expense amount, leave days, etc.)
+    scenario_type: ''   // What we're testing
+  });
+  const [testResult, setTestResult] = useState(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  
+  // Fetch all employees for dropdown
+  const { data: employeesList = [] } = useQuery({
+    queryKey: ['employees-for-test'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/all`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000
+  });
   
   // Fetch all policies
   const { data: policies = [], isLoading: loading, refetch } = useQuery({
@@ -2426,12 +2450,12 @@ const BusinessRules = () => {
                     <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
                       <p className="text-xs font-medium text-red-600 mb-2">📊 Example 2 - LOP Deduction:</p>
                       <div className="text-sm space-y-1">
-                        <p>Employee CTC: <strong>₹12,00,000/year</strong></p>
-                        <p>Basic Salary: <strong>₹4,80,000/year</strong> (₹40,000/month, ₹1,333/day)</p>
+                        <p>Employee Gross CTC: <strong>₹12,00,000/year</strong> (₹1,00,000/month)</p>
+                        <p>Monthly Gross: <strong>₹1,00,000</strong> (Daily: ₹3,333)</p>
                         <p>LOP Days: <strong>3 days</strong></p>
-                        <p>Formula: <code className="bg-zinc-100 px-1 rounded text-xs">(basic_salary / 30) × lop_days</code></p>
-                        <p className="text-red-600">→ LOP Deduction: <strong>₹1,333 × 3 = ₹4,000</strong></p>
-                        <p className="text-xs text-zinc-500">Payslip Impact: Gross ₹1,00,000 - LOP ₹4,000 = Net before tax ₹96,000</p>
+                        <p>Formula: <code className="bg-zinc-100 px-1 rounded text-xs">(gross_ctc / 30) × lop_days</code></p>
+                        <p className="text-red-600">→ LOP Deduction: <strong>₹3,333 × 3 = ₹10,000</strong></p>
+                        <p className="text-xs text-zinc-500">Payslip Impact: Gross ₹1,00,000 - LOP ₹10,000 = Net before tax ₹90,000</p>
                       </div>
                     </div>
                   </div>
@@ -2541,6 +2565,356 @@ const BusinessRules = () => {
                       </>
                     )}
                   </div>
+                </div>
+                
+                {/* TEST MY RULE - Interactive Testing */}
+                <div className={`mt-4 p-4 rounded-lg ${isDark ? 'bg-amber-900/20 border border-amber-700' : 'bg-amber-50 border border-amber-200'}`}>
+                  <div 
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => setShowTestMyRule(!showTestMyRule)}
+                  >
+                    <h4 className={`font-semibold flex items-center gap-2 ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
+                      <User className="w-4 h-4" />
+                      Test My Rule - Try with Real Data
+                    </h4>
+                    <ChevronRight className={`w-5 h-5 transition-transform ${showTestMyRule ? 'rotate-90' : ''} ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                  </div>
+                  
+                  {showTestMyRule && (
+                    <div className="mt-4 space-y-4">
+                      <p className={`text-xs ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>
+                        Select an employee to auto-fill their data, or enter details manually to see rule impact.
+                      </p>
+                      
+                      {/* Employee Selection Dropdown */}
+                      <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800 border border-zinc-700' : 'bg-white border border-amber-200'}`}>
+                        <Label className="text-xs font-medium flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Quick Select Employee (Auto-fills data)
+                        </Label>
+                        <Select
+                          value={selectedEmployeeId}
+                          onValueChange={(empId) => {
+                            setSelectedEmployeeId(empId);
+                            if (empId && empId !== 'manual') {
+                              const emp = employeesList.find(e => e.id === empId || e.employee_id === empId);
+                              if (emp) {
+                                // Calculate annual CTC from monthly gross salary (multiply by 12)
+                                const annualCTC = (emp.gross_salary || emp.salary || 0) * 12;
+                                const annualBasic = Math.round(annualCTC * 0.4);  // 40% of CTC is basic
+                                
+                                // Map employee department to dropdown value
+                                const deptMap = {
+                                  'HR': 'HR', 'Human Resources': 'HR',
+                                  'Finance': 'Finance', 'Finance & Accounts': 'Finance',
+                                  'Sales': 'Sales', 'Marketing': 'Marketing',
+                                  'Engineering': 'Engineering', 'Operations': 'Operations',
+                                  'Consulting': 'Consulting', 'IT': 'IT',
+                                  'Legal': 'Legal', 'Admin': 'Admin', 'Administration': 'Admin',
+                                  'Support': 'Support', 'R&D': 'R&D'
+                                };
+                                
+                                // Map role
+                                const roleMap = {
+                                  'admin': 'admin', 'hr_manager': 'hr_manager', 
+                                  'manager': 'manager', 'team_lead': 'team_lead',
+                                  'senior': 'senior', 'employee': 'employee',
+                                  'consultant': 'consultant', 'contractor': 'contractor',
+                                  'intern': 'intern', 'trainee': 'trainee'
+                                };
+                                
+                                // Map level/grade
+                                const gradeMap = {
+                                  'fresher': 'L1', 'junior': 'L2', 'mid': 'L3', 'mid-level': 'L3',
+                                  'senior': 'L4', 'lead': 'L5', 'principal': 'L5',
+                                  'manager': 'L6', 'senior_manager': 'L7', 'director': 'L7',
+                                  'vp': 'L8', 'head': 'L8', 'cxo': 'L9', 'executive': 'L3'
+                                };
+                                
+                                // Map city to location
+                                const locationMap = {
+                                  'Mumbai': 'mumbai', 'Delhi': 'delhi', 'Delhi NCR': 'delhi',
+                                  'Bangalore': 'bangalore', 'Bengaluru': 'bangalore',
+                                  'Chennai': 'chennai', 'Hyderabad': 'hyderabad',
+                                  'Kolkata': 'kolkata', 'Pune': 'pune', 'Ahmedabad': 'ahmedabad'
+                                };
+                                
+                                setTestRuleData({
+                                  ...testRuleData,
+                                  employee_name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.email?.split('@')[0] || 'Employee',
+                                  employee_ctc: annualCTC,
+                                  basic_salary: annualBasic,
+                                  department: deptMap[emp.department] || emp.department || 'Engineering',
+                                  role: roleMap[emp.role] || emp.role || 'employee',
+                                  grade: gradeMap[emp.level] || 'L3',
+                                  location: locationMap[emp.city] || 'bangalore'
+                                });
+                                setTestResult(null);
+                              }
+                            }
+                          }}
+                        >
+                          <SelectTrigger className={`h-9 mt-2 ${isDark ? 'bg-zinc-900 border-zinc-600' : ''}`}>
+                            <SelectValue placeholder="Select employee to auto-fill..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manual">✏️ Enter manually</SelectItem>
+                            {employeesList.map(emp => (
+                              <SelectItem key={emp.id || emp.employee_id} value={emp.id || emp.employee_id}>
+                                {emp.employee_id} - {emp.first_name} {emp.last_name} ({emp.department}, ₹{((emp.gross_salary || emp.salary || 0) * 12).toLocaleString('en-IN')}/yr)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Employee Details - Now with inherited values */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-xs">Employee Name</Label>
+                          <Input
+                            value={testRuleData.employee_name}
+                            onChange={(e) => setTestRuleData({...testRuleData, employee_name: e.target.value})}
+                            placeholder="e.g., Rahul Sharma"
+                            className={`h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-600' : ''}`}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Annual Gross CTC (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testRuleData.employee_ctc}
+                            onChange={(e) => {
+                              const ctc = parseFloat(e.target.value) || 0;
+                              setTestRuleData({
+                                ...testRuleData, 
+                                employee_ctc: ctc,
+                                basic_salary: Math.round(ctc * 0.4)  // Auto-calculate basic as 40%
+                              });
+                            }}
+                            className={`h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-600' : ''}`}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Basic Salary (₹/year)</Label>
+                          <Input
+                            type="number"
+                            value={testRuleData.basic_salary}
+                            onChange={(e) => setTestRuleData({...testRuleData, basic_salary: parseFloat(e.target.value) || 0})}
+                            className={`h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-600' : ''}`}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-4 gap-3">
+                        <div>
+                          <Label className="text-xs">Department</Label>
+                          <Select
+                            value={testRuleData.department}
+                            onValueChange={(val) => setTestRuleData({...testRuleData, department: val})}
+                          >
+                            <SelectTrigger className={`h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-600' : ''}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {APPLIES_TO_OPTIONS.departments.map(d => (
+                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Role</Label>
+                          <Select
+                            value={testRuleData.role}
+                            onValueChange={(val) => setTestRuleData({...testRuleData, role: val})}
+                          >
+                            <SelectTrigger className={`h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-600' : ''}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {APPLIES_TO_OPTIONS.roles.map(r => (
+                                <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Grade</Label>
+                          <Select
+                            value={testRuleData.grade}
+                            onValueChange={(val) => setTestRuleData({...testRuleData, grade: val})}
+                          >
+                            <SelectTrigger className={`h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-600' : ''}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {APPLIES_TO_OPTIONS.grades.map(g => (
+                                <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Location</Label>
+                          <Select
+                            value={testRuleData.location}
+                            onValueChange={(val) => setTestRuleData({...testRuleData, location: val})}
+                          >
+                            <SelectTrigger className={`h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-600' : ''}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {APPLIES_TO_OPTIONS.locations.map(l => (
+                                <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {/* Scenario Input */}
+                      <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800 border border-zinc-700' : 'bg-white border border-zinc-200'}`}>
+                        <Label className="text-xs font-medium">Test Scenario</Label>
+                        <div className="grid grid-cols-2 gap-3 mt-2">
+                          <div>
+                            <Label className="text-xs text-zinc-500">
+                              {editingRule.rule_type === 'limit' && 'Amount/Value to Test'}
+                              {editingRule.rule_type === 'threshold' && 'Value to Check Against Threshold'}
+                              {editingRule.rule_type === 'formula' && 'Days/Value for Calculation'}
+                              {editingRule.rule_type === 'condition' && 'Scenario Value'}
+                              {editingRule.rule_type === 'approval' && 'Claim Amount'}
+                            </Label>
+                            <Input
+                              type="number"
+                              value={testRuleData.scenario_value}
+                              onChange={(e) => setTestRuleData({...testRuleData, scenario_value: parseFloat(e.target.value) || 0})}
+                              placeholder={
+                                editingRule.rule_type === 'limit' ? 'e.g., 15000 (expense amount)' :
+                                editingRule.rule_type === 'threshold' ? 'e.g., 4 (late arrivals)' :
+                                editingRule.rule_type === 'formula' ? 'e.g., 3 (LOP days)' :
+                                'Enter value'
+                              }
+                              className={`h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-600' : ''}`}
+                            />
+                          </div>
+                          <div className="flex items-end">
+                            <Button
+                              onClick={() => {
+                                // Calculate test result based on rule type
+                                const basicMonthly = testRuleData.basic_salary / 12;
+                                const basicDaily = testRuleData.basic_salary / 365;
+                                // LOP uses Gross CTC, not Basic
+                                const grossMonthly = testRuleData.employee_ctc / 12;
+                                const grossDaily = grossMonthly / 30;  // 30 days in a month for LOP
+                                const ruleValue = editingRule.numeric_value || 0;
+                                const testValue = testRuleData.scenario_value;
+                                
+                                let result = {
+                                  passed: false,
+                                  message: '',
+                                  impact: '',
+                                  calculation: ''
+                                };
+                                
+                                if (editingRule.rule_type === 'limit') {
+                                  result.passed = testValue <= ruleValue;
+                                  result.message = result.passed 
+                                    ? `✅ APPROVED - ₹${testValue.toLocaleString('en-IN')} is within limit of ₹${ruleValue.toLocaleString('en-IN')}`
+                                    : `❌ REJECTED - ₹${testValue.toLocaleString('en-IN')} exceeds limit of ₹${ruleValue.toLocaleString('en-IN')} by ₹${(testValue - ruleValue).toLocaleString('en-IN')}`;
+                                  result.impact = result.passed 
+                                    ? `₹${testValue.toLocaleString('en-IN')} will be added to reimbursements`
+                                    : 'No payroll impact - claim rejected';
+                                }
+                                else if (editingRule.rule_type === 'threshold') {
+                                  result.passed = testValue <= ruleValue;
+                                  const excessCount = Math.max(0, testValue - ruleValue);
+                                  const penalty = Math.round(grossDaily * 0.5 * excessCount);
+                                  result.message = result.passed
+                                    ? `✅ WITHIN THRESHOLD - ${testValue} is within allowed ${ruleValue}`
+                                    : `⚠️ THRESHOLD EXCEEDED - ${testValue} exceeds ${ruleValue} by ${excessCount}`;
+                                  result.impact = result.passed
+                                    ? 'No penalty applied'
+                                    : `Penalty: ₹${penalty.toLocaleString('en-IN')} (${excessCount} × 0.5 day LOP × ₹${Math.round(grossDaily).toLocaleString('en-IN')}/day)`;
+                                }
+                                else if (editingRule.rule_type === 'formula') {
+                                  const pfAmount = Math.round(basicMonthly * 0.12);
+                                  // LOP = Gross CTC / 30 days * LOP days
+                                  const lopDeduction = Math.round(grossDaily * testValue);
+                                  result.passed = true;
+                                  result.message = `📊 FORMULA CALCULATED`;
+                                  result.calculation = editingRule.value?.includes('lop') || editingRule.value?.includes('LOP') || editingRule.value?.includes('gross')
+                                    ? `(₹${Math.round(grossMonthly).toLocaleString('en-IN')} / 30) × ${testValue} days = ₹${lopDeduction.toLocaleString('en-IN')}`
+                                    : `₹${Math.round(basicMonthly).toLocaleString('en-IN')} × 12% = ₹${pfAmount.toLocaleString('en-IN')}/month`;
+                                  result.impact = editingRule.value?.includes('lop') || editingRule.value?.includes('gross')
+                                    ? `LOP Deduction: ₹${lopDeduction.toLocaleString('en-IN')} from gross salary`
+                                    : `PF: Employee -₹${pfAmount.toLocaleString('en-IN')} | Employer +₹${pfAmount.toLocaleString('en-IN')}`;
+                                }
+                                else if (editingRule.rule_type === 'condition') {
+                                  // Check if employee matches condition
+                                  const matchesDept = !editingRule.applies_to?.scope_value || editingRule.applies_to.scope_value === testRuleData.department;
+                                  const matchesRole = !editingRule.applies_to?.scope_value || editingRule.applies_to.scope_value === testRuleData.role;
+                                  result.passed = matchesDept && matchesRole;
+                                  result.message = result.passed
+                                    ? `✅ CONDITION MET - Rule applies to this employee`
+                                    : `⚠️ CONDITION NOT MET - Rule does not apply`;
+                                  result.impact = result.passed
+                                    ? 'Employee is eligible for this rule/benefit'
+                                    : 'Standard policy applies instead';
+                                }
+                                else if (editingRule.rule_type === 'approval') {
+                                  result.passed = true;
+                                  result.message = `🔄 APPROVAL REQUIRED`;
+                                  result.impact = editingRule.value?.includes('self') || editingRule.value?.includes('no_self')
+                                    ? `${testRuleData.employee_name || 'Employee'} cannot self-approve. Routed to: Manager/HR`
+                                    : `Claim of ₹${testValue.toLocaleString('en-IN')} requires ${editingRule.value?.replace(/_/g, ' ') || 'manager'} approval`;
+                                }
+                                
+                                setTestResult(result);
+                              }}
+                              className="bg-amber-600 hover:bg-amber-700 text-white h-8"
+                              size="sm"
+                            >
+                              <Calculator className="w-4 h-4 mr-1" />
+                              Calculate Impact
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Test Result */}
+                      {testResult && (
+                        <div className={`p-4 rounded-lg ${
+                          testResult.passed 
+                            ? isDark ? 'bg-emerald-900/30 border border-emerald-700' : 'bg-emerald-50 border border-emerald-200'
+                            : isDark ? 'bg-red-900/30 border border-red-700' : 'bg-red-50 border border-red-200'
+                        }`}>
+                          <div className="space-y-2">
+                            <p className={`font-semibold ${testResult.passed ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {testResult.message}
+                            </p>
+                            {testResult.calculation && (
+                              <p className={`text-sm font-mono ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                                Calculation: {testResult.calculation}
+                              </p>
+                            )}
+                            <div className={`p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'}`}>
+                              <p className="text-xs font-medium">Payroll Impact:</p>
+                              <p className={`text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{testResult.impact}</p>
+                            </div>
+                            <div className="flex items-center gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                              <User className="w-4 h-4 text-zinc-400" />
+                              <span className="text-xs text-zinc-500">
+                                Testing for: <strong>{testRuleData.employee_name || 'Employee'}</strong> | 
+                                CTC: ₹{testRuleData.employee_ctc.toLocaleString('en-IN')} | 
+                                {testRuleData.department} | {testRuleData.role} | {testRuleData.grade}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Apply Rule Button - Prominent after simulation */}

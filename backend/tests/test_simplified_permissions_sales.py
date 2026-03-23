@@ -11,7 +11,7 @@ import requests
 import os
 import json
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://expense-tracker-3627.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://rule-simulator.preview.emergentagent.com')
 
 class TestSimplifiedPermissions:
     """Test simplified permission model with new fields"""
