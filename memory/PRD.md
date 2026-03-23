@@ -312,6 +312,70 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 
 ---
 
+---
+
+## Exit Organisation Workflow (March 23, 2026)
+
+### Feature Overview
+Complete employee resignation workflow with guided exit interview and approval chain.
+
+### Flow
+1. **Employee initiates** - Clicks "Exit Organisation" button on My Details page
+2. **Step 1: Confirmation** - Reviews important information about notice period, approvals, restrictions
+3. **Step 2: Exit Interview** - Answers mandatory questions (7 questions: select, rating, text types)
+4. **Step 3: Review & Submit** - Reviews answers and submits exit request
+5. **Admin Approval** - Request goes to Admin for first-level approval
+6. **HR Approval** - After Admin approval, HR reviews and approves (F&F calculation starts)
+7. **Notice Period** - 30-day notice period begins
+8. **F&F Settlement** - Final & Full settlement after all clearances
+
+### API Endpoints
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/api/exit/interview-questions` | GET | Get exit interview questions | Public |
+| `/api/exit/initiate` | POST | Submit exit request | Employee |
+| `/api/exit/my-request` | GET | Get employee's exit request | Employee |
+| `/api/exit/pending` | GET | Get pending exit requests | Admin/HR |
+| `/api/exit/{id}/admin-approve` | POST | Admin approves exit | Admin |
+| `/api/exit/{id}/hr-approve` | POST | HR approves and calculates F&F | HR |
+| `/api/exit/{id}/update-checklist` | POST | Update exit checklist | Admin/HR |
+| `/api/exit/{id}/process-fnf` | POST | Process F&F settlement | Admin/HR |
+| `/api/exit/{id}/reject` | POST | Reject/Cancel exit request | Admin/HR |
+
+### Files
+- Backend: `/app/backend/routers/exit_organisation.py`
+- Frontend: `/app/frontend/src/pages/MyDetails.js` (Exit Organisation section)
+
+### Security
+- Downloads restricted during notice period
+- Employee status updated to exit_status
+- User account deactivated after F&F completion
+
+---
+
+## Onboarding Data Editing Policy
+
+### How Employees Can Edit Onboarding Data
+After onboarding completion, employees can request changes to their profile information through the **My Details** page:
+
+1. **View Data**: All onboarding data is visible on My Details page
+2. **Request Changes**: Click "Edit" button on any editable section (Contact, Address, Bank Details, Emergency Contact)
+3. **Provide Reason**: Must provide a reason for the change request
+4. **Proof Required**: Bank detail changes require proof document (cancelled cheque/bank statement)
+5. **HR Approval**: All change requests go to HR for review and approval
+
+### Sections
+| Section | Editable | Approval Required |
+|---------|----------|-------------------|
+| Personal Information | No (Contact HR) | - |
+| Contact Information | Yes | HR |
+| Address | Yes | HR |
+| Bank Details | Yes | HR (with proof) |
+| Emergency Contact | Yes | HR |
+| Employment Information | No (Read-only) | - |
+
+---
+
 ## Last Updated
-- Date: March 21, 2026
-- Status: Stress Test Validations Implemented (I52, E31, A4, B12)
+- Date: March 23, 2026
+- Status: Exit Organisation Workflow Implemented & Tested

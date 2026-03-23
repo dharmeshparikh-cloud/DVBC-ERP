@@ -688,7 +688,6 @@ const MyDetails = () => {
                   <ul className={`text-sm space-y-2 ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>
                     <li>• This will initiate a <strong>30-day notice period</strong> after approval.</li>
                     <li>• Your resignation will require <strong>Admin and HR approval</strong>.</li>
-                    <li>• During the notice period, certain <strong>downloads will be restricted</strong>.</li>
                     <li>• You will need to complete an <strong>exit interview</strong> and handover process.</li>
                     <li>• Final & Full Settlement (F&F) will be calculated after all clearances.</li>
                   </ul>
