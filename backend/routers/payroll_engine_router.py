@@ -447,6 +447,356 @@ async def get_payroll_register_details(
     }
 
 
+# ==================== CLEANUP & MAINTENANCE ====================
+
+@router.post("/cleanup-duplicates")
+async def cleanup_duplicate_registers(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Clean up duplicate draft records in payroll register.
+    Keeps only the latest draft per month, removes older duplicates.
+    Admin only.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can run cleanup")
+    
+    db = get_db()
+    
+    # Get all registers grouped by month
+    all_registers = await db.payroll_register.find({}, {"_id": 1, "month": 1, "status": 1, "created_at": 1}).to_list(1000)
+    
+    # Group by month
+    from collections import defaultdict
+    by_month = defaultdict(list)
+    for reg in all_registers:
+        by_month[reg["month"]].append(reg)
+    
+    deleted_count = 0
+    kept_count = 0
+    cleanup_log = []
+    
+    for month, registers in by_month.items():
+        if len(registers) <= 1:
+            kept_count += 1
+            continue
+        
+        # Separate locked and drafts
+        locked = [r for r in registers if r.get("status") == "locked"]
+        drafts = [r for r in registers if r.get("status") != "locked"]
+        
+        # Keep the locked one (if exists) and latest draft
+        if drafts:
+            # Sort drafts by created_at descending
+            drafts.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            latest_draft = drafts[0]
+            duplicates_to_delete = drafts[1:]
+            
+            for dup in duplicates_to_delete:
+                await db.payroll_register.delete_one({"_id": dup["_id"]})
+                deleted_count += 1
+                cleanup_log.append({
+                    "month": month,
+                    "deleted_id": str(dup["_id"]),
+                    "status": dup.get("status"),
+                    "created_at": dup.get("created_at")
+                })
+            
+            kept_count += 1  # Latest draft kept
+        
+        if locked:
+            kept_count += len(locked)
+    
+    return {
+        "success": True,
+        "deleted_count": deleted_count,
+        "kept_count": kept_count,
+        "cleanup_log": cleanup_log,
+        "message": f"Cleaned up {deleted_count} duplicate records. {kept_count} registers retained."
+    }
+
+
+@router.get("/register-detailed")
+async def get_detailed_register(
+    month: Optional[str] = None,
+    employee_id: Optional[str] = None,
+    department: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get detailed payroll register with component-wise breakdown.
+    Supports filtering by month, employee, and department.
+    
+    Returns full breakdown: Basic, HRA, Allowances, LOP, PF, PT, TDS, etc.
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can view payroll register")
+    
+    db = get_db()
+    
+    # Build query for calculations
+    query = {}
+    if month:
+        query["month"] = month
+    if employee_id:
+        query["employee_id"] = employee_id
+    
+    # Get all calculations matching filters
+    calculations = await db.payroll_calculations.find(query, {"_id": 0}).to_list(1000)
+    
+    if not calculations:
+        return {
+            "success": True,
+            "data": [],
+            "summary": {
+                "total_employees": 0,
+                "total_gross": 0,
+                "total_deductions": 0,
+                "total_net": 0
+            },
+            "filters_applied": {
+                "month": month,
+                "employee_id": employee_id,
+                "department": department
+            }
+        }
+    
+    # Enrich with employee data and build detailed breakdown
+    detailed_data = []
+    total_gross = 0
+    total_deductions = 0
+    total_net = 0
+    
+    # Component-wise totals
+    component_totals = {
+        "basic": 0,
+        "hra": 0,
+        "special_allowance": 0,
+        "bonus": 0,
+        "incentive": 0,
+        "arrears": 0,
+        "overtime": 0,
+        "reimbursements": 0,
+        "lop": 0,
+        "pf_employee": 0,
+        "pf_employer": 0,
+        "pt": 0,
+        "tds": 0,
+        "esi": 0,
+        "advance_recovery": 0,
+        "loan_emi": 0,
+        "other_deductions": 0
+    }
+    
+    for calc in calculations:
+        emp_id = calc.get("employee_id")
+        
+        # Fetch employee details
+        employee = await db.employees.find_one({"id": emp_id}, {"_id": 0, "first_name": 1, "last_name": 1, "employee_id": 1, "department": 1})
+        
+        # Apply department filter
+        if department and employee and employee.get("department") != department:
+            continue
+        
+        # Parse earnings directly from calculation (not nested in breakdown)
+        earnings = calc.get("earnings", [])
+        deductions = calc.get("deductions", [])
+        
+        # Parse earnings - handle both dict and list formats
+        basic = 0
+        hra = 0
+        special = 0
+        bonus = 0
+        incentive = 0
+        arrears = 0
+        overtime = 0
+        reimbursements = calc.get("reimbursements", 0) or 0
+        
+        if isinstance(earnings, list):
+            for e in earnings:
+                key = e.get("key", "").lower()
+                amt = abs(e.get("amount", 0))
+                if key == "basic_salary" or key == "basic":
+                    basic = amt
+                elif key == "hra" or key == "house_rent_allowance":
+                    hra = amt
+                elif key == "special_allowance":
+                    special = amt
+                elif key == "bonus":
+                    bonus = amt
+                elif key == "incentive":
+                    incentive = amt
+                elif key == "arrears":
+                    arrears = amt
+                elif key == "overtime":
+                    overtime = amt
+        
+        # Parse deductions
+        lop = 0
+        pf = 0
+        pt = 0
+        tds = 0
+        esi = 0
+        advance = 0
+        loan = 0
+        penalty = 0
+        other_ded = 0
+        
+        if isinstance(deductions, list):
+            for d in deductions:
+                key = d.get("key", "").lower()
+                amt = abs(d.get("amount", 0))
+                if key == "lop" or key == "loss_of_pay":
+                    lop = amt
+                elif key == "pf" or key == "provident_fund":
+                    pf = amt
+                elif key == "pt" or key == "professional_tax":
+                    pt = amt
+                elif key == "tds" or key == "income_tax":
+                    tds = amt
+                elif key == "esi":
+                    esi = amt
+                elif key == "advance_recovery":
+                    advance = amt
+                elif key == "loan_emi":
+                    loan = amt
+                elif key == "penalty":
+                    penalty = amt
+                elif key == "other_deduction":
+                    other_ded = amt
+        
+        # Get values directly from calculation
+        gross = calc.get("gross_monthly", 0) or calc.get("total_earnings", 0) or 0
+        total_ded = calc.get("total_deductions", 0) or 0
+        net = calc.get("net_payable", 0) or calc.get("net_salary", 0) or 0
+        
+        # Get attendance data
+        attendance_summary = calc.get("attendance_summary", {})
+        working_days = calc.get("working_days", attendance_summary.get("working_days", 0))
+        lop_days = calc.get("lop_days", attendance_summary.get("lop_days", 0))
+        
+        # Get TDS details
+        tds_details = calc.get("tds_details", {})
+        if tds == 0 and tds_details:
+            tds = tds_details.get("monthly_tds", 0)
+        
+        # Get employer contributions
+        employer_contribs = calc.get("employer_contributions", {})
+        pf_employer = employer_contribs.get("pf", pf)  # Usually same as employee
+        esi_employer = employer_contribs.get("esi", 0)
+        
+        detailed_data.append({
+            "employee_id": emp_id,
+            "employee_code": calc.get("employee_code") or (employee.get("employee_id") if employee else emp_id),
+            "employee_name": calc.get("employee_name") or (f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip() if employee else "Unknown"),
+            "department": calc.get("department") or (employee.get("department") if employee else "Unknown"),
+            "month": calc.get("month"),
+            "status": calc.get("status", "draft"),
+            
+            # Earnings Breakdown
+            "earnings": {
+                "basic": round(basic, 2),
+                "hra": round(hra, 2),
+                "special_allowance": round(special, 2),
+                "bonus": round(bonus, 2),
+                "incentive": round(incentive, 2),
+                "arrears": round(arrears, 2),
+                "overtime": round(overtime, 2),
+                "reimbursements": round(reimbursements, 2),
+                "gross_earnings": round(gross, 2)
+            },
+            
+            # Deductions Breakdown
+            "deductions": {
+                "lop": round(lop, 2),
+                "pf_employee": round(pf, 2),
+                "professional_tax": round(pt, 2),
+                "tds": round(tds, 2),
+                "esi": round(esi, 2),
+                "advance_recovery": round(advance, 2),
+                "loan_emi": round(loan, 2),
+                "penalty": round(penalty, 2),
+                "other": round(other_ded, 2),
+                "total_deductions": round(total_ded, 2)
+            },
+            
+            # Net
+            "net_payable": round(net, 2),
+            
+            # Employer Contributions
+            "employer_contributions": {
+                "pf": round(pf_employer, 2),
+                "esi": round(esi_employer, 2)
+            },
+            
+            # Attendance
+            "attendance": {
+                "working_days": working_days,
+                "present_days": attendance_summary.get("present", 0),
+                "lop_days": lop_days,
+                "leaves_taken": attendance_summary.get("leaves", 0)
+            },
+            
+            # TDS Details
+            "tds_details": {
+                "taxable_income": tds_details.get("taxable_income", 0),
+                "annual_tax": tds_details.get("annual_tax", 0),
+                "rebate_87a": tds_details.get("rebate_87a", 0),
+                "regime": tds_details.get("regime", "new")
+            }
+        })
+        
+        # Update totals
+        total_gross += gross
+        total_deductions += total_ded
+        total_net += net
+        
+        # Update component totals
+        component_totals["basic"] += basic
+        component_totals["hra"] += hra
+        component_totals["special_allowance"] += special
+        component_totals["bonus"] += bonus
+        component_totals["incentive"] += incentive
+        component_totals["arrears"] += arrears
+        component_totals["overtime"] += overtime
+        component_totals["reimbursements"] += reimbursements
+        component_totals["lop"] += abs(lop)
+        component_totals["pf_employee"] += abs(pf)
+        component_totals["pt"] += abs(pt)
+        component_totals["tds"] += abs(tds)
+        component_totals["esi"] += abs(esi)
+        component_totals["advance_recovery"] += abs(advance)
+        component_totals["loan_emi"] += abs(loan)
+        component_totals["other_deductions"] += abs(penalty) + abs(other_ded)
+    
+    # Get unique departments for filter options
+    departments = list(set(d.get("department") for d in detailed_data if d.get("department")))
+    
+    # Get available months
+    all_months = await db.payroll_calculations.distinct("month")
+    
+    return {
+        "success": True,
+        "data": detailed_data,
+        "summary": {
+            "total_employees": len(detailed_data),
+            "total_gross": round(total_gross, 2),
+            "total_deductions": round(total_deductions, 2),
+            "total_net": round(total_net, 2),
+            "component_totals": {k: round(v, 2) for k, v in component_totals.items()}
+        },
+        "filters_applied": {
+            "month": month,
+            "employee_id": employee_id,
+            "department": department
+        },
+        "filter_options": {
+            "months": sorted(all_months, reverse=True),
+            "departments": sorted(departments)
+        }
+    }
+
+
 # ==================== CALCULATION BREAKDOWN ====================
 
 @router.get("/breakdown/{employee_id}/{month}")
