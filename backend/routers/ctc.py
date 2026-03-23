@@ -134,12 +134,12 @@ def calculate_ctc_breakdown_dynamic(annual_ctc: float, component_config: list, r
         elif is_deduction:
             total_deductions += monthly
     
-    # Handle retention bonus separately if provided
+    # Handle retention bonus separately if provided - MUST be added BEFORE special allowance calculation
     if retention_bonus > 0 and "retention_bonus" not in components:
         components["retention_bonus"] = {
             "key": "retention_bonus", "name": "Retention Bonus", "calc_type": "fixed_annual",
             "value": retention_bonus, "annual": retention_bonus, "monthly": 0,
-            "is_taxable": True, "is_earning": True, "is_optional": True,
+            "is_taxable": True, "is_earning": True, "is_optional": True, "is_deferred": True,
             "vesting_months": retention_vesting_months, "enabled": True,
             "note": f"Payable after {retention_vesting_months} months of service"
         }

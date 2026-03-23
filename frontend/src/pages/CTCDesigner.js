@@ -151,6 +151,33 @@ const CTCDesigner = () => {
     setEffectiveMonth(nextMonth.toISOString().slice(0, 7));
   }, [isAdmin, componentMaster]);
 
+  // Auto-preview: Update preview when CTC, retention bonus, or components change
+  useEffect(() => {
+    const autoPreview = async () => {
+      const ctcValue = parseFloat(annualCTC);
+      if (!ctcValue || ctcValue <= 0 || componentConfig.length === 0) {
+        return;
+      }
+      
+      try {
+        const res = await axios.post(`${API}/ctc/calculate-preview`, {
+          annual_ctc: ctcValue,
+          retention_bonus: parseFloat(retentionBonus) || 0,
+          retention_vesting_months: vestingMonths,
+          component_config: componentConfig
+        });
+        setPreview(res.data);
+      } catch (err) {
+        // Silently fail for auto-preview
+        console.error('Auto-preview failed:', err);
+      }
+    };
+
+    // Debounce auto-preview by 500ms
+    const timeoutId = setTimeout(autoPreview, 500);
+    return () => clearTimeout(timeoutId);
+  }, [annualCTC, retentionBonus, vestingMonths, componentConfig]);
+
   const fetchEmployeeById = async (empId) => {
     try {
       const res = await axios.get(`${API}/employees/${empId}`);
