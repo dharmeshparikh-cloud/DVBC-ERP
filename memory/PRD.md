@@ -1,5 +1,24 @@
 # NETRA ERP - Product Requirements Document
 
+## Latest Updates - March 23, 2026
+
+### Excel Export & Email Approval (P0 COMPLETE) ✅
+- **Download Excel**: Export payroll register as .xlsx file with full breakdown
+- **Email for Approval**: Send Excel as attachment to approver via SMTP
+- Default recipient: dharmesh.parikh@dvconsulting.co.in
+- Includes payroll summary (employees, gross, net) in email dialog
+
+### Exit Management & F&F Settlement - UNIFIED (P0 COMPLETE) ✅
+- **Single Source of Truth**: Combined resignation + F&F in one page
+- **Complete Workflow**: Resignation → Admin Approval → HR Approval → Clearance → F&F Calculation → Settlement → Payment
+- **Both Perspectives**: HR can initiate exits, Employee can submit resignation
+- **Progress Tracking**: Visual workflow steps on each exit card
+- **Clearance Management**: Department-wise clearance (HR, IT, Finance, Admin, Operations)
+- **F&F Calculation**: Gratuity, Leave Encashment, Notice Period, Loan Recovery
+- **Data Merged**: Exit requests + Settlement data combined in unified view
+
+---
+
 ## TDS Configuration - Finance Act 2025 (FY 2025-26) ✅
 
 ### New Tax Regime Slabs (Updated)

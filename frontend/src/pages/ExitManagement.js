@@ -82,14 +82,52 @@ const ExitManagement = () => {
     staleTime: 5 * 60 * 1000
   });
   
-  // Fetch exit requests
+  // Fetch exit requests (merge data from both exit and exit-settlement APIs)
   const { data: exitData, isLoading } = useQuery({
     queryKey: ['exit-requests', filter],
     queryFn: async () => {
-      const res = await axios.get(`${API}/exit/all`, {
-        params: filter !== 'all' ? { status: filter } : {}
+      // Fetch from both APIs
+      const [exitRes, settlementRes] = await Promise.all([
+        axios.get(`${API}/exit/all`, {
+          params: filter !== 'all' ? { status: filter } : {}
+        }),
+        axios.get(`${API}/exit-settlement/list`).catch(() => ({ data: [] }))
+      ]);
+      
+      const exitRequests = exitRes.data?.requests || [];
+      const settlements = settlementRes.data || [];
+      
+      // Create a map of settlements by employee_id for quick lookup
+      const settlementMap = {};
+      settlements.forEach(s => {
+        settlementMap[s.employee_id] = s;
       });
-      return res.data;
+      
+      // Merge settlement data (especially clearance) into exit requests
+      const mergedRequests = exitRequests.map(req => {
+        const settlement = settlementMap[req.employee_id];
+        if (settlement) {
+          return {
+            ...req,
+            clearance: settlement.clearance || req.clearance,
+            settlement_details: settlement.settlement_details,
+            settlement_id: settlement.id
+          };
+        }
+        // Convert checklist to clearance format if no settlement exists
+        if (req.checklist && !req.clearance) {
+          req.clearance = {
+            hr: { status: (req.checklist.exit_interview_done && req.checklist.knowledge_transfer) ? 'cleared' : 'pending' },
+            it: { status: (req.checklist.laptop_return && req.checklist.access_revoked && req.checklist.email_backup) ? 'cleared' : 'pending' },
+            admin: { status: (req.checklist.id_card_return && req.checklist.access_card_return && req.checklist.company_assets) ? 'cleared' : 'pending' },
+            finance: { status: (req.checklist.no_dues_finance) ? 'cleared' : 'pending' },
+            operations: { status: (req.checklist.pending_work) ? 'cleared' : 'pending' }
+          };
+        }
+        return req;
+      });
+      
+      return { requests: mergedRequests };
     },
     staleTime: 60 * 1000
   });
