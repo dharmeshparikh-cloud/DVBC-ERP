@@ -698,6 +698,45 @@ const BusinessRules = () => {
     return '-';
   };
   
+  // Format conditions for display in a human-readable way
+  const formatConditions = (conditions) => {
+    if (!conditions) return null;
+    
+    // If it's a simple key-value object, format nicely
+    if (typeof conditions === 'object') {
+      const entries = Object.entries(conditions);
+      if (entries.length === 0) return null;
+      
+      // Check for slab-based conditions (like Professional Tax)
+      if (entries.some(([k]) => k.startsWith('slab'))) {
+        return entries.filter(([k]) => k.startsWith('slab')).map(([key, val]) => {
+          if (typeof val === 'object' && val.min !== undefined) {
+            return `${key}: ₹${val.min?.toLocaleString('en-IN') || 0} - ₹${val.max?.toLocaleString('en-IN') || '∞'} → ₹${val.tax || 0}`;
+          }
+          return `${key}: ${JSON.stringify(val)}`;
+        }).join(' | ');
+      }
+      
+      // Check for formula conditions
+      if (conditions.formula) {
+        return `Formula: ${conditions.formula}`;
+      }
+      
+      // Format as key=value pairs with AND
+      return entries.map(([key, val]) => {
+        if (typeof val === 'boolean') {
+          return val ? key : `NOT ${key}`;
+        }
+        if (typeof val === 'object') {
+          return `${key}: ${JSON.stringify(val)}`;
+        }
+        return `${key} = ${val}`;
+      }).join(' AND ');
+    }
+    
+    return String(conditions);
+  };
+  
   const renderRuleCard = (policy, rule, index) => {
     const Icon = rule.is_enabled ? CheckCircle : AlertCircle;
     
@@ -730,15 +769,22 @@ const BusinessRules = () => {
             
             {/* Rule Value Display */}
             <div className={`mt-3 p-2 rounded ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
-              <div className="flex items-center gap-4 text-sm">
-                <div>
-                  <span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Value: </span>
-                  <span className="font-mono font-medium">{formatRuleValue(rule)}</span>
+              <div className="flex flex-col gap-2 text-sm">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Value: </span>
+                    <span className="font-mono font-medium">{formatRuleValue(rule)}</span>
+                  </div>
                 </div>
                 {rule.conditions && (
-                  <div className="text-xs">
-                    <span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Conditions: </span>
-                    <span className="font-mono">{JSON.stringify(rule.conditions).slice(0, 50)}...</span>
+                  <div className={`text-xs p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Info className="w-3 h-3 text-blue-500" />
+                      <span className={`font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>Conditions:</span>
+                    </div>
+                    <code className={`font-mono text-xs ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                      {formatConditions(rule.conditions)}
+                    </code>
                   </div>
                 )}
               </div>
