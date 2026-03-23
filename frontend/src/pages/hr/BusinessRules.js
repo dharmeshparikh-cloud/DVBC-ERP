@@ -690,16 +690,31 @@ const BusinessRules = () => {
   };
   
   const formatRuleValue = (rule) => {
+    // For FORMULA types, prioritize showing the formula
+    if (rule.rule_type === 'formula') {
+      if (rule.conditions?.formula) {
+        return rule.conditions.formula;
+      }
+      if (rule.value && (rule.value.includes('*') || rule.value.includes('/'))) {
+        return rule.value;
+      }
+    }
+    
     if (rule.numeric_value !== undefined && rule.numeric_value !== null) {
       const formatted = new Intl.NumberFormat('en-IN').format(rule.numeric_value);
-      return `${formatted} ${rule.unit || ''}`;
+      const unit = rule.unit || '';
+      // For time-based rules, show better format
+      if (rule.value && (rule.value.includes(':') || rule.category === 'timing')) {
+        return `${rule.value} (${formatted}${unit ? ' ' + unit : ''})`;
+      }
+      return `${formatted} ${unit}`.trim();
     }
     if (rule.value) return rule.value;
     return '-';
   };
   
   // Format conditions for display in a human-readable way
-  const formatConditions = (conditions) => {
+  const formatConditions = (conditions, rule) => {
     if (!conditions) return null;
     
     // If it's a simple key-value object, format nicely
@@ -711,15 +726,20 @@ const BusinessRules = () => {
       if (entries.some(([k]) => k.startsWith('slab'))) {
         return entries.filter(([k]) => k.startsWith('slab')).map(([key, val]) => {
           if (typeof val === 'object' && val.min !== undefined) {
-            return `${key}: ₹${val.min?.toLocaleString('en-IN') || 0} - ₹${val.max?.toLocaleString('en-IN') || '∞'} → ₹${val.tax || 0}`;
+            return `WHEN ₹${val.min?.toLocaleString('en-IN') || 0} - ₹${val.max?.toLocaleString('en-IN') || '∞'} THEN ₹${val.tax || 0}`;
           }
           return `${key}: ${JSON.stringify(val)}`;
         }).join(' | ');
       }
       
-      // Check for formula conditions
+      // Check for formula conditions - show prominently for FORMULA type
       if (conditions.formula) {
-        return `Formula: ${conditions.formula}`;
+        const otherConditions = entries.filter(([k]) => k !== 'formula');
+        let result = `FORMULA: ${conditions.formula}`;
+        if (otherConditions.length > 0) {
+          result += ' | ' + otherConditions.map(([k, v]) => `${k}=${v}`).join(', ');
+        }
+        return result;
       }
       
       // Format as key=value pairs with AND
@@ -728,9 +748,10 @@ const BusinessRules = () => {
           return val ? key : `NOT ${key}`;
         }
         if (typeof val === 'object') {
-          return `${key}: ${JSON.stringify(val)}`;
+          // For nested objects like {applies_to: "manager_and_above"}
+          return `${key.replace(/_/g, ' ')}: ${typeof val === 'object' ? JSON.stringify(val) : val}`;
         }
-        return `${key} = ${val}`;
+        return `${key.replace(/_/g, ' ')} = ${val}`;
       }).join(' AND ');
     }
     
@@ -780,10 +801,12 @@ const BusinessRules = () => {
                   <div className={`text-xs p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
                     <div className="flex items-center gap-1 mb-1">
                       <Info className="w-3 h-3 text-blue-500" />
-                      <span className={`font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>Conditions:</span>
+                      <span className={`font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                        {rule.rule_type === 'formula' ? 'Formula:' : 'Conditions:'}
+                      </span>
                     </div>
                     <code className={`font-mono text-xs ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                      {formatConditions(rule.conditions)}
+                      {formatConditions(rule.conditions, rule)}
                     </code>
                   </div>
                 )}

@@ -271,8 +271,10 @@ DEFAULT_ATTENDANCE_POLICY = {
             "rule_name": "Core Hours Start",
             "rule_type": "threshold",
             "category": "timing",
+            "numeric_value": 10,
+            "unit": "AM",
             "value": "10:00",
-            "description": "Core hours start time",
+            "description": "Core hours start time (mandatory presence)",
             "is_enabled": True
         },
         {
@@ -280,8 +282,10 @@ DEFAULT_ATTENDANCE_POLICY = {
             "rule_name": "Core Hours End",
             "rule_type": "threshold",
             "category": "timing",
+            "numeric_value": 17,
+            "unit": "PM (5:00)",
             "value": "17:00",
-            "description": "Core hours end time",
+            "description": "Core hours end time (mandatory presence)",
             "is_enabled": True
         },
         {
@@ -519,7 +523,8 @@ DEFAULT_GENERAL_HR_POLICY = {
             "category": "compensation",
             "value": "April",
             "numeric_value": 4,
-            "description": "Month for annual salary revision",
+            "unit": "(April)",
+            "description": "Month for annual salary revision (Financial year start)",
             "is_enabled": True
         },
         {
