@@ -1,5 +1,33 @@
 # NETRA ERP - Product Requirements Document
 
+## Payroll Engine - PRODUCTION READY ✅ (March 23, 2026)
+
+### Latest Update - Granular Inputs Complete
+```
+============================================================
+PAYROLL ENGINE - GRANULAR INPUTS VERIFIED
+============================================================
+📊 Test Results: 15/16 tests passed (1 network timeout)
+✅ P0 Complete: All granular inputs working
+   - Arrears (with reason)
+   - Advance Recovery (with reason)
+   - Loan EMI (with loan type)
+   - Travel/Medical/Food/Telephone Reimbursements
+   - Other Deductions (with custom name)
+   - Overtime Hours, Bonus, Incentive, Penalty
+   
+✅ P1 Fixed: Duplicate draft records bug resolved
+   - Running payroll multiple times creates only 1 register
+   - Old drafts are deleted before creating new one
+
+🔐 RBAC Enforced:
+   - HR Manager/Admin: Full access
+   - Sales/Consultant: 403 Forbidden
+============================================================
+```
+
+---
+
 ## Payroll Engine - QA VALIDATED ✅ (March 23, 2026)
 
 ### QA Validation Results
@@ -65,6 +93,27 @@ Draft → HR Review → Admin Approve → Locked
 - April 2026: 30 days ✓
 
 Production-grade payroll calculation system with field-level traceability.
+
+### Granular Input Fields - NEW ✅
+All payroll inputs supported in simulation and bulk processing:
+
+| Category | Field | Description |
+|----------|-------|-------------|
+| **Earnings** | bonus | One-time bonus |
+| | incentive | Performance incentive |
+| | arrears | Previous month adjustment with reason |
+| | overtime_hours | OT pay (1.5x hourly rate) |
+| **Reimbursements** | travel_reimbursement | Non-taxable travel expenses |
+| | medical_reimbursement | Non-taxable medical expenses |
+| | food_reimbursement | Food/meal allowance |
+| | telephone_reimbursement | Phone/internet bills |
+| | other_reimbursement | Misc reimbursements |
+| **Deductions** | penalty | Policy violation with reason |
+| | advance_recovery | Salary advance payback with reason |
+| | loan_emi | Loan EMI with loan type |
+| | other_deduction | Custom deduction with name |
+| **Attendance** | lop_days | Loss of pay days |
+| | working_days | Custom working days |
 
 ### Key Features Implemented
 
@@ -186,6 +235,7 @@ Shows real-world examples with CTC impact for each rule type:
 ---
 
 ## Test Reports
+- `/app/test_reports/iteration_200.json` - Granular Inputs & Duplicate Fix (16 tests)
 - `/app/test_reports/iteration_199.json` - Payroll Engine (18 tests passed)
 - `/app/test_reports/iteration_198.json` - Business Rules CRUD
 - `/app/test_reports/iteration_197.json` - Rule Stress Test (54 rules)
@@ -194,4 +244,4 @@ Shows real-world examples with CTC impact for each rule type:
 
 ## Last Updated
 - Date: March 23, 2026
-- Status: Payroll Engine with Field-Level Traceability - COMPLETE
+- Status: Payroll Engine with Granular Inputs - COMPLETE (P0 & P1 Done)
