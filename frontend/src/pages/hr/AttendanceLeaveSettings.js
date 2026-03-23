@@ -517,15 +517,15 @@ const AttendanceLeaveSettings = () => {
             <Calendar className="w-5 h-5 text-green-600" />
             <div>
               <p className="text-sm font-medium text-green-800">Leave Policy Configuration</p>
-              <p className="text-xs text-green-600">Configure leave entitlements, carry forward, and more in Leave Policy Settings</p>
+              <p className="text-xs text-green-600">Configure leave entitlements, carry forward, and more in Business Rules</p>
             </div>
           </div>
           <a 
-            href="/leave-policy-settings" 
+            href="/business-rules" 
             className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
           >
             <Settings className="w-4 h-4 mr-2" />
-            Open Leave Policy
+            Open Business Rules
           </a>
         </CardContent>
       </Card>

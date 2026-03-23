@@ -132,7 +132,7 @@ Add post-write verification to critical endpoints:
 
 | Setting | Value | Status |
 |---------|-------|--------|
-| Frontend API URL | `https://exit-org-preview.preview.emergentagent.com` | ✅ |
+| Frontend API URL | `https://expense-tracker-3627.preview.emergentagent.com` | ✅ |
 | Backend MongoDB | Connected | ✅ |
 | Redis Cache | Fallback to in-memory | ⚠️ |
 

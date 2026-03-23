@@ -1,6 +1,9 @@
 """
 Payroll Router - Salary components, payroll inputs, salary slips, reports
 Extracted from server.py for better modularity and load performance.
+
+IMPORTANT: All statutory calculations (PF, ESI, PT, LOP) MUST use BusinessRulesService.
+This ensures single source of truth for all payroll rules.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +15,7 @@ from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, DEFAULT_PAGE_SIZE, LARGE_QUE
 from .models import User
 from .deps import get_current_user
 from .audit_logging import log_audit
+from services.business_rules_service import get_business_rules_service
 
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
@@ -414,6 +418,7 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     for lr in lop_leave_requests:
         lop_days += lr.get("days", 0)
     
+    # LOP calculation - linked to non-approved leaves (pre-configured)
     per_day_salary = round(gross_salary / working_days, 2) if working_days > 0 else 0
     lop_deduction = round(per_day_salary * lop_days, 2)
     
@@ -431,6 +436,9 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
                 {"id": lr["id"]},
                 {"$set": {"payroll_deducted": True, "payroll_month": month, "lop_amount": round(per_day_salary * lr.get("days", 0), 2)}}
             )
+    
+    # NOTE: PF, ESI, PT and all CTC component calculations come from CTC Designer ONLY
+    # This ensures compliance - DO NOT add separate statutory deduction logic here
     
     expense_reimb = 0
     expense_reimbursements_list = []

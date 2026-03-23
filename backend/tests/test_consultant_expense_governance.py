@@ -22,7 +22,7 @@ import os
 from datetime import datetime, timezone
 import uuid
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://exit-org-preview.preview.emergentagent.com")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://expense-tracker-3627.preview.emergentagent.com")
 
 # Test credentials
 TEST_USERS = {

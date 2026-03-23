@@ -57,9 +57,9 @@ const Settings = () => {
           show: isHR,
         },
         {
-          name: 'Leave Policies',
-          description: 'Manage leave types and allocation rules',
-          href: '/leave-policy-settings',
+          name: 'Business Rules & Policies',
+          description: 'Centralized leave, travel, expense, and HR policies',
+          href: '/business-rules',
           icon: Calendar,
           show: isHR,
         },

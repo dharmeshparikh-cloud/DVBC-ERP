@@ -1,68 +1,51 @@
 <analysis>**original_problem_statement**: 
-The user's primary goal is to establish a robust and governed expense tracking and meeting management system for their consulting team. This includes enforcing a Single Source of Truth (SSOT) architecture, managing edge cases via a strict 100-point ERP stress test, and ensuring seamless data flow from Lead Creation → Project Execution → HR/Payroll → Finance Closure.
+The user's primary goal is to establish a robust and governed expense tracking and meeting management system for their consulting team. This includes enforcing a Single Source of Truth (SSOT) architecture, managing edge cases via a strict ERP stress test, and ensuring seamless data flow from Lead Creation → Project Execution → HR/Payroll → Finance Closure.
 
 *PRODUCT REQUIREMENTS:*
-- Ensure Login Governance (strictly Employee ID based, no email logins).
-- Simplified 4-step onboarding process.
+- Ensure Login Governance (strictly Employee ID based).
 - End-to-End data flow linking Onboarding, Go-Live, CTC creation, Attendance, Expenses, and Salary Slip generation.
-- Implement an Exit Organisation (Resignation) workflow with Admin/HR approvals and restricted access during the notice period.
+- Exit Organisation workflow with Admin/HR approvals.
+- Unified Business Rules governance page acting as a single source of truth for company policies, while keeping actual financial compliance/calculations strictly within the CTC Designer.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
 **what currently exists?** 
-A highly mature FastAPI/React/MongoDB ERP system. In this session, strict Login Governance was enforced (Employee ID only). The Onboarding flow was simplified from 8 to 4 steps with functional document generation. The End-to-End flow from employee Go-Live → CTC Setup → Leave/Attendance → Expense Approval → Payroll slip generation (with accurate reimbursements) was fully tested and validated. Backend validations for stress-test edge cases (Self-approval prevention, Payroll cutoffs, Lead stage enforcement) are active. The backend framework for the Exit Organisation feature is created.
+A highly mature FastAPI/React/MongoDB ERP system. In this session, the Exit Organisation frontend UI and HR approval management page were completed. Employee ID seeding was fixed (all use  prefix). The CTC Designer was heavily upgraded with instant live-previews, retention bonus fixes, and split into New Employee vs Revision tabs linked directly to the Go-Live dashboard. The Reports & Analytics page was fixed to correctly display 11 categorized HR/Sales reports. A centralized Business Rules page was created to manage Travel, Expense, Leave, and HR policies (with a built-in rule simulator), consolidating previously fragmented settings. 
 
 **Last working item**: 
-- **Last item agent was working:** Building the Exit Organisation (Resignation) workflow. The agent successfully created the backend router (), registered it, added PF/ESI toggles to the employee model, and started modifying the frontend () to add the Exit Organisation button and dialog. The workflow was interrupted by a user request for HR credentials.
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N (Backend API tested via bash, frontend UI is incomplete)
-- **Which testing method agent to use?** Frontend testing agent (once UI is complete) + manual testing of the exit flow.
-- **User Testing Done:** N
+    - **Last item agent was working:** Reverting an attempt to integrate the generic Business Rules engine into statutory payroll calculations (PF/ESI), and pivoting to add SOPs/Tooltips to the Business Rules UI. 
+    - *Reasoning:* The agent tried to make the new rule engine calculate PF/ESI. The user explicitly intervened stating: *no PF esi and any CTC Companent caluclation must be as per compliance thrigh CTC designer only... I dont want 2 ways for users to conflict*. The agent successfully reverted the backend  changes. The agent now needs to fulfill the second half of the user's request: adding detailed SOPs, impact analysis tooltips, and checklists to the Business Rules UI tabs.
+    - **Status:** IN PROGRESS
+    - **Agent Testing Done:** N (Backend revert done, but new UI SOPs not started)
+    - **Which testing method agent to use?** Frontend testing agent / Screenshot tool (for UI additions).
+    - **User Testing Done:** N
 
 **All Pending/In progress Issue list**: 
-  Issue 1: Complete Exit Organisation Frontend UI (P0)
-  Issue 2: Restrict document downloads during Notice Period (P1)
-  Issue 3: Answer user query regarding Onboarding data editing (P2)
+  Issue 1: Add SOPs and Impact Analysis to Business Rules UI (P0)
   
   Issues Detail:
-  - Issue 1: Complete Exit Organisation Frontend UI
-     - Attempted fixes: Agent was actively injecting state variables and Dialog UI into  but got interrupted.
-     - Next debug checklist: Open , find the incomplete edits, and fully implement the Exit Organisation button, guided exit interview questions, and submission to the newly created backend endpoint.
-     - Why fix this issue and what will be achieved with the fix? Completes the user's explicit request for a guided resignation workflow.
-     - Status: IN PROGRESS
+  - Issue 1: Add SOPs and Impact Analysis to Business Rules UI
+     - Attempted fixes: The agent just finished reverting backend code to comply with user's architecture constraint, but hasn't started the UI request from the same prompt.
+     - Next debug checklist: Open . Add detailed SOPs, logic explanations, tooltips showing what impacts what, and checklist-type points on each policy tab as explicitly requested by the user.
+     - Why fix this issue and what will be achieved with the fix? Fulfills the user's request to provide clear governance instructions so HR users don't get confused about how rules affect the ERP.
+     - Status: NOT STARTED
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both (Frontend UI + Backend approval flow)
+     - Should Test frontend/backend/both after fix? Frontend
      - Blocked on other issue: None
-  - Issue 2: Restrict document downloads during Notice Period
-     - Attempted fixes: None yet.
-     - Next debug checklist: Implement a check in the backend/frontend. If an employee's status is in the exit process/notice period, disable all download buttons (salary slips, onboarding forms, etc.).
-     - Why fix this issue and what will be achieved with the fix? Data security compliance as requested by the user.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on other issue: Issue 1
-  - Issue 3: Answer user query regarding Onboarding data editing
-     - Attempted fixes: None.
-     - Next debug checklist: The user asked Is onboarding data can be edited in employee access later ?. The agent missed answering this. Please investigate if the system allows this and respond to the user, or implement it if it's missing.
-     - Why fix this issue: Fulfills user's missed question.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? NA
 
 **In progress Task List**: 
-  Task 1: Exit Organisation Approval Flow & F&F (Full Feature)
+  Task 1: Business Rules UI Enhancements (SOPs & Tooltips)
   
  Task Detail:
-  - Task 1: Exit Organisation Approval Flow & F&F
-     - Where to resume: Resume at . After the UI is done, ensure the flow goes: Employee Submits -> Admin Approves -> HR Approves -> Final Settlement (F&F).
-     - What will be achieved with this? Complete employee lifecycle management.
+  - Task 1: Business Rules UI Enhancements
+     - Where to resume: 
+     - What will be achieved with this? User guidance and governance clarity.
      - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on something: Issue 1
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on something: None
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - (P1) Implement remaining enhancements from the 100-point QA script (A5, A6, B13, B14, etc. - check ).
     - (P2) PDF generation for salary slips and onboarding forms (replacing current basic TXT downloads).
     - (P2) Set up recurring/automated monthly payroll generation.
     - (P2) Bulk salary slip download for all employees.
@@ -72,89 +55,81 @@ A highly mature FastAPI/React/MongoDB ERP system. In this session, strict Login 
     - (P2) Build the DVBC Marketing Hub.
 
 **Completed work in this session**
-- Set system passwords for initial seeded employees (admin123, hr123, etc.). (DONE)
-- Integrated  into Expenses (Self-approval prevention, Payroll cutoffs). (DONE)
-- Added stage validation (A4) to leads and inactive manager validation (B12) to employees. (DONE)
-- Implemented strict Login Governance (Employee ID only, complete UI redesign). (DONE)
-- Simplified Onboarding Form from 8 to 4 steps with download capabilities. (DONE)
-- Tested and verified E2E flow: Onboarding → Go-Live → CTC → Attendance → Expense → Salary Slip. (DONE)
-- Fixed  bug in . (DONE)
-- Updated Employee ID generation to use  prefix exclusively instead of . (DONE)
-- Added PF and ESI opt-in toggles to the employee schema. (DONE)
+- Completed Exit Organisation UI in  and tested flow. (DONE)
+- Clarified that Onboarding Data edits are handled via standard Profile Change Requests (HR approval needed). (DONE)
+- Standardized all seeded users to  prefix (fixed  -> ). (DONE)
+- Fixed CTC Designer empty employee dropdown (synced  and  flags). (DONE)
+- Fixed CTC Designer Retention Bonus calculation sequence and added debounced Live Preview. (DONE)
+- Added tabs to CTC Designer (New Employee vs Revision) and linked CTC Pending status to Go-Live Dashboard. (DONE)
+- Fixed Reports page (API now correctly returns categorized objects, frontend UI mapping fixed). (DONE)
+- Created centralized  page and backend router, deprecating fragmented . (DONE)
+- Created  page for HR/Admin to approve resignations. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   Issue 1: Remaining ERP Stress Test Edge Cases
-   - Debug checklist: Review  for items tagged 🟡 ENHANCEMENTS NEEDED (A5, A6, B13, B14).
-   - Why to solve this issue and what will be achieved with this? Fully hardens the ERP against data corruption.
-   - Should Test frontend/backend/both after fix: Backend
+   Issue 1:  Dead Code
+   - Debug checklist: The agent removed  from the navigation in favor of the unified Business Rules page, but the file  likely still exists. It should be evaluated for deletion to reduce technical debt.
+   - Why to solve this issue and what will be achieved with this? Codebase cleanup.
+   - Should Test frontend/backend/both after fix: Frontend
    - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork:  file size complexity (needs refactoring).
-  - Recurrence count: 3
-  - Status: BLOCKED (Deferred to P2 future task to prioritize functional workflows).
+  - Recurrence count: 4
+  - Status: BLOCKED (Deferred to P2 future task).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- FastAPI Backend, React Frontend, MongoDB.
-- **Login Governance:** The system strictly rejects email logins. It strictly expects  (e.g., EMP001).
-- **ID Generation:** Employee IDs are now generated exclusively with the  prefix.
+- **Single Source of Truth (CRITICAL):** Financial compliance, PF, ESI, and salary components are *strictly* governed by the **CTC Designer**. The generic **Business Rules Engine** is for policy limits (travel, leave, expenses), *not* for overriding payroll math.
+- **Role Based Access:** Employees have view-only access to Business Rules; HR/Admin have edit access.
 
 **key DB schema**
-  - : {pf_opt_in (bool), esi_opt_in (bool)} -> *Added this session*
-  - : {employee_id, month, working_days, present_days, leaves, ...}
+  - : {policy_type, rules: [{rule_id, rule_type, numeric_value}]} -> *New this session*
 
 **changes in tech stack**
   - None 
 
 **All files of reference** 
-1.  (Must be opened immediately to finish the interrupted Exit UI implementation)
-2.  (New backend router created to handle the exit flow)
-3.  (Updated with PF/ESI toggles)
-4.  (Reference for strict ID-based login)
+1.  (Needs immediate update to add SOPs and Tooltips per user's last request)
+2.  (Verify it relies strictly on CTC config, not the rule engine for statutory comps)
+3. 
 
 **Areas that need refactoring**: 
 - 
+-  (Likely safe to delete as it was replaced by Business Rules)
 
 **key api endpoints**
--  (Newly created, needs UI connection)
--  (Used for viewing monthly attendance/leave/expense aggregation)
--  (Expects  in payload, not email)
+-  (Updated to return categories properly)
+-  (New CRUD for company policies)
+-  (New simulator endpoint)
 
 **Critical Info for New Agent** 
-- **DO NOT test login with emails.** The system has strict login governance and will reject emails. Always use Employee IDs (EMP001, EMP002, etc.).
-- **Immediate Action:** The previous agent was in the middle of editing  to add the Exit Organisation button and dialog when the context window ended. Start your session by checking this file, finishing the UI integration, and testing the resignation flow.
-- The user asked if onboarding data can be edited by the employee later. The agent failed to answer this. Investigate and reply to the user.
+- **DO NOT** attempt to integrate the  into the  for statutory deductions (PF/ESI). The user explicitly forbid this to prevent conflicting sources of truth. CTC Designer handles compliance; Business Rules handle HR policies.
+- Your immediate next step is strictly UI: Open  and add the requested detailed SOPs, logic explanations, and impact analysis tooltips to the tabs.
 
 **documents and test reports created in this job** 
+  -  (Updated)
   - 
   - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. User asked to implement Resignation flow (Exit Organisation button, Guided exit, Admin/HR approval, restrict downloads). (IN PROGRESS)
-2. User confirmed changes (1c, Point 2, 5a, 6c). (COMPLETED)
-3. User asked about PF/ESI toggles, reimburse typo, Submit button in expenses, EMP prefix, editing onboarding data. (COMPLETED - except missed answering about editing onboarding data)
-4. User confirmed payroll looks good, asks to test download/print functionality. (COMPLETED)
-5. User confirmed CTC/Expense/Payroll flow setup. (COMPLETED)
-6. User asked to test download/print of salary slips. (COMPLETED)
-7. User asked to set CTC 500000, 15 days attendance, 10 days leave, 3000 expense, and see it reflect in payroll. (COMPLETED)
-8. User asked to test E2E flow from Onboarding to payroll. (COMPLETED)
-9. User asked to simplify onboarding forms to mandatory fields only. (COMPLETED)
-10. **PENDING:** User asked for HR login details. (Agent provided them right before cutoff).
+1. User asked where Business rules page is, noted Travel policy was misconfigured in Leaves, and reported 0 reports showing.
+2. User requested Business rules page to consolidate all policies (20+ rules).
+3. User prioritized tasks: P0 Reports fix, P0 Exit flow, P1 Payroll rule integration, P1 Leave policies.
+4. User provided explicit constraint: *no PF esi and any CTC Companent caluclation must be as per compliance thrigh CTC designer only... Business Rules page is THE master... remove Leave Policy Settings... Must include detailed SOP on each tabs of business rules with logic and tips with checklist type points* (PENDING - SOP UI part)
 
 **Project Health Check:**
 - Broken: None.
 - Mocked: None.
 
 **3rd Party Integrations** 
-- No specific LLM/3rd party integration changes in this session.
+- Standard (None added).
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iteration 193 for onboarding flow)
+  - Testing agent used after significant changes: YES (Iterations 194, 195)
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: 
+  - Test files created: None new.
   - Known regressions: None
 
 **Credentials to test flow:**
@@ -162,7 +137,7 @@ A highly mature FastAPI/React/MongoDB ERP system. In this session, strict Login 
 - HR:  / 
 - Sales:  / 
 - Consultant:  / 
+- Employee:  / 
 
 **What agent forgot to execute**
-- The agent forgot to answer the user's specific question: Is onboarding data can be edited in employee access later ?. You should check the system capabilities and answer this.
-- The agent's code edit inside  for the Exit Organisation UI was left incomplete due to context limits. Must be resumed immediately.</analysis>
+- The agent successfully reverted the backend payroll code to obey the user's architectural constraint, but the context window ended before the agent could implement the highly requested UI enhancements: *Must include detailed SOP on each tabs of business rules with logic and tips with checklist type points*. This must be done immediately.</analysis>

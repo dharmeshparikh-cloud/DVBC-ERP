@@ -18,10 +18,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '../../components/ui/select';
 import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
+} from '../../components/ui/tooltip';
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger
+} from '../../components/ui/accordion';
+import {
   Calendar, Plane, Receipt, Clock, DollarSign, FileText, Settings,
   Plus, Edit2, Trash2, Save, X, ChevronRight, Building2, Users,
   User, Briefcase, AlertCircle, CheckCircle, Eye, Search, Filter,
-  Loader2, Copy, ToggleLeft, Info, IndianRupee, Calculator
+  Loader2, Copy, ToggleLeft, Info, IndianRupee, Calculator,
+  BookOpen, HelpCircle, Lightbulb, Target, ShieldCheck, ArrowRight,
+  CheckSquare, ExternalLink, Zap
 } from 'lucide-react';
 import { isAdmin as checkIsAdmin, isHR as checkIsHR } from '../../utils/roles';
 
@@ -48,6 +56,495 @@ const SCOPE_ICONS = {
   department: Users,
   role: Briefcase,
   employee: User
+};
+
+// SOP (Standard Operating Procedures) and Impact Analysis Data
+const POLICY_SOP_DATA = {
+  leave: {
+    title: 'Leave Policy Management',
+    summary: 'Governs employee leave entitlements, accruals, and encashment. Changes here affect leave balances and payroll.',
+    icon: Calendar,
+    quickTips: [
+      'Leave quotas are credited yearly or accrued monthly',
+      'Sandwich policy: Leave between holidays counts as leave',
+      'Encashment rules affect Full & Final settlement'
+    ],
+    impacts: [
+      { area: 'Leave Balances', impact: 'Direct', description: 'Changing quotas immediately affects employee leave dashboards' },
+      { area: 'Payroll', impact: 'Indirect', description: 'LOP deductions and encashment affect monthly salary' },
+      { area: 'F&F Settlement', impact: 'Direct', description: 'Encashable leaves are paid out during exit' }
+    ],
+    sop: {
+      title: 'Leave Policy Configuration SOP',
+      sections: [
+        {
+          heading: 'Before Making Changes',
+          checklist: [
+            'Review current leave utilization reports',
+            'Check if change affects mid-year employees (pro-rata impact)',
+            'Notify Finance if encashment rules are changing',
+            'Document reason for policy change'
+          ]
+        },
+        {
+          heading: 'Configuration Steps',
+          checklist: [
+            'Select the specific leave type rule (LV001-LV012)',
+            'Update the numeric value (days/percentage)',
+            'Toggle rule enabled/disabled as needed',
+            'Save changes - takes effect immediately'
+          ]
+        },
+        {
+          heading: 'After Changes',
+          checklist: [
+            'Verify in Payroll Simulator with sample employee',
+            'Announce policy update via company communication',
+            'Update employee handbook if applicable',
+            'Monitor leave applications for next 30 days'
+          ]
+        }
+      ],
+      warnings: [
+        'Reducing leave quota mid-year may cause negative balances',
+        'Disabling encashment affects employees planning resignation',
+        'Sandwich policy changes can surprise employees on long leaves'
+      ],
+      bestPractices: [
+        'Change policies effective from next financial year',
+        'Allow 30-day grace period for existing applications',
+        'Keep minimum 6 sick leaves for employee welfare'
+      ]
+    }
+  },
+  travel: {
+    title: 'Travel Policy Management',
+    summary: 'Controls travel allowances, hotel limits, and expense claims for business travel. Directly impacts expense reimbursements.',
+    icon: Plane,
+    quickTips: [
+      'Daily allowances are tier-based (Metro/Non-Metro)',
+      'Flight class is determined by travel distance and role',
+      'Advance request must be submitted 7 days before travel'
+    ],
+    impacts: [
+      { area: 'Expense Claims', impact: 'Direct', description: 'Limits determine max claimable amounts' },
+      { area: 'Payroll', impact: 'Direct', description: 'Approved travel expenses are reimbursed via payroll' },
+      { area: 'Budget', impact: 'Indirect', description: 'Higher limits increase travel cost budgets' }
+    ],
+    sop: {
+      title: 'Travel Policy Configuration SOP',
+      sections: [
+        {
+          heading: 'Understanding Travel Rules',
+          checklist: [
+            'TR001-TR003: Daily allowances (food, incidentals)',
+            'TR004-TR005: Hotel and flight class rules',
+            'TR006-TR007: Advance and settlement processes',
+            'TR008-TR010: Conveyance and local travel'
+          ]
+        },
+        {
+          heading: 'Before Making Changes',
+          checklist: [
+            'Review current travel expense reports',
+            'Compare with industry standards',
+            'Check pending travel requests that may be affected',
+            'Inform Sales/Consulting teams about upcoming changes'
+          ]
+        },
+        {
+          heading: 'Configuration Steps',
+          checklist: [
+            'Select travel rule to modify',
+            'Update limit values (daily/per-trip)',
+            'Review conditions (metro vs non-metro)',
+            'Save - applies to NEW travel requests only'
+          ]
+        }
+      ],
+      warnings: [
+        'Lowering limits may cause employees to pay out-of-pocket',
+        'Strict limits can affect client meeting quality',
+        'Settlement deadline changes need advance notice'
+      ],
+      bestPractices: [
+        'Review travel limits annually against inflation',
+        'Allow exceptions for client-facing roles',
+        'Metro cities: Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad'
+      ]
+    }
+  },
+  expense: {
+    title: 'Expense Policy Management',
+    summary: 'Defines expense claim rules, approval thresholds, and receipt requirements. Ensures compliance and fraud prevention.',
+    icon: Receipt,
+    quickTips: [
+      'Self-approval prevention (Code I52) is mandatory',
+      'Receipt required for claims above threshold',
+      'Cutoff date affects which payroll cycle includes reimbursement'
+    ],
+    impacts: [
+      { area: 'Expense Approvals', impact: 'Direct', description: 'Threshold changes affect approval routing' },
+      { area: 'Payroll', impact: 'Direct', description: 'Approved expenses go to designated payroll period' },
+      { area: 'Audit Compliance', impact: 'Critical', description: 'Receipt rules ensure audit readiness' }
+    ],
+    sop: {
+      title: 'Expense Policy Configuration SOP',
+      sections: [
+        {
+          heading: 'Critical Rules (Do Not Disable)',
+          checklist: [
+            'EX001: Self-approval prevention - MANDATORY for compliance',
+            'EX002: Receipt threshold - Required for audit',
+            'EX003: Cutoff dates - Affects payroll accuracy'
+          ]
+        },
+        {
+          heading: 'Configurable Rules',
+          checklist: [
+            'EX004: Maximum single expense limit',
+            'EX005: Monthly expense ceiling per employee',
+            'EX006: Meal/Entertainment limits'
+          ]
+        },
+        {
+          heading: 'Impact on Finance',
+          checklist: [
+            'Cutoff date (15th) - expenses after this go to next month',
+            'Receipt threshold affects documentation workload',
+            'Limits affect cash flow forecasting'
+          ]
+        }
+      ],
+      warnings: [
+        'NEVER disable self-approval prevention (audit failure risk)',
+        'Raising limits significantly may enable fraud',
+        'Removing receipt requirements risks audit findings'
+      ],
+      bestPractices: [
+        'Review expense patterns quarterly',
+        'Keep receipt threshold at Rs.500 or lower',
+        'Cutoff on 15th aligns with standard payroll cycles'
+      ]
+    }
+  },
+  attendance: {
+    title: 'Attendance Policy Management',
+    summary: 'Governs work hours, WFH policies, late penalties, and overtime rules. Affects payroll calculations.',
+    icon: Clock,
+    quickTips: [
+      'Core hours define mandatory office presence',
+      'Late threshold triggers penalty after 3 incidents',
+      'Overtime must be pre-approved by manager'
+    ],
+    impacts: [
+      { area: 'Salary Calculation', impact: 'Direct', description: 'Late penalties and LOP deductions affect net pay' },
+      { area: 'Employee Flexibility', impact: 'High', description: 'WFH and flexi-time rules affect work-life balance' },
+      { area: 'Compliance', impact: 'Moderate', description: 'Overtime rules must comply with labor laws' }
+    ],
+    sop: {
+      title: 'Attendance Policy Configuration SOP',
+      sections: [
+        {
+          heading: 'Work Hours Configuration',
+          checklist: [
+            'AT001: Standard work hours (typically 8-9 hours)',
+            'AT002: Core hours window (e.g., 10AM-4PM)',
+            'AT003: Break duration allowance',
+            'AT004: Overtime calculation method'
+          ]
+        },
+        {
+          heading: 'Flexibility Rules',
+          checklist: [
+            'AT005: WFH days per week/month',
+            'AT006: Flexi-time grace period',
+            'AT007: Comp-off accrual rules',
+            'AT008: Half-day definitions'
+          ]
+        },
+        {
+          heading: 'Penalty Configuration',
+          checklist: [
+            'Late arrival threshold (minutes)',
+            'Number of incidents before penalty',
+            'Penalty amount or leave deduction',
+            'Reset period (monthly/quarterly)'
+          ]
+        }
+      ],
+      warnings: [
+        'Strict late penalties may affect morale',
+        'Overtime rules must comply with Shops & Establishment Act',
+        'WFH restrictions should consider role requirements'
+      ],
+      bestPractices: [
+        'Allow 15-minute grace period for late arrivals',
+        'Cap overtime at 48 hours/month (legal limit)',
+        'Hybrid WFH (2-3 days) balances productivity & flexibility'
+      ]
+    }
+  },
+  payroll: {
+    title: 'Payroll Rules Management',
+    summary: 'CRITICAL: Defines statutory compliance (PF, ESI, PT) and salary processing rules. CTC Designer handles actual calculations.',
+    icon: DollarSign,
+    quickTips: [
+      'PF/ESI thresholds are statutory - consult CTC Designer for changes',
+      'Processing dates affect when employees receive salary',
+      'Tax calculation uses government-mandated slabs'
+    ],
+    impacts: [
+      { area: 'Salary Processing', impact: 'Critical', description: 'Processing dates determine pay day' },
+      { area: 'Statutory Compliance', impact: 'Critical', description: 'PF/ESI rules are government mandated' },
+      { area: 'Tax Filing', impact: 'High', description: 'TDS calculation affects Form 16 accuracy' }
+    ],
+    sop: {
+      title: 'Payroll Rules Configuration SOP',
+      sections: [
+        {
+          heading: 'IMPORTANT: CTC Designer vs Business Rules',
+          checklist: [
+            'Business Rules: Display reference thresholds only',
+            'CTC Designer: ACTUAL salary component calculations',
+            'Never use Business Rules to override statutory compliance',
+            'All PF/ESI calculations are in CTC Designer'
+          ]
+        },
+        {
+          heading: 'Safe to Configure Here',
+          checklist: [
+            'PY001: Payroll processing date (typically 25th-30th)',
+            'PY002: Pay slip generation date',
+            'PY003: Reimbursement inclusion cutoff'
+          ]
+        },
+        {
+          heading: 'View Only (Reference)',
+          checklist: [
+            'PY004-PY010: PF/ESI thresholds for reference',
+            'These are statutory and auto-calculated',
+            'Use CTC Designer to see actual deductions'
+          ]
+        }
+      ],
+      warnings: [
+        'DO NOT modify PF/ESI rules - they are statutory',
+        'Payroll date changes affect employee financial planning',
+        'Tax rules are set by government - not configurable'
+      ],
+      bestPractices: [
+        'Process payroll by 28th to allow bank processing time',
+        'Generate pay slips within 5 days of salary credit',
+        'Use Payroll Simulator to verify calculations'
+      ]
+    }
+  },
+  general: {
+    title: 'General HR Policies',
+    summary: 'Covers probation, notice periods, increment cycles, and general employment terms.',
+    icon: FileText,
+    quickTips: [
+      'Probation period affects confirmation and benefits eligibility',
+      'Notice period is enforced during resignation',
+      'Increment month sets annual appraisal cycle'
+    ],
+    impacts: [
+      { area: 'Onboarding', impact: 'High', description: 'Probation rules affect new employee benefits' },
+      { area: 'Exit Process', impact: 'High', description: 'Notice period determines last working day' },
+      { area: 'Compensation', impact: 'Moderate', description: 'Increment month affects salary revision timing' }
+    ],
+    sop: {
+      title: 'General HR Policy Configuration SOP',
+      sections: [
+        {
+          heading: 'Employment Terms',
+          checklist: [
+            'GH001: Standard probation period (typically 3-6 months)',
+            'GH002: Notice period for resignation',
+            'GH003: Notice period for termination',
+            'GH004: Retirement age'
+          ]
+        },
+        {
+          heading: 'Performance & Compensation',
+          checklist: [
+            'GH005: Annual increment month (typically April)',
+            'GH006: Performance review frequency',
+            'GH007: Confirmation criteria',
+            'GH008: Extension rules for probation'
+          ]
+        },
+        {
+          heading: 'Workplace Policies',
+          checklist: [
+            'Dress code guidelines',
+            'Code of conduct reference',
+            'Reporting structure rules',
+            'Communication protocols'
+          ]
+        }
+      ],
+      warnings: [
+        'Changing notice period affects current employees',
+        'Probation extension needs proper documentation',
+        'Retirement age must comply with company policy'
+      ],
+      bestPractices: [
+        '90 days notice for senior roles, 30 days for others',
+        '6-month probation provides adequate evaluation time',
+        'April increment aligns with financial year'
+      ]
+    }
+  }
+};
+
+// SOP Detail Modal Component
+const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
+  const sopData = POLICY_SOP_DATA[policyType];
+  if (!sopData) return null;
+  
+  const Icon = sopData.icon;
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className={`max-w-3xl max-h-[85vh] overflow-y-auto ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${POLICY_TYPE_COLORS[policyType]?.split(' ')[0]}`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div>
+              <span>{sopData.sop.title}</span>
+              <p className={`text-sm font-normal mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                Standard Operating Procedure & Impact Analysis
+              </p>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6 py-4">
+          {/* Impact Analysis Section */}
+          <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900 border border-zinc-700' : 'bg-zinc-50 border border-zinc-200'}`}>
+            <h4 className="font-semibold flex items-center gap-2 mb-3">
+              <Target className="w-4 h-4 text-blue-500" />
+              Impact Analysis
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {sopData.impacts.map((item, idx) => (
+                <div key={idx} className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-sm">{item.area}</span>
+                    <Badge className={`text-xs ${
+                      item.impact === 'Critical' ? 'bg-red-100 text-red-700' :
+                      item.impact === 'High' ? 'bg-amber-100 text-amber-700' :
+                      item.impact === 'Direct' ? 'bg-blue-100 text-blue-700' :
+                      'bg-zinc-100 text-zinc-700'
+                    }`}>
+                      {item.impact}
+                    </Badge>
+                  </div>
+                  <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* SOP Sections with Checklists */}
+          <Accordion type="multiple" className="w-full" defaultValue={['section-0']}>
+            {sopData.sop.sections.map((section, idx) => (
+              <AccordionItem key={idx} value={`section-${idx}`} className={isDark ? 'border-zinc-700' : ''}>
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="w-4 h-4 text-emerald-500" />
+                    <span>{section.heading}</span>
+                    <Badge variant="outline" className="ml-2 text-xs">{section.checklist.length} items</Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2 pl-6">
+                    {section.checklist.map((item, itemIdx) => (
+                      <div key={itemIdx} className={`flex items-start gap-2 p-2 rounded ${isDark ? 'bg-zinc-800/50' : 'bg-zinc-50'}`}>
+                        <ArrowRight className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+          
+          {/* Warnings */}
+          <div className={`p-4 rounded-lg ${isDark ? 'bg-red-900/20 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
+            <h4 className="font-semibold flex items-center gap-2 mb-3 text-red-600">
+              <AlertCircle className="w-4 h-4" />
+              Warnings & Cautions
+            </h4>
+            <ul className="space-y-2">
+              {sopData.sop.warnings.map((warning, idx) => (
+                <li key={idx} className={`text-sm flex items-start gap-2 ${isDark ? 'text-red-300' : 'text-red-700'}`}>
+                  <span className="text-red-500">•</span>
+                  {warning}
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          {/* Best Practices */}
+          <div className={`p-4 rounded-lg ${isDark ? 'bg-emerald-900/20 border border-emerald-800' : 'bg-emerald-50 border border-emerald-200'}`}>
+            <h4 className="font-semibold flex items-center gap-2 mb-3 text-emerald-600">
+              <Lightbulb className="w-4 h-4" />
+              Best Practices
+            </h4>
+            <ul className="space-y-2">
+              {sopData.sop.bestPractices.map((practice, idx) => (
+                <li key={idx} className={`text-sm flex items-start gap-2 ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                  <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  {practice}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onClose(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Quick Tips Tooltip Component
+const QuickTipsTooltip = ({ policyType, children, isDark }) => {
+  const sopData = POLICY_SOP_DATA[policyType];
+  if (!sopData) return children;
+  
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          {children}
+        </TooltipTrigger>
+        <TooltipContent side="right" className={`max-w-xs p-3 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
+          <div className="space-y-2">
+            <p className="font-semibold text-sm">{sopData.title}</p>
+            <ul className="space-y-1">
+              {sopData.quickTips.map((tip, idx) => (
+                <li key={idx} className="text-xs flex items-start gap-1.5">
+                  <Zap className="w-3 h-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 };
 
 const BusinessRules = () => {
@@ -79,6 +576,8 @@ const BusinessRules = () => {
   });
   const [simulationResult, setSimulationResult] = useState(null);
   const [simulating, setSimulating] = useState(false);
+  const [showSOPModal, setShowSOPModal] = useState(false);
+  const [selectedSOPType, setSelectedSOPType] = useState(null);
   
   // Fetch all policies
   const { data: policies = [], isLoading: loading, refetch } = useQuery({
@@ -433,6 +932,67 @@ const BusinessRules = () => {
         </div>
       )}
       
+      {/* SOP Quick Reference Card - Shows when a specific tab is selected */}
+      {activeTab !== 'all' && POLICY_SOP_DATA[activeTab] && (
+        <div className={`p-4 rounded-lg border ${isDark ? 'bg-zinc-800/50 border-zinc-700' : 'bg-gradient-to-r from-white to-zinc-50 border-zinc-200'}`}>
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <div className={`p-2 rounded-lg ${POLICY_TYPE_COLORS[activeTab]?.split(' ')[0]} ${isDark ? 'opacity-80' : ''}`}>
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold flex items-center gap-2">
+                  {POLICY_SOP_DATA[activeTab].title}
+                  <Badge variant="outline" className="text-xs">SOP Available</Badge>
+                </h3>
+                <p className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  {POLICY_SOP_DATA[activeTab].summary}
+                </p>
+                
+                {/* Quick Tips - Visible Summary */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {POLICY_SOP_DATA[activeTab].quickTips.map((tip, idx) => (
+                    <div key={idx} className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${isDark ? 'bg-zinc-700 text-zinc-300' : 'bg-zinc-100 text-zinc-600'}`}>
+                      <Lightbulb className="w-3 h-3 text-amber-500" />
+                      {tip}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Impact Badges */}
+                <div className="mt-3 flex items-center gap-3">
+                  <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Impacts:</span>
+                  {POLICY_SOP_DATA[activeTab].impacts.map((impact, idx) => (
+                    <Badge key={idx} variant="outline" className={`text-xs ${
+                      impact.impact === 'Critical' ? 'border-red-300 text-red-600' :
+                      impact.impact === 'High' ? 'border-amber-300 text-amber-600' :
+                      impact.impact === 'Direct' ? 'border-blue-300 text-blue-600' :
+                      'border-zinc-300 text-zinc-600'
+                    }`}>
+                      {impact.area}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedSOPType(activeTab);
+                setShowSOPModal(true);
+              }}
+              className="flex items-center gap-2"
+              data-testid="view-sop-btn"
+            >
+              <BookOpen className="w-4 h-4" />
+              View Full SOP
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {/* Policy Type Tabs */}
       <div className="flex gap-2 flex-wrap">
         <button
@@ -479,22 +1039,34 @@ const BusinessRules = () => {
           const Icon = POLICY_TYPE_ICONS[pt.id] || FileText;
           const policyList = policiesByType[pt.id] || [];
           const totalRules = policyList.reduce((sum, p) => sum + (p.rules?.length || 0), 0);
+          const sopData = POLICY_SOP_DATA[pt.id];
           
           return (
-            <div
-              key={pt.id}
-              className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                activeTab === pt.id ? 'ring-2 ring-emerald-500' : ''
-              } ${isDark ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`}
-              onClick={() => setActiveTab(pt.id)}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className={`w-4 h-4 ${POLICY_TYPE_COLORS[pt.id]?.split(' ')[1]}`} />
-                <span className="text-xs font-medium">{pt.name.replace(' Policies', '').replace(' Rules', '')}</span>
+            <QuickTipsTooltip key={pt.id} policyType={pt.id} isDark={isDark}>
+              <div
+                className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                  activeTab === pt.id ? 'ring-2 ring-emerald-500' : ''
+                } ${isDark ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`}
+                onClick={() => setActiveTab(pt.id)}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-4 h-4 ${POLICY_TYPE_COLORS[pt.id]?.split(' ')[1]}`} />
+                    <span className="text-xs font-medium">{pt.name.replace(' Policies', '').replace(' Rules', '')}</span>
+                  </div>
+                  {sopData && (
+                    <HelpCircle className={`w-3 h-3 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
+                  )}
+                </div>
+                <p className="text-2xl font-bold">{totalRules}</p>
+                <div className="flex items-center justify-between">
+                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>rules</p>
+                  {sopData && (
+                    <Badge variant="outline" className="text-[10px] py-0 px-1">SOP</Badge>
+                  )}
+                </div>
               </div>
-              <p className="text-2xl font-bold">{totalRules}</p>
-              <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>rules</p>
-            </div>
+            </QuickTipsTooltip>
           );
         })}
       </div>
@@ -849,6 +1421,14 @@ const BusinessRules = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* SOP Detail Modal */}
+      <SOPDetailModal 
+        isOpen={showSOPModal}
+        onClose={setShowSOPModal}
+        policyType={selectedSOPType}
+        isDark={isDark}
+      />
     </div>
   );
 };

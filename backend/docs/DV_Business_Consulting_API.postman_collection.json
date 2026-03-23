@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://exit-org-preview.preview.emergentagent.com",
+      "value": "https://expense-tracker-3627.preview.emergentagent.com",
       "type": "string"
     },
     {

@@ -312,7 +312,6 @@ const Layout = () => {
     { name: 'Leave & Attendance', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
     { name: 'HR Manual Entry', href: '/hr-manual-entry', icon: Edit, requiresHRorAdmin: true },
     { name: 'Attendance Settings', href: '/attendance-leave-settings', icon: Settings, requiresHRorAdmin: true },
-    { name: 'Leave Policy Settings', href: '/leave-policy-settings', icon: Calendar, requiresHRorAdmin: true },
     { name: 'Business Rules & Policies', href: '/business-rules', icon: FileText, requiresHRorAdmin: false },
   ];
   

@@ -137,7 +137,6 @@ const HRLeaveInput = lazy(() => import('./pages/hr/HRLeaveInput'));
 const HRManualEntry = lazy(() => import('./pages/hr/HRManualEntry'));
 const PayrollSummaryReport = lazy(() => import('./pages/hr/PayrollSummaryReport'));
 const AttendanceLeaveSettings = lazy(() => import('./pages/hr/AttendanceLeaveSettings'));
-const LeavePolicySettings = lazy(() => import('./pages/hr/LeavePolicySettings'));
 const BusinessRules = lazy(() => import('./pages/hr/BusinessRules'));
 const OfficeLocationsSettings = lazy(() => import('./pages/OfficeLocationsSettings'));
 const MobileAppDownload = lazy(() => import('./pages/MobileAppDownload'));
@@ -391,7 +390,6 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="hr-manual-entry" element={<HRManualEntry />} />
         <Route path="payroll-summary-report" element={<PayrollSummaryReport />} />
         <Route path="attendance-leave-settings" element={<AttendanceLeaveSettings />} />
-        <Route path="leave-policy-settings" element={<LeavePolicySettings />} />
         <Route path="business-rules" element={<BusinessRules />} />
         <Route path="mobile-app" element={<MobileAppDownload />} />
         <Route path="go-live" element={<GoLiveDashboard />} />
