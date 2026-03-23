@@ -1,12 +1,27 @@
 # NETRA ERP - Product Requirements Document
 
-## Latest Updates - March 23, 2026
+## Latest Updates - March 24, 2026
 
-### Excel Export & Email Approval (P0 COMPLETE) ✅
-- **Download Excel**: Export payroll register as .xlsx file with full breakdown
-- **Email for Approval**: Send Excel as attachment to approver via SMTP
-- Default recipient: dharmesh.parikh@dvconsulting.co.in
-- Includes payroll summary (employees, gross, net) in email dialog
+### Enhanced Excel Export (P0 COMPLETE) ✅
+**53 Columns matching target payroll register format:**
+| Category | Columns |
+|----------|---------|
+| Employee Info | Name, Code, Active/F&F Stage, Department, Designation |
+| Attendance | Days in Month, Working Days, Present, Absent, Paid Leave, Unpaid Leave, Total Leave, Weekends/Holidays, LOP Days, Total Payable Days |
+| Salary | Salary/Month, Salary/Day |
+| Earnings | Basic, HRA, Special Allowance, Conveyance, Incentive, Bonus, Overtime, Arrears, Leave Encashment, Gross |
+| Deductions | LOP, PF, PT, TDS, ESI, Advance Recovery, Loan EMI, Penalty, Total Deductions |
+| Expenses | Travel, Medical, Food, Conveyance, Telephone, Other, Total Reimbursements |
+| Net | Net Payable |
+| Banking | Bank Name, Account Number, IFSC Code, Account Holder Name |
+| Compliance | Annual CTC, Taxable Income, Tax Regime, 87A Rebate Applied |
+
+**3 Sheets:** Payroll Register, Summary, Department Summary
+
+### Expenses Auto-Integration (P0 COMPLETE) ✅
+- Payroll engine now auto-fetches approved expenses from Expenses module
+- Manual override still supported via payroll inputs
+- Expense breakdown stored in calculation results
 
 ### Exit Management & F&F Settlement - UNIFIED (P0 COMPLETE) ✅
 - **Single Source of Truth**: Combined resignation + F&F in one page

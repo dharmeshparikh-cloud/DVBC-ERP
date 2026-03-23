@@ -1154,12 +1154,17 @@ class PayrollCalculationEngine:
         arrears = payroll_input.get("arrears", 0) or 0
         arrears_reason = payroll_input.get("arrears_reason", "")
         
-        # Expense Reimbursements (breakdown)
-        travel_reimbursement = payroll_input.get("travel_reimbursement", 0) or 0
-        medical_reimbursement = payroll_input.get("medical_reimbursement", 0) or 0
-        food_reimbursement = payroll_input.get("food_reimbursement", 0) or 0
-        telephone_reimbursement = payroll_input.get("telephone_reimbursement", 0) or 0
-        other_reimbursement = payroll_input.get("other_reimbursement", 0) or payroll_input.get("expense_reimbursement", 0) or payroll_input.get("reimbursements", 0) or 0
+        # === AUTO-FETCH APPROVED EXPENSES FROM EXPENSES MODULE ===
+        # This integrates the Expenses module with Payroll (SSOT)
+        auto_expenses = await self.fetch_approved_expenses(employee_id, month)
+        expense_categories = auto_expenses.get("categories", {})
+        
+        # Expense Reimbursements (use auto-fetched values, allow manual override)
+        travel_reimbursement = payroll_input.get("travel_reimbursement") or expense_categories.get("travel", 0)
+        medical_reimbursement = payroll_input.get("medical_reimbursement") or expense_categories.get("medical", 0)
+        food_reimbursement = payroll_input.get("food_reimbursement") or expense_categories.get("food", 0)
+        telephone_reimbursement = payroll_input.get("telephone_reimbursement") or expense_categories.get("telephone", 0)
+        other_reimbursement = payroll_input.get("other_reimbursement") or payroll_input.get("expense_reimbursement") or (expense_categories.get("internet", 0) + expense_categories.get("other", 0))
         total_reimbursements = travel_reimbursement + medical_reimbursement + food_reimbursement + telephone_reimbursement + other_reimbursement
         
         # Deduction inputs
@@ -1476,6 +1481,14 @@ class PayrollCalculationEngine:
             "total_earnings": round(total_earnings, 2),
             "reimbursements_breakdown": reimbursements_breakdown,
             "total_reimbursements": round(total_reimbursements, 2),
+            "expense_breakdown": {
+                "travel": round(travel_reimbursement, 2),
+                "medical": round(medical_reimbursement, 2),
+                "food": round(food_reimbursement, 2),
+                "telephone": round(telephone_reimbursement, 2),
+                "other": round(other_reimbursement, 2),
+                "total": round(total_reimbursements, 2)
+            },
             "deductions": deductions,
             "total_deductions": round(total_deductions, 2),
             "net_salary": round(net_salary, 2),
