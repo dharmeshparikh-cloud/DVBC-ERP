@@ -1705,3 +1705,81 @@ async def trigger_single_sync(employee_id: str, current_user: User = Depends(get
         "message": "Sync completed" if result else "No sync needed or user not found",
         "synced": result
     }
+
+
+@router.put("/{employee_id}/statutory-settings")
+async def update_statutory_settings(
+    employee_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update PF/ESI opt-in/opt-out settings for an employee.
+    Only HR/Admin can update these settings.
+    
+    Settings:
+    - pf_opted: true/false - Employee opts in/out of PF
+    - esi_opted: true/false - Employee opts in/out of ESI
+    - pf_number: UAN/PF number
+    - esi_number: ESIC number
+    """
+    db = get_db()
+    
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR/Admin can update statutory settings")
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    statutory_settings = employee.get("statutory_settings", {})
+    
+    # Update only provided fields
+    if "pf_opted" in data:
+        statutory_settings["pf_opted"] = bool(data["pf_opted"])
+    if "esi_opted" in data:
+        statutory_settings["esi_opted"] = bool(data["esi_opted"])
+    if "pf_number" in data:
+        statutory_settings["pf_number"] = data["pf_number"]
+    if "esi_number" in data:
+        statutory_settings["esi_number"] = data["esi_number"]
+    
+    statutory_settings["updated_at"] = datetime.now(timezone.utc).isoformat()
+    statutory_settings["updated_by"] = current_user.full_name
+    
+    await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {
+            "statutory_settings": statutory_settings,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": "Statutory settings updated",
+        "statutory_settings": statutory_settings
+    }
+
+
+@router.get("/{employee_id}/statutory-settings")
+async def get_statutory_settings(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Get PF/ESI settings for an employee."""
+    db = get_db()
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0, "statutory_settings": 1, "first_name": 1, "last_name": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Default settings if not set
+    settings = employee.get("statutory_settings", {
+        "pf_opted": True,  # Default opted-in
+        "esi_opted": False,  # Default opted-out (typically for higher salary employees)
+        "pf_number": None,
+        "esi_number": None
+    })
+    
+    return {
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "statutory_settings": settings
+    }
+

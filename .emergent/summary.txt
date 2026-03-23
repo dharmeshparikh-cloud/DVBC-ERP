@@ -1,154 +1,168 @@
-<analysis>Here is the handover summary based on the provided LLM message history:
+<analysis>**original_problem_statement**: 
+The user's primary goal is to establish a robust and governed expense tracking and meeting management system for their consulting team. This includes enforcing a Single Source of Truth (SSOT) architecture, managing edge cases via a strict 100-point ERP stress test, and ensuring seamless data flow from Lead Creation → Project Execution → HR/Payroll → Finance Closure.
 
-**original_problem_statement**: 
-The user's primary goal is to establish a robust and governed expense tracking and meeting management system for their consulting team, mirroring the existing sales team's flow. This requires enforcing a Single Source of Truth (SSOT) architecture, where all consulting meetings, Minutes of Meeting (MOM), and associated expenses are recorded through a single, controlled user interface. 
 *PRODUCT REQUIREMENTS:*
-- Ensure seamless flow from Lead Creation → Project Execution → HR/Payroll → Finance Closure with full data integrity.
-- Pass a rigorous 100-point ERP Stress Test (Edge cases, cross-module failures, concurrency, validations).
-- Implement Auto-kickoff from won deals and assignment notifications.
+- Ensure Login Governance (strictly Employee ID based, no email logins).
+- Simplified 4-step onboarding process.
+- End-to-End data flow linking Onboarding, Go-Live, CTC creation, Attendance, Expenses, and Salary Slip generation.
+- Implement an Exit Organisation (Resignation) workflow with Admin/HR approvals and restricted access during the notice period.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
 **what currently exists?** 
-A mature, full-stack ERP system (FastAPI backend + React frontend). In this session, the system was heavily fortified. Payroll integration for travel expenses is now fully functional (correctly utilizing internal UUIDs instead of string codes). Leave, attendance, and payroll modules are integrated and tested. A unified  middleware tracks all critical state changes. Auto-kickoff from closed_won CRM leads is implemented. The system is currently undergoing a strict 100-point QA stress test, for which a new central  service has just been created.
+A highly mature FastAPI/React/MongoDB ERP system. In this session, strict Login Governance was enforced (Employee ID only). The Onboarding flow was simplified from 8 to 4 steps with functional document generation. The End-to-End flow from employee Go-Live → CTC Setup → Leave/Attendance → Expense Approval → Payroll slip generation (with accurate reimbursements) was fully tested and validated. Backend validations for stress-test edge cases (Self-approval prevention, Payroll cutoffs, Lead stage enforcement) are active. The backend framework for the Exit Organisation feature is created.
 
-**Last working item**:
-- **Last item agent was working:** The agent was simultaneously working on two things: 1) Integrating the newly created  into  to handle critical edge cases (e.g., preventing self-approval of expenses, payroll cutoff validation) identified in the user's 100-point stress test. 2) Auditing the database to ensure all 4 created employees have functional user logins as requested by the user's final message.
+**Last working item**: 
+- **Last item agent was working:** Building the Exit Organisation (Resignation) workflow. The agent successfully created the backend router (), registered it, added PF/ESI toggles to the employee model, and started modifying the frontend () to add the Exit Organisation button and dialog. The workflow was interrupted by a user request for HR credentials.
 - **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** backend testing agent (to verify the new ERP validation logic across edge cases) + manual python scripts for DB user audits.
+- **Agent Testing Done:** N (Backend API tested via bash, frontend UI is incomplete)
+- **Which testing method agent to use?** Frontend testing agent (once UI is complete) + manual testing of the exit flow.
 - **User Testing Done:** N
 
-**All Pending/In progress Issue list**:
-- **Issue 1: ERP Stress Test Fixes (Critical Gaps) (P0)**
-    - **Attempted fixes:** Created  and began replacing basic checks in  with this centralized validator.
-    - **Next debug checklist:** Continue implementing fixes for the high-risk clusters identified by the user: E31 (expense approved after payroll cutoff), A4, A5, A6, B12, I51. Ensure  covers cross-module checks (e.g., Finance vs Payroll mismatch, Role/permission leaks).
-    - **Why fix this issue and what will be achieved with the fix?** Will prevent data corruption, financial calculation errors, and ensure the ERP is production-ready under enterprise loads.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** Backend primarily (API validation layer).
-    - **Blocked on other issue:** None.
-- **Issue 2: Verify Employee to User Login Mapping (P1)**
-    - **Attempted fixes:** Ran a bash script to map  to . Found 4 profiles (Admin, HR, Sales, Consultant).
-    - **Next debug checklist:** Verify that all 4 users have active passwords and can successfully authenticate. Respond to the user's final prompt with the credentials. 
-    - **Why fix this issue and what will be achieved with the fix?** Allows the user to perform UAT (User Acceptance Testing) across different RBAC roles.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** Backend (manual curl test for ).
+**All Pending/In progress Issue list**: 
+  Issue 1: Complete Exit Organisation Frontend UI (P0)
+  Issue 2: Restrict document downloads during Notice Period (P1)
+  Issue 3: Answer user query regarding Onboarding data editing (P2)
+  
+  Issues Detail:
+  - Issue 1: Complete Exit Organisation Frontend UI
+     - Attempted fixes: Agent was actively injecting state variables and Dialog UI into  but got interrupted.
+     - Next debug checklist: Open , find the incomplete edits, and fully implement the Exit Organisation button, guided exit interview questions, and submission to the newly created backend endpoint.
+     - Why fix this issue and what will be achieved with the fix? Completes the user's explicit request for a guided resignation workflow.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both (Frontend UI + Backend approval flow)
+     - Blocked on other issue: None
+  - Issue 2: Restrict document downloads during Notice Period
+     - Attempted fixes: None yet.
+     - Next debug checklist: Implement a check in the backend/frontend. If an employee's status is in the exit process/notice period, disable all download buttons (salary slips, onboarding forms, etc.).
+     - Why fix this issue and what will be achieved with the fix? Data security compliance as requested by the user.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on other issue: Issue 1
+  - Issue 3: Answer user query regarding Onboarding data editing
+     - Attempted fixes: None.
+     - Next debug checklist: The user asked Is onboarding data can be edited in employee access later ?. The agent missed answering this. Please investigate if the system allows this and respond to the user, or implement it if it's missing.
+     - Why fix this issue: Fulfills user's missed question.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? NA
 
-**In progress Task List**:
-- **Task 1: Complete  Integration**
-    - **Where to resume:** Check  around line 500-600. Ensure self-approval prevention and payroll cutoff validations are fully wired up. Extend these validations to SOW delivery and project milestones.
-    - **What will be achieved with this?** Airtight backward flow and rollback prevention.
-    - **Status:** IN PROGRESS
-    - **Should Test frontend/backend/both after fix?** Backend
-    - **Blocked on something:** None.
+**In progress Task List**: 
+  Task 1: Exit Organisation Approval Flow & F&F (Full Feature)
+  
+ Task Detail:
+  - Task 1: Exit Organisation Approval Flow & F&F
+     - Where to resume: Resume at . After the UI is done, ensure the flow goes: Employee Submits -> Admin Approves -> HR Approves -> Final Settlement (F&F).
+     - What will be achieved with this? Complete employee lifecycle management.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on something: Issue 1
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks:**
-    - (P1) Implement remaining enhancements from the 100-point QA script (Missing validations for Project/CRM sync).
-    - (P2) Enforce kickoff workflow (Make it a hard mandatory block instead of just logging a governance warning when bypassing).
-- **Future Tasks:**
-    - (P2) Refactor  (currently over 2400 lines - major technical debt).
+    Upcoming Tasks:
+    - (P1) Implement remaining enhancements from the 100-point QA script (A5, A6, B13, B14, etc. - check ).
+    - (P2) PDF generation for salary slips and onboarding forms (replacing current basic TXT downloads).
+    - (P2) Set up recurring/automated monthly payroll generation.
+    - (P2) Bulk salary slip download for all employees.
+    Future Tasks:
+    - (P2) Refactor  (currently over 2400 lines - technical debt).
     - (P2) 24h reminder emails before meetings.
     - (P2) Build the DVBC Marketing Hub.
-    - (P2) Consultant Incentive System (Frontend Dashboard representation).
 
 **Completed work in this session**
-- Fixed  prop mismatch in MOM dialog. (DONE)
-- Fixed Payroll Integration (Resolved UUID vs Employee Code mismatch in ). (DONE)
-- Generated test data and validated end-to-end Leave/Attendance/Payroll/Incentive flow. (DONE)
-- Fixed System Audit Logging (Registered missing router, added tracking to leaves, payroll, MOMs). (DONE)
-- Cleaned up orphan database records (12 orphan expenses, 26 meetings missing organizers). (DONE)
-- Built Auto-kickoff request generation when CRM Lead status hits . (DONE)
-- Added duplicate kickoff prevention and Consultant assignment sync + notifications. (DONE)
-- Generated  and . (DONE)
+- Set system passwords for initial seeded employees (admin123, hr123, etc.). (DONE)
+- Integrated  into Expenses (Self-approval prevention, Payroll cutoffs). (DONE)
+- Added stage validation (A4) to leads and inactive manager validation (B12) to employees. (DONE)
+- Implemented strict Login Governance (Employee ID only, complete UI redesign). (DONE)
+- Simplified Onboarding Form from 8 to 4 steps with download capabilities. (DONE)
+- Tested and verified E2E flow: Onboarding → Go-Live → CTC → Attendance → Expense → Salary Slip. (DONE)
+- Fixed  bug in . (DONE)
+- Updated Employee ID generation to use  prefix exclusively instead of . (DONE)
+- Added PF and ESI opt-in toggles to the employee schema. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-- **Issue 1: 15 Enhancement needed from QA Script**
-    - **Debug checklist:** Review the bash output of the 100-point script. Look for items tagged 🟡 ENHANCEMENTS NEEDED (A4, A5, A6, A7, B12, B13, B14, E27, I51, I52).
-    - **Why to solve this issue:** Hardens the system against edge cases (e.g., Lead skipping stages without approval).
-    - **Should Test frontend/backend/both after fix:** Backend
-    - **Is recurring issue?** N
+   Issue 1: Remaining ERP Stress Test Edge Cases
+   - Debug checklist: Review  for items tagged 🟡 ENHANCEMENTS NEEDED (A5, A6, B13, B14).
+   - Why to solve this issue and what will be achieved with this? Fully hardens the ERP against data corruption.
+   - Should Test frontend/backend/both after fix: Backend
+   - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
-- **Issue recurrence in previous fork:**  file size complexity. 
-- **Recurrence count:** 2
-- **Status:** BLOCKED (Deferred to P2 future task due to functional priorities).
+  - Issue recurrence in previous fork:  file size complexity (needs refactoring).
+  - Recurrence count: 3
+  - Status: BLOCKED (Deferred to P2 future task to prioritize functional workflows).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 - FastAPI Backend, React Frontend, MongoDB.
-- **Cross-Module Sync Mapping:** The system strictly uses internal UUIDs (e.g., ) for cross-collection joins (like expenses to payroll). Using  (e.g., CON001) will silently fail.
-- **Unified Audit Logging:**  must be called for any significant state change.
+- **Login Governance:** The system strictly rejects email logins. It strictly expects  (e.g., EMP001).
+- **ID Generation:** Employee IDs are now generated exclusively with the  prefix.
 
 **key DB schema**
-- : {employee_id (MUST BE UUID), amount, payroll_period, status}
-- : {action, entity_type, entity_id, performed_by, changes}
-- : {project_id, consultant_id, role, is_active}
+  - : {pf_opt_in (bool), esi_opt_in (bool)} -> *Added this session*
+  - : {employee_id, month, working_days, present_days, leaves, ...}
 
 **changes in tech stack**
-- None.
+  - None 
 
-**All files of reference**
--  (Crucial for payroll sync and new validations)
--  (New file for stress-test edge case logic)
--  & 
--  (Contains the QA gaps to fix)
+**All files of reference** 
+1.  (Must be opened immediately to finish the interrupted Exit UI implementation)
+2.  (New backend router created to handle the exit flow)
+3.  (Updated with PF/ESI toggles)
+4.  (Reference for strict ID-based login)
+
+**Areas that need refactoring**: 
 - 
-
-**Areas that need refactoring**:
--  (Over 2400 lines).
 
 **key api endpoints**
-- : Saves MOM and auto-creates travel expenses.
-- : Approves expense and pushes to payroll via UUID.
-- : Syncs team members to assignments.
+-  (Newly created, needs UI connection)
+-  (Used for viewing monthly attendance/leave/expense aggregation)
+-  (Expects  in payload, not email)
 
-**Critical Info for New Agent**
-- **IMPORTANT DATA INTEGRITY RULE:** When linking users/employees across modules (especially Payroll, HR, and Expenses), you *must* use the MongoDB internal uid=0(root) gid=0(root) groups=0(root) (UUID), NOT the  (e.g., EMP001). A major bug was fixed this session because expenses used the code, but payroll queried the UUID.
-- The user is currently pushing the system through a massive 100 What-If Scenario stress test. Prioritize backend validation, preventing invalid state transitions, and ensuring audit logs exist over building new UI features.
+**Critical Info for New Agent** 
+- **DO NOT test login with emails.** The system has strict login governance and will reject emails. Always use Employee IDs (EMP001, EMP002, etc.).
+- **Immediate Action:** The previous agent was in the middle of editing  to add the Exit Organisation button and dialog when the context window ended. Start your session by checking this file, finishing the UI integration, and testing the resignation flow.
+- The user asked if onboarding data can be edited by the employee later. The agent failed to answer this. Investigate and reply to the user.
 
-**documents and test reports created in this job**
-- 
-- 
-- 
-- 
-- 
-- 
+**documents and test reports created in this job** 
+  - 
+  - 
 
-**Last 10 User Messages and any pending HUMAN messages**
-1. User approves plan. (COMPLETED)
-2. User rejects UI enhancement, asks to focus on P1 Payroll integration. (COMPLETED)
-3. User asks about leave creation, payroll/attendance integration, and test data. (COMPLETED)
-4. User confirms answers to clarifying questions. (COMPLETED)
-5. User provides massive 100 CRITICAL WHAT IF SCENARIOS ERP Stress Test. (IN PROGRESS)
-6. User says Implement as per priority. Ensure more deep analysis. (COMPLETED - Fixed Audit logs/Orphans)
-7. User says P2. (COMPLETED)
-8. User asks to auto-create kickoff from won deals, send assignment notifications, and prevent duplicate kickoffs. (COMPLETED)
-9. User reposts the 100-point ERP Stress Test, asking to validate Prevent/Detect/Alert/Recover/Log. (IN PROGRESS)
-10. **PENDING:** User asks for user login for all created employees.
+**Last 10 User Messages and any pending HUMAN messages** 
+1. User asked to implement Resignation flow (Exit Organisation button, Guided exit, Admin/HR approval, restrict downloads). (IN PROGRESS)
+2. User confirmed changes (1c, Point 2, 5a, 6c). (COMPLETED)
+3. User asked about PF/ESI toggles, reimburse typo, Submit button in expenses, EMP prefix, editing onboarding data. (COMPLETED - except missed answering about editing onboarding data)
+4. User confirmed payroll looks good, asks to test download/print functionality. (COMPLETED)
+5. User confirmed CTC/Expense/Payroll flow setup. (COMPLETED)
+6. User asked to test download/print of salary slips. (COMPLETED)
+7. User asked to set CTC 500000, 15 days attendance, 10 days leave, 3000 expense, and see it reflect in payroll. (COMPLETED)
+8. User asked to test E2E flow from Onboarding to payroll. (COMPLETED)
+9. User asked to simplify onboarding forms to mandatory fields only. (COMPLETED)
+10. **PENDING:** User asked for HR login details. (Agent provided them right before cutoff).
 
 **Project Health Check:**
-- Broken: None. 
+- Broken: None.
 - Mocked: None.
 
-**3rd Party Integrations**
-- Google Maps API — requires User API Key (Used in Frontend ).
+**3rd Party Integrations** 
+- No specific LLM/3rd party integration changes in this session.
 
 **Testing status**
-- Testing agent used after significant changes: YES (Iterations 190, 191, 192).
-- Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: None explicitly, but deep bash testing scripts were utilized.
-- Known regressions: None.
+  - Testing agent used after significant changes: YES (iteration 193 for onboarding flow)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: 
+  - Known regressions: None
 
 **Credentials to test flow:**
 - Admin:  / 
-- HR: 
-- Sales: 
+- HR:  / 
+- Sales:  / 
 - Consultant:  / 
 
 **What agent forgot to execute**
-- The agent was in the middle of gathering the user credentials for the 4 generated employees to respond to the user's final message, but the context window ended before the agent could send the reply via chat. Ensure you reply to the user with the employee login credentials.</analysis>
+- The agent forgot to answer the user's specific question: Is onboarding data can be edited in employee access later ?. You should check the system capabilities and answer this.
+- The agent's code edit inside  for the Exit Organisation UI was left incomplete due to context limits. Must be resumed immediately.</analysis>

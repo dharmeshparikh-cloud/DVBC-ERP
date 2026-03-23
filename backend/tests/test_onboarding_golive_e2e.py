@@ -16,7 +16,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-validator-test.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://exit-org-preview.preview.emergentagent.com')
 if not BASE_URL.endswith('/api'):
     API_URL = BASE_URL.rstrip('/') + '/api'
 else:

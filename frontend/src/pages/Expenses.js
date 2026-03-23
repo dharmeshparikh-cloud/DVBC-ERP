@@ -387,7 +387,7 @@ const Expenses = () => {
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">
-                    {expense.line_items?.length || 0} item(s)
+                    {expense.line_items?.length || (expense.amount ? 1 : 0)} item(s)
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-zinc-900">
                     ₹{expense.total_amount?.toLocaleString()}
@@ -406,6 +406,7 @@ const Expenses = () => {
                           variant="ghost" 
                           size="sm" 
                           className="h-8 px-2 text-blue-600"
+                          title="Submit expense for manager/HR approval"
                         >
                           <Send className="w-4 h-4 mr-1" />
                           Submit
@@ -441,9 +442,10 @@ const Expenses = () => {
                           variant="ghost" 
                           size="sm" 
                           className="h-8 px-2 text-green-600"
+                          title="Mark as reimbursed - Payment transferred to employee's bank"
                         >
                           <Check className="w-4 h-4 mr-1" />
-                          Reimburse
+                          Mark Reimbursed
                         </Button>
                       )}
                     </div>
@@ -469,20 +471,20 @@ const Expenses = () => {
                 </div>
                 <div className="flex items-center justify-between text-xs text-zinc-500">
                   <span>{expense.is_office_expense ? 'Office Expense' : expense.client_name || expense.project_name || '-'}</span>
-                  <span>{expense.line_items?.length || 0} item(s)</span>
+                  <span>{expense.line_items?.length || (expense.amount ? 1 : 0)} item(s)</span>
                 </div>
                 <div className="flex items-center gap-1 pt-1">
                   {expense.status === 'draft' && expense.created_by === user?.id && (
-                    <Button onClick={(e) => { e.stopPropagation(); handleSubmitExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-blue-600">
+                    <Button onClick={(e) => { e.stopPropagation(); handleSubmitExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-blue-600" title="Submit for approval">
                       <Send className="w-3 h-3 mr-1" /> Submit
                     </Button>
                   )}
                   {expense.status === 'pending' && isHROrAdmin && (
                     <>
-                      <Button onClick={(e) => { e.stopPropagation(); handleApproveExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-emerald-600">
+                      <Button onClick={(e) => { e.stopPropagation(); handleApproveExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-emerald-600" title="Approve this expense">
                         <CheckCircle className="w-3 h-3 mr-1" /> Approve
                       </Button>
-                      <Button onClick={(e) => { e.stopPropagation(); handleRejectExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-red-600">
+                      <Button onClick={(e) => { e.stopPropagation(); handleRejectExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-red-600" title="Reject this expense">
                         <XCircle className="w-3 h-3 mr-1" /> Reject
                       </Button>
                     </>

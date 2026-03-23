@@ -64,6 +64,7 @@ from . import notifications
 from . import approvals
 from . import quotations
 from . import consultants
+from . import exit_organisation
 
 __all__ = [
     # Core
@@ -82,5 +83,5 @@ __all__ = [
     'chat', 'ai_assistant', 'email_actions', 'documentation', 'audio_samples',
     # Phase 2
     'travel', 'sow_legacy', 'agreements', 'tasks', 'notifications',
-    'approvals', 'quotations', 'consultants'
+    'approvals', 'quotations', 'consultants', 'exit_organisation'
 ]

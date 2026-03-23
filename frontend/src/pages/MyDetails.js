@@ -10,10 +10,12 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { 
   User, Mail, Phone, MapPin, Building2, Briefcase, Calendar,
   CreditCard, Edit2, Save, X, Clock, CheckCircle, AlertCircle,
-  FileText, Upload, Send, UserCog, Shield, Search, Loader2, Trash2, Eye
+  FileText, Upload, Send, UserCog, Shield, Search, Loader2, Trash2, Eye,
+  LogOut, Star, MessageSquare
 } from 'lucide-react';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
@@ -56,6 +58,69 @@ const MyDetails = () => {
     },
     staleTime: 2 * 60 * 1000,
   });
+
+  // Exit Organisation States
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [exitStep, setExitStep] = useState(1); // 1: Confirm, 2: Interview, 3: Submit
+  const [exitResponses, setExitResponses] = useState({});
+  const [submittingExit, setSubmittingExit] = useState(false);
+
+  // Query: Exit Interview Questions
+  const { data: exitQuestions = [] } = useQuery({
+    queryKey: ['exit', 'interview-questions'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/exit/interview-questions`);
+      return res.data?.questions || [];
+    },
+    enabled: showExitDialog,
+  });
+
+  // Query: My Exit Request (if any)
+  const { data: myExitRequest } = useQuery({
+    queryKey: ['exit', 'my-request'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/exit/my-request`);
+      return res.data?.request;
+    },
+    staleTime: 30 * 1000,
+  });
+
+  // Submit Exit Request Mutation
+  const submitExitMutation = useMutation({
+    mutationFn: async (data) => {
+      return axios.post(`${API}/exit/initiate`, data);
+    },
+    onSuccess: (res) => {
+      toast.success('Exit request submitted successfully');
+      setShowExitDialog(false);
+      setExitStep(1);
+      setExitResponses({});
+      queryClient.invalidateQueries({ queryKey: ['exit', 'my-request'] });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to submit exit request');
+    },
+  });
+
+  const handleExitSubmit = async () => {
+    // Validate all required questions answered
+    const requiredQuestions = exitQuestions.filter(q => q.type !== 'text');
+    for (const q of requiredQuestions) {
+      if (!exitResponses[q.id]) {
+        toast.error(`Please answer: ${q.question}`);
+        return;
+      }
+    }
+    
+    setSubmittingExit(true);
+    try {
+      await submitExitMutation.mutateAsync({
+        interview_responses: exitResponses
+      });
+    } finally {
+      setSubmittingExit(false);
+    }
+  };
 
   const openEditDialog = (section, data) => {
     setEditSection(section);
@@ -526,6 +591,258 @@ const MyDetails = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Exit Organisation Section */}
+      <Card className={`${isDark ? 'bg-zinc-800 border-zinc-700' : ''} border-red-200`}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <LogOut className="w-5 h-5 text-red-500" />
+            Exit Organisation
+          </CardTitle>
+          <CardDescription>Initiate resignation process</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {myExitRequest ? (
+            <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="w-5 h-5 text-amber-500" />
+                <span className="font-medium">Exit Request Status: {myExitRequest.status?.replace('_', ' ').toUpperCase()}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <Label className="text-xs text-zinc-500">Resignation Date</Label>
+                  <p>{myExitRequest.resignation_date ? new Date(myExitRequest.resignation_date).toLocaleDateString() : 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-zinc-500">Last Working Day</Label>
+                  <p>{myExitRequest.last_working_day ? new Date(myExitRequest.last_working_day).toLocaleDateString() : 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-zinc-500">Reason</Label>
+                  <p className="capitalize">{myExitRequest.reason?.replace('_', ' ') || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-zinc-500">Notice Period</Label>
+                  <p>{myExitRequest.notice_period_days || 30} days</p>
+                </div>
+              </div>
+              {myExitRequest.status === 'pending' && (
+                <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Waiting for Admin approval
+                </p>
+              )}
+              {myExitRequest.status === 'admin_approved' && (
+                <p className="text-xs text-blue-600 mt-3 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Admin approved. Waiting for HR approval
+                </p>
+              )}
+              {myExitRequest.status === 'hr_approved' && (
+                <p className="text-xs text-green-600 mt-3 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" /> Approved. Notice period in progress
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p className={`text-sm mb-4 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                If you wish to resign from your position, you can initiate the exit process here. 
+                This will start a 30-day notice period after approval.
+              </p>
+              <Button 
+                variant="destructive"
+                onClick={() => setShowExitDialog(true)}
+                data-testid="exit-organisation-btn"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Exit Organisation
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Exit Organisation Dialog */}
+      <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <LogOut className="w-5 h-5" />
+              Exit Organisation - Step {exitStep} of 3
+            </DialogTitle>
+            <DialogDescription>
+              {exitStep === 1 && "Please confirm you want to initiate the resignation process."}
+              {exitStep === 2 && "Complete the mandatory exit interview questions."}
+              {exitStep === 3 && "Review and submit your exit request."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            {/* Step 1: Confirmation */}
+            {exitStep === 1 && (
+              <div className="space-y-4">
+                <div className={`p-4 rounded-lg border ${isDark ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'}`}>
+                  <h4 className="font-medium text-red-600 mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Important Information
+                  </h4>
+                  <ul className={`text-sm space-y-2 ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                    <li>• This will initiate a <strong>30-day notice period</strong> after approval.</li>
+                    <li>• Your resignation will require <strong>Admin and HR approval</strong>.</li>
+                    <li>• During the notice period, certain <strong>downloads will be restricted</strong>.</li>
+                    <li>• You will need to complete an <strong>exit interview</strong> and handover process.</li>
+                    <li>• Final & Full Settlement (F&F) will be calculated after all clearances.</li>
+                  </ul>
+                </div>
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
+                  <p className="text-sm">
+                    By proceeding, you confirm that you understand the above and wish to resign from your position at {profile?.department || 'the organization'}.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Exit Interview */}
+            {exitStep === 2 && (
+              <div className="space-y-4">
+                <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  Please answer the following questions honestly. Your feedback helps us improve.
+                </p>
+                {exitQuestions.map((q) => (
+                  <div key={q.id} className={`p-3 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                    <Label className="font-medium flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-orange-500" />
+                      {q.question}
+                      {q.type !== 'text' && <span className="text-red-500">*</span>}
+                    </Label>
+                    
+                    {q.type === 'select' && (
+                      <Select
+                        value={exitResponses[q.id] || ''}
+                        onValueChange={(val) => setExitResponses({...exitResponses, [q.id]: val})}
+                      >
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {q.options.map(opt => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    
+                    {q.type === 'rating' && (
+                      <div className="flex gap-2 mt-2">
+                        {[1, 2, 3, 4, 5].map(num => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setExitResponses({...exitResponses, [q.id]: num})}
+                            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-colors
+                              ${exitResponses[q.id] >= num 
+                                ? 'bg-orange-500 border-orange-500 text-white' 
+                                : isDark ? 'border-zinc-600 text-zinc-400' : 'border-zinc-300 text-zinc-500'
+                              }`}
+                          >
+                            {num <= (exitResponses[q.id] || 0) ? (
+                              <Star className="w-5 h-5 fill-current" />
+                            ) : (
+                              <Star className="w-5 h-5" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {q.type === 'text' && (
+                      <Textarea
+                        className="mt-2"
+                        placeholder="Your feedback (optional)"
+                        value={exitResponses[q.id] || ''}
+                        onChange={(e) => setExitResponses({...exitResponses, [q.id]: e.target.value})}
+                        rows={3}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Step 3: Review & Submit */}
+            {exitStep === 3 && (
+              <div className="space-y-4">
+                <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                  <h4 className="font-medium mb-3">Review Your Exit Request</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <Label className="text-xs text-zinc-500">Employee</Label>
+                      <p>{profile?.first_name} {profile?.last_name} ({profile?.employee_id})</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-zinc-500">Department</Label>
+                      <p>{profile?.department || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-zinc-500">Primary Reason</Label>
+                      <p className="capitalize">{exitResponses['reason']?.replace('_', ' ') || 'Not selected'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-zinc-500">Notice Period</Label>
+                      <p>30 days</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={`p-3 rounded-lg border ${isDark ? 'bg-amber-900/20 border-amber-700' : 'bg-amber-50 border-amber-200'}`}>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    By submitting, your resignation request will be sent for Admin approval, followed by HR approval. 
+                    You will be notified of the status updates.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            {exitStep > 1 && (
+              <Button variant="outline" onClick={() => setExitStep(exitStep - 1)}>
+                Back
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => { setShowExitDialog(false); setExitStep(1); setExitResponses({}); }}>
+              Cancel
+            </Button>
+            
+            {exitStep < 3 ? (
+              <Button 
+                onClick={() => setExitStep(exitStep + 1)}
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                Continue
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleExitSubmit}
+                disabled={submittingExit}
+                className="bg-red-600 hover:bg-red-700"
+                data-testid="submit-exit-request-btn"
+              >
+                {submittingExit ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Submit Exit Request
+                  </>
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editSection} onOpenChange={() => closeEditDialog()}>
