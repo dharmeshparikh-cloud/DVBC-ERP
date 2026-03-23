@@ -33,6 +33,293 @@ import {
 } from 'lucide-react';
 import { isAdmin as checkIsAdmin, isHR as checkIsHR } from '../../utils/roles';
 
+// ==================== DROPDOWN OPTIONS FOR RULE FORM ====================
+
+// Applies To (Scope) - Who does this rule apply to?
+const APPLIES_TO_OPTIONS = {
+  scope_type: [
+    { value: 'all_employees', label: 'All Employees', description: 'Rule applies to everyone in the organization' },
+    { value: 'by_department', label: 'By Department', description: 'Rule applies to specific departments' },
+    { value: 'by_role', label: 'By Role', description: 'Rule applies to specific roles' },
+    { value: 'by_grade', label: 'By Grade/Level', description: 'Rule applies to specific employee grades' },
+    { value: 'by_employment_type', label: 'By Employment Type', description: 'Rule applies to specific employment types' },
+    { value: 'by_location', label: 'By Location', description: 'Rule applies to specific work locations' },
+    { value: 'by_experience', label: 'By Experience', description: 'Rule applies based on years of experience' },
+    { value: 'by_ctc_range', label: 'By CTC Range', description: 'Rule applies to specific salary bands' },
+    { value: 'custom_group', label: 'Custom Employee Group', description: 'Rule applies to a custom defined group' }
+  ],
+  departments: [
+    { value: 'HR', label: 'Human Resources' },
+    { value: 'Finance', label: 'Finance & Accounts' },
+    { value: 'Sales', label: 'Sales' },
+    { value: 'Marketing', label: 'Marketing' },
+    { value: 'Engineering', label: 'Engineering' },
+    { value: 'Operations', label: 'Operations' },
+    { value: 'Consulting', label: 'Consulting' },
+    { value: 'IT', label: 'Information Technology' },
+    { value: 'Legal', label: 'Legal & Compliance' },
+    { value: 'Admin', label: 'Administration' },
+    { value: 'Support', label: 'Customer Support' },
+    { value: 'R&D', label: 'Research & Development' }
+  ],
+  roles: [
+    { value: 'admin', label: 'Administrator' },
+    { value: 'hr_manager', label: 'HR Manager' },
+    { value: 'manager', label: 'Manager' },
+    { value: 'team_lead', label: 'Team Lead' },
+    { value: 'senior', label: 'Senior Employee' },
+    { value: 'employee', label: 'Employee' },
+    { value: 'consultant', label: 'Consultant' },
+    { value: 'contractor', label: 'Contractor' },
+    { value: 'intern', label: 'Intern' },
+    { value: 'trainee', label: 'Trainee' }
+  ],
+  grades: [
+    { value: 'L1', label: 'L1 - Entry Level / Fresher' },
+    { value: 'L2', label: 'L2 - Junior' },
+    { value: 'L3', label: 'L3 - Mid-Level' },
+    { value: 'L4', label: 'L4 - Senior' },
+    { value: 'L5', label: 'L5 - Lead / Principal' },
+    { value: 'L6', label: 'L6 - Manager' },
+    { value: 'L7', label: 'L7 - Senior Manager / Director' },
+    { value: 'L8', label: 'L8 - VP / Head' },
+    { value: 'L9', label: 'L9 - CXO / Executive' }
+  ],
+  employment_types: [
+    { value: 'full_time', label: 'Full-Time Permanent' },
+    { value: 'part_time', label: 'Part-Time' },
+    { value: 'contract', label: 'Contract / Fixed-Term' },
+    { value: 'consultant', label: 'Consultant' },
+    { value: 'intern', label: 'Intern / Trainee' },
+    { value: 'probation', label: 'On Probation' },
+    { value: 'confirmed', label: 'Confirmed Employee' },
+    { value: 'notice_period', label: 'In Notice Period' }
+  ],
+  locations: [
+    { value: 'metro', label: 'Metro Cities (Tier 1)' },
+    { value: 'non_metro', label: 'Non-Metro Cities (Tier 2/3)' },
+    { value: 'mumbai', label: 'Mumbai' },
+    { value: 'delhi', label: 'Delhi NCR' },
+    { value: 'bangalore', label: 'Bangalore' },
+    { value: 'chennai', label: 'Chennai' },
+    { value: 'hyderabad', label: 'Hyderabad' },
+    { value: 'kolkata', label: 'Kolkata' },
+    { value: 'pune', label: 'Pune' },
+    { value: 'ahmedabad', label: 'Ahmedabad' },
+    { value: 'remote', label: 'Remote / WFH' },
+    { value: 'client_site', label: 'Client Site' }
+  ],
+  experience_ranges: [
+    { value: '0-1', label: '0-1 years (Fresher)' },
+    { value: '1-3', label: '1-3 years' },
+    { value: '3-5', label: '3-5 years' },
+    { value: '5-8', label: '5-8 years' },
+    { value: '8-12', label: '8-12 years' },
+    { value: '12+', label: '12+ years (Senior)' }
+  ],
+  ctc_ranges: [
+    { value: '0-5L', label: 'Up to ₹5 LPA' },
+    { value: '5-10L', label: '₹5-10 LPA' },
+    { value: '10-20L', label: '₹10-20 LPA' },
+    { value: '20-35L', label: '₹20-35 LPA' },
+    { value: '35-50L', label: '₹35-50 LPA' },
+    { value: '50L+', label: '₹50 LPA and above' }
+  ]
+};
+
+// Category options by policy type
+const CATEGORY_OPTIONS = {
+  leave: [
+    { value: 'quota', label: 'Leave Quota', description: 'Annual/monthly leave entitlements' },
+    { value: 'accrual', label: 'Accrual Rules', description: 'How leaves are credited over time' },
+    { value: 'carry_forward', label: 'Carry Forward', description: 'Rules for carrying unused leaves' },
+    { value: 'encashment', label: 'Encashment', description: 'Rules for leave encashment at exit/year-end' },
+    { value: 'special_leave', label: 'Special Leave', description: 'Maternity, Paternity, Bereavement, etc.' },
+    { value: 'sandwich', label: 'Sandwich Policy', description: 'Rules for leaves between holidays' },
+    { value: 'approval', label: 'Approval Rules', description: 'Leave approval workflow rules' },
+    { value: 'restriction', label: 'Restrictions', description: 'Leave blackout periods, minimums, etc.' }
+  ],
+  travel: [
+    { value: 'daily_allowance', label: 'Daily Allowance (DA)', description: 'Per diem for food and incidentals' },
+    { value: 'accommodation', label: 'Accommodation', description: 'Hotel and lodging limits' },
+    { value: 'transport_flight', label: 'Flight / Air Travel', description: 'Flight class and booking rules' },
+    { value: 'transport_train', label: 'Train Travel', description: 'Train class and booking rules' },
+    { value: 'transport_cab', label: 'Cab / Taxi', description: 'Local cab and taxi limits' },
+    { value: 'transport_own', label: 'Own Vehicle', description: 'Mileage reimbursement rules' },
+    { value: 'advance', label: 'Travel Advance', description: 'Pre-trip advance rules' },
+    { value: 'settlement', label: 'Settlement', description: 'Post-trip claim settlement rules' },
+    { value: 'international', label: 'International Travel', description: 'Rules specific to international trips' },
+    { value: 'client_billable', label: 'Client Billable', description: 'Rules for client-reimbursable travel' }
+  ],
+  expense: [
+    { value: 'approval_limits', label: 'Approval Limits', description: 'Auto-approval thresholds' },
+    { value: 'documentation', label: 'Documentation', description: 'Receipt and invoice requirements' },
+    { value: 'meal_entertainment', label: 'Meals & Entertainment', description: 'Limits for food and entertainment' },
+    { value: 'office_supplies', label: 'Office Supplies', description: 'Stationery and supplies limits' },
+    { value: 'communication', label: 'Communication', description: 'Phone, internet reimbursement' },
+    { value: 'professional_dev', label: 'Professional Development', description: 'Training, certifications, books' },
+    { value: 'compliance', label: 'Compliance', description: 'Audit and compliance rules' },
+    { value: 'cutoff', label: 'Processing Cutoff', description: 'Submission and processing deadlines' }
+  ],
+  attendance: [
+    { value: 'work_hours', label: 'Work Hours', description: 'Standard working hours and timing' },
+    { value: 'core_hours', label: 'Core Hours', description: 'Mandatory presence timing' },
+    { value: 'flexibility', label: 'Flexibility', description: 'Flexi-time and grace periods' },
+    { value: 'wfh', label: 'Work From Home', description: 'Remote working policies' },
+    { value: 'overtime', label: 'Overtime', description: 'OT calculation and limits' },
+    { value: 'compoff', label: 'Compensatory Off', description: 'Comp-off accrual and usage' },
+    { value: 'late_penalty', label: 'Late Penalty', description: 'Late arrival penalty rules' },
+    { value: 'absent_penalty', label: 'Absent Penalty', description: 'Unauthorized absence rules' },
+    { value: 'shift', label: 'Shift Rules', description: 'Night shift, rotational shift rules' }
+  ],
+  payroll: [
+    { value: 'processing_date', label: 'Processing Date', description: 'Payroll run schedule' },
+    { value: 'statutory_pf', label: 'PF (Provident Fund)', description: 'PF contribution rules' },
+    { value: 'statutory_esi', label: 'ESI', description: 'ESI contribution rules' },
+    { value: 'statutory_pt', label: 'Professional Tax', description: 'PT deduction rules' },
+    { value: 'statutory_tds', label: 'TDS', description: 'Tax deduction rules' },
+    { value: 'deduction_lop', label: 'LOP Deduction', description: 'Loss of Pay calculation' },
+    { value: 'bonus', label: 'Bonus', description: 'Bonus calculation rules' },
+    { value: 'reimbursement', label: 'Reimbursement', description: 'Expense reimbursement processing' },
+    { value: 'disbursement', label: 'Disbursement', description: 'Salary credit rules' }
+  ],
+  general: [
+    { value: 'probation', label: 'Probation', description: 'Probation period rules' },
+    { value: 'notice_period', label: 'Notice Period', description: 'Resignation notice rules' },
+    { value: 'termination', label: 'Termination', description: 'Employment termination rules' },
+    { value: 'increment', label: 'Increment', description: 'Annual increment rules' },
+    { value: 'promotion', label: 'Promotion', description: 'Promotion eligibility rules' },
+    { value: 'confirmation', label: 'Confirmation', description: 'Employment confirmation rules' },
+    { value: 'retirement', label: 'Retirement', description: 'Retirement age and rules' },
+    { value: 'workplace', label: 'Workplace', description: 'Dress code, conduct, etc.' }
+  ]
+};
+
+// Unit options based on rule type and category
+const UNIT_OPTIONS = [
+  { value: 'days/year', label: 'Days per Year' },
+  { value: 'days/month', label: 'Days per Month' },
+  { value: 'days', label: 'Days' },
+  { value: 'hours', label: 'Hours' },
+  { value: 'hours/day', label: 'Hours per Day' },
+  { value: 'hours/week', label: 'Hours per Week' },
+  { value: 'hours/month', label: 'Hours per Month' },
+  { value: 'minutes', label: 'Minutes' },
+  { value: 'INR', label: 'INR (₹)' },
+  { value: 'INR/day', label: 'INR per Day' },
+  { value: 'INR/month', label: 'INR per Month' },
+  { value: 'INR/km', label: 'INR per Kilometer' },
+  { value: 'INR/trip', label: 'INR per Trip' },
+  { value: 'percent', label: 'Percentage (%)' },
+  { value: 'percent_of_basic', label: '% of Basic Salary' },
+  { value: 'percent_of_ctc', label: '% of CTC' },
+  { value: 'count', label: 'Count / Number' },
+  { value: 'incidents', label: 'Incidents' },
+  { value: 'times', label: 'Times / Occurrences' },
+  { value: 'months', label: 'Months' },
+  { value: 'weeks', label: 'Weeks' },
+  { value: 'years', label: 'Years' },
+  { value: 'day_of_month', label: 'Day of Month' },
+  { value: 'AM', label: 'Time (AM)' },
+  { value: 'PM', label: 'Time (PM)' }
+];
+
+// String Value templates based on rule type
+const STRING_VALUE_TEMPLATES = {
+  limit: [
+    { value: 'not_applicable', label: '-- Not Applicable --' },
+    { value: 'max_per_claim', label: 'Maximum per single claim' },
+    { value: 'max_per_day', label: 'Maximum per day' },
+    { value: 'max_per_month', label: 'Maximum per month' },
+    { value: 'max_per_year', label: 'Maximum per year' },
+    { value: 'min_required', label: 'Minimum required' },
+    { value: 'cap_ceiling', label: 'Absolute cap/ceiling' }
+  ],
+  threshold: [
+    { value: 'not_applicable', label: '-- Not Applicable --' },
+    { value: 'trigger_above', label: 'Trigger when above value' },
+    { value: 'trigger_below', label: 'Trigger when below value' },
+    { value: 'require_approval_above', label: 'Require approval above value' },
+    { value: 'auto_approve_below', label: 'Auto-approve below value' },
+    { value: 'penalty_after', label: 'Apply penalty after threshold' },
+    { value: 'bonus_eligible_above', label: 'Bonus eligible above value' }
+  ],
+  condition: [
+    { value: 'select_condition', label: '-- Select Condition Type --' },
+    { value: 'if_then', label: 'IF-THEN Condition' },
+    { value: 'and_condition', label: 'AND Condition (all must be true)' },
+    { value: 'or_condition', label: 'OR Condition (any one true)' },
+    { value: 'when_equals', label: 'WHEN equals specific value' },
+    { value: 'when_greater', label: 'WHEN greater than value' },
+    { value: 'when_less', label: 'WHEN less than value' },
+    { value: 'when_between', label: 'WHEN between range' },
+    { value: 'except_when', label: 'EXCEPT WHEN condition' },
+    { value: 'mandatory', label: 'Mandatory / Required' },
+    { value: 'optional', label: 'Optional' },
+    { value: 'prohibited', label: 'Prohibited / Not Allowed' }
+  ],
+  formula: [
+    { value: 'select_formula', label: '-- Select Formula Type --' },
+    { value: 'basic_salary * 0.12', label: 'Basic × 12% (PF Standard)' },
+    { value: 'basic_salary * 0.0325', label: 'Basic × 3.25% (ESI Employer)' },
+    { value: 'basic_salary * 0.0075', label: 'Basic × 0.75% (ESI Employee)' },
+    { value: '(basic_salary / 30) * lop_days', label: 'Basic/30 × LOP Days' },
+    { value: '(basic_salary / working_days) * present_days', label: 'Pro-rata Basic' },
+    { value: 'gross_salary * tax_rate', label: 'Gross × Tax Rate (TDS)' },
+    { value: 'basic_per_day', label: 'Basic Per Day Calculation' },
+    { value: 'percentage_of_basic', label: 'Percentage of Basic Salary' },
+    { value: 'slab_based', label: 'Slab-based Calculation' },
+    { value: 'custom_formula', label: 'Custom Formula (enter in description)' }
+  ],
+  approval: [
+    { value: 'select_approval', label: '-- Select Approval Type --' },
+    { value: 'auto_approve', label: 'Auto-Approve' },
+    { value: 'manager_approval', label: 'Reporting Manager Approval' },
+    { value: 'hr_approval', label: 'HR Approval Required' },
+    { value: 'finance_approval', label: 'Finance Approval Required' },
+    { value: 'admin_approval', label: 'Admin Approval Required' },
+    { value: 'two_level_approval', label: 'Two-Level Approval (Manager + HR)' },
+    { value: 'skip_level_approval', label: 'Skip-Level Manager Approval' },
+    { value: 'no_self_approval', label: 'Self-Approval Prohibited' },
+    { value: 'delegation_allowed', label: 'Delegation to Substitute Allowed' },
+    { value: 'escalate_after_days', label: 'Auto-Escalate After Days' }
+  ]
+};
+
+// Conditions builder options
+const CONDITION_FIELD_OPTIONS = [
+  { value: 'department', label: 'Department' },
+  { value: 'role', label: 'Role' },
+  { value: 'grade', label: 'Grade/Level' },
+  { value: 'employment_type', label: 'Employment Type' },
+  { value: 'location', label: 'Location' },
+  { value: 'experience_years', label: 'Years of Experience' },
+  { value: 'basic_salary', label: 'Basic Salary' },
+  { value: 'gross_salary', label: 'Gross Salary' },
+  { value: 'ctc', label: 'CTC' },
+  { value: 'travel_hours', label: 'Travel Duration (hours)' },
+  { value: 'claim_amount', label: 'Claim Amount' },
+  { value: 'leave_balance', label: 'Leave Balance' },
+  { value: 'late_count', label: 'Late Count' },
+  { value: 'is_manager', label: 'Is Manager' },
+  { value: 'is_client_facing', label: 'Is Client Facing' },
+  { value: 'is_on_probation', label: 'Is On Probation' },
+  { value: 'tenure_months', label: 'Tenure (months)' }
+];
+
+const CONDITION_OPERATORS = [
+  { value: '==', label: 'equals' },
+  { value: '!=', label: 'not equals' },
+  { value: '>', label: 'greater than' },
+  { value: '>=', label: 'greater than or equal' },
+  { value: '<', label: 'less than' },
+  { value: '<=', label: 'less than or equal' },
+  { value: 'in', label: 'is one of' },
+  { value: 'not_in', label: 'is not one of' },
+  { value: 'contains', label: 'contains' },
+  { value: 'starts_with', label: 'starts with' }
+];
+
 const POLICY_TYPE_ICONS = {
   leave: Calendar,
   travel: Plane,
@@ -1713,9 +2000,9 @@ const BusinessRules = () => {
         )}
       </div>
       
-      {/* Edit/Add Rule Dialog */}
+      {/* Edit/Add Rule Dialog - Enhanced with Dropdowns */}
       <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
-        <DialogContent className={`max-w-lg ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
+        <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {editingRule?._isNew ? <Plus className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
@@ -1723,7 +2010,7 @@ const BusinessRules = () => {
             </DialogTitle>
             <DialogDescription>
               {editingRule?._isNew 
-                ? 'Configure the new rule. The rule ID will be auto-generated if left empty.'
+                ? 'Configure the new rule with all applicable settings. Fields marked with * are required.'
                 : 'Modify the rule configuration. Changes will take effect immediately.'
               }
             </DialogDescription>
@@ -1731,58 +2018,187 @@ const BusinessRules = () => {
           
           {editingRule && (
             <div className="space-y-4 py-4">
-              {editingRule._isNew && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Rule ID</Label>
-                    <Input
-                      value={editingRule.rule_id || ''}
-                      onChange={(e) => setEditingRule({...editingRule, rule_id: e.target.value})}
-                      placeholder="Auto-generated if empty"
-                      className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
-                    />
-                  </div>
-                  <div>
-                    <Label>Rule Type *</Label>
-                    <Select
-                      value={editingRule.rule_type || 'limit'}
-                      onValueChange={(val) => setEditingRule({...editingRule, rule_type: val})}
-                    >
-                      <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="limit">LIMIT (max values)</SelectItem>
-                        <SelectItem value="threshold">THRESHOLD (trigger points)</SelectItem>
-                        <SelectItem value="condition">CONDITION (if/then logic)</SelectItem>
-                        <SelectItem value="formula">FORMULA (calculations)</SelectItem>
-                        <SelectItem value="approval">APPROVAL (workflow rules)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* Row 1: Rule ID and Rule Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Rule ID {editingRule._isNew && '(auto-generated if empty)'}</Label>
+                  <Input
+                    value={editingRule.rule_id || ''}
+                    onChange={(e) => setEditingRule({...editingRule, rule_id: e.target.value.toUpperCase()})}
+                    placeholder="e.g., LV013"
+                    disabled={!editingRule._isNew}
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
                 </div>
-              )}
+                <div>
+                  <Label>Rule Type *</Label>
+                  <Select
+                    value={editingRule.rule_type || 'limit'}
+                    onValueChange={(val) => setEditingRule({...editingRule, rule_type: val, value: ''})}
+                  >
+                    <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="limit">LIMIT (max values, quotas)</SelectItem>
+                      <SelectItem value="threshold">THRESHOLD (trigger points)</SelectItem>
+                      <SelectItem value="condition">CONDITION (if/then logic)</SelectItem>
+                      <SelectItem value="formula">FORMULA (calculations)</SelectItem>
+                      <SelectItem value="approval">APPROVAL (workflow rules)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               
+              {/* Row 2: Rule Name */}
               <div>
                 <Label>Rule Name *</Label>
                 <Input
                   value={editingRule.rule_name || ''}
                   onChange={(e) => setEditingRule({...editingRule, rule_name: e.target.value})}
-                  placeholder="e.g., Maximum Single Expense"
+                  placeholder="e.g., Maximum Single Expense Claim"
                   className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
                 />
               </div>
               
+              {/* Row 3: Description */}
               <div>
                 <Label>Description</Label>
                 <Input
                   value={editingRule.description || ''}
                   onChange={(e) => setEditingRule({...editingRule, description: e.target.value})}
-                  placeholder="Brief description of what this rule does"
+                  placeholder="Brief description of what this rule governs"
                   className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
                 />
               </div>
               
+              {/* Row 4: Category Dropdown */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Category *</Label>
+                  <Select
+                    value={editingRule.category || ''}
+                    onValueChange={(val) => setEditingRule({...editingRule, category: val})}
+                  >
+                    <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {(CATEGORY_OPTIONS[selectedPolicy?.policy_type] || CATEGORY_OPTIONS.general).map(cat => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          <div className="flex flex-col">
+                            <span>{cat.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Applies To - Scope Type */}
+                <div>
+                  <Label>Applies To *</Label>
+                  <Select
+                    value={editingRule.applies_to?.scope_type || 'all_employees'}
+                    onValueChange={(val) => setEditingRule({
+                      ...editingRule, 
+                      applies_to: { ...editingRule.applies_to, scope_type: val, scope_value: '' }
+                    })}
+                  >
+                    <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                      <SelectValue placeholder="Who does this apply to?" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {APPLIES_TO_OPTIONS.scope_type.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {/* Row 5: Scope Value Dropdown (conditional based on scope_type) */}
+              {editingRule.applies_to?.scope_type && editingRule.applies_to.scope_type !== 'all_employees' && (
+                <div>
+                  <Label>
+                    {editingRule.applies_to.scope_type === 'by_department' && 'Select Department'}
+                    {editingRule.applies_to.scope_type === 'by_role' && 'Select Role'}
+                    {editingRule.applies_to.scope_type === 'by_grade' && 'Select Grade'}
+                    {editingRule.applies_to.scope_type === 'by_employment_type' && 'Select Employment Type'}
+                    {editingRule.applies_to.scope_type === 'by_location' && 'Select Location'}
+                    {editingRule.applies_to.scope_type === 'by_experience' && 'Select Experience Range'}
+                    {editingRule.applies_to.scope_type === 'by_ctc_range' && 'Select CTC Range'}
+                    {editingRule.applies_to.scope_type === 'custom_group' && 'Custom Group Name'}
+                  </Label>
+                  {editingRule.applies_to.scope_type === 'custom_group' ? (
+                    <Input
+                      value={editingRule.applies_to?.scope_value || ''}
+                      onChange={(e) => setEditingRule({
+                        ...editingRule,
+                        applies_to: { ...editingRule.applies_to, scope_value: e.target.value }
+                      })}
+                      placeholder="Enter custom group name"
+                      className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                    />
+                  ) : (
+                    <Select
+                      value={editingRule.applies_to?.scope_value || ''}
+                      onValueChange={(val) => setEditingRule({
+                        ...editingRule,
+                        applies_to: { ...editingRule.applies_to, scope_value: val }
+                      })}
+                    >
+                      <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                        <SelectValue placeholder="Select specific value" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {editingRule.applies_to.scope_type === 'by_department' && 
+                          APPLIES_TO_OPTIONS.departments.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))
+                        }
+                        {editingRule.applies_to.scope_type === 'by_role' && 
+                          APPLIES_TO_OPTIONS.roles.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))
+                        }
+                        {editingRule.applies_to.scope_type === 'by_grade' && 
+                          APPLIES_TO_OPTIONS.grades.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))
+                        }
+                        {editingRule.applies_to.scope_type === 'by_employment_type' && 
+                          APPLIES_TO_OPTIONS.employment_types.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))
+                        }
+                        {editingRule.applies_to.scope_type === 'by_location' && 
+                          APPLIES_TO_OPTIONS.locations.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))
+                        }
+                        {editingRule.applies_to.scope_type === 'by_experience' && 
+                          APPLIES_TO_OPTIONS.experience_ranges.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))
+                        }
+                        {editingRule.applies_to.scope_type === 'by_ctc_range' && 
+                          APPLIES_TO_OPTIONS.ctc_ranges.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+              
+              {/* Divider */}
+              <div className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'} my-2`} />
+              
+              {/* Row 6: Numeric Value and Unit */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Numeric Value</Label>
@@ -1790,49 +2206,141 @@ const BusinessRules = () => {
                     type="number"
                     value={editingRule.numeric_value ?? ''}
                     onChange={(e) => setEditingRule({...editingRule, numeric_value: e.target.value ? parseFloat(e.target.value) : null})}
-                    placeholder="e.g., 50000"
+                    placeholder="e.g., 50000, 12, 15"
                     className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
                   />
                 </div>
                 <div>
                   <Label>Unit *</Label>
-                  <Input
+                  <Select
                     value={editingRule.unit || ''}
-                    onChange={(e) => setEditingRule({...editingRule, unit: e.target.value})}
-                    placeholder="e.g., INR, days/year, percent"
-                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
-                  />
+                    onValueChange={(val) => setEditingRule({...editingRule, unit: val})}
+                  >
+                    <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {UNIT_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
+              {/* Row 7: String Value / Formula - with templates based on rule type */}
               <div>
-                <Label>String Value (for conditions/formulas)</Label>
+                <Label>
+                  {editingRule.rule_type === 'formula' ? 'Formula / Calculation' :
+                   editingRule.rule_type === 'condition' ? 'Condition Logic' :
+                   editingRule.rule_type === 'approval' ? 'Approval Type' :
+                   'Value Type / Behavior'}
+                </Label>
+                <Select
+                  value={editingRule.value || ''}
+                  onValueChange={(val) => setEditingRule({...editingRule, value: val})}
+                >
+                  <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                    <SelectValue placeholder="Select or enter value" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {(STRING_VALUE_TEMPLATES[editingRule.rule_type] || STRING_VALUE_TEMPLATES.limit).map(opt => (
+                      <SelectItem key={opt.value || 'empty'} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Custom value input if they want to override */}
                 <Input
                   value={editingRule.value || ''}
                   onChange={(e) => setEditingRule({...editingRule, value: e.target.value})}
-                  placeholder="e.g., basic_salary * 0.12"
-                  className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  placeholder="Or type a custom value/formula..."
+                  className={`mt-2 ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
                 />
               </div>
               
-              {editingRule._isNew && (
-                <div>
-                  <Label>Category</Label>
-                  <Input
-                    value={editingRule.category || ''}
-                    onChange={(e) => setEditingRule({...editingRule, category: e.target.value})}
-                    placeholder="e.g., quota, compliance, flexibility"
-                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
-                  />
+              {/* Row 8: Condition Builder (only for CONDITION type) */}
+              {editingRule.rule_type === 'condition' && (
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-900 border border-zinc-700' : 'bg-zinc-50 border border-zinc-200'}`}>
+                  <Label className="flex items-center gap-2 mb-2">
+                    <Settings className="w-4 h-4" />
+                    Condition Builder (Optional)
+                  </Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Select
+                      value={editingRule.conditions?.field || ''}
+                      onValueChange={(val) => setEditingRule({
+                        ...editingRule,
+                        conditions: { ...editingRule.conditions, field: val }
+                      })}
+                    >
+                      <SelectTrigger className={isDark ? 'bg-zinc-800 border-zinc-600' : ''}>
+                        <SelectValue placeholder="Field" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-48">
+                        {CONDITION_FIELD_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={editingRule.conditions?.operator || ''}
+                      onValueChange={(val) => setEditingRule({
+                        ...editingRule,
+                        conditions: { ...editingRule.conditions, operator: val }
+                      })}
+                    >
+                      <SelectTrigger className={isDark ? 'bg-zinc-800 border-zinc-600' : ''}>
+                        <SelectValue placeholder="Operator" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONDITION_OPERATORS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={editingRule.conditions?.compare_value || ''}
+                      onChange={(e) => setEditingRule({
+                        ...editingRule,
+                        conditions: { ...editingRule.conditions, compare_value: e.target.value }
+                      })}
+                      placeholder="Value"
+                      className={isDark ? 'bg-zinc-800 border-zinc-600' : ''}
+                    />
+                  </div>
+                  <p className={`text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                    Example: department == Sales → Rule applies only to Sales dept
+                  </p>
                 </div>
               )}
               
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={editingRule.is_enabled}
-                  onCheckedChange={(checked) => setEditingRule({...editingRule, is_enabled: checked})}
-                />
-                <Label>Rule Enabled</Label>
+              {/* Divider */}
+              <div className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'} my-2`} />
+              
+              {/* Row 9: Rule Enabled */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={editingRule.is_enabled}
+                    onCheckedChange={(checked) => setEditingRule({...editingRule, is_enabled: checked})}
+                  />
+                  <Label>Rule Enabled</Label>
+                </div>
+                <Badge className={editingRule.is_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-500'}>
+                  {editingRule.is_enabled ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+              
+              {/* Summary Preview */}
+              <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
+                <p className={`text-xs font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>Rule Preview:</p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-blue-200' : 'text-blue-600'}`}>
+                  {editingRule.rule_name || 'Unnamed Rule'} 
+                  {editingRule.numeric_value !== null && editingRule.numeric_value !== undefined && 
+                    ` = ${editingRule.numeric_value} ${editingRule.unit || ''}`}
+                  {editingRule.applies_to?.scope_type && editingRule.applies_to.scope_type !== 'all_employees' &&
+                    ` (for ${editingRule.applies_to.scope_value || editingRule.applies_to.scope_type})`}
+                </p>
               </div>
             </div>
           )}
