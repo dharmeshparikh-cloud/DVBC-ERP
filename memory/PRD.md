@@ -2,7 +2,7 @@
 
 ## Payroll Engine - PRODUCTION READY ✅ (March 23, 2026)
 
-### Latest Update - Granular Inputs Complete
+### Latest Update - Granular Inputs Complete + Month-over-Month Comparison
 ```
 ============================================================
 PAYROLL ENGINE - GRANULAR INPUTS VERIFIED
@@ -19,6 +19,14 @@ PAYROLL ENGINE - GRANULAR INPUTS VERIFIED
 ✅ P1 Fixed: Duplicate draft records bug resolved
    - Running payroll multiple times creates only 1 register
    - Old drafts are deleted before creating new one
+
+✅ NEW: Month-over-Month Comparison Card (IN SIMULATION MODE!)
+   - Shows changes from previous month's ACTUAL payroll
+   - Works BEFORE running payroll (simulation vs saved data)
+   - Displays Net Payable, Total Earnings, Total Deductions changes
+   - Color-coded trend indicators (↑ green, ↓ red)
+   - Percentage change displayed for each field
+   - Helps HR spot anomalies before finalizing payroll
 
 🔐 RBAC Enforced:
    - HR Manager/Admin: Full access

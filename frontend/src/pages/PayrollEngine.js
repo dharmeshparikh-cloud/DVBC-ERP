@@ -89,6 +89,7 @@ export default function PayrollEngine() {
   });
   const [simulationResult, setSimulationResult] = useState(null);
   const [showAllInputs, setShowAllInputs] = useState(false);
+  const [comparisonData, setComparisonData] = useState(null);
   
   // Breakdown view
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -147,11 +148,20 @@ export default function PayrollEngine() {
       setSimulationResult(result);
       if (result.success) {
         toast.success('Payroll simulated successfully');
+        
+        // Use comparison data from simulation result (compares with previous month's actual data)
+        if (result.comparison) {
+          setComparisonData(result.comparison);
+        } else {
+          setComparisonData(null);
+        }
       } else {
         toast.error(result.error_message || 'Simulation failed');
+        setComparisonData(null);
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Simulation failed');
+      setComparisonData(null);
     }
   };
   
@@ -606,7 +616,7 @@ export default function PayrollEngine() {
                   Simulation Result
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[75vh] overflow-y-auto">
                 {simulationResult ? (
                   simulationResult.success ? (
                     <div className="space-y-4">
@@ -732,6 +742,70 @@ export default function PayrollEngine() {
                           )}
                         </div>
                       )}
+                      
+                      {/* Month-over-Month Comparison - Simulation vs Previous Actual */}
+                      {comparisonData && comparisonData.has_previous ? (
+                        <div className={`p-3 rounded-lg border-l-4 border-cyan-500 ${isDark ? 'bg-cyan-900/20' : 'bg-cyan-50'}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className={`text-xs font-medium ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`}>
+                              vs Previous Month (Actual Payroll)
+                            </p>
+                            <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+                              Comparing with {comparisonData.previous_month}
+                            </span>
+                          </div>
+                          
+                          {comparisonData.changes?.length > 0 ? (
+                            <div className="space-y-2">
+                              {comparisonData.changes.slice(0, 5).map((change, idx) => {
+                                const isIncrease = change.difference > 0;
+                                const isDeduction = change.field.toLowerCase().includes('deduction');
+                                const color = isDeduction 
+                                  ? (isIncrease ? 'text-red-500' : 'text-green-500')
+                                  : (isIncrease ? 'text-green-500' : 'text-red-500');
+                                
+                                return (
+                                  <div key={idx} className={`flex items-center justify-between text-sm ${isDark ? 'bg-zinc-800/50' : 'bg-white/50'} p-2 rounded`}>
+                                    <span className={isDark ? 'text-zinc-300' : 'text-gray-700'}>{change.field}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+                                        {formatCurrency(change.previous)}
+                                      </span>
+                                      <ArrowRight className="w-3 h-3" />
+                                      <span className="font-medium">
+                                        {formatCurrency(change.current)}
+                                      </span>
+                                      <span className={`text-xs font-medium ${color} flex items-center`}>
+                                        {isIncrease ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
+                                        {change.percentage_change > 0 ? '+' : ''}{change.percentage_change}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              
+                              {comparisonData.changes.length === 0 && (
+                                <p className={`text-sm flex items-center gap-2 ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  No significant changes from last month's payroll
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className={`text-sm flex items-center gap-2 ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
+                              <CheckCircle2 className="w-4 h-4" />
+                              Matches previous month's payroll
+                            </p>
+                          )}
+                        </div>
+                      ) : comparisonData && !comparisonData.has_previous ? (
+                        <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
+                          <p className={`text-xs flex items-center gap-2 ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>
+                            <Calendar className="w-4 h-4" />
+                            {comparisonData.message || `No saved payroll for ${comparisonData.previous_month} to compare`}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className={`p-4 rounded-lg ${isDark ? 'bg-red-900/30 border border-red-800' : 'bg-red-50 border border-red-200'}`}>

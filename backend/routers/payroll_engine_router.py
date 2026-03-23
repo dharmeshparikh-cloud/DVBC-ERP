@@ -256,6 +256,58 @@ async def simulate_payroll(
         simulation_inputs=simulation_inputs
     )
     
+    # Fetch previous month's actual saved data for comparison
+    if result.get("success"):
+        year, mon = map(int, month.split('-'))
+        if mon == 1:
+            prev_month = f"{year-1}-12"
+        else:
+            prev_month = f"{year}-{mon-1:02d}"
+        
+        previous_calc = await db.payroll_calculations.find_one(
+            {"employee_id": employee_id, "month": prev_month},
+            {"_id": 0}
+        )
+        
+        if previous_calc:
+            # Build comparison between simulation and previous actual
+            changes = []
+            
+            # Compare key fields
+            comparisons = [
+                ("Net Payable", result.get("net_payable", 0), previous_calc.get("net_salary", 0)),
+                ("Gross Salary", result.get("gross_monthly", 0), previous_calc.get("gross_salary", 0)),
+                ("Total Deductions", result.get("total_deductions", 0), previous_calc.get("total_deductions", 0)),
+                ("Total Earnings", result.get("total_earnings", 0), previous_calc.get("total_earnings", previous_calc.get("gross_salary", 0))),
+            ]
+            
+            for field, current, previous in comparisons:
+                if current != previous and previous > 0:
+                    diff = current - previous
+                    pct = round((diff / previous) * 100, 2) if previous else 0
+                    changes.append({
+                        "field": field,
+                        "current": current,
+                        "previous": previous,
+                        "difference": diff,
+                        "percentage_change": pct
+                    })
+            
+            result["comparison"] = {
+                "has_previous": True,
+                "previous_month": prev_month,
+                "previous_net": previous_calc.get("net_salary", 0),
+                "previous_gross": previous_calc.get("gross_salary", 0),
+                "previous_deductions": previous_calc.get("total_deductions", 0),
+                "changes": changes
+            }
+        else:
+            result["comparison"] = {
+                "has_previous": False,
+                "previous_month": prev_month,
+                "message": f"No saved payroll data for {prev_month}"
+            }
+    
     return result
 
 
