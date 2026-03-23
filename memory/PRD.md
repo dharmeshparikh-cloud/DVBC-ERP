@@ -407,6 +407,49 @@ CTC Designer now has two tabs to handle both new employees and salary revisions 
 
 ---
 
+## Business Rules & Policies Page (March 23, 2026)
+
+### Overview
+Centralized page for all company policies and rules. Single source of navigation for all configurable business rules.
+
+### Access Control
+- **HR/Admin**: Full edit access (toggle rules, edit values)
+- **Employees**: View-only access
+
+### Policy Types (42 total rules)
+| Type | Rules | Description |
+|------|-------|-------------|
+| Travel | 10 | Daily allowances, flight class, hotel limits, advance/settlement process |
+| Expense | 6 | Self-approval prevention, cutoffs, receipt thresholds, limits |
+| Attendance | 8 | Work hours, core hours, late thresholds, WFH days, overtime |
+| Payroll | 10 | Processing dates, PF/ESI thresholds, formulas, statutory rules |
+| General HR | 8 | Probation, notice periods, increment month, dress code, retirement |
+
+### Features
+- Policy cards with rule counts and effective dates
+- Click to expand and see all rules
+- Toggle to enable/disable individual rules
+- Edit rule values (numeric, string, conditions)
+- Payroll Integration section showing linkages
+- CTC Component Linkage section
+- Search across all rules
+- Filter by policy type
+
+### API Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/business-rules` | GET | Get all policies |
+| `/api/business-rules/types` | GET | Get policy types metadata |
+| `/api/business-rules/{id}` | GET/PUT | Get/Update policy |
+| `/api/business-rules/{id}/rule/{rule_id}` | PUT | Update specific rule |
+
+### Files
+- Backend: `/app/backend/routers/business_rules.py`
+- Frontend: `/app/frontend/src/pages/hr/BusinessRules.js`
+- Route: `/business-rules`
+
+---
+
 ## Last Updated
 - Date: March 23, 2026
-- Status: CTC Designer with Tabs + Go-Live Integration Implemented & Tested
+- Status: Business Rules Page Implemented & Tested

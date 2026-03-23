@@ -618,6 +618,9 @@ api_router.include_router(leave_requests_router.router)
 from routers import exit_organisation as exit_organisation_router
 api_router.include_router(exit_organisation_router.router)
 
+from routers import business_rules as business_rules_router
+api_router.include_router(business_rules_router.router)
+
 # Leave Policies
 api_router.include_router(leave_policies_router.router)
 
