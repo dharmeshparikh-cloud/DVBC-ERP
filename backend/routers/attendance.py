@@ -296,33 +296,62 @@ async def get_mobile_attendance_stats(current_user: User = Depends(get_current_u
 
 
 # ==================== ATTENDANCE POLICY CONFIGURATION ====================
-DEFAULT_ATTENDANCE_POLICY = {
-    "working_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    "non_consulting": {
-        "check_in": "10:00",
-        "check_out": "19:00"  # 7 PM
-    },
-    "consulting": {
-        "check_in": "10:30",
-        "check_out": "19:30"  # 7:30 PM
-    },
-    "grace_period_minutes": 30,
-    "grace_days_per_month": 3,
-    "late_penalty_amount": 100  # Rs. 100 penalty
-}
-
-# Keep ATTENDANCE_POLICY for backward compatibility
-ATTENDANCE_POLICY = DEFAULT_ATTENDANCE_POLICY
+# SSOT: Business Rules is the ONLY source of truth for attendance policies
+# No hardcoded fallback values - must be configured in Business Rules
 
 CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant"]
+
+
+async def get_attendance_policy_from_business_rules(db) -> dict:
+    """
+    Fetch attendance policy from Business Rules collection (SSOT).
+    This is the ONLY source of truth - no fallbacks.
+    
+    Raises HTTPException if Business Rules not configured.
+    """
+    attendance_policy = await db.business_policies.find_one(
+        {"policy_type": "attendance", "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not attendance_policy or not attendance_policy.get("rules"):
+        raise HTTPException(
+            status_code=500, 
+            detail="Attendance Policy not configured in Business Rules. Please configure Standard Attendance Policy first."
+        )
+    
+    rules = {r["rule_id"]: r for r in attendance_policy["rules"]}
+    
+    return {
+        "source": "business_rules",
+        "policy_id": attendance_policy.get("id"),
+        "policy_name": attendance_policy.get("name", "Standard Attendance Policy"),
+        "core_hours_start": rules.get("AT002", {}).get("value"),
+        "core_hours_end": rules.get("AT003", {}).get("value"),
+        "standard_work_hours": rules.get("AT001", {}).get("numeric_value", 9),
+        "late_threshold_minutes": rules.get("AT004", {}).get("numeric_value", 15),
+        "half_day_hours": rules.get("AT005", {}).get("numeric_value", 4),
+        "full_day_hours": rules.get("AT006", {}).get("numeric_value", 8),
+        "wfh_days_per_week": rules.get("AT007", {}).get("numeric_value", 2),
+        "overtime_threshold_hours": rules.get("AT008", {}).get("numeric_value", 10),
+        "grace_period_minutes": 30,  # TODO: Move to Business Rules
+        "grace_days_per_month": 3,   # TODO: Move to Business Rules
+        "late_penalty_amount": 100   # TODO: Move to Business Rules
+    }
 
 
 async def get_employee_policy(db, employee_id: str, employee_role: str = None) -> dict:
     """
     Get attendance policy for an employee.
-    First checks for custom policy, then falls back to default.
+    Priority: 1. Employee-specific custom policy (if any)
+              2. Business Rules (SSOT) - MANDATORY
+    
+    No fallback to hardcoded values.
     """
-    # Check for employee-specific custom policy
+    # Get base policy from Business Rules (SSOT) - MANDATORY
+    br_policy = await get_attendance_policy_from_business_rules(db)
+    
+    # Check for employee-specific custom policy override
     custom_policy = await db.employee_attendance_policies.find_one(
         {"employee_id": employee_id, "is_active": True},
         {"_id": 0}
@@ -330,25 +359,31 @@ async def get_employee_policy(db, employee_id: str, employee_role: str = None) -
     
     if custom_policy:
         return {
-            "check_in": custom_policy.get("check_in", DEFAULT_ATTENDANCE_POLICY["non_consulting"]["check_in"]),
-            "check_out": custom_policy.get("check_out", DEFAULT_ATTENDANCE_POLICY["non_consulting"]["check_out"]),
-            "grace_period_minutes": custom_policy.get("grace_period_minutes", DEFAULT_ATTENDANCE_POLICY["grace_period_minutes"]),
-            "grace_days_per_month": custom_policy.get("grace_days_per_month", DEFAULT_ATTENDANCE_POLICY["grace_days_per_month"]),
+            "check_in": custom_policy.get("check_in", br_policy["core_hours_start"]),
+            "check_out": custom_policy.get("check_out", br_policy["core_hours_end"]),
+            "grace_period_minutes": custom_policy.get("grace_period_minutes", br_policy["grace_period_minutes"]),
+            "grace_days_per_month": custom_policy.get("grace_days_per_month", br_policy["grace_days_per_month"]),
+            "late_threshold_minutes": br_policy["late_threshold_minutes"],
+            "half_day_hours": br_policy["half_day_hours"],
+            "full_day_hours": br_policy["full_day_hours"],
             "is_custom": True,
-            "reason": custom_policy.get("reason", "")
+            "source": "employee_custom + business_rules",
+            "policy_name": br_policy["policy_name"],
+            "reason": custom_policy.get("reason", "Custom override applied")
         }
     
-    # Fall back to role-based policy
-    is_consulting = employee_role in CONSULTING_ROLES if employee_role else False
-    base_policy = DEFAULT_ATTENDANCE_POLICY["consulting" if is_consulting else "non_consulting"]
-    
     return {
-        "check_in": base_policy["check_in"],
-        "check_out": base_policy["check_out"],
-        "grace_period_minutes": DEFAULT_ATTENDANCE_POLICY["grace_period_minutes"],
-        "grace_days_per_month": DEFAULT_ATTENDANCE_POLICY["grace_days_per_month"],
+        "check_in": br_policy["core_hours_start"],
+        "check_out": br_policy["core_hours_end"],
+        "grace_period_minutes": br_policy["grace_period_minutes"],
+        "grace_days_per_month": br_policy["grace_days_per_month"],
+        "late_threshold_minutes": br_policy["late_threshold_minutes"],
+        "half_day_hours": br_policy["half_day_hours"],
+        "full_day_hours": br_policy["full_day_hours"],
         "is_custom": False,
-        "reason": ""
+        "source": "business_rules",
+        "policy_name": br_policy["policy_name"],
+        "reason": f"From {br_policy['policy_name']}"
     }
 
 
@@ -381,16 +416,20 @@ def is_within_grace(actual_time: str, expected_time: str, grace_minutes: int = 3
 
 @router.get("/policy")
 async def get_attendance_policy(current_user: User = Depends(get_current_user)):
-    """Get current attendance policy configuration"""
+    """Get current attendance policy configuration from Business Rules (SSOT)"""
     db = get_db()
+    
+    # Get Business Rules policy (SSOT - ONLY source)
+    br_policy = await get_attendance_policy_from_business_rules(db)
     
     # Get custom policies count
     custom_count = await db.employee_attendance_policies.count_documents({"is_active": True})
     
     return {
-        "policy": DEFAULT_ATTENDANCE_POLICY,
+        "policy": br_policy,
         "consulting_roles": CONSULTING_ROLES,
-        "custom_policies_count": custom_count
+        "custom_policies_count": custom_count,
+        "ssot_source": "business_rules"
     }
 
 
@@ -474,21 +513,25 @@ async def create_custom_policy(data: dict, current_user: User = Depends(get_curr
     
     now = datetime.now(timezone.utc).isoformat()
     
+    # Get base policy from Business Rules
+    br_policy = await get_attendance_policy_from_business_rules(db)
+    
     policy_data = {
         "employee_id": employee_id,
         "employee_code": employee.get("employee_id"),
         "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
-        "check_in": data.get("check_in", DEFAULT_ATTENDANCE_POLICY["non_consulting"]["check_in"]),
-        "check_out": data.get("check_out", DEFAULT_ATTENDANCE_POLICY["non_consulting"]["check_out"]),
-        "grace_period_minutes": data.get("grace_period_minutes", DEFAULT_ATTENDANCE_POLICY["grace_period_minutes"]),
-        "grace_days_per_month": data.get("grace_days_per_month", DEFAULT_ATTENDANCE_POLICY["grace_days_per_month"]),
+        "check_in": data.get("check_in", br_policy["core_hours_start"]),
+        "check_out": data.get("check_out", br_policy["core_hours_end"]),
+        "grace_period_minutes": data.get("grace_period_minutes", br_policy["grace_period_minutes"]),
+        "grace_days_per_month": data.get("grace_days_per_month", br_policy["grace_days_per_month"]),
         "reason": data.get("reason", ""),
         "effective_from": data.get("effective_from", now[:10]),
         "effective_to": data.get("effective_to"),
         "is_active": True,
         "created_by": current_user.id,
         "created_by_name": current_user.full_name,
-        "updated_at": now
+        "updated_at": now,
+        "base_policy": br_policy["policy_name"]
     }
     
     # Check if policy already exists
@@ -642,15 +685,15 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
         emp_name = f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip()
         role = emp.get("role", "")
         
-        # Get employee-specific or role-based policy
+        # Get employee-specific or role-based policy (from Business Rules SSOT)
         emp_policy = await get_employee_policy(db, emp_id, role)
         is_consulting = role in CONSULTING_ROLES
         policy = {
             "check_in": emp_policy["check_in"],
             "check_out": emp_policy["check_out"]
         }
-        grace_minutes = emp_policy.get("grace_period_minutes", DEFAULT_ATTENDANCE_POLICY["grace_period_minutes"])
-        grace_days = emp_policy.get("grace_days_per_month", DEFAULT_ATTENDANCE_POLICY["grace_days_per_month"])
+        grace_minutes = emp_policy.get("grace_period_minutes", 30)
+        grace_days = emp_policy.get("grace_days_per_month", 3)
         
         # Get attendance records for this employee this month
         attendance_records = await db.attendance.find(
@@ -680,8 +723,10 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
             except Exception:
                 continue
             
-            # Skip non-working days
-            if day_name not in DEFAULT_ATTENDANCE_POLICY["working_days"]:
+            # Skip non-working days (weekdays are working, weekend depends on policy)
+            # Default working days: Mon-Sat
+            WORKING_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+            if day_name not in WORKING_DAYS:
                 continue
             
             # Skip public holidays
@@ -738,7 +783,10 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
         # Calculate penalties (beyond grace days limit)
         total_grace_used = len(grace_violations)
         penalty_days = max(0, total_grace_used - grace_days)
-        penalty_amount = penalty_days * DEFAULT_ATTENDANCE_POLICY["late_penalty_amount"]
+        # Get penalty amount from Business Rules policy
+        br_policy = await get_attendance_policy_from_business_rules(db)
+        late_penalty_amount = br_policy.get("late_penalty_amount", 100)
+        penalty_amount = penalty_days * late_penalty_amount
         
         if penalty_days > 0:
             penalties = grace_violations[grace_days:]
@@ -750,6 +798,8 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
             "role": role,
             "is_consulting": is_consulting,
             "has_custom_policy": emp_policy.get("is_custom", False),
+            "policy_source": emp_policy.get("source", "business_rules"),
+            "policy_name": emp_policy.get("policy_name", "Standard Attendance Policy"),
             "policy_times": f"{policy['check_in']} - {policy['check_out']}",
             "present_days": present_days,
             "absent_days": absent_days,
@@ -763,9 +813,12 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
             "status": "clean" if penalty_amount == 0 else "penalty_pending"
         })
     
+    # Get policy info for response
+    policy_info = await get_attendance_policy_from_business_rules(db)
+    
     return {
         "month": month,
-        "policy": DEFAULT_ATTENDANCE_POLICY,
+        "policy": policy_info,
         "employees": results,
         "summary": {
             "total_employees": len(results),
