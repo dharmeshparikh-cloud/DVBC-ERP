@@ -2,7 +2,33 @@
 
 ## Latest Updates - March 24, 2026
 
-### Penalty Analytics Dashboard (P0 COMPLETE) ✅ [NEW]
+### Unified Penalty System - ALL 21 Violation Types (P0 COMPLETE) ✅ [NEW]
+**Complete penalty management across all business rule categories:**
+
+| Category | Violations | Sample Penalties |
+|----------|-----------|------------------|
+| Attendance | 4 types | Late Arrival (₹100), Unauthorized Absence (₹500) |
+| Leave | 4 types | Unauthorized Leave (₹500), Leave Without Notice (₹250) |
+| Travel | 4 types | Policy Violation (₹500), Late Settlement (₹100) |
+| Expense | 4 types | Fraudulent Claim (₹1000), Policy Violation (₹250) |
+| General HR | 5 types | Dress Code (₹100), Harassment (₹2000), Confidentiality (₹1000) |
+
+**APIs Implemented:**
+- `GET /api/penalties/categories` - All 21 violation types
+- `POST /api/penalties/apply` - Apply penalty from any category
+- `GET /api/penalties/employee/{id}` - Employee penalty history
+- `GET /api/penalties/month/{month}` - Monthly summary by category
+- `GET /api/penalties/summary` - Comprehensive multi-month analytics
+- `POST /api/penalties/auto-detect/{month}` - Auto-detect violations from leave/expense data
+
+**E2E Flow Verified:**
+1. HR applies penalty via unified API
+2. Penalty stored in `employee_penalties` collection
+3. Payroll engine fetches from both `employee_penalties` AND `attendance_penalties`
+4. All penalties appear in payroll simulation with source tracking
+5. Penalty Dashboard shows trends, violators, and department breakdown
+
+### Penalty Analytics Dashboard (P0 COMPLETE) ✅
 **New tab in Payroll Engine showing penalty analytics:**
 - **Summary Cards**: This Month Penalties, Employees Penalized, Total Penalty Days, Avg per Employee
 - **Policy Context Header**: Core Hours, Grace Days/Month, Penalty Rate displayed
