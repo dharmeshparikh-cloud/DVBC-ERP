@@ -390,6 +390,11 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
     - < ₹2000: HR directly approves (single level)
     - ≥ ₹2000: Admin approval required
     
+    GOVERNANCE RULES ENFORCED:
+    - Receipt required for expenses ≥ ₹500
+    - Travel expenses must have meeting linkage (warning if missing)
+    - Duplicate prevention
+    
     Sends real-time email + WebSocket notifications to approvers.
     """
     db = get_db()
@@ -403,6 +408,54 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
     
     if expense["status"] not in ["draft", "rejected"]:
         raise HTTPException(status_code=400, detail="Can only submit draft or rejected expenses")
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # BUSINESS GOVERNANCE ENFORCEMENT RULES
+    # ═══════════════════════════════════════════════════════════════════
+    
+    expense_amount = expense.get("total_amount") or expense.get("amount", 0)
+    category = (expense.get("category") or "").lower()
+    
+    # RULE 1: Receipt Required for expenses ≥ ₹500
+    RECEIPT_THRESHOLD = 500
+    receipts = expense.get("receipts") or expense.get("attachments") or []
+    line_items = expense.get("line_items") or []
+    has_receipt = bool(receipts) or any(item.get("receipt_url") for item in line_items)
+    
+    if expense_amount >= RECEIPT_THRESHOLD and not has_receipt:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Receipt/bill attachment required for expenses ≥ ₹{RECEIPT_THRESHOLD}. Please upload receipt before submitting."
+        )
+    
+    # RULE 2: Travel expenses should have meeting linkage
+    travel_categories = ['travel', 'local conveyance', 'conveyance', 'transport', 'cab', 'fuel']
+    is_travel = any(cat in category for cat in travel_categories)
+    meeting_id = expense.get("meeting_id")
+    
+    governance_flags = []
+    if is_travel and not meeting_id:
+        governance_flags.append({
+            "rule": "TRAVEL_NO_MEETING",
+            "severity": "warning",
+            "message": "Travel expense submitted without meeting linkage - requires additional review"
+        })
+    
+    # RULE 3: High value expense alert
+    HIGH_VALUE_THRESHOLD = 5000
+    if expense_amount >= HIGH_VALUE_THRESHOLD:
+        governance_flags.append({
+            "rule": "HIGH_VALUE",
+            "severity": "info",
+            "message": f"High value expense (≥₹{HIGH_VALUE_THRESHOLD}) - will require Admin approval"
+        })
+    
+    # Store governance flags for audit trail
+    if governance_flags:
+        await db.expenses.update_one(
+            {"id": expense_id},
+            {"$set": {"governance_flags": governance_flags, "requires_additional_review": True}}
+        )
     
     expense_amount = expense.get("total_amount") or expense.get("amount", 0)
     employee_name = expense.get("employee_name") or current_user.full_name

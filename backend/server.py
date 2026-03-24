@@ -723,6 +723,10 @@ api_router.include_router(follow_ups_router.router)
 from routers import my_day as my_day_router
 api_router.include_router(my_day_router.router)
 
+# Business Governance - Self-auditing system
+from routers import business_governance as business_governance_router
+api_router.include_router(business_governance_router.router)
+
 # WebSocket for real-time updates (under /api prefix for proper routing through ingress)
 from routers import websocket_router
 api_router.include_router(websocket_router.router)

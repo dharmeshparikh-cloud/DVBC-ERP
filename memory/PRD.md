@@ -2,6 +2,29 @@
 
 ## Latest Updates - March 24, 2026
 
+### Business Governance Engine (COMPLETE) [March 24, Session 3]
+
+**Feature**: Self-auditing ERP system with comprehensive business validation across all modules.
+
+**APIs Implemented** (`/app/backend/routers/business_governance.py`):
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/governance/health-score` | Business health scorecard (Sales, Cost, Team, Data) |
+| `GET /api/governance/mom-sla` | MOM SLA compliance monitoring (24-hour threshold) |
+| `GET /api/governance/expense-compliance` | Receipt & travel-meeting linkage compliance |
+| `GET /api/governance/operational-discipline` | Team discipline metrics (attendance, tasks) |
+| `GET /api/governance/leakage-alerts` | Revenue/cost leakage detection |
+| `POST /api/governance/mom-sla/escalate/{id}` | Escalate MOM breach to manager |
+
+**Expense Governance Rules** (in `expenses.py`):
+- Receipt required for expenses ≥₹500
+- Travel expenses flagged if no meeting linkage
+- High value expenses (≥₹5,000) require admin approval
+- Duplicate prevention (same date/amount)
+- Consultant expenses must link to active project
+
+---
+
 ### Smart Suggestions Feature (COMPLETE) [March 24, Session 3]
 
 **Feature**: AI-powered recommendations that suggest next actions based on consultant's workflow data.
