@@ -2,6 +2,16 @@
 
 ## Latest Updates - March 24, 2026
 
+### Consultant Meeting Flow Fix (COMPLETE) [March 24, Session 2]
+
+**Root Causes Found & Fixed:**
+1. **Backend RBAC** (`projects.py`): Filter only checked `assigned_team` and `created_by` — now also checks `assigned_consultants`, `assigned_consultants.user_id`, `assigned_consultants.employee_id`, `assigned_team.user_id`
+2. **Data gap**: EMP004 (consultant) had no project assignments — assigned to 3 projects (ERP Implementation, Process Optimization, Supply Chain Enhancement)
+3. **Past meeting validation**: Blocked past dates entirely — now allows past dates when "Mark as delivered" is checked
+4. **Status override**: `status` was hardcoded to `'SCHEDULED'` — now respects `is_delivered` flag, sets `'DELIVERED'` when checked
+5. **formData init**: `is_delivered` was missing from initial state (was `undefined`)
+6. **UX**: Button text dynamically changes "Schedule Meeting" → "Log Delivered Meeting"
+
 ### Data Governance - Phase 1: Dropdown Visibility & Inheritance (COMPLETE) [March 24, Session 2]
 
 **Approach**: Zero-risk, non-breaking, reversible, additive-only.

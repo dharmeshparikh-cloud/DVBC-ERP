@@ -121,6 +121,7 @@ const ConsultingMeetings = () => {
     mode: 'online', notes: '', 
     agenda: [''], attendees: [], attendee_names: [],
     meeting_type_code: '', // Meeting purpose/type
+    is_delivered: false, // Mark as delivered during scheduling
     // State tracking
     status: 'DRAFT',
     // Travel & Conveyance fields (for in-person meetings - captured during scheduling, claimed during MOM)
@@ -493,9 +494,9 @@ const ConsultingMeetings = () => {
     const now = new Date();
     const hoursUntilMeeting = (meetingDateTime - now) / (1000 * 60 * 60);
     
-    // Validation: Cannot schedule meetings in the past
-    if (meetingDateTime < now) {
-      toast.error('Cannot schedule meetings in the past. All meetings must be scheduled first, then MOM recorded after they occur.');
+    // Validation: Cannot schedule meetings in the past UNLESS marking as delivered
+    if (meetingDateTime < now && !formData.is_delivered) {
+      toast.error('Cannot schedule future meetings in the past. Check "Mark as delivered" to log a completed meeting.');
       return;
     }
     
@@ -522,8 +523,9 @@ const ConsultingMeetings = () => {
       meeting_date: meetingDateTime.toISOString(),
       end_time: formData.end_time ? `${formData.meeting_date}T${formData.end_time}` : null,
       duration_minutes: durationMinutes,
-      // Status & Flags
-      status: 'SCHEDULED',
+      // Status & Flags — if marked delivered, set status to DELIVERED directly
+      status: formData.is_delivered ? 'DELIVERED' : 'SCHEDULED',
+      is_delivered: !!formData.is_delivered,
       is_short_notice: isShortNotice,
       // Client & Project Info
       client_id: project?.client_id || formData.client_id,
@@ -1248,13 +1250,16 @@ const ConsultingMeetings = () => {
                   <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={2} className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent text-sm" />
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-start space-x-2 p-3 rounded-sm border border-zinc-200 bg-zinc-50">
                   <input type="checkbox" id="is_delivered" checked={formData.is_delivered}
-                    onChange={(e) => setFormData({ ...formData, is_delivered: e.target.checked })} className="w-4 h-4 rounded-sm border-zinc-200" />
-                  <Label htmlFor="is_delivered" className="text-sm font-medium text-zinc-950">Mark as delivered (counts toward commitment)</Label>
+                    onChange={(e) => setFormData({ ...formData, is_delivered: e.target.checked })} className="w-4 h-4 rounded-sm border-zinc-200 mt-0.5" data-testid="mark-delivered-checkbox" />
+                  <div>
+                    <Label htmlFor="is_delivered" className="text-sm font-medium text-zinc-950 cursor-pointer">Mark as delivered (counts toward commitment)</Label>
+                    <p className="text-xs text-zinc-500 mt-0.5">Check this to log an already completed meeting. Allows past dates.</p>
+                  </div>
                 </div>
                 <Button type="submit" data-testid="submit-consulting-meeting" className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                  Schedule Meeting
+                  {formData.is_delivered ? 'Log Delivered Meeting' : 'Schedule Meeting'}
                 </Button>
               </form>
             </DialogContent>

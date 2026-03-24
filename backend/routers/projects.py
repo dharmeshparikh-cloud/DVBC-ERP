@@ -93,7 +93,14 @@ async def get_projects(current_user: User = Depends(get_current_user)):
         # HR Manager sees all projects but financial data will be stripped
         pass
     elif not has_role(current_user.role, admin_roles):
-        query['$or'] = [{"assigned_team": current_user.id}, {"created_by": current_user.id}]
+        query['$or'] = [
+            {"assigned_team": current_user.id},
+            {"created_by": current_user.id},
+            {"assigned_consultants": current_user.id},
+            {"assigned_consultants.user_id": current_user.id},
+            {"assigned_consultants.employee_id": current_user.employee_id},
+            {"assigned_team.user_id": current_user.id},
+        ]
     
     projects = await db.projects.find(query, {"_id": 0}).to_list(1000)
     
