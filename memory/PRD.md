@@ -2,6 +2,41 @@
 
 ## Latest Updates - March 24, 2026
 
+### P0 Governance Fixes (COMPLETE) [March 24, Session 4]
+
+**Fixes Implemented**:
+
+1. **Fixed bare `except:` blocks in analytics.py**
+   - Replaced all bare `except:` blocks with specific exception types `(ValueError, TypeError, AttributeError)`
+   - Lines 855, 867, 878, 1113, 1140, 1225
+   - Improves debuggability and prevents swallowing unknown errors
+
+2. **Added `/my` endpoint for Approvals module** (`approvals.py` line 75)
+   - Returns user's pending approvals they need to action
+   - Returns user's submitted requests
+   - Includes summary counts (pending_to_action, my_approved, my_rejected, my_pending)
+
+3. **Added `/my` endpoint for Payroll module** (`payroll.py` line 243)
+   - Returns user's salary slips with month filter support
+   - Returns pending reimbursements
+   - Returns leave encashments
+   - Returns LOP leaves
+   - Includes summary (total_slips, total_net_paid, pending_reimbursement_amount, etc.)
+
+4. **Made `budget` mandatory for Project creation** (`models.py` line 273)
+   - Changed from `Optional[float]` to `Field(..., gt=0)`
+   - Projects cannot be created without budget
+   - Budget must be greater than 0
+
+5. **Added receipt validation on expense approval** (`expenses.py` line 545)
+   - Defense in depth: validates receipts on both submission AND approval
+   - Expenses ≥ ₹500 require receipt attachment
+   - Returns governance message if receipt missing on approval attempt
+
+**Test Report**: `/app/test_reports/iteration_212.json` - 100% pass rate (17/17 tests)
+
+---
+
 ### Business Governance Engine (COMPLETE) [March 24, Session 3]
 
 **Feature**: Self-auditing ERP system with comprehensive business validation across all modules.
@@ -181,6 +216,11 @@
 
 ## Backlog (Prioritized)
 
+### P0 — Remaining High Priority
+- **Mandate Meeting-Expense Link**: Auto-prompt users to create travel expense after "in-person" meeting is delivered
+- **MOM SLA Reminder System**: Automated escalation for MOMs not recorded within 24-hour SLA
+- **Make Project Value Mandatory**: Already done for `budget`, consider extending to `project_value` if needed
+
 ### P1 — Upcoming
 - Data Governance Phase 2: Expand `GovernedDropdown` to Expenses and Project Management modules
 - Appraisals Integration: Auto-reflect salary revisions in payroll engine
@@ -211,6 +251,7 @@
 
 ## Testing Status
 
+- **Iteration 212**: P0 Governance Fixes - 100% backend pass rate (17/17 tests)
 - **Iteration 210**: My Day Bar & Global Sorting - 92% backend, 100% frontend pass rate
 - **Iteration 209**: Consulting Meeting Travel Expense
 - **Iteration 208**: Data Governance - Governed Dropdown
