@@ -745,7 +745,7 @@ class PayrollCalculationEngine:
         """
         Calculate pro-rata salary for mid-month joiners.
         
-        Formula: (Gross / Days in Month) × Working Days
+        Formula: (Gross / Days in Month) x Working Days
         """
         from datetime import datetime
         import calendar
@@ -753,11 +753,28 @@ class PayrollCalculationEngine:
         year, mon = map(int, month.split('-'))
         days_in_month = calendar.monthrange(year, mon)[1]
         
-        join_dt = datetime.strptime(joining_date, "%Y-%m-%d")
+        # Handle different date formats
+        join_str = str(joining_date)[:10]  # Take YYYY-MM-DD portion
+        try:
+            join_dt = datetime.strptime(join_str, "%Y-%m-%d")
+        except ValueError:
+            try:
+                join_dt = datetime.strptime(join_str, "%d-%m-%Y")
+            except ValueError:
+                return {
+                    "gross_monthly": gross_monthly,
+                    "days_in_month": days_in_month,
+                    "working_days": days_in_month,
+                    "joining_date": joining_date,
+                    "is_prorata": False,
+                    "prorata_salary": gross_monthly,
+                    "formula": "Full month salary (unparseable date)"
+                }
+        
         join_year, join_month, join_day = join_dt.year, join_dt.month, join_dt.day
         
-        # Check if joining in this month
-        if join_year == year and join_month == mon:
+        # Check if joining in this month AND not on the 1st (1st = full month)
+        if join_year == year and join_month == mon and join_day > 1:
             working_days = days_in_month - join_day + 1
             prorata_salary = (gross_monthly / days_in_month) * working_days
             is_prorata = True
@@ -773,7 +790,7 @@ class PayrollCalculationEngine:
             "joining_date": joining_date,
             "is_prorata": is_prorata,
             "prorata_salary": round(prorata_salary, 2),
-            "formula": f"(₹{gross_monthly:,.0f} / {days_in_month}) × {working_days} = ₹{prorata_salary:,.2f}" if is_prorata else "Full month salary"
+            "formula": f"(INR {gross_monthly:,.0f} / {days_in_month}) x {working_days} = INR {prorata_salary:,.2f}" if is_prorata else "Full month salary"
         }
     
     async def apply_appraisal_increment(
@@ -1262,10 +1279,43 @@ class PayrollCalculationEngine:
             ctc_components = ctc_structure["components"]
             gross_monthly = ctc_structure.get("summary", {}).get("gross_monthly", gross_monthly)
         
+        # === PRO-RATA CALCULATION FOR MID-MONTH JOINERS ===
+        prorata_info = {"is_prorata": False}
+        joining_date = employee.get("date_of_joining") or employee.get("joining_date")
+        full_gross_monthly = gross_monthly  # Store original for reference
+        
+        if joining_date:
+            try:
+                prorata_result = await self.calculate_prorata_salary(
+                    gross_monthly=gross_monthly,
+                    joining_date=joining_date,
+                    month=month
+                )
+                if prorata_result.get("is_prorata"):
+                    prorata_info = {
+                        "is_prorata": True,
+                        "joining_date": joining_date,
+                        "full_gross": gross_monthly,
+                        "prorata_gross": prorata_result["prorata_salary"],
+                        "days_worked": prorata_result["working_days"],
+                        "days_in_month": prorata_result["days_in_month"],
+                        "formula": prorata_result["formula"]
+                    }
+                    gross_monthly = prorata_result["prorata_salary"]
+                    logger.info(f"Pro-rata applied for {employee_name}: {prorata_result['formula']}")
+            except Exception as e:
+                logger.warning(f"Pro-rata calc failed for {employee_name}: {e}")
+        
         # Calculate basic salary (for PF calculation)
         basic_monthly = gross_monthly * 0.40  # Default 40% of gross
         if ctc_components and "basic" in ctc_components:
-            basic_monthly = ctc_components["basic"].get("monthly", basic_monthly)
+            if prorata_info["is_prorata"]:
+                # Scale basic proportionally for pro-rata
+                full_basic = ctc_components["basic"].get("monthly", full_gross_monthly * 0.40)
+                ratio = gross_monthly / full_gross_monthly if full_gross_monthly > 0 else 1
+                basic_monthly = full_basic * ratio
+            else:
+                basic_monthly = ctc_components["basic"].get("monthly", basic_monthly)
         
         # === EARNINGS ===
         earnings = await self.calculate_earnings(gross_monthly, ctc_components)
@@ -1588,6 +1638,7 @@ class PayrollCalculationEngine:
                 "pf": pf_result.get("employer_contribution", 0),
                 "esi": esi_result.get("employer_contribution", 0) if esi_result.get("applicable") else 0
             },
+            "prorata_info": prorata_info,
             "calculation_log": self.calculation_log,
             "calculated_at": datetime.now(timezone.utc).isoformat()
         }

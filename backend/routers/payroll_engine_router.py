@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import uuid
 import io
 import os
+import logging
 import pandas as pd
 import aiosmtplib
 from email.mime.multipart import MIMEMultipart
@@ -31,6 +32,8 @@ from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, get_current_user
 from .models import User
 from .audit_logging import log_audit
 from services.payroll_engine import get_payroll_engine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/payroll/engine", tags=["Payroll Engine"])
 
@@ -459,6 +462,74 @@ async def get_payroll_register_details(
     return {
         "register": register,
         "calculations": calculations
+    }
+
+
+@router.get("/pro-rata/check/{month}")
+async def check_prorata_employees(
+    month: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Check which active employees joined mid-month and need pro-rata salary.
+    Returns list of employees with their pro-rata calculations.
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can check pro-rata")
+    
+    db = get_db()
+    engine = get_payroll_engine(db)
+    
+    year, mon = map(int, month.split('-'))
+    month_start = f"{year}-{mon:02d}-01"
+    days_in_month = engine._get_days_in_month(month)
+    month_end = f"{year}-{mon:02d}-{days_in_month:02d}"
+    
+    # Find employees who joined during this month
+    employees = await db.employees.find(
+        {"is_active": True, "go_live_status": "active"},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    prorata_employees = []
+    
+    for emp in employees:
+        joining_date = emp.get("date_of_joining") or emp.get("joining_date")
+        if not joining_date:
+            continue
+        
+        try:
+            # Check if joining date falls in the payroll month and is NOT the 1st
+            jd = joining_date[:10]  # Take YYYY-MM-DD portion
+            if jd >= month_start and jd <= month_end and not jd.endswith("-01"):
+                gross = emp.get("salary", 0) or emp.get("gross_salary", 0) or 0
+                prorata = await engine.calculate_prorata_salary(
+                    gross_monthly=gross,
+                    joining_date=jd,
+                    month=month
+                )
+                
+                prorata_employees.append({
+                    "employee_id": emp.get("id"),
+                    "employee_code": emp.get("employee_id"),
+                    "employee_name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+                    "department": emp.get("department", ""),
+                    "joining_date": jd,
+                    "full_gross": gross,
+                    "prorata_gross": prorata.get("prorata_salary", 0),
+                    "days_worked": prorata.get("working_days", 0),
+                    "days_in_month": prorata.get("days_in_month", 0),
+                    "formula": prorata.get("formula", ""),
+                    "is_prorata": prorata.get("is_prorata", False)
+                })
+        except Exception as e:
+            logger.warning(f"Pro-rata check failed for {emp.get('employee_id')}: {e}")
+    
+    return {
+        "month": month,
+        "prorata_employees": prorata_employees,
+        "total_prorata": len(prorata_employees),
+        "message": f"{len(prorata_employees)} mid-month joiners found for {month}"
     }
 
 

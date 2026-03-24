@@ -383,6 +383,10 @@ export default function PayrollEngine() {
             <BarChart3 className="w-4 h-4 mr-2" />
             Penalty Dashboard
           </TabsTrigger>
+          <TabsTrigger value="pro-rata" data-testid="tab-pro-rata">
+            <Users className="w-4 h-4 mr-2" />
+            Pro-rata
+          </TabsTrigger>
         </TabsList>
         
         {/* ==================== HR TEST MODE ==================== */}
@@ -2013,6 +2017,11 @@ export default function PayrollEngine() {
         <TabsContent value="penalty-dashboard">
           <PenaltyDashboard isDark={isDark} />
         </TabsContent>
+
+        {/* ==================== PRO-RATA TAB ==================== */}
+        <TabsContent value="pro-rata">
+          <ProRataPanel isDark={isDark} selectedMonth={selectedMonth} />
+        </TabsContent>
       </Tabs>
       
       {/* ==================== BREAKDOWN DIALOG ==================== */}
@@ -2254,6 +2263,174 @@ export default function PayrollEngine() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ==================== PRO-RATA PANEL COMPONENT ====================
+
+function ProRataPanel({ isDark, selectedMonth }) {
+  const [proRataData, setProRataData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [checked, setChecked] = useState(false);
+
+  const checkProRata = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/payroll/engine/pro-rata/check/${selectedMonth}`);
+      setProRataData(res.data);
+      setChecked(true);
+    } catch (err) {
+      console.error('Pro-rata check failed:', err);
+      toast.error('Failed to check pro-rata employees');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount || 0);
+  };
+
+  const proRataEmployees = proRataData?.prorata_employees || [];
+
+  return (
+    <div className="space-y-4" data-testid="pro-rata-panel">
+      <Card className={isDark ? 'bg-zinc-900 border-zinc-800' : ''}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                Onboarding Pro-rata - {selectedMonth}
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Auto-detects mid-month joiners and calculates proportional salary for their first month
+              </CardDescription>
+            </div>
+            <Button
+              onClick={checkProRata}
+              disabled={loading}
+              variant={checked ? "outline" : "default"}
+              data-testid="check-prorata-btn"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Users className="w-4 h-4 mr-2" />
+              )}
+              {checked ? 'Re-check' : 'Check Pro-rata'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!checked ? (
+            <div className={`text-center py-12 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+              <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
+              <p className="text-base font-medium mb-1">Pro-rata Salary Calculator</p>
+              <p className="text-sm max-w-md mx-auto">
+                Click "Check Pro-rata" to scan for employees who joined during {selectedMonth} and auto-calculate their proportional salary.
+              </p>
+              <div className={`mt-6 p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-blue-50'} max-w-md mx-auto text-left`}>
+                <p className={`text-xs font-medium mb-2 ${isDark ? 'text-zinc-300' : 'text-blue-700'}`}>How it works:</p>
+                <ul className={`text-xs space-y-1 ${isDark ? 'text-zinc-400' : 'text-blue-600'}`}>
+                  <li>1. Identifies employees with joining dates after the 1st of the month</li>
+                  <li>2. Calculates days worked = (month end - joining date + 1)</li>
+                  <li>3. Pro-rata salary = (Full Gross / Days in month) * Days worked</li>
+                  <li>4. Automatically applied during payroll calculation</li>
+                </ul>
+              </div>
+            </div>
+          ) : proRataEmployees.length === 0 ? (
+            <div className={`text-center py-10 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+              <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-emerald-500 opacity-70" />
+              <p className="font-medium">No mid-month joiners for {selectedMonth}</p>
+              <p className="text-sm mt-1">All active employees have joining dates before this month or on the 1st</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isDark ? 'bg-amber-900/20 text-amber-300' : 'bg-amber-50 text-amber-800'}`}>
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <p className="text-sm">
+                  <strong>{proRataEmployees.length}</strong> mid-month joiner{proRataEmployees.length > 1 ? 's' : ''} detected.
+                  Pro-rata will be automatically applied when running payroll for {selectedMonth}.
+                </p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className={`w-full text-sm ${isDark ? 'text-zinc-300' : ''}`} data-testid="prorata-table">
+                  <thead>
+                    <tr className={`border-b ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <th className="text-left p-3 font-medium">Employee</th>
+                      <th className="text-left p-3 font-medium">Department</th>
+                      <th className="text-center p-3 font-medium">Joining Date</th>
+                      <th className="text-center p-3 font-medium">Days Worked</th>
+                      <th className="text-center p-3 font-medium">Days in Month</th>
+                      <th className="text-right p-3 font-medium">Full Gross</th>
+                      <th className="text-right p-3 font-medium">Pro-rata Gross</th>
+                      <th className="text-right p-3 font-medium">Difference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(proRataEmployees || []).map((emp, idx) => {
+                      const diff = (emp.full_gross || 0) - (emp.prorata_gross || 0);
+                      return (
+                        <tr key={emp.employee_id || idx} className={`border-b ${isDark ? 'border-zinc-800 hover:bg-zinc-800/50' : 'border-zinc-100 hover:bg-zinc-50'}`}>
+                          <td className="p-3">
+                            <div className="font-medium">{emp.employee_name}</div>
+                            <div className="text-xs text-zinc-400">{emp.employee_code}</div>
+                          </td>
+                          <td className="p-3 text-zinc-500">{emp.department || '-'}</td>
+                          <td className="p-3 text-center">
+                            <Badge variant="outline" className="text-xs">
+                              {emp.joining_date}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-center font-medium">{emp.days_worked}</td>
+                          <td className="p-3 text-center text-zinc-500">{emp.days_in_month}</td>
+                          <td className="p-3 text-right text-zinc-500">{formatCurrency(emp.full_gross)}</td>
+                          <td className="p-3 text-right font-semibold text-blue-600 dark:text-blue-400">
+                            {formatCurrency(emp.prorata_gross)}
+                          </td>
+                          <td className="p-3 text-right text-red-500">
+                            -{formatCurrency(diff)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  {proRataEmployees.length > 0 && (
+                    <tfoot>
+                      <tr className={`font-bold ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                        <td className="p-3" colSpan={5}>Total Impact</td>
+                        <td className="p-3 text-right">
+                          {formatCurrency((proRataEmployees || []).reduce((s, e) => s + (e.full_gross || 0), 0))}
+                        </td>
+                        <td className="p-3 text-right text-blue-600 dark:text-blue-400">
+                          {formatCurrency((proRataEmployees || []).reduce((s, e) => s + (e.prorata_gross || 0), 0))}
+                        </td>
+                        <td className="p-3 text-right text-red-500">
+                          -{formatCurrency((proRataEmployees || []).reduce((s, e) => s + ((e.full_gross || 0) - (e.prorata_gross || 0)), 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+
+              {proRataEmployees.length > 0 && (proRataEmployees[0] || {}).formula && (
+                <div className={`text-xs p-3 rounded-lg ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-zinc-100 text-zinc-500'}`}>
+                  <strong>Formula:</strong> {proRataEmployees[0].formula}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
