@@ -6,22 +6,26 @@
  * ADDITIVE component — placed above existing meeting list.
  * 
  * ENHANCED: Clickable cards that navigate to respective pages, show "Completed" when done.
+ * NEW: Smart Suggestions - AI-powered recommendations for next actions.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../App';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { 
   Clock, CheckCircle2, XCircle, Calendar, FileText, 
   Receipt, AlertTriangle, ArrowRight, TrendingUp,
-  CircleDot, ExternalLink
+  CircleDot, ExternalLink, Sparkles, ChevronRight,
+  Send, CheckSquare, Wallet, Trophy, CalendarCheck
 } from 'lucide-react';
 
 const MyDayBar = () => {
   const navigate = useNavigate();
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['my-day-summary'],
@@ -49,7 +53,7 @@ const MyDayBar = () => {
 
   if (error || !data) return null;
 
-  const { attendance, today, action_required, weekly_progress, greeting } = data;
+  const { attendance, today, action_required, weekly_progress, greeting, smart_suggestions = [] } = data;
   const hasUrgentActions = !attendance.is_checked_in || 
     action_required.overdue_moms.count > 0 || 
     action_required.missing_expenses.count > 0;
@@ -194,6 +198,43 @@ const MyDayBar = () => {
         </div>
       )}
 
+      {/* Smart Suggestions - AI-powered recommendations */}
+      {smart_suggestions.length > 0 && (
+        <div className="bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 border border-violet-200 rounded-lg p-3" data-testid="my-day-suggestions">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-violet-100 rounded">
+                <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+              </div>
+              <span className="text-sm font-medium text-violet-900">Smart Suggestions</span>
+              <Badge className="bg-violet-100 text-violet-700 text-[10px] px-1.5 py-0 h-4">
+                AI
+              </Badge>
+            </div>
+            {smart_suggestions.length > 2 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-violet-600 hover:text-violet-800 hover:bg-violet-100 px-2"
+                onClick={() => setShowAllSuggestions(!showAllSuggestions)}
+              >
+                {showAllSuggestions ? 'Show less' : `+${smart_suggestions.length - 2} more`}
+              </Button>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            {(showAllSuggestions ? smart_suggestions : smart_suggestions.slice(0, 2)).map((suggestion) => (
+              <SuggestionCard
+                key={suggestion.id}
+                suggestion={suggestion}
+                onAction={() => suggestion.action_path && handleNavigate(suggestion.action_path)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Weekly Progress Bar */}
       {weekly_progress.total_meetings > 0 && (
         <div className="flex items-center gap-3 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg" data-testid="my-day-weekly">
@@ -285,6 +326,89 @@ const ReminderChip = ({ color, icon: Icon, text, testId, onClick }) => (
     <ArrowRight className="w-3 h-3 ml-0.5" />
   </div>
 );
+
+// === Smart Suggestion Components ===
+
+const SUGGESTION_ICONS = {
+  'clock': Clock,
+  'calendar': Calendar,
+  'calendar-check': CalendarCheck,
+  'file-text': FileText,
+  'send': Send,
+  'check-square': CheckSquare,
+  'receipt': Receipt,
+  'wallet': Wallet,
+  'trophy': Trophy,
+  'trending-up': TrendingUp,
+};
+
+const PRIORITY_STYLES = {
+  high: {
+    border: 'border-l-red-500',
+    bg: 'bg-white',
+    iconBg: 'bg-red-100',
+    iconColor: 'text-red-600',
+    badge: 'bg-red-100 text-red-700',
+  },
+  medium: {
+    border: 'border-l-amber-500',
+    bg: 'bg-white',
+    iconBg: 'bg-amber-100',
+    iconColor: 'text-amber-600',
+    badge: 'bg-amber-100 text-amber-700',
+  },
+  low: {
+    border: 'border-l-blue-500',
+    bg: 'bg-white',
+    iconBg: 'bg-blue-100',
+    iconColor: 'text-blue-600',
+    badge: 'bg-blue-100 text-blue-700',
+  },
+  info: {
+    border: 'border-l-emerald-500',
+    bg: 'bg-white',
+    iconBg: 'bg-emerald-100',
+    iconColor: 'text-emerald-600',
+    badge: 'bg-emerald-100 text-emerald-700',
+  },
+};
+
+const SuggestionCard = ({ suggestion, onAction }) => {
+  const Icon = SUGGESTION_ICONS[suggestion.icon] || Sparkles;
+  const style = PRIORITY_STYLES[suggestion.priority] || PRIORITY_STYLES.low;
+  
+  return (
+    <div 
+      className={`flex items-start gap-3 p-2.5 rounded-lg border border-l-4 ${style.border} ${style.bg} cursor-pointer hover:shadow-sm transition-all duration-200`}
+      onClick={onAction}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onAction?.()}
+      data-testid={`suggestion-${suggestion.id}`}
+    >
+      <div className={`p-1.5 rounded ${style.iconBg} shrink-0`}>
+        <Icon className={`w-4 h-4 ${style.iconColor}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-zinc-900 truncate">{suggestion.title}</p>
+          {suggestion.priority === 'high' && (
+            <Badge className={`${style.badge} text-[9px] px-1 py-0 h-3.5`}>
+              Priority
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-zinc-500 mt-0.5 line-clamp-1">{suggestion.description}</p>
+      </div>
+      {suggestion.action && (
+        <div className="flex items-center shrink-0">
+          <span className="text-xs font-medium text-violet-600 mr-1">{suggestion.action}</span>
+          <ChevronRight className="w-3.5 h-3.5 text-violet-400" />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const formatTime = (time) => {
   if (!time) return '--';

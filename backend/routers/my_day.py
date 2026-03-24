@@ -147,6 +147,166 @@ async def get_my_day_summary(current_user: User = Depends(get_current_user)):
     week_delivered = len([m for m in this_week_meetings if m.get("is_delivered")])
     week_mom_done = len([m for m in this_week_meetings if m.get("mom_generated")])
 
+    # === 6. Smart Suggestions (AI-powered recommendations) ===
+    suggestions = []
+    
+    # Priority 1: Attendance not marked
+    if not is_checked_in:
+        suggestions.append({
+            "id": "attendance",
+            "priority": "high",
+            "icon": "clock",
+            "title": "Start your day",
+            "description": "Mark your attendance to begin tracking your work hours",
+            "action": "Check In Now",
+            "action_path": "/my-attendance",
+            "category": "attendance"
+        })
+    
+    # Priority 2: Upcoming meeting prep (meeting in next 2 hours)
+    for m in today_meetings:
+        try:
+            md = m.get("meeting_date", "")
+            if isinstance(md, str):
+                mt = datetime.fromisoformat(md.replace("Z", "+00:00"))
+            else:
+                mt = md if md.tzinfo else md.replace(tzinfo=timezone.utc)
+            hours_until = (mt - now).total_seconds() / 3600
+            if 0 < hours_until <= 2:
+                suggestions.append({
+                    "id": f"prep_{m.get('id')}",
+                    "priority": "high",
+                    "icon": "calendar",
+                    "title": f"Prepare for: {m.get('title', 'Meeting')[:30]}",
+                    "description": f"Meeting with {m.get('client_name', 'client')} in {int(hours_until * 60)} minutes",
+                    "action": "View Details",
+                    "action_path": "/consulting-meetings",
+                    "category": "meeting_prep"
+                })
+                break  # Only show one prep suggestion
+        except Exception:
+            continue
+    
+    # Priority 3: Overdue MOMs (most critical workflow blocker)
+    if len(overdue_mom_meetings) > 0:
+        oldest_overdue = overdue_mom_meetings[0]
+        suggestions.append({
+            "id": "overdue_mom",
+            "priority": "high",
+            "icon": "file-text",
+            "title": f"Record MOM for {oldest_overdue.get('title', 'meeting')[:25]}",
+            "description": f"{len(overdue_mom_meetings)} meeting(s) awaiting MOM - blocking delivery",
+            "action": "Record Now",
+            "action_path": "/consulting-meetings",
+            "category": "mom"
+        })
+    
+    # Priority 4: MOMs ready to send
+    if len(pending_client_send) > 0:
+        suggestions.append({
+            "id": "send_mom",
+            "priority": "medium",
+            "icon": "send",
+            "title": "Send MOM to client",
+            "description": f"{len(pending_client_send)} MOM(s) recorded but not sent to client",
+            "action": "Send Now",
+            "action_path": "/consulting-meetings",
+            "category": "communication"
+        })
+    
+    # Priority 5: Open action items
+    if open_action_items > 0:
+        suggestions.append({
+            "id": "action_items",
+            "priority": "medium",
+            "icon": "check-square",
+            "title": f"Complete {open_action_items} action item(s)",
+            "description": "Tasks assigned from previous meetings need attention",
+            "action": "View Tasks",
+            "action_path": "/consulting-meetings",
+            "category": "tasks"
+        })
+    
+    # Priority 6: Expense filing for in-person meetings
+    if len(inperson_no_expense) > 0:
+        suggestions.append({
+            "id": "file_expense",
+            "priority": "medium",
+            "icon": "receipt",
+            "title": "File travel expense",
+            "description": f"{len(inperson_no_expense)} in-person meeting(s) without expense claims",
+            "action": "File Expense",
+            "action_path": "/my-expenses",
+            "category": "expense"
+        })
+    
+    # Priority 7: Pending expenses need follow-up
+    if pending_expenses > 3:
+        suggestions.append({
+            "id": "pending_expenses",
+            "priority": "low",
+            "icon": "wallet",
+            "title": "Follow up on expenses",
+            "description": f"{pending_expenses} expenses pending approval - consider checking status",
+            "action": "View Status",
+            "action_path": "/my-expenses",
+            "category": "expense"
+        })
+    
+    # Priority 8: Upcoming meetings need preparation
+    if len(upcoming_meetings) > 0:
+        next_upcoming = upcoming_meetings[0]
+        try:
+            md = next_upcoming.get("meeting_date", "")
+            if isinstance(md, str):
+                mt = datetime.fromisoformat(md.replace("Z", "+00:00"))
+            else:
+                mt = md if md.tzinfo else md.replace(tzinfo=timezone.utc)
+            days_until = (mt - now).days
+            if days_until <= 2:
+                suggestions.append({
+                    "id": "upcoming_prep",
+                    "priority": "low",
+                    "icon": "calendar-check",
+                    "title": f"Upcoming: {next_upcoming.get('title', 'Meeting')[:25]}",
+                    "description": f"Meeting in {days_until} day(s) - review agenda and prepare",
+                    "action": "Prepare",
+                    "action_path": "/consulting-meetings",
+                    "category": "planning"
+                })
+        except Exception:
+            pass
+    
+    # Priority 9: Weekly progress encouragement
+    if week_total > 0 and week_delivered >= week_total:
+        suggestions.append({
+            "id": "great_week",
+            "priority": "info",
+            "icon": "trophy",
+            "title": "Great week!",
+            "description": f"You've delivered all {week_total} meetings this week. Keep it up!",
+            "action": None,
+            "action_path": None,
+            "category": "motivation"
+        })
+    elif week_total > 0 and week_delivered / week_total >= 0.8:
+        remaining = week_total - week_delivered
+        suggestions.append({
+            "id": "almost_there",
+            "priority": "info",
+            "icon": "trending-up",
+            "title": "Almost there!",
+            "description": f"Just {remaining} more delivery to complete your weekly target",
+            "action": "View Progress",
+            "action_path": "/consulting-meetings",
+            "category": "motivation"
+        })
+    
+    # Limit to top 5 suggestions, sorted by priority
+    priority_order = {"high": 0, "medium": 1, "low": 2, "info": 3}
+    suggestions.sort(key=lambda s: priority_order.get(s.get("priority", "low"), 2))
+    suggestions = suggestions[:5]
+
     # === Build Response ===
     return {
         "date": today_str,
@@ -217,5 +377,7 @@ async def get_my_day_summary(current_user: User = Depends(get_current_user)):
             "delivered": week_delivered,
             "mom_recorded": week_mom_done,
             "completion_pct": round(week_delivered / max(week_total, 1) * 100)
-        }
+        },
+        
+        "smart_suggestions": suggestions
     }

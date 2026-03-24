@@ -2,6 +2,38 @@
 
 ## Latest Updates - March 24, 2026
 
+### Smart Suggestions Feature (COMPLETE) [March 24, Session 3]
+
+**Feature**: AI-powered recommendations that suggest next actions based on consultant's workflow data.
+
+**Implementation**:
+- Backend generates contextual suggestions in `/api/my-day/summary`
+- Suggestions are prioritized: high → medium → low → info
+- Maximum 5 suggestions shown, top 2 visible by default
+- Each suggestion includes: icon, title, description, action button, navigation path
+
+**Suggestion Types**:
+| Priority | Suggestion | Trigger |
+|----------|------------|---------|
+| High | Start your day | Attendance not marked |
+| High | Prepare for meeting | Meeting within 2 hours |
+| High | Record MOM | Overdue MOMs exist |
+| Medium | Send MOM to client | MOM recorded but not sent |
+| Medium | Complete action items | Open tasks assigned |
+| Medium | File travel expense | In-person meetings without expense |
+| Low | Follow up on expenses | 3+ expenses pending approval |
+| Low | Upcoming meeting prep | Meeting in 1-2 days |
+| Info | Great week! | All meetings delivered |
+| Info | Almost there! | 80%+ delivery rate |
+
+**UI Features**:
+- Purple gradient section header with sparkles icon
+- Color-coded left borders by priority
+- Expandable to show all suggestions
+- Click to navigate to relevant page
+
+---
+
 ### "My Day" Smart Bar for Consultants (COMPLETE) [March 24, Session 3]
 
 **Feature**: A personalized daily workflow tracker for consultants displayed on the Consulting Meetings page.
