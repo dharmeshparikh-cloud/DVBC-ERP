@@ -10,7 +10,7 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import { Separator } from '../components/ui/separator';
 import { toast } from 'sonner';
 import {
@@ -2098,12 +2098,13 @@ export default function PayrollEngine() {
       
       {/* ==================== APPROVAL DIALOG ==================== */}
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-        <DialogContent className={isDark ? 'bg-zinc-900 border-zinc-800' : ''}>
+        <DialogContent className={isDark ? 'bg-zinc-900 border-zinc-800' : ''} data-testid="payroll-approval-dialog">
           <DialogHeader>
             <DialogTitle>Payroll Approval - {selectedMonth}</DialogTitle>
             <DialogDescription>
               {currentRegister?.status === 'draft' && 'Submit payroll for admin approval'}
               {currentRegister?.status === 'pending_admin_approval' && 'Approve or reject this payroll'}
+              {!currentRegister && 'No payroll register found for this month'}
             </DialogDescription>
           </DialogHeader>
           
@@ -2119,54 +2120,90 @@ export default function PayrollEngine() {
                     <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Net Payable</p>
                     <p className="font-bold text-blue-600">{formatCurrency(currentRegister.total_net_payable)}</p>
                   </div>
+                  <div>
+                    <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Status</p>
+                    <Badge className={
+                      currentRegister.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                      currentRegister.status === 'pending_admin_approval' ? 'bg-blue-100 text-blue-700' :
+                      currentRegister.status === 'locked' ? 'bg-green-100 text-green-700' :
+                      'bg-zinc-100 text-zinc-700'
+                    }>
+                      {(currentRegister.status || '').replace(/_/g, ' ').toUpperCase()}
+                    </Badge>
+                  </div>
                 </div>
               </div>
             )}
             
-            <div>
-              <Label>Remarks / Reason</Label>
-              <Input
-                value={approvalRemarks}
-                onChange={(e) => setApprovalRemarks(e.target.value)}
-                placeholder="Enter remarks or rejection reason..."
-                className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
-              />
-            </div>
+            {!currentRegister && (
+              <div className={`p-4 rounded-lg text-center ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-500'}`}>
+                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-amber-500" />
+                <p className="text-sm">No payroll register found for {selectedMonth}. Please run payroll first.</p>
+              </div>
+            )}
             
-            <div className="flex gap-2 justify-end">
-              {currentRegister?.status === 'draft' && (
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={submitMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {submitMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Submit for Approval
-                </Button>
-              )}
-              
-              {currentRegister?.status === 'pending_admin_approval' && (
-                <>
-                  <Button 
-                    onClick={handleReject}
-                    disabled={rejectMutation.isPending}
-                    variant="destructive"
-                  >
-                    {rejectMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Reject
-                  </Button>
-                  <Button 
-                    onClick={handleApprove}
-                    disabled={approveMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {approveMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Approve & Lock
-                  </Button>
-                </>
-              )}
-            </div>
+            {currentRegister && (currentRegister.status === 'draft' || currentRegister.status === 'pending_admin_approval') && (
+              <div>
+                <Label>Remarks / Reason</Label>
+                <Input
+                  value={approvalRemarks}
+                  onChange={(e) => setApprovalRemarks(e.target.value)}
+                  placeholder={currentRegister.status === 'pending_admin_approval' ? "Enter approval remarks or rejection reason..." : "Enter remarks for submission..."}
+                  className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+                  data-testid="approval-remarks-input"
+                />
+              </div>
+            )}
           </div>
+          
+          <DialogFooter className="flex gap-2 justify-end pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => { setShowApprovalDialog(false); setApprovalRemarks(''); }}
+              className={isDark ? 'border-zinc-700' : ''}
+              data-testid="approval-cancel-btn"
+            >
+              Cancel
+            </Button>
+            
+            {currentRegister?.status === 'draft' && (
+              <Button 
+                onClick={handleSubmit}
+                disabled={submitMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+                data-testid="approval-submit-btn"
+              >
+                {submitMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Send className="w-4 h-4 mr-1" />
+                Submit for Approval
+              </Button>
+            )}
+            
+            {currentRegister?.status === 'pending_admin_approval' && (
+              <>
+                <Button 
+                  onClick={handleReject}
+                  disabled={rejectMutation.isPending}
+                  variant="destructive"
+                  data-testid="approval-reject-btn"
+                >
+                  {rejectMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <X className="w-4 h-4 mr-1" />
+                  Reject
+                </Button>
+                <Button 
+                  onClick={handleApprove}
+                  disabled={approveMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700"
+                  data-testid="approval-approve-btn"
+                >
+                  {approveMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <Check className="w-4 h-4 mr-1" />
+                  Approve & Lock
+                </Button>
+              </>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
@@ -2439,12 +2476,33 @@ function ProRataPanel({ isDark, selectedMonth }) {
 
 function PenaltyDashboard({ isDark }) {
   const [monthsToShow, setMonthsToShow] = useState(6);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [selectedDay, setSelectedDay] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [showEmployeeFilter, setShowEmployeeFilter] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState('');
   
-  // Fetch penalty dashboard data
+  // Build query params for server-side filtering
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    params.set('months', monthsToShow);
+    if (selectedEmployees.length > 0) {
+      params.set('employee_ids', selectedEmployees.join(','));
+    }
+    if (selectedDay) {
+      params.set('day', selectedDay);
+    }
+    if (selectedDepartment) {
+      params.set('department', selectedDepartment);
+    }
+    return params.toString();
+  };
+  
+  // Fetch penalty dashboard data with filters
   const { data: dashboardData, isLoading, error } = useQuery({
-    queryKey: ['penalty-dashboard', monthsToShow],
+    queryKey: ['penalty-dashboard', monthsToShow, selectedEmployees, selectedDay, selectedDepartment],
     queryFn: async () => {
-      const res = await axios.get(`${API}/attendance/penalty-dashboard?months=${monthsToShow}`);
+      const res = await axios.get(`${API}/attendance/penalty-dashboard?${buildQueryParams()}`);
       return res.data;
     },
     staleTime: 5 * 60 * 1000
@@ -2483,8 +2541,28 @@ function PenaltyDashboard({ isDark }) {
     top_violators = [], 
     department_breakdown = [],
     current_month_summary = {},
-    policy_context = {}
+    policy_context = {},
+    filter_options = {}
   } = dashboardData || {};
+  
+  const employeeOptions = filter_options.employees || [];
+  const departmentOptions = filter_options.departments || [];
+  
+  // Filter employee options by search
+  const filteredEmployeeOptions = employeeOptions.filter(emp => 
+    !employeeSearch || 
+    emp.name?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    emp.employee_id?.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+  
+  const clearAllFilters = () => {
+    setSelectedEmployees([]);
+    setSelectedDay('');
+    setSelectedDepartment('');
+    setEmployeeSearch('');
+  };
+  
+  const hasActiveFilters = selectedEmployees.length > 0 || selectedDay || selectedDepartment;
   
   // Calculate max for chart scaling
   const maxPenalty = Math.max(...(monthly_trends || []).map(t => t.total_amount), 1);
@@ -2492,35 +2570,175 @@ function PenaltyDashboard({ isDark }) {
   return (
     <div className="space-y-6">
       {/* Header with Policy Context */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-amber-500" />
-            Penalty Analytics Dashboard
-          </h2>
-          <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
-            Late arrival penalties and compliance tracking
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className={`text-xs px-3 py-1 rounded ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600'}`}>
-            <Timer className="w-3 h-3 inline mr-1" />
-            Core Hours: {policy_context.core_hours_start} - {policy_context.core_hours_end}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-amber-500" />
+              Penalty Analytics Dashboard
+            </h2>
+            <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+              Late arrival penalties and compliance tracking
+            </p>
           </div>
-          <div className={`text-xs px-3 py-1 rounded ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600'}`}>
-            Grace: {policy_context.grace_days_per_month} days/month | ₹{policy_context.late_penalty_per_day}/day
+          <div className="flex items-center gap-3">
+            <div className={`text-xs px-3 py-1 rounded ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600'}`}>
+              <Timer className="w-3 h-3 inline mr-1" />
+              Core Hours: {policy_context.core_hours_start} - {policy_context.core_hours_end}
+            </div>
+            <div className={`text-xs px-3 py-1 rounded ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600'}`}>
+              Grace: {policy_context.grace_days_per_month} days/month | ₹{policy_context.late_penalty_per_day}/day
+            </div>
           </div>
-          <Select value={String(monthsToShow)} onValueChange={(v) => setMonthsToShow(Number(v))}>
-            <SelectTrigger className={`w-32 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="3">Last 3 Months</SelectItem>
-              <SelectItem value="6">Last 6 Months</SelectItem>
-              <SelectItem value="12">Last 12 Months</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
+        
+        {/* Server-Side Filters Row */}
+        <div className={`flex flex-wrap items-center gap-3 p-3 rounded-lg border ${isDark ? 'bg-zinc-800/50 border-zinc-700' : 'bg-gray-50 border-gray-200'}`} data-testid="penalty-filters-bar">
+          {/* Period Filter */}
+          <div className="flex items-center gap-1">
+            <Label className={`text-xs whitespace-nowrap ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Period:</Label>
+            <Select value={String(monthsToShow)} onValueChange={(v) => setMonthsToShow(Number(v))}>
+              <SelectTrigger className={`w-36 h-8 text-xs ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`} data-testid="penalty-months-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">Last 3 Months</SelectItem>
+                <SelectItem value="6">Last 6 Months</SelectItem>
+                <SelectItem value="12">Last 12 Months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Department Filter */}
+          <div className="flex items-center gap-1">
+            <Label className={`text-xs whitespace-nowrap ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Dept:</Label>
+            <Select value={selectedDepartment || '_all'} onValueChange={(v) => setSelectedDepartment(v === '_all' ? '' : v)}>
+              <SelectTrigger className={`w-40 h-8 text-xs ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`} data-testid="penalty-department-filter">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Departments</SelectItem>
+                {departmentOptions.map(dept => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Employee Multi-Select Filter */}
+          <div className="relative flex items-center gap-1">
+            <Label className={`text-xs whitespace-nowrap ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Employee:</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`h-8 text-xs min-w-[160px] justify-between ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+              onClick={() => setShowEmployeeFilter(!showEmployeeFilter)}
+              data-testid="penalty-employee-filter-btn"
+            >
+              <span className="truncate">
+                {selectedEmployees.length === 0 ? 'All Employees' : `${selectedEmployees.length} selected`}
+              </span>
+              <ChevronDown className="w-3 h-3 ml-1 shrink-0" />
+            </Button>
+            
+            {showEmployeeFilter && (
+              <div className={`absolute top-10 left-0 z-50 w-72 rounded-lg border shadow-lg ${isDark ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'}`} data-testid="employee-filter-dropdown">
+                <div className="p-2 border-b border-zinc-700">
+                  <Input
+                    placeholder="Search employees..."
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    className={`h-8 text-xs ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+                    data-testid="employee-filter-search"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto p-1">
+                  {filteredEmployeeOptions.slice(0, 50).map(emp => (
+                    <label 
+                      key={emp.id}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs hover:${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedEmployees.includes(emp.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEmployees(prev => [...prev, emp.id]);
+                          } else {
+                            setSelectedEmployees(prev => prev.filter(id => id !== emp.id));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="truncate">{emp.employee_id} - {emp.name}</span>
+                      <span className={`ml-auto text-[10px] ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>{emp.department}</span>
+                    </label>
+                  ))}
+                  {filteredEmployeeOptions.length === 0 && (
+                    <p className={`text-center py-3 text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>No employees found</p>
+                  )}
+                </div>
+                <div className={`flex justify-between p-2 border-t ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedEmployees([])}>
+                    Clear
+                  </Button>
+                  <Button size="sm" className="h-7 text-xs" onClick={() => setShowEmployeeFilter(false)}>
+                    Done
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Day Filter */}
+          <div className="flex items-center gap-1">
+            <Label className={`text-xs whitespace-nowrap ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Day:</Label>
+            <Input
+              type="date"
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(e.target.value)}
+              className={`h-8 text-xs w-36 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+              data-testid="penalty-day-filter"
+            />
+          </div>
+          
+          {/* Clear All Filters */}
+          {hasActiveFilters && (
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-8 text-xs text-red-500 hover:text-red-600"
+              onClick={clearAllFilters}
+              data-testid="penalty-clear-filters"
+            >
+              <X className="w-3 h-3 mr-1" /> Clear Filters
+            </Button>
+          )}
+        </div>
+        
+        {/* Active Filter Tags */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2">
+            {selectedDepartment && (
+              <Badge className="bg-blue-100 text-blue-700 gap-1 text-xs">
+                Dept: {selectedDepartment}
+                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedDepartment('')} />
+              </Badge>
+            )}
+            {selectedEmployees.length > 0 && (
+              <Badge className="bg-purple-100 text-purple-700 gap-1 text-xs">
+                {selectedEmployees.length} Employee(s)
+                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedEmployees([])} />
+              </Badge>
+            )}
+            {selectedDay && (
+              <Badge className="bg-amber-100 text-amber-700 gap-1 text-xs">
+                Day: {selectedDay}
+                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedDay('')} />
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Current Month Summary Cards */}

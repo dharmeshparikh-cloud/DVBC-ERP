@@ -362,20 +362,22 @@ const ApprovalsCenter = () => {
   const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length + profileChangeApprovals.length + agreementApprovals.length + kickoffApprovals.length + expenseApprovals.length;
   
   // Handle agreement approval/rejection
-  const handleAgreementAction = async (agreementId, action) => {
+  const handleAgreementAction = async (agreementId, action, directReason) => {
     setActionLoading(true);
     try {
       if (action === 'approve') {
         await axios.patch(`${API}/agreements/${agreementId}/approve`);
         toast.success('Agreement approved successfully! Lead marked as closed.');
       } else {
-        const reason = rejectReason || 'Rejected by Manager';
+        const reason = directReason || rejectReason || 'Rejected by Manager';
         await axios.patch(`${API}/agreements/${agreementId}/reject`, { rejection_reason: reason });
         toast.success('Agreement rejected');
       }
       setAgreementDetailDialog(false);
       setSelectedAgreement(null);
       setRejectReason('');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || `Failed to ${action} agreement`);
@@ -385,20 +387,23 @@ const ApprovalsCenter = () => {
   };
 
   // Handle kickoff request approval/rejection (Senior Consultant, Principal Consultant, Admin)
-  const handleKickoffAction = async (requestId, action) => {
+  const handleKickoffAction = async (requestId, action, directReason) => {
     setActionLoading(true);
     try {
       if (action === 'approve') {
         await axios.post(`${API}/sales-funnel/approve-kickoff/${requestId}`);
         toast.success('Kickoff request approved! Senior/Principal Consultant assigned.');
       } else {
-        const reason = rejectReason || 'Rejected by Admin';
+        const reason = directReason || rejectReason || 'Rejected by Admin';
         await axios.post(`${API}/sales-funnel/reject-kickoff/${requestId}?reason=${encodeURIComponent(reason)}`);
         toast.success('Kickoff request rejected');
       }
       setKickoffDetailDialog(false);
       setSelectedKickoff(null);
       setRejectReason('');
+      // Invalidate all related caches and refetch
+      queryClient.invalidateQueries({ queryKey: ['kickoff'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || `Failed to ${action} kickoff request`);
@@ -1211,8 +1216,7 @@ const ApprovalsCenter = () => {
                         onClick={() => {
                           const reason = prompt('Enter rejection reason:');
                           if (reason) {
-                            setRejectReason(reason);
-                            handleKickoffAction(request.id, 'reject');
+                            handleKickoffAction(request.id, 'reject', reason);
                           }
                         }}
                         disabled={actionLoading}
@@ -2731,7 +2735,7 @@ const ApprovalsCenter = () => {
                       toast.error('Please provide a rejection reason');
                       return;
                     }
-                    handleKickoffAction(selectedKickoff.id, 'reject');
+                    handleKickoffAction(selectedKickoff.id, 'reject', rejectReason);
                   }}
                   disabled={actionLoading}
                 >

@@ -922,10 +922,20 @@ async def apply_attendance_penalties(data: dict, current_user: User = Depends(ge
 @router.get("/penalty-dashboard")
 async def get_penalty_dashboard(
     months: int = 6,
+    employee_ids: Optional[str] = None,
+    day: Optional[str] = None,
+    department: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     """
     Get penalty analytics for HR dashboard.
+    
+    Filters (all server-side):
+    - months: Number of months to analyze (3, 6, 12)
+    - employee_ids: Comma-separated employee IDs to filter by
+    - day: Specific date (YYYY-MM-DD) to filter penalties for that day
+    - department: Department name to filter by
+    
     Returns:
     - Monthly penalty trends (last N months)
     - Top violators (employees with most penalties)
@@ -949,9 +959,38 @@ async def get_penalty_dashboard(
             month_list.append(month_str)
     month_list = month_list[:months]
     
-    # Get all penalties in date range
+    # Build penalty query with filters
+    penalty_query = {"month": {"$in": month_list}}
+    
+    # Employee filter
+    emp_id_list = []
+    if employee_ids:
+        emp_id_list = [eid.strip() for eid in employee_ids.split(",") if eid.strip()]
+        if emp_id_list:
+            penalty_query["employee_id"] = {"$in": emp_id_list}
+    
+    # Day filter - filter penalties that include the specific day
+    if day:
+        penalty_query["penalty_dates"] = day
+    
+    # Department filter - need to get employee IDs for that department first
+    if department:
+        dept_employees = await db.employees.find(
+            {"department": department},
+            {"_id": 0, "id": 1}
+        ).to_list(500)
+        dept_emp_ids = [e["id"] for e in dept_employees]
+        if emp_id_list:
+            # Intersect with existing employee filter
+            dept_emp_ids = [eid for eid in dept_emp_ids if eid in emp_id_list]
+        if dept_emp_ids:
+            penalty_query["employee_id"] = {"$in": dept_emp_ids}
+        else:
+            penalty_query["employee_id"] = {"$in": []}
+    
+    # Get all penalties in date range with filters
     all_penalties = await db.attendance_penalties.find(
-        {"month": {"$in": month_list}},
+        penalty_query,
         {"_id": 0}
     ).to_list(1000)
     
@@ -1069,6 +1108,20 @@ async def get_penalty_dashboard(
         "core_hours_end": rules.get("AT003", {}).get("value", "19:00")
     }
     
+    # === 6. Get employee list for filter dropdown ===
+    emp_options = [
+        {
+            "id": e["id"],
+            "employee_id": e.get("employee_id", "-"),
+            "name": f"{e.get('first_name', '')} {e.get('last_name', '')}".strip(),
+            "department": e.get("department", "-")
+        }
+        for e in employees
+    ]
+    
+    # Get unique departments for filter
+    departments = sorted(set(e.get("department", "Other") for e in employees if e.get("department")))
+    
     return {
         "monthly_trends": trends_list,
         "top_violators": top_violators,
@@ -1079,6 +1132,15 @@ async def get_penalty_dashboard(
             "months_analyzed": months,
             "from_month": min(month_list) if month_list else current_month,
             "to_month": max(month_list) if month_list else current_month
+        },
+        "filter_options": {
+            "employees": emp_options,
+            "departments": departments
+        },
+        "active_filters": {
+            "employee_ids": emp_id_list if emp_id_list else None,
+            "day": day,
+            "department": department
         }
     }
 

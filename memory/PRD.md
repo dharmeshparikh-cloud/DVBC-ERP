@@ -2,6 +2,27 @@
 
 ## Latest Updates - March 24, 2026
 
+### P0 System-Level Governance Fixes (COMPLETE) [March 24, Session 2]
+
+**Fix 1: Payroll Approval Dialog** ✅
+- Added `DialogFooter` with Cancel, Submit for Approval, Reject, and Approve & Lock buttons
+- Added Status badge displaying current register state (DRAFT / PENDING ADMIN APPROVAL / LOCKED)
+- Added fallback UI when no payroll register exists for selected month
+- All buttons have `data-testid` attributes for testing
+
+**Fix 2: Approvals Center - Stale State & Cache Invalidation** ✅
+- Fixed stale state bug: `handleKickoffAction` and `handleAgreementAction` now accept `directReason` parameter
+- Kickoff reject button passes reason directly (avoids stale React state from `setRejectReason`)
+- Added `queryClient.invalidateQueries()` for 'kickoff', 'agreements', 'approvals' cache keys after actions
+- Ensures UI immediately reflects DB state changes (Pending → Approved/Rejected)
+
+**Fix 3: Penalty Dashboard Server-Side Filters** ✅
+- Backend `/api/attendance/penalty-dashboard` now accepts: `employee_ids` (comma-sep), `day` (YYYY-MM-DD), `department`
+- Backend returns `filter_options` (employees list + departments list) and `active_filters` in response
+- Frontend filter bar with: Period dropdown, Department dropdown, Employee multi-select with search, Day date picker
+- Active filter tags with individual clear buttons + "Clear All Filters" button
+- All filters trigger server-side re-query (React Query key includes all filter params)
+
 ### Arrears Auto-Tagging System (P1 COMPLETE) [NEW - March 24]
 **Governance rule: Penalties applied after payroll is locked auto-carry to next open month**
 - When HR applies penalty to a locked/pending_admin_approval month: auto-tagged `is_arrears: true`
