@@ -33,7 +33,22 @@
    - Expenses ≥ ₹500 require receipt attachment
    - Returns governance message if receipt missing on approval attempt
 
-**Test Report**: `/app/test_reports/iteration_212.json` - 100% pass rate (17/17 tests)
+6. **MOM SLA Reminder System** (`business_governance.py`)
+   - `POST /api/governance/mom-sla/run-reminders` - Automated reminder system
+   - Creates high-priority notifications for meetings past 24-hour MOM SLA
+   - Escalates to reporting manager for meetings >36 hours overdue
+   - Skips recently notified meetings (within 12 hours) to prevent spam
+   - `GET /api/governance/mom-sla/pending-reminders` - Preview endpoint
+
+7. **Meeting-Expense Link Auto-Prompt** (`meetings.py`, `business_governance.py`)
+   - Auto-prompts users to file travel expense after in-person meeting
+   - Triggers on meeting creation (if mode=offline without travel_details)
+   - Triggers on MOM recording (if in-person meeting has no expense)
+   - Creates `expense_prompt` notification with action path to /my-expenses
+
+**Test Reports**: 
+- `/app/test_reports/iteration_212.json` - P0 Fixes (100% pass)
+- `/app/test_reports/iteration_213.json` - MOM SLA & Expense Link (100% pass)
 
 ---
 
@@ -216,10 +231,8 @@
 
 ## Backlog (Prioritized)
 
-### P0 — Remaining High Priority
-- **Mandate Meeting-Expense Link**: Auto-prompt users to create travel expense after "in-person" meeting is delivered
-- **MOM SLA Reminder System**: Automated escalation for MOMs not recorded within 24-hour SLA
-- **Make Project Value Mandatory**: Already done for `budget`, consider extending to `project_value` if needed
+### P0 — All Complete ✅
+All P0 governance fixes have been implemented and tested.
 
 ### P1 — Upcoming
 - Data Governance Phase 2: Expand `GovernedDropdown` to Expenses and Project Management modules
@@ -251,6 +264,7 @@
 
 ## Testing Status
 
+- **Iteration 213**: MOM SLA Reminder & Meeting-Expense Link - 100% backend pass rate (12/12 tests)
 - **Iteration 212**: P0 Governance Fixes - 100% backend pass rate (17/17 tests)
 - **Iteration 210**: My Day Bar & Global Sorting - 92% backend, 100% frontend pass rate
 - **Iteration 209**: Consulting Meeting Travel Expense
