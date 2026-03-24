@@ -72,6 +72,48 @@ async def get_my_requests(current_user: User = Depends(get_current_user)):
     return approvals
 
 
+@router.get("/my")
+async def get_my_approvals(current_user: User = Depends(get_current_user)):
+    """
+    Get the current user's approval items - both pending approvals they need to action
+    and requests they have submitted.
+    """
+    db = get_db()
+    
+    # Get pending approvals assigned to this user
+    pending_for_me = await db.approvals.find(
+        {
+            "approver_id": current_user.id,
+            "status": "pending"
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    # Get my submitted requests
+    my_requests = await db.approvals.find(
+        {"requester_id": current_user.id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    # Summary counts
+    pending_count = len(pending_for_me)
+    approved_count = sum(1 for r in my_requests if r.get("status") == "approved")
+    rejected_count = sum(1 for r in my_requests if r.get("status") == "rejected")
+    my_pending_count = sum(1 for r in my_requests if r.get("status") == "pending")
+    
+    return {
+        "pending_for_me": pending_for_me,
+        "my_requests": my_requests,
+        "summary": {
+            "pending_to_action": pending_count,
+            "my_approved": approved_count,
+            "my_rejected": rejected_count,
+            "my_pending": my_pending_count,
+            "total_my_requests": len(my_requests)
+        }
+    }
+
+
 @router.post("/{approval_id}/action")
 async def take_approval_action(approval_id: str, data: ApprovalAction, current_user: User = Depends(get_current_user)):
     """Take action on an approval request"""

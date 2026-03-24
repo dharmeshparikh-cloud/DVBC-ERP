@@ -852,7 +852,8 @@ async def get_time_in_stage_analytics(
                     days = (next_dt - current_dt).days
                     if days >= 0:
                         stage_durations[current_stage].append(days)
-                except:
+                except (ValueError, TypeError, AttributeError):
+                    # Skip records with invalid date formats
                     pass
     
     for lead in leads_without_timestamps:
@@ -864,7 +865,8 @@ async def get_time_in_stage_analytics(
         
         try:
             lead_dt = date_parser.parse(lead_created) if isinstance(lead_created, str) else lead_created
-        except:
+        except (ValueError, TypeError, AttributeError):
+            # Skip leads with invalid date formats
             continue
         
         meeting = await db.meeting_records.find_one({"lead_id": lead_id}, {"_id": 0, "created_at": 1, "meeting_date": 1})
@@ -875,7 +877,8 @@ async def get_time_in_stage_analytics(
                 days = (meeting_dt - lead_dt).days
                 if days >= 0:
                     stage_durations["lead"].append(days)
-            except:
+            except (ValueError, TypeError, AttributeError):
+                # Skip records with invalid meeting date formats
                 pass
     
     stage_analytics = []
@@ -1110,7 +1113,8 @@ async def get_velocity_metrics(
                     "lead_date": lead_created,
                     "close_date": kickoff_date
                 })
-        except:
+        except (ValueError, TypeError, AttributeError):
+            # Skip leads with invalid date formats
             continue
         
         if stage_ts:
@@ -1137,7 +1141,8 @@ async def get_velocity_metrics(
                         days = (to_dt - from_dt).days
                         if days >= 0:
                             stage_velocities[key].append(days)
-                    except:
+                    except (ValueError, TypeError, AttributeError):
+                        # Skip records with invalid stage timestamp formats
                         pass
     
     avg_total = round(sum(v["days"] for v in velocities) / len(velocities), 1) if velocities else None
@@ -1222,7 +1227,8 @@ async def get_mom_scorecard(
                 mom_time = datetime.fromisoformat(m["mom_generated_at"].replace("Z", "+00:00")) if isinstance(m["mom_generated_at"], str) else m["mom_generated_at"]
                 if (mom_time - meeting_time).total_seconds() <= 86400:  # 24 hours
                     timely_moms += 1
-            except:
+            except (ValueError, TypeError, AttributeError):
+                # Skip records with invalid MOM timestamp formats
                 pass
     
     # MOM sent to client count

@@ -555,6 +555,9 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
     STRESS TEST VALIDATIONS:
     - I52: Self-approval prevention
     - E31: Payroll cutoff validation
+    
+    GOVERNANCE RULES ENFORCED:
+    - Receipt required for expenses ≥ ₹500 (validated on approval as well as submission)
     """
     db = get_db()
     # Note: validator available for future complex validations
@@ -571,6 +574,22 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
         raise HTTPException(
             status_code=403, 
             detail="I52: Cannot approve your own expense. Self-approval is prohibited."
+        )
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # GOVERNANCE: Receipt Validation on Approval (Defense in Depth)
+    # ═══════════════════════════════════════════════════════════════════
+    expense_amount = expense.get("total_amount") or expense.get("amount", 0)
+    RECEIPT_THRESHOLD = 500
+    
+    receipts = expense.get("receipts") or expense.get("attachments") or []
+    line_items = expense.get("line_items") or []
+    has_receipt = bool(receipts) or any(item.get("receipt_url") for item in line_items)
+    
+    if expense_amount >= RECEIPT_THRESHOLD and not has_receipt:
+        raise HTTPException(
+            status_code=400,
+            detail=f"GOVERNANCE: Cannot approve expense without receipt. Expenses ≥ ₹{RECEIPT_THRESHOLD} require receipt/bill attachment. Please send back for revision."
         )
     
     current_status = expense.get("status")

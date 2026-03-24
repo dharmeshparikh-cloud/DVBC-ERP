@@ -240,6 +240,100 @@ async def save_payroll_inputs_bulk(data: dict, current_user: User = Depends(get_
     return {"message": f"Saved {saved} payroll inputs"}
 
 
+@router.get("/my")
+async def get_my_payroll_data(
+    month: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get the current user's own payroll data including:
+    - Salary slips
+    - Pending reimbursements
+    - Leave encashments
+    - LOP deductions
+    """
+    db = get_db()
+    
+    # Get employee record for the current user
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee record not found for current user")
+    
+    employee_id = employee.get("id")
+    employee_code = employee.get("employee_id")
+    
+    # Build query for salary slips - check both employee_id (internal) and employee_code
+    slip_query = {
+        "$or": [
+            {"employee_id": employee_id},
+            {"employee_id": employee_code}
+        ]
+    }
+    if month:
+        slip_query["month"] = month
+    
+    # Get salary slips
+    salary_slips = await db.salary_slips.find(slip_query, {"_id": 0}).sort("month", -1).to_list(24)
+    
+    # Get pending reimbursements
+    reimb_query = {
+        "$or": [
+            {"employee_id": employee_id},
+            {"employee_id": employee_code}
+        ],
+        "status": "pending"
+    }
+    pending_reimbursements = await db.payroll_reimbursements.find(reimb_query, {"_id": 0}).to_list(50)
+    
+    # Get leave encashments
+    encash_query = {"employee_id": employee_id}
+    if month:
+        # Parse month to get year and month number
+        try:
+            year, mon = map(int, month.split('-'))
+            encash_query["year"] = year
+            encash_query["month"] = mon
+        except (ValueError, AttributeError):
+            pass
+    encashments = await db.leave_encashments.find(encash_query, {"_id": 0}).sort("created_at", -1).to_list(20)
+    
+    # Get LOP leaves for the current/requested month
+    lop_query = {
+        "employee_id": employee_id,
+        "status": "approved",
+        "leave_type": {"$in": ["loss_of_pay", "lop", "unpaid", "leave_without_pay"]}
+    }
+    if month:
+        lop_query["$or"] = [
+            {"start_date": {"$regex": f"^{month}"}},
+            {"end_date": {"$regex": f"^{month}"}}
+        ]
+    lop_leaves = await db.leave_requests.find(lop_query, {"_id": 0}).to_list(20)
+    
+    # Calculate summary
+    total_net_salary = sum(s.get("net_salary", 0) for s in salary_slips)
+    total_pending_reimb = sum(r.get("amount", 0) for r in pending_reimbursements)
+    total_encashment = sum(e.get("amount", 0) for e in encashments if e.get("status") == "approved")
+    total_lop_days = sum(l.get("days", 0) for l in lop_leaves)
+    
+    return {
+        "employee_id": employee_id,
+        "employee_code": employee_code,
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "salary_slips": salary_slips,
+        "pending_reimbursements": pending_reimbursements,
+        "leave_encashments": encashments,
+        "lop_leaves": lop_leaves,
+        "summary": {
+            "total_slips": len(salary_slips),
+            "total_net_paid": round(total_net_salary, 2),
+            "pending_reimbursement_amount": round(total_pending_reimb, 2),
+            "approved_encashment_amount": round(total_encashment, 2),
+            "lop_days_this_period": total_lop_days
+        }
+    }
+
+
 @router.get("/salary-slips")
 async def get_salary_slips(employee_id: Optional[str] = None, month: Optional[str] = None, current_user: User = Depends(get_current_user)):
     """Get generated salary slips"""

@@ -270,7 +270,7 @@ class ProjectCreate(BaseModel):
     total_meetings_committed: Optional[int] = 0
     assigned_consultants: Optional[List[str]] = []
     assigned_team: Optional[List[str]] = []
-    budget: Optional[float] = None
+    budget: float = Field(..., gt=0, description="Project budget is mandatory and must be greater than 0")
     project_value: Optional[float] = None
     notes: Optional[str] = None
 
