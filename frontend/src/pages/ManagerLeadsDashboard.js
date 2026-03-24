@@ -266,13 +266,13 @@ const ManagerLeadsDashboard = () => {
         user={user}
         stats={{
           dealsWon: targetVsAchievement?.achievements?.total_closed || 0,
-          dealsInProgress: subordinateLeads.filter(l => !['closed', 'lost', 'paused'].includes(l.status)).length,
+          dealsInProgress: (subordinateLeads || []).filter(l => l?.status && !['closed', 'lost', 'paused'].includes(l.status)).length,
           revenue: targetVsAchievement?.achievements?.total_revenue || 0,
-          conversionRate: subordinateLeads.length > 0 
+          conversionRate: (subordinateLeads || []).length > 0 
             ? Math.round((targetVsAchievement?.achievements?.total_closed || 0) / subordinateLeads.length * 100) 
             : 0,
           targetAchievement: targetVsAchievement?.percentage || 0,
-          teamSize: Object.keys(leadsByEmployee).length,
+          teamSize: Object.keys(leadsByEmployee || {}).length,
           trend: (targetVsAchievement?.percentage || 0) >= 50 ? 'up' : 'down'
         }}
         variant="manager"

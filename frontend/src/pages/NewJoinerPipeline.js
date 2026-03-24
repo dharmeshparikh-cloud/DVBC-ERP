@@ -148,8 +148,8 @@ const NewJoinerPipeline = () => {
     });
 
     // Add submissions to appropriate stages
-    submissions.forEach(sub => {
-      const stage = PIPELINE_STAGES.find(s => s.statuses.includes(sub.status));
+    (submissions || []).forEach(sub => {
+      const stage = PIPELINE_STAGES.find(s => Array.isArray(s.statuses) && s.statuses.includes(sub?.status));
       if (stage) {
         groups[stage.id].push({
           ...sub,
@@ -407,7 +407,7 @@ const NewJoinerPipeline = () => {
                           <div className="flex items-center justify-between mt-2">
                             {item.status && getStatusBadge(item.status)}
                             {/* Show Send Reminder button for invited and draft status */}
-                            {isHR && ['invited', 'draft'].includes(item.status) && (
+                            {isHR && item?.status && ['invited', 'draft'].includes(item.status) && (
                               <Button
                                 size="sm"
                                 variant="outline"

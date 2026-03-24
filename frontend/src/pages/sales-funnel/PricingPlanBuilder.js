@@ -385,12 +385,13 @@ const PricingPlanBuilder = () => {
   // Toggle payment component selection
   const togglePaymentComponent = (componentId) => {
     setPaymentPlan(prev => {
-      const isSelected = prev.selected_components.includes(componentId);
+      const selectedComponents = prev?.selected_components || [];
+      const isSelected = selectedComponents.includes(componentId);
       return {
         ...prev,
         selected_components: isSelected
-          ? prev.selected_components.filter(id => id !== componentId)
-          : [...prev.selected_components, componentId]
+          ? selectedComponents.filter(id => id !== componentId)
+          : [...selectedComponents, componentId]
       };
     });
   };
@@ -414,7 +415,8 @@ const PricingPlanBuilder = () => {
     const afterDiscount = subtotal - discount;
     
     // Calculate GST based on selection
-    const gstPercent = paymentPlan.selected_components.includes('gst') 
+    const selectedComponents = paymentPlan?.selected_components || [];
+    const gstPercent = selectedComponents.includes('gst') 
       ? paymentPlan.component_values.gst : 0;
     const gst = afterDiscount * (gstPercent / 100);
     
@@ -495,13 +497,13 @@ const PricingPlanBuilder = () => {
         const basicAmount = payment.amount;
         let gst = 0, tds = 0, conveyance = 0;
         
-        if (paymentPlan.selected_components.includes('gst')) {
+        if ((paymentPlan?.selected_components || []).includes('gst')) {
           gst = Math.round(basicAmount * (paymentPlan.component_values.gst / 100));
         }
-        if (paymentPlan.selected_components.includes('tds')) {
+        if ((paymentPlan?.selected_components || []).includes('tds')) {
           tds = Math.round(basicAmount * (paymentPlan.component_values.tds / 100));
         }
-        if (paymentPlan.selected_components.includes('conveyance') && paymentPlan.custom_payments.length > 0) {
+        if ((paymentPlan?.selected_components || []).includes('conveyance') && paymentPlan.custom_payments.length > 0) {
           conveyance = Math.round(paymentPlan.conveyance_lumpsum / paymentPlan.custom_payments.length);
         }
         
@@ -556,14 +558,14 @@ const PricingPlanBuilder = () => {
       };
       
       // Calculate selected components
-      if (paymentPlan.selected_components.includes('gst')) {
+      if ((paymentPlan?.selected_components || []).includes('gst')) {
         payment.gst = Math.round(basicPerPayment * (paymentPlan.component_values.gst / 100));
       }
-      if (paymentPlan.selected_components.includes('tds')) {
+      if ((paymentPlan?.selected_components || []).includes('tds')) {
         payment.tds = Math.round(basicPerPayment * (paymentPlan.component_values.tds / 100));
       }
       // Conveyance is now lumpsum distributed evenly
-      if (paymentPlan.selected_components.includes('conveyance')) {
+      if ((paymentPlan?.selected_components || []).includes('conveyance')) {
         payment.conveyance = conveyancePerPayment;
       }
       
@@ -1158,7 +1160,7 @@ const PricingPlanBuilder = () => {
                 <span className="text-zinc-600">Discount ({formData.discount_percentage}%):</span>
                 <span className="font-semibold text-red-600" data-testid="discount">- {formatINR(totals.discount)}</span>
               </div>
-              {paymentPlan.selected_components.includes('gst') && (
+              {(paymentPlan?.selected_components || []).includes('gst') && (
                 <div className="flex justify-between text-sm">
                   <span className="text-zinc-600">GST ({paymentPlan.component_values.gst}%):</span>
                   <span className="font-semibold text-zinc-950" data-testid="gst">+ {formatINR(totals.gst)}</span>
@@ -1212,7 +1214,7 @@ const PricingPlanBuilder = () => {
                       <div className="flex items-center gap-2">
                         <Checkbox
                           id={comp.id}
-                          checked={paymentPlan.selected_components.includes(comp.id)}
+                          checked={(paymentPlan?.selected_components || []).includes(comp.id)}
                           onCheckedChange={() => togglePaymentComponent(comp.id)}
                           data-testid={`component-${comp.id}`}
                         />
@@ -1236,13 +1238,13 @@ const PricingPlanBuilder = () => {
                               })}
                               className="w-28 h-8 text-sm rounded-sm"
                               placeholder="Lumpsum"
-                              disabled={!paymentPlan.selected_components.includes(comp.id)}
+                              disabled={!(paymentPlan?.selected_components || []).includes(comp.id)}
                               data-testid="conveyance-lumpsum-input"
                             />
                             <span className="text-xs text-zinc-400">
                               (split across {numberOfPayments} {numberOfPayments === 1 ? 'payment' : 'payments'})
                             </span>
-                            {paymentPlan.conveyance_lumpsum > 0 && paymentPlan.selected_components.includes('conveyance') && (
+                            {paymentPlan.conveyance_lumpsum > 0 && (paymentPlan?.selected_components || []).includes('conveyance') && (
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -1270,7 +1272,7 @@ const PricingPlanBuilder = () => {
                               value={paymentPlan.component_values[comp.id]}
                               onChange={(e) => updateComponentValue(comp.id, e.target.value)}
                               className="w-20 h-8 text-sm rounded-sm"
-                              disabled={!paymentPlan.selected_components.includes(comp.id)}
+                              disabled={!(paymentPlan?.selected_components || []).includes(comp.id)}
                             />
                             <span className="text-sm text-zinc-500">%</span>
                           </>
@@ -1408,13 +1410,13 @@ const PricingPlanBuilder = () => {
                         <th className="px-4 py-3 text-left">Frequency</th>
                         <th className="px-4 py-3 text-left">Due Date</th>
                         <th className="px-4 py-3 text-right">Basic</th>
-                        {paymentPlan.selected_components.includes('gst') && (
+                        {(paymentPlan?.selected_components || []).includes('gst') && (
                           <th className="px-4 py-3 text-right">GST ({paymentPlan.component_values.gst}%)</th>
                         )}
-                        {paymentPlan.selected_components.includes('tds') && (
+                        {(paymentPlan?.selected_components || []).includes('tds') && (
                           <th className="px-4 py-3 text-right">TDS ({paymentPlan.component_values.tds}%)</th>
                         )}
-                        {paymentPlan.selected_components.includes('conveyance') && (
+                        {(paymentPlan?.selected_components || []).includes('conveyance') && (
                           <th className="px-4 py-3 text-right">Conveyance (Lumpsum)</th>
                         )}
                         <th className="px-4 py-3 text-right font-bold">Net Receivable</th>
@@ -1426,13 +1428,13 @@ const PricingPlanBuilder = () => {
                           <td className="px-4 py-3 font-medium text-zinc-900">{payment.frequency}</td>
                           <td className="px-4 py-3 text-zinc-600">{formatDate(payment.due_date)}</td>
                           <td className="px-4 py-3 text-right text-zinc-900">{formatINR(payment.basic)}</td>
-                          {paymentPlan.selected_components.includes('gst') && (
+                          {(paymentPlan?.selected_components || []).includes('gst') && (
                             <td className="px-4 py-3 text-right text-emerald-600">+{formatINR(payment.gst)}</td>
                           )}
-                          {paymentPlan.selected_components.includes('tds') && (
+                          {(paymentPlan?.selected_components || []).includes('tds') && (
                             <td className="px-4 py-3 text-right text-red-600">-{formatINR(payment.tds)}</td>
                           )}
-                          {paymentPlan.selected_components.includes('conveyance') && (
+                          {(paymentPlan?.selected_components || []).includes('conveyance') && (
                             <td className="px-4 py-3 text-right text-emerald-600">+{formatINR(payment.conveyance)}</td>
                           )}
                           <td className="px-4 py-3 text-right font-bold text-blue-600">{formatINR(payment.net)}</td>
@@ -1445,17 +1447,17 @@ const PricingPlanBuilder = () => {
                         <td className="px-4 py-3 text-right">
                           {formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.basic, 0))}
                         </td>
-                        {paymentPlan.selected_components.includes('gst') && (
+                        {(paymentPlan?.selected_components || []).includes('gst') && (
                           <td className="px-4 py-3 text-right text-emerald-600">
                             +{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.gst, 0))}
                           </td>
                         )}
-                        {paymentPlan.selected_components.includes('tds') && (
+                        {(paymentPlan?.selected_components || []).includes('tds') && (
                           <td className="px-4 py-3 text-right text-red-600">
                             -{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.tds, 0))}
                           </td>
                         )}
-                        {paymentPlan.selected_components.includes('conveyance') && (
+                        {(paymentPlan?.selected_components || []).includes('conveyance') && (
                           <td className="px-4 py-3 text-right text-emerald-600">
                             +{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.conveyance, 0))}
                           </td>

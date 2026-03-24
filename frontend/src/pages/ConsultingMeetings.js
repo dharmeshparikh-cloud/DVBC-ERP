@@ -612,7 +612,7 @@ const ConsultingMeetings = () => {
     try {
       // Prepare scope details for denormalization
       const scopeDetails = availableScopes
-        .filter(s => selectedScopeIds.includes(s.id))
+        .filter(s => (selectedScopeIds || []).includes(s.id))
         .map(s => ({ id: s.id, name: s.name }));
       
       // Prepare travel details for in-person meetings
@@ -1980,7 +1980,7 @@ const ConsultingMeetings = () => {
                                   </span>
                                 </div>
                                 {committedScopes.map(scope => {
-                                  const isSelected = selectedScopeIds.includes(scope.id);
+                                  const isSelected = (selectedScopeIds || []).includes(scope.id);
                                   const wasAlreadyLinked = (selectedMeeting?.sow_scope_ids || []).includes(scope.id);
                                   return (
                                     <label
@@ -2029,7 +2029,7 @@ const ConsultingMeetings = () => {
                                   </span>
                                 </div>
                                 {additionalScopes.map(scope => {
-                                  const isSelected = selectedScopeIds.includes(scope.id);
+                                  const isSelected = (selectedScopeIds || []).includes(scope.id);
                                   const wasAlreadyLinked = (selectedMeeting?.sow_scope_ids || []).includes(scope.id);
                                   return (
                                     <label
@@ -2095,7 +2095,7 @@ const ConsultingMeetings = () => {
                               const matchesStatus = scopeStatusFilter === 'all' || scope.status === scopeStatusFilter;
                               return matchesSearch && matchesStatus;
                             });
-                            const newIds = filteredScopes.map(s => s.id).filter(id => !selectedScopeIds.includes(id));
+                            const newIds = filteredScopes.map(s => s.id).filter(id => !(selectedScopeIds || []).includes(id));
                             setSelectedScopeIds(prev => [...prev, ...newIds]);
                           }}
                         >

@@ -255,9 +255,10 @@ const ConsultingProjectTasks = () => {
   };
 
   const toggleScopeForApproval = (scopeId) => {
-    const newIds = approvalData.scope_ids.includes(scopeId)
-      ? approvalData.scope_ids.filter(id => id !== scopeId)
-      : [...approvalData.scope_ids, scopeId];
+    const currentIds = approvalData?.scope_ids || [];
+    const newIds = currentIds.includes(scopeId)
+      ? currentIds.filter(id => id !== scopeId)
+      : [...currentIds, scopeId];
     setApprovalData({ ...approvalData, scope_ids: newIds });
   };
 
@@ -623,18 +624,18 @@ const ConsultingProjectTasks = () => {
                   key={task.id}
                   onClick={() => toggleScopeForApproval(task.id)}
                   className={`p-3 rounded-sm border cursor-pointer transition-colors ${
-                    approvalData.scope_ids.includes(task.id)
+                    (approvalData?.scope_ids || []).includes(task.id)
                       ? 'border-blue-300 bg-blue-50'
                       : 'border-zinc-200 hover:border-zinc-300'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-5 h-5 rounded-sm border flex items-center justify-center ${
-                      approvalData.scope_ids.includes(task.id)
+                      (approvalData?.scope_ids || []).includes(task.id)
                         ? 'bg-blue-500 border-blue-500'
                         : 'border-zinc-300'
                     }`}>
-                      {approvalData.scope_ids.includes(task.id) && (
+                      {(approvalData?.scope_ids || []).includes(task.id) && (
                         <Check className="w-3 h-3 text-white" />
                       )}
                     </div>

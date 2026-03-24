@@ -64,7 +64,7 @@ const ConsultingStageNav = ({
   };
 
   const handleStageClick = (stage) => {
-    if (stage.id <= currentStage || completedStages.includes(stage.id)) {
+    if (stage.id <= currentStage || (Array.isArray(completedStages) && completedStages.includes(stage.id))) {
       navigate(getPath(stage));
     }
   };
@@ -122,7 +122,7 @@ const ConsultingStageNav = ({
       {showFullNav && (
         <div className="flex items-center gap-1 p-2 bg-zinc-50 rounded-sm border border-zinc-200 overflow-x-auto">
           {STAGES.map((stage, index) => {
-            const isCompleted = stage.id < currentStage || completedStages.includes(stage.id);
+            const isCompleted = stage.id < currentStage || (Array.isArray(completedStages) && completedStages.includes(stage.id));
             const isCurrent = stage.id === currentStage;
             const isClickable = isCompleted || isCurrent;
             // For completed projects, action stages show view-only indicator
