@@ -1066,7 +1066,7 @@ const ConsultingMeetings = () => {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Duration</Label>
                     <div className="h-10 px-3 py-2 rounded-sm border border-zinc-200 bg-zinc-50 text-sm text-zinc-700">
-                      {formData.duration_minutes ? `${formData.duration_minutes} minutes` : 'Set start & end time'}
+                      {formData.duration_minutes ? (formData.duration_minutes >= 60 ? `${(formData.duration_minutes / 60).toFixed(1).replace('.0', '')} hr${formData.duration_minutes >= 120 ? 's' : ''}` : `${formData.duration_minutes} min`) : 'Set start & end time'}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -1765,7 +1765,7 @@ const ConsultingMeetings = () => {
                             </div>
                             <div>
                               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Duration</div>
-                              <div className="text-sm text-zinc-950">{meeting.duration_minutes || '-'} mins</div>
+                              <div className="text-sm text-zinc-950">{meeting.duration_minutes ? (meeting.duration_minutes >= 60 ? `${(meeting.duration_minutes / 60).toFixed(1).replace('.0', '')} hr${meeting.duration_minutes >= 120 ? 's' : ''}` : `${meeting.duration_minutes} min`) : '-'}</div>
                             </div>
                             <div>
                               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Action Items</div>
