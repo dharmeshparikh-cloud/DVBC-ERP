@@ -408,6 +408,7 @@ from routers import project_payments as project_payments_router
 from routers import payroll as payroll_router
 from routers import payroll_engine_router
 from routers import exit_settlement as exit_settlement_router
+from routers import penalties as penalties_router
 
 # Analytics & Reports routers
 from routers import analytics as analytics_router
@@ -583,6 +584,7 @@ api_router.include_router(project_payments_router.router)
 api_router.include_router(payroll_router.router)
 api_router.include_router(payroll_engine_router.router)
 api_router.include_router(exit_settlement_router.router)
+api_router.include_router(penalties_router.router)
 
 # Analytics & Reports
 api_router.include_router(analytics_router.router)
