@@ -2,7 +2,15 @@
 
 ## Latest Updates - March 24, 2026
 
-### Penalty Management UI (P1 COMPLETE) ✅ [NEW - March 24]
+### Arrears Auto-Tagging System (P1 COMPLETE) [NEW - March 24]
+**Governance rule: Penalties applied after payroll is locked auto-carry to next open month**
+- When HR applies penalty to a locked/pending_admin_approval month: auto-tagged `is_arrears: true`
+- `effective_month` auto-set to next unlocked payroll month
+- Payroll engine deduction query uses `$or` to pull both direct + arrears penalties
+- Frontend shows: lock status banner, ARREARS badge with source month, "Deducting in {month}" text, arrears summary card
+- **Testing:** 14/14 backend tests passed, all frontend UI verified (iteration_207)
+
+### Penalty Management UI (P1 COMPLETE) [NEW - March 24]
 **Dedicated page at `/penalty-management` for HR to manage all 21 violation types:**
 - **Apply Penalty tab**: Employee search, 5 category dropdowns (Attendance, Leave, Travel, Expense, General), 21 violation types with default amounts, custom amount/description, payroll deduction toggle
 - **Review tab**: Monthly penalties table with category filter, revoke capability, category breakdown cards
