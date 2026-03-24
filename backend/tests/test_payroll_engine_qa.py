@@ -14,7 +14,7 @@ from typing import Dict, List, Any
 import calendar
 
 # Configuration
-API_BASE = "https://consultant-workflow.preview.emergentagent.com/api"
+API_BASE = "https://smart-erp-hub-8.preview.emergentagent.com/api"
 
 # Test credentials
 CREDENTIALS = {

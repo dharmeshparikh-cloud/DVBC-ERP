@@ -610,7 +610,7 @@ async def request_backdated_approval(
             except:
                 pass
         
-        frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://consultant-workflow.preview.emergentagent.com')
+        frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://smart-erp-hub-8.preview.emergentagent.com')
         
         html_content = f"""
         <html>
