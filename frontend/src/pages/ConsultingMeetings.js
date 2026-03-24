@@ -1626,16 +1626,18 @@ const ConsultingMeetings = () => {
                         <td className="px-4 py-3 text-center">
                           <TooltipProvider>
                             <Tooltip>
-                              <TooltipTrigger>
-                                {meeting.mom_generated ? (
-                                  meeting.mom_sent_to_client ? (
-                                    <Badge className="bg-blue-100 text-blue-700 text-xs">Sent to Client</Badge>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">
+                                  {meeting.mom_generated ? (
+                                    meeting.mom_sent_to_client ? (
+                                      <Badge className="bg-blue-100 text-blue-700 text-xs">Sent to Client</Badge>
+                                    ) : (
+                                      <Badge className="bg-emerald-100 text-emerald-700 text-xs">MOM Recorded</Badge>
+                                    )
                                   ) : (
-                                    <Badge className="bg-emerald-100 text-emerald-700 text-xs">MOM Recorded</Badge>
-                                  )
-                                ) : (
-                                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">Awaiting MOM</Badge>
-                                )}
+                                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">Awaiting MOM</Badge>
+                                  )}
+                                </span>
                               </TooltipTrigger>
                               <TooltipContent>
                                 {meeting.mom_generated 

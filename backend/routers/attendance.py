@@ -20,6 +20,94 @@ from services.redis_cache import CacheInvalidation
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
 
+# ═══════════════════════════════════════════════════════════════════
+# MY ATTENDANCE ENDPOINTS (for current user)
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get("/my")
+async def get_my_attendance(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get current user's attendance records."""
+    db = get_db()
+    
+    # Get employee ID for current user
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
+    employee_id = employee["id"] if employee else current_user.id
+    
+    query = {"employee_id": employee_id}
+    
+    if date_from and date_to:
+        query["date"] = {"$gte": date_from, "$lte": date_to}
+    elif date_from:
+        query["date"] = {"$gte": date_from}
+    elif date_to:
+        query["date"] = {"$lte": date_to}
+    
+    records = await db.attendance.find(query, {"_id": 0}).sort("date", -1).to_list(100)
+    
+    return records
+
+
+@router.get("/status")
+async def get_attendance_status(
+    date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get current user's attendance status for today (or specified date)."""
+    db = get_db()
+    
+    # Get employee ID for current user
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1, "employee_id": 1})
+    employee_id = employee.get("id") or employee.get("employee_id") if employee else current_user.id
+    
+    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Find today's attendance record
+    record = await db.attendance.find_one(
+        {"employee_id": employee_id, "date": target_date},
+        {"_id": 0}
+    )
+    
+    if not record:
+        return {
+            "date": target_date,
+            "employee_id": employee_id,
+            "is_checked_in": False,
+            "is_checked_out": False,
+            "check_in_time": None,
+            "check_out_time": None,
+            "status": "not_marked",
+            "working_hours": 0
+        }
+    
+    # Calculate working hours if both check-in and check-out exist
+    working_hours = 0
+    if record.get("check_in") and record.get("check_out"):
+        try:
+            check_in = datetime.fromisoformat(record["check_in"].replace("Z", "+00:00"))
+            check_out = datetime.fromisoformat(record["check_out"].replace("Z", "+00:00"))
+            working_hours = round((check_out - check_in).total_seconds() / 3600, 2)
+        except Exception:
+            pass
+    
+    return {
+        "date": record.get("date", target_date),
+        "employee_id": employee_id,
+        "is_checked_in": bool(record.get("check_in")),
+        "is_checked_out": bool(record.get("check_out")),
+        "check_in_time": record.get("check_in"),
+        "check_out_time": record.get("check_out"),
+        "status": record.get("status", "present"),
+        "working_hours": working_hours,
+        "is_late": record.get("is_late", False),
+        "location": record.get("location"),
+        "notes": record.get("notes")
+    }
+
+
 @router.post("")
 async def record_attendance(data: dict, current_user: User = Depends(get_current_user)):
     """Record attendance entry (HR/Admin manual entry)."""
