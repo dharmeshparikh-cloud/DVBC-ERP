@@ -949,11 +949,17 @@ class PayrollCalculationEngine:
         """
         Fetch deductions from Business Rules based on employee violations.
         e.g., Late arrival penalties, travel policy violations, etc.
+        
+        Sources:
+        1. employee_penalties collection (manual penalties)
+        2. attendance_penalties collection (HR-approved attendance penalties)
+        3. payroll_inputs.penalty field (if set during penalty approval)
+        4. Late arrival auto-calculation from attendance records
         """
         employee_id = employee.get("id")
         deductions = []
         
-        # Fetch any penalty records for this employee/month
+        # === SOURCE 1: Manual penalties from employee_penalties ===
         penalties = await self.db.employee_penalties.find({
             "employee_id": employee_id,
             "month": month,
@@ -966,7 +972,8 @@ class PayrollCalculationEngine:
                 input_values={
                     "rule_id": penalty.get("rule_id"),
                     "reason": penalty.get("reason"),
-                    "violation_count": penalty.get("violation_count", 1)
+                    "violation_count": penalty.get("violation_count", 1),
+                    "penalty_source": "employee_penalties"
                 },
                 formula=penalty.get("formula", "Rule-based penalty"),
                 output_value=penalty.get("amount", 0),
@@ -978,55 +985,127 @@ class PayrollCalculationEngine:
                 "name": penalty.get("name", "Policy Violation Penalty"),
                 "amount": round(penalty.get("amount", 0), 2),
                 "details": penalty.get("reason", ""),
+                "penalty_source": "employee_penalties",
                 "calculation": calc
             })
         
-        # Fetch late arrival deductions from attendance rules
-        late_policy = await self.db.business_policies.find_one(
-            {"policy_type": "attendance", "is_active": True},
-            {"_id": 0}
-        )
+        # === SOURCE 2: Attendance penalties (HR-approved late arrival penalties) ===
+        attendance_penalties = await self.db.attendance_penalties.find({
+            "employee_id": employee_id,
+            "month": month
+        }, {"_id": 0}).to_list(10)
         
-        if late_policy:
-            late_rule = next(
-                (r for r in late_policy.get("rules", []) 
-                 if r.get("rule_id") == "AT002" and r.get("is_enabled", True)),
-                None
+        for att_penalty in attendance_penalties:
+            penalty_amount = att_penalty.get("penalty_amount", 0)
+            penalty_days = att_penalty.get("penalty_days", 0)
+            
+            if penalty_amount > 0:
+                calc = self._log_calculation(
+                    component_name="Attendance Penalty",
+                    input_values={
+                        "penalty_days": penalty_days,
+                        "penalty_amount": penalty_amount,
+                        "approved_by": att_penalty.get("approved_by_name", "HR"),
+                        "approved_at": att_penalty.get("created_at"),
+                        "penalty_source": "attendance_penalties"
+                    },
+                    formula=f"HR-approved: {penalty_days} late days × ₹100/day",
+                    output_value=penalty_amount,
+                    rule_id="AT012",  # Late Penalty Amount rule
+                    rule_version="1.0"
+                )
+                deductions.append({
+                    "key": "attendance_penalty",
+                    "name": "Attendance Penalty (Late Arrival)",
+                    "amount": round(penalty_amount, 2),
+                    "details": f"{penalty_days} days beyond grace limit (approved by {att_penalty.get('approved_by_name', 'HR')})",
+                    "penalty_source": "attendance_penalties",
+                    "calculation": calc
+                })
+        
+        # === SOURCE 3: Check payroll_inputs for penalty (set by /apply-penalties) ===
+        payroll_input = await self.db.payroll_inputs.find_one({
+            "employee_id": employee_id,
+            "month": month
+        }, {"_id": 0})
+        
+        if payroll_input:
+            # Check for attendance penalty in payroll_inputs (avoid double-counting)
+            if payroll_input.get("attendance_penalty_applied") and len(attendance_penalties) == 0:
+                # Only add if not already added from attendance_penalties
+                penalty_amount = payroll_input.get("penalty", 0)
+                penalty_days = payroll_input.get("attendance_penalty_days", 0)
+                
+                if penalty_amount > 0:
+                    calc = self._log_calculation(
+                        component_name="Attendance Penalty (Payroll Input)",
+                        input_values={
+                            "penalty_days": penalty_days,
+                            "penalty_amount": penalty_amount,
+                            "approved_by": payroll_input.get("attendance_penalty_approved_by"),
+                            "penalty_source": "payroll_inputs"
+                        },
+                        formula=f"From payroll_inputs: {penalty_days} days",
+                        output_value=penalty_amount,
+                        rule_id="AT012",
+                        rule_version="1.0"
+                    )
+                    deductions.append({
+                        "key": "payroll_input_penalty",
+                        "name": "Attendance Penalty",
+                        "amount": round(penalty_amount, 2),
+                        "details": f"{penalty_days} late days beyond grace",
+                        "penalty_source": "payroll_inputs",
+                        "calculation": calc
+                    })
+        
+        # === SOURCE 4: Late arrival auto-calculation (fallback if no HR approval) ===
+        # Only apply if no attendance_penalties and no payroll_input penalty
+        if len(attendance_penalties) == 0 and (not payroll_input or not payroll_input.get("attendance_penalty_applied")):
+            late_policy = await self.db.business_policies.find_one(
+                {"policy_type": "attendance", "is_active": True, "scope": "company"},
+                {"_id": 0}
             )
-            if late_rule:
+            
+            if late_policy:
+                rules = {r["rule_id"]: r for r in late_policy.get("rules", [])}
+                
+                # Get grace days and penalty amount from SSOT
+                grace_days = rules.get("AT011", {}).get("numeric_value", 3)
+                late_penalty_per_day = rules.get("AT012", {}).get("numeric_value", 100)
+                
                 # Check late arrivals for this month
-                late_threshold = late_rule.get("numeric_value", 3)
                 late_count = await self.db.attendance.count_documents({
                     "employee_id": employee_id,
                     "date": {"$regex": f"^{month}"},
                     "late_arrival": True
                 })
                 
-                if late_count > late_threshold:
-                    excess_late = late_count - late_threshold
-                    gross = employee.get("salary", 0) or employee.get("gross_salary", 0)
-                    daily_rate = gross / self._get_days_in_month(month)
-                    penalty_amount = daily_rate * 0.5 * excess_late  # Half day LOP per excess late
+                if late_count > grace_days:
+                    excess_late = late_count - grace_days
+                    auto_penalty = excess_late * late_penalty_per_day
                     
                     calc = self._log_calculation(
-                        component_name="Late Arrival Penalty",
+                        component_name="Late Arrival Penalty (Auto)",
                         input_values={
                             "late_count": late_count,
-                            "threshold": late_threshold,
+                            "grace_days": grace_days,
                             "excess_late": excess_late,
-                            "daily_rate": round(daily_rate, 2),
-                            "penalty_per_late": "0.5 day LOP"
+                            "penalty_per_day": late_penalty_per_day,
+                            "penalty_source": "auto_calculated"
                         },
-                        formula=f"{excess_late} excess × ₹{daily_rate:,.2f} × 0.5",
-                        output_value=penalty_amount,
-                        rule_id="AT002",
+                        formula=f"{excess_late} excess × ₹{late_penalty_per_day}/day",
+                        output_value=auto_penalty,
+                        rule_id="AT012",
                         rule_version=late_policy.get("version", "1.0")
                     )
                     deductions.append({
-                        "key": "late_arrival_penalty",
-                        "name": "Late Arrival Penalty (Rule: AT002)",
-                        "amount": round(penalty_amount, 2),
-                        "details": f"{excess_late} late arrivals above threshold of {late_threshold}",
+                        "key": "late_arrival_penalty_auto",
+                        "name": "Late Arrival Penalty (Pending Approval)",
+                        "amount": round(auto_penalty, 2),
+                        "details": f"{excess_late} late arrivals above {grace_days} grace days (auto-calculated, pending HR approval)",
+                        "penalty_source": "auto_calculated",
+                        "requires_approval": True,
                         "calculation": calc
                     })
         
