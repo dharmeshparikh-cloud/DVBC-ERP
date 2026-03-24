@@ -917,6 +917,172 @@ async def apply_attendance_penalties(data: dict, current_user: User = Depends(ge
     }
 
 
+# ==================== PENALTY DASHBOARD API ====================
+
+@router.get("/penalty-dashboard")
+async def get_penalty_dashboard(
+    months: int = 6,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get penalty analytics for HR dashboard.
+    Returns:
+    - Monthly penalty trends (last N months)
+    - Top violators (employees with most penalties)
+    - Grace utilization by department
+    - Penalty breakdown by type
+    """
+    db = get_db()
+    
+    # RBAC check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR can view penalty dashboard")
+    
+    # Calculate date range for last N months
+    now = datetime.now(timezone.utc)
+    month_list = []
+    for i in range(months):
+        month_date = now - timedelta(days=i*30)
+        month_str = month_date.strftime("%Y-%m")
+        if month_str not in month_list:
+            month_list.append(month_str)
+    month_list = month_list[:months]
+    
+    # Get all penalties in date range
+    all_penalties = await db.attendance_penalties.find(
+        {"month": {"$in": month_list}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Get all employees for reference
+    employees = await db.employees.find(
+        {"is_active": True},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1}
+    ).to_list(500)
+    emp_map = {e["id"]: e for e in employees}
+    
+    # === 1. Monthly Penalty Trends ===
+    monthly_trends = {}
+    for m in month_list:
+        monthly_trends[m] = {"total_amount": 0, "employee_count": 0, "total_days": 0}
+    
+    for p in all_penalties:
+        m = p.get("month")
+        if m in monthly_trends:
+            monthly_trends[m]["total_amount"] += p.get("penalty_amount", 0)
+            monthly_trends[m]["total_days"] += p.get("penalty_days", 0)
+            monthly_trends[m]["employee_count"] += 1
+    
+    trends_list = [
+        {
+            "month": m,
+            "month_name": datetime.strptime(m, "%Y-%m").strftime("%b %Y"),
+            **monthly_trends[m]
+        }
+        for m in sorted(month_list, reverse=True)
+    ]
+    
+    # === 2. Top Violators (All Time in Range) ===
+    violator_map = {}
+    for p in all_penalties:
+        emp_id = p.get("employee_id")
+        if emp_id not in violator_map:
+            emp = emp_map.get(emp_id, {})
+            violator_map[emp_id] = {
+                "employee_id": emp_id,
+                "employee_code": emp.get("employee_id", "-"),
+                "employee_name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip() or "Unknown",
+                "department": emp.get("department", "-"),
+                "total_penalty_amount": 0,
+                "total_penalty_days": 0,
+                "months_with_penalties": set()
+            }
+        violator_map[emp_id]["total_penalty_amount"] += p.get("penalty_amount", 0)
+        violator_map[emp_id]["total_penalty_days"] += p.get("penalty_days", 0)
+        violator_map[emp_id]["months_with_penalties"].add(p.get("month"))
+    
+    # Convert sets to counts and sort
+    top_violators = sorted(
+        [
+            {**v, "months_with_penalties": len(v["months_with_penalties"])}
+            for v in violator_map.values()
+        ],
+        key=lambda x: x["total_penalty_amount"],
+        reverse=True
+    )[:10]
+    
+    # === 3. Department-wise Grace Utilization ===
+    # Get current month attendance validation data
+    current_month = now.strftime("%Y-%m")
+    
+    dept_stats = {}
+    for emp in employees:
+        dept = emp.get("department", "Other")
+        if dept not in dept_stats:
+            dept_stats[dept] = {
+                "department": dept,
+                "total_employees": 0,
+                "employees_with_penalties": 0,
+                "total_penalty_amount": 0,
+                "total_penalty_days": 0
+            }
+        dept_stats[dept]["total_employees"] += 1
+    
+    for p in all_penalties:
+        if p.get("month") == current_month:
+            emp_id = p.get("employee_id")
+            emp = emp_map.get(emp_id, {})
+            dept = emp.get("department", "Other")
+            if dept in dept_stats:
+                dept_stats[dept]["employees_with_penalties"] += 1
+                dept_stats[dept]["total_penalty_amount"] += p.get("penalty_amount", 0)
+                dept_stats[dept]["total_penalty_days"] += p.get("penalty_days", 0)
+    
+    dept_list = sorted(dept_stats.values(), key=lambda x: x["total_penalty_amount"], reverse=True)
+    
+    # === 4. Current Month Summary ===
+    current_penalties = [p for p in all_penalties if p.get("month") == current_month]
+    current_month_summary = {
+        "month": current_month,
+        "total_employees_penalized": len(set(p.get("employee_id") for p in current_penalties)),
+        "total_penalty_amount": sum(p.get("penalty_amount", 0) for p in current_penalties),
+        "total_penalty_days": sum(p.get("penalty_days", 0) for p in current_penalties),
+        "avg_penalty_per_employee": (
+            sum(p.get("penalty_amount", 0) for p in current_penalties) / 
+            max(1, len(set(p.get("employee_id") for p in current_penalties)))
+        )
+    }
+    
+    # === 5. Get Attendance Policy for context ===
+    policy = await db.business_policies.find_one(
+        {"policy_type": "attendance", "scope": "company", "is_active": True},
+        {"_id": 0}
+    )
+    rules = {r["rule_id"]: r for r in policy.get("rules", [])} if policy else {}
+    
+    policy_context = {
+        "grace_days_per_month": rules.get("AT011", {}).get("numeric_value", 3),
+        "late_penalty_per_day": rules.get("AT012", {}).get("numeric_value", 100),
+        "grace_period_minutes": rules.get("AT010", {}).get("numeric_value", 30),
+        "core_hours_start": rules.get("AT002", {}).get("value", "10:00"),
+        "core_hours_end": rules.get("AT003", {}).get("value", "19:00")
+    }
+    
+    return {
+        "monthly_trends": trends_list,
+        "top_violators": top_violators,
+        "department_breakdown": dept_list,
+        "current_month_summary": current_month_summary,
+        "policy_context": policy_context,
+        "data_range": {
+            "months_analyzed": months,
+            "from_month": min(month_list) if month_list else current_month,
+            "to_month": max(month_list) if month_list else current_month
+        }
+    }
+
+
 # ==================== HR FUNCTIONS FOR BULK LEAVE/ATTENDANCE ====================
 
 @router.post("/hr/bulk-leave-credit")

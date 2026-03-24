@@ -40,7 +40,11 @@ import {
   Check,
   X,
   Mail,
-  FileDown
+  FileDown,
+  BarChart3,
+  AlertCircle,
+  UserX,
+  Timer
 } from 'lucide-react';
 import {
   useSimulatePayroll,
@@ -374,6 +378,10 @@ export default function PayrollEngine() {
           <TabsTrigger value="approval" data-testid="tab-approval">
             <CheckCircle2 className="w-4 h-4 mr-2" />
             Approval
+          </TabsTrigger>
+          <TabsTrigger value="penalty-dashboard" data-testid="tab-penalty-dashboard">
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Penalty Dashboard
           </TabsTrigger>
         </TabsList>
         
@@ -2000,6 +2008,11 @@ export default function PayrollEngine() {
             </CardContent>
           </Card>
         </TabsContent>
+        
+        {/* ==================== PENALTY DASHBOARD ==================== */}
+        <TabsContent value="penalty-dashboard">
+          <PenaltyDashboard isDark={isDark} />
+        </TabsContent>
       </Tabs>
       
       {/* ==================== BREAKDOWN DIALOG ==================== */}
@@ -2241,6 +2254,339 @@ export default function PayrollEngine() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ==================== PENALTY DASHBOARD COMPONENT ====================
+
+function PenaltyDashboard({ isDark }) {
+  const [monthsToShow, setMonthsToShow] = useState(6);
+  
+  // Fetch penalty dashboard data
+  const { data: dashboardData, isLoading, error } = useQuery({
+    queryKey: ['penalty-dashboard', monthsToShow],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/attendance/penalty-dashboard?months=${monthsToShow}`);
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000
+  });
+  
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount || 0);
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Card className={isDark ? 'bg-zinc-900 border-zinc-800' : ''}>
+        <CardContent className="py-10 text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-500" />
+          <p className="text-red-500">Failed to load penalty dashboard</p>
+          <p className="text-sm text-zinc-500">{error.message}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  const { 
+    monthly_trends = [], 
+    top_violators = [], 
+    department_breakdown = [],
+    current_month_summary = {},
+    policy_context = {}
+  } = dashboardData || {};
+  
+  // Calculate max for chart scaling
+  const maxPenalty = Math.max(...monthly_trends.map(t => t.total_amount), 1);
+  
+  return (
+    <div className="space-y-6">
+      {/* Header with Policy Context */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-amber-500" />
+            Penalty Analytics Dashboard
+          </h2>
+          <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+            Late arrival penalties and compliance tracking
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className={`text-xs px-3 py-1 rounded ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600'}`}>
+            <Timer className="w-3 h-3 inline mr-1" />
+            Core Hours: {policy_context.core_hours_start} - {policy_context.core_hours_end}
+          </div>
+          <div className={`text-xs px-3 py-1 rounded ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600'}`}>
+            Grace: {policy_context.grace_days_per_month} days/month | ₹{policy_context.late_penalty_per_day}/day
+          </div>
+          <Select value={String(monthsToShow)} onValueChange={(v) => setMonthsToShow(Number(v))}>
+            <SelectTrigger className={`w-32 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">Last 3 Months</SelectItem>
+              <SelectItem value="6">Last 6 Months</SelectItem>
+              <SelectItem value="12">Last 12 Months</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {/* Current Month Summary Cards */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className={`${isDark ? 'bg-gradient-to-br from-red-900/20 to-zinc-900 border-red-800/50' : 'bg-gradient-to-br from-red-50 to-white border-red-200'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-xs ${isDark ? 'text-red-400' : 'text-red-600'}`}>This Month Penalties</p>
+                <p className="text-2xl font-bold text-red-500">{formatCurrency(current_month_summary.total_penalty_amount)}</p>
+              </div>
+              <div className={`p-3 rounded-full ${isDark ? 'bg-red-900/30' : 'bg-red-100'}`}>
+                <IndianRupee className="w-6 h-6 text-red-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className={`${isDark ? 'bg-gradient-to-br from-amber-900/20 to-zinc-900 border-amber-800/50' : 'bg-gradient-to-br from-amber-50 to-white border-amber-200'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-xs ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>Employees Penalized</p>
+                <p className="text-2xl font-bold text-amber-500">{current_month_summary.total_employees_penalized || 0}</p>
+              </div>
+              <div className={`p-3 rounded-full ${isDark ? 'bg-amber-900/30' : 'bg-amber-100'}`}>
+                <UserX className="w-6 h-6 text-amber-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className={`${isDark ? 'bg-gradient-to-br from-purple-900/20 to-zinc-900 border-purple-800/50' : 'bg-gradient-to-br from-purple-50 to-white border-purple-200'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-xs ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>Total Penalty Days</p>
+                <p className="text-2xl font-bold text-purple-500">{current_month_summary.total_penalty_days || 0}</p>
+              </div>
+              <div className={`p-3 rounded-full ${isDark ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
+                <Calendar className="w-6 h-6 text-purple-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className={`${isDark ? 'bg-gradient-to-br from-blue-900/20 to-zinc-900 border-blue-800/50' : 'bg-gradient-to-br from-blue-50 to-white border-blue-200'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-xs ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Avg per Employee</p>
+                <p className="text-2xl font-bold text-blue-500">{formatCurrency(current_month_summary.avg_penalty_per_employee)}</p>
+              </div>
+              <div className={`p-3 rounded-full ${isDark ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                <TrendingUp className="w-6 h-6 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-3 gap-6">
+        {/* Monthly Trends Chart */}
+        <Card className={`col-span-2 ${isDark ? 'bg-zinc-900 border-zinc-800' : ''}`}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              Monthly Penalty Trends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {monthly_trends.slice().reverse().map((trend, idx) => {
+                const percentage = (trend.total_amount / maxPenalty) * 100;
+                const isCurrentMonth = idx === monthly_trends.length - 1;
+                
+                return (
+                  <div key={trend.month} className="flex items-center gap-3">
+                    <div className="w-20 text-sm font-medium">{trend.month_name}</div>
+                    <div className="flex-1 h-8 relative">
+                      <div 
+                        className={`h-full rounded transition-all duration-500 ${
+                          isCurrentMonth 
+                            ? 'bg-gradient-to-r from-red-500 to-red-400' 
+                            : isDark ? 'bg-gradient-to-r from-amber-700 to-amber-600' : 'bg-gradient-to-r from-amber-400 to-amber-300'
+                        }`}
+                        style={{ width: `${Math.max(percentage, 2)}%` }}
+                      />
+                      <div className="absolute inset-0 flex items-center px-2">
+                        <span className={`text-xs font-medium ${percentage > 30 ? 'text-white' : isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                          {formatCurrency(trend.total_amount)} ({trend.employee_count} emp)
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-16 text-right text-xs text-zinc-500">
+                      {trend.total_days}d
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {monthly_trends.length === 0 && (
+              <div className={`text-center py-8 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+                <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>No penalty data available</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Top Violators */}
+        <Card className={isDark ? 'bg-zinc-900 border-zinc-800' : ''}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500" />
+              Top Violators
+            </CardTitle>
+            <CardDescription>Employees with highest penalties</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {top_violators.slice(0, 5).map((violator, idx) => (
+                <div 
+                  key={violator.employee_id}
+                  className={`flex items-center gap-3 p-2 rounded ${isDark ? 'bg-zinc-800/50' : 'bg-gray-50'}`}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    idx === 0 ? 'bg-red-500 text-white' :
+                    idx === 1 ? 'bg-orange-500 text-white' :
+                    idx === 2 ? 'bg-amber-500 text-white' :
+                    isDark ? 'bg-zinc-700 text-zinc-300' : 'bg-gray-200 text-gray-600'
+                  }`}>
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{violator.employee_name}</p>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+                      {violator.employee_code} • {violator.department}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-red-500">{formatCurrency(violator.total_penalty_amount)}</p>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+                      {violator.total_penalty_days}d in {violator.months_with_penalties}mo
+                    </p>
+                  </div>
+                </div>
+              ))}
+              
+              {top_violators.length === 0 && (
+                <div className={`text-center py-6 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+                  <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500 opacity-50" />
+                  <p className="text-sm">No violators found</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Department Breakdown */}
+      <Card className={isDark ? 'bg-zinc-900 border-zinc-800' : ''}>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-blue-500" />
+            Department-wise Penalty Summary (Current Month)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={`border-b ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+                  <th className="text-left p-3 font-medium">Department</th>
+                  <th className="text-center p-3 font-medium">Total Employees</th>
+                  <th className="text-center p-3 font-medium">Penalized</th>
+                  <th className="text-center p-3 font-medium">Compliance %</th>
+                  <th className="text-right p-3 font-medium">Penalty Days</th>
+                  <th className="text-right p-3 font-medium">Total Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {department_breakdown.map((dept) => {
+                  const complianceRate = dept.total_employees > 0 
+                    ? ((dept.total_employees - dept.employees_with_penalties) / dept.total_employees * 100).toFixed(0)
+                    : 100;
+                  
+                  return (
+                    <tr 
+                      key={dept.department}
+                      className={`border-b ${isDark ? 'border-zinc-800 hover:bg-zinc-800/50' : 'border-gray-100 hover:bg-gray-50'}`}
+                    >
+                      <td className="p-3 font-medium">{dept.department || 'Unassigned'}</td>
+                      <td className="p-3 text-center">{dept.total_employees}</td>
+                      <td className="p-3 text-center">
+                        <span className={dept.employees_with_penalties > 0 ? 'text-red-500 font-medium' : ''}>
+                          {dept.employees_with_penalties}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <Badge className={
+                          complianceRate >= 90 ? 'bg-emerald-100 text-emerald-700' :
+                          complianceRate >= 70 ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700'
+                        }>
+                          {complianceRate}%
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-right">{dept.total_penalty_days}</td>
+                      <td className="p-3 text-right font-medium text-red-500">
+                        {dept.total_penalty_amount > 0 ? formatCurrency(dept.total_penalty_amount) : '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              {department_breakdown.length > 0 && (
+                <tfoot>
+                  <tr className={`font-bold ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
+                    <td className="p-3">Total</td>
+                    <td className="p-3 text-center">{department_breakdown.reduce((sum, d) => sum + d.total_employees, 0)}</td>
+                    <td className="p-3 text-center text-red-500">{department_breakdown.reduce((sum, d) => sum + d.employees_with_penalties, 0)}</td>
+                    <td className="p-3 text-center">-</td>
+                    <td className="p-3 text-right">{department_breakdown.reduce((sum, d) => sum + d.total_penalty_days, 0)}</td>
+                    <td className="p-3 text-right text-red-500">
+                      {formatCurrency(department_breakdown.reduce((sum, d) => sum + d.total_penalty_amount, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+            
+            {department_breakdown.length === 0 && (
+              <div className={`text-center py-8 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+                <Building2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>No department data available</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

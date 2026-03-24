@@ -1,8 +1,19 @@
 # NETRA ERP - Product Requirements Document
 
-## Latest Updates - March 23, 2026
+## Latest Updates - March 24, 2026
 
-### E2E Penalty Flow Verification (P0 COMPLETE) ✅ [NEW]
+### Penalty Analytics Dashboard (P0 COMPLETE) ✅ [NEW]
+**New tab in Payroll Engine showing penalty analytics:**
+- **Summary Cards**: This Month Penalties, Employees Penalized, Total Penalty Days, Avg per Employee
+- **Policy Context Header**: Core Hours, Grace Days/Month, Penalty Rate displayed
+- **Monthly Penalty Trends**: Bar chart showing 3-12 months of penalty data
+- **Top Violators Panel**: Top 10 employees with highest penalties
+- **Department-wise Table**: Compliance %, employees penalized, penalty amounts by department
+
+**API Implemented:**
+- `GET /api/attendance/penalty-dashboard?months=6` - Comprehensive penalty analytics
+
+### E2E Penalty Flow Verification (P0 COMPLETE) ✅
 **Complete attendance-to-payroll penalty pipeline verified:**
 - **Step 1**: Create attendance with late arrivals (check-in after 10:30 grace period)
 - **Step 2**: Auto-validate detects violations, calculates pending penalties
