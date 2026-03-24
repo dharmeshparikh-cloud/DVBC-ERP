@@ -7,13 +7,15 @@ Provides:
 3. Operational Discipline Metrics
 4. Anomaly Detection
 5. Leakage Prevention Alerts
+6. Automated Governance Triggers
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from .deps import get_db, get_current_user
 from .models import User
+import uuid
 
 router = APIRouter(prefix="/governance", tags=["Business Governance"])
 
@@ -26,6 +28,302 @@ MOM_SLA_HOURS = 24  # MOM must be recorded within 24 hours of meeting
 EXPENSE_RECEIPT_THRESHOLD = 500  # Receipt required for expenses >= this amount
 STALE_LEAD_DAYS = 14  # Lead is stale if no activity for this many days
 HIGH_VALUE_EXPENSE_THRESHOLD = 5000  # Requires admin approval
+
+
+# ═══════════════════════════════════════════════════════════════════
+# GOVERNANCE TRIGGERS & AUTOMATION HELPERS
+# ═══════════════════════════════════════════════════════════════════
+
+async def create_expense_prompt_notification(
+    db, 
+    user_id: str, 
+    meeting_id: str, 
+    meeting_title: str,
+    client_name: str = None,
+    meeting_date: str = None
+):
+    """
+    Create a notification prompting user to file travel expense after in-person meeting delivery.
+    Called automatically when a meeting is marked as delivered.
+    """
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": "expense_prompt",
+        "title": "File Travel Expense",
+        "message": f"You delivered an in-person meeting '{meeting_title}'{' with ' + client_name if client_name else ''}. Don't forget to file your travel expense!",
+        "entity_type": "meeting",
+        "entity_id": meeting_id,
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "priority": "medium",
+        "action_required": True,
+        "action_path": "/my-expenses",
+        "action_label": "File Expense",
+        "metadata": {
+            "meeting_date": meeting_date,
+            "auto_generated": True,
+            "governance_rule": "meeting_expense_link"
+        }
+    }
+    await db.notifications.insert_one(notification)
+    return notification["id"]
+
+
+async def create_mom_sla_reminder(
+    db,
+    user_id: str,
+    meeting_id: str,
+    meeting_title: str,
+    hours_overdue: float,
+    escalate_to_manager: bool = False,
+    manager_id: str = None
+):
+    """
+    Create MOM SLA reminder notification for overdue meetings.
+    Optionally escalates to manager.
+    """
+    now = datetime.now(timezone.utc)
+    
+    # Main notification to meeting owner
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": "mom_sla_reminder",
+        "title": "⚠️ MOM Overdue - Action Required",
+        "message": f"Meeting '{meeting_title}' is {int(hours_overdue)} hours past the 24-hour MOM deadline. Please record MOM immediately.",
+        "entity_type": "meeting",
+        "entity_id": meeting_id,
+        "read": False,
+        "created_at": now.isoformat(),
+        "priority": "high",
+        "action_required": True,
+        "action_path": "/consulting-meetings",
+        "action_label": "Record MOM",
+        "metadata": {
+            "hours_overdue": round(hours_overdue, 1),
+            "sla_breach": True,
+            "governance_rule": "mom_sla_24h"
+        }
+    }
+    await db.notifications.insert_one(notification)
+    
+    # Manager escalation if requested
+    if escalate_to_manager and manager_id:
+        escalation = {
+            "id": str(uuid.uuid4()),
+            "user_id": manager_id,
+            "type": "mom_sla_escalation",
+            "title": "🔴 Team MOM SLA Breach",
+            "message": f"Meeting '{meeting_title}' has breached the 24-hour MOM SLA by {int(hours_overdue)} hours. Team member requires follow-up.",
+            "entity_type": "meeting",
+            "entity_id": meeting_id,
+            "read": False,
+            "created_at": now.isoformat(),
+            "priority": "high",
+            "action_required": True,
+            "action_path": "/consulting-meetings",
+            "action_label": "Review",
+            "metadata": {
+                "hours_overdue": round(hours_overdue, 1),
+                "escalation": True,
+                "original_owner_id": user_id,
+                "governance_rule": "mom_sla_24h"
+            }
+        }
+        await db.notifications.insert_one(escalation)
+        
+        # Mark meeting as escalated
+        await db.meetings.update_one(
+            {"id": meeting_id},
+            {"$set": {
+                "mom_sla_escalated": True,
+                "mom_sla_escalated_at": now.isoformat()
+            }}
+        )
+    
+    return notification["id"]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# AUTOMATED MOM SLA REMINDER SYSTEM
+# ═══════════════════════════════════════════════════════════════════
+
+@router.post("/mom-sla/run-reminders")
+async def run_mom_sla_reminders(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Run automated MOM SLA reminder system.
+    Scans for overdue meetings and sends notifications:
+    - 24-36 hours overdue: Reminder to meeting owner
+    - >36 hours overdue: Escalation to reporting manager
+    
+    Can be called manually or by a scheduler.
+    """
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    # Get all meetings without MOM that are past SLA
+    meetings = await db.meetings.find(
+        {
+            "status": {"$nin": ["cancelled", "CANCELLED"]},
+            "mom_generated": {"$ne": True}
+        },
+        {"_id": 0}
+    ).to_list(500)
+    
+    reminders_sent = 0
+    escalations_sent = 0
+    skipped = 0
+    
+    for m in meetings:
+        meeting_date = m.get("meeting_date")
+        if not meeting_date:
+            continue
+            
+        try:
+            if isinstance(meeting_date, str):
+                m_dt = datetime.fromisoformat(meeting_date.replace("Z", "+00:00"))
+            else:
+                m_dt = meeting_date if meeting_date.tzinfo else meeting_date.replace(tzinfo=timezone.utc)
+            
+            # Only check past meetings
+            if m_dt > now:
+                continue
+            
+            hours_since = (now - m_dt).total_seconds() / 3600
+            
+            # Skip if within SLA
+            if hours_since <= MOM_SLA_HOURS:
+                continue
+            
+            # Check if already notified recently (within 12 hours)
+            last_reminder = m.get("last_mom_reminder_at")
+            if last_reminder:
+                try:
+                    last_dt = datetime.fromisoformat(str(last_reminder).replace("Z", "+00:00"))
+                    if (now - last_dt).total_seconds() < 12 * 3600:
+                        skipped += 1
+                        continue
+                except (ValueError, TypeError, AttributeError):
+                    pass
+            
+            meeting_owner = m.get("created_by") or m.get("scheduled_by")
+            if not meeting_owner:
+                continue
+            
+            hours_overdue = hours_since - MOM_SLA_HOURS
+            
+            # Determine if escalation needed (>36 hours = 12 hours past SLA)
+            needs_escalation = hours_overdue > 12 and not m.get("mom_sla_escalated")
+            
+            # Get manager for escalation
+            manager_id = None
+            if needs_escalation:
+                employee = await db.employees.find_one({"user_id": meeting_owner}, {"_id": 0, "reporting_manager_id": 1})
+                if employee:
+                    manager_id = employee.get("reporting_manager_id")
+            
+            # Create reminder
+            await create_mom_sla_reminder(
+                db=db,
+                user_id=meeting_owner,
+                meeting_id=m.get("id"),
+                meeting_title=m.get("title", "Meeting"),
+                hours_overdue=hours_overdue,
+                escalate_to_manager=needs_escalation,
+                manager_id=manager_id
+            )
+            
+            # Update meeting with last reminder time
+            await db.meetings.update_one(
+                {"id": m.get("id")},
+                {"$set": {"last_mom_reminder_at": now.isoformat()}}
+            )
+            
+            reminders_sent += 1
+            if needs_escalation:
+                escalations_sent += 1
+                
+        except Exception as e:
+            print(f"Error processing meeting {m.get('id')}: {e}")
+            continue
+    
+    return {
+        "message": "MOM SLA reminder system executed",
+        "reminders_sent": reminders_sent,
+        "escalations_sent": escalations_sent,
+        "skipped_recent": skipped,
+        "executed_at": now.isoformat()
+    }
+
+
+@router.get("/mom-sla/pending-reminders")
+async def get_pending_mom_reminders(current_user: User = Depends(get_current_user)):
+    """
+    Get list of meetings that would receive reminders if run-reminders is called.
+    Useful for preview before running automated reminders.
+    """
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    meetings = await db.meetings.find(
+        {
+            "status": {"$nin": ["cancelled", "CANCELLED"]},
+            "mom_generated": {"$ne": True}
+        },
+        {"_id": 0}
+    ).to_list(500)
+    
+    pending = []
+    
+    for m in meetings:
+        meeting_date = m.get("meeting_date")
+        if not meeting_date:
+            continue
+            
+        try:
+            if isinstance(meeting_date, str):
+                m_dt = datetime.fromisoformat(meeting_date.replace("Z", "+00:00"))
+            else:
+                m_dt = meeting_date if meeting_date.tzinfo else meeting_date.replace(tzinfo=timezone.utc)
+            
+            if m_dt > now:
+                continue
+            
+            hours_since = (now - m_dt).total_seconds() / 3600
+            
+            if hours_since <= MOM_SLA_HOURS:
+                continue
+            
+            hours_overdue = hours_since - MOM_SLA_HOURS
+            
+            pending.append({
+                "meeting_id": m.get("id"),
+                "title": m.get("title"),
+                "meeting_date": meeting_date,
+                "created_by": m.get("created_by"),
+                "project_name": m.get("project_name"),
+                "client_name": m.get("client_name"),
+                "hours_overdue": round(hours_overdue, 1),
+                "would_escalate": hours_overdue > 12 and not m.get("mom_sla_escalated"),
+                "last_reminder_at": m.get("last_mom_reminder_at"),
+                "already_escalated": m.get("mom_sla_escalated", False)
+            })
+                
+        except Exception:
+            continue
+    
+    # Sort by hours overdue (most urgent first)
+    pending.sort(key=lambda x: -x.get("hours_overdue", 0))
+    
+    return {
+        "count": len(pending),
+        "would_escalate": len([p for p in pending if p.get("would_escalate")]),
+        "pending_meetings": pending[:50]
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -222,7 +520,7 @@ async def get_expense_compliance(current_user: User = Depends(get_current_user))
                 created_dt = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
                 if (datetime.now(timezone.utc) - created_dt).days > 7:
                     old_pending += 1
-            except:
+            except (ValueError, TypeError, AttributeError):
                 pass
     
     # Anomaly detection
@@ -531,7 +829,3 @@ async def get_leakage_alerts(current_user: User = Depends(get_current_user)):
         "medium": len([a for a in alerts if a["severity"] == "medium"]),
         "alerts": alerts
     }
-
-
-# Import uuid for notifications
-import uuid

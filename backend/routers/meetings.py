@@ -2,6 +2,7 @@
 Meetings Router - Meeting Management, MOM, Action Items
 Includes file attachments for offline meetings (photos/voice)
 Sends email notifications when MOM is filled
+Auto-prompts for travel expense after in-person meeting delivery
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
@@ -18,6 +19,7 @@ from .deps import get_current_user
 from services.email_service import send_email
 from services.funnel_notifications import meeting_mom_filled_email, get_sales_manager_emails
 from .audit_logging import log_audit
+from .business_governance import create_expense_prompt_notification
 
 router = APIRouter(prefix="/meetings", tags=["Meetings"])
 
@@ -160,6 +162,20 @@ async def create_meeting(meeting_create: MeetingCreate, current_user: User = Dep
                     print(f"Created consulting travel expense: {expense_id} for Rs.{expense_amount} linked to payroll month {expense_doc['payroll_month']}")
         except Exception as e:
             print(f"Failed to create consulting travel expense: {e}")
+
+    # GOVERNANCE: Prompt for travel expense if in-person meeting created without travel details
+    if meeting_create.mode in ("offline", "in-person") and not travel_details:
+        try:
+            await create_expense_prompt_notification(
+                db=db,
+                user_id=current_user.id,
+                meeting_id=meeting.id,
+                meeting_title=meeting.title or "Meeting",
+                client_name=meeting_create.client_name,
+                meeting_date=doc['meeting_date']
+            )
+        except Exception as e:
+            print(f"Failed to send expense prompt on meeting create: {e}")
 
     return meeting
 
@@ -930,6 +946,31 @@ async def update_meeting_mom(
                 print(f"Failed to create meeting expense: {e}")
         
         background_tasks.add_task(create_meeting_expense)
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # GOVERNANCE: Auto-prompt for travel expense on in-person meeting delivery
+    # ═══════════════════════════════════════════════════════════════════
+    # If this is an offline/in-person meeting with MOM now recorded,
+    # and no expense exists yet, prompt user to file travel expense
+    is_inperson = meeting.get('mode') in ('offline', 'in-person')
+    has_expense = meeting.get('expense_id') or (travel_details and travel_details.get('expense_amount', 0) > 0)
+    
+    if is_inperson and not has_expense:
+        async def send_expense_prompt():
+            try:
+                await create_expense_prompt_notification(
+                    db=db,
+                    user_id=current_user.id,
+                    meeting_id=meeting_id,
+                    meeting_title=meeting.get("title", "Meeting"),
+                    client_name=meeting.get("client_name"),
+                    meeting_date=str(meeting.get("meeting_date", ""))
+                )
+                print(f"Sent expense prompt notification for meeting {meeting_id}")
+            except Exception as e:
+                print(f"Failed to send expense prompt: {e}")
+        
+        background_tasks.add_task(send_expense_prompt)
     
     # Audit log for MOM update
     await log_audit(
