@@ -77,10 +77,22 @@ const AttendanceLeaveSettings = () => {
 
   const loading = loadingPolicy;
 
-  // Update local state when data is fetched
+  // Update local state when data is fetched (merge with defaults to prevent missing fields)
   useEffect(() => {
     if (attendancePolicyData?.policy) {
-      setAttendancePolicy(attendancePolicyData.policy);
+      setAttendancePolicy(prev => ({
+        ...prev,
+        ...attendancePolicyData.policy,
+        working_days: attendancePolicyData.policy.working_days || prev.working_days || [],
+        non_consulting: {
+          ...prev.non_consulting,
+          ...(attendancePolicyData.policy.non_consulting || {})
+        },
+        consulting: {
+          ...prev.consulting,
+          ...(attendancePolicyData.policy.consulting || {})
+        }
+      }));
     }
     if (attendancePolicyData?.consulting_roles) {
       setConsultingRoles(attendancePolicyData.consulting_roles);
@@ -197,9 +209,9 @@ const AttendanceLeaveSettings = () => {
   const toggleWorkingDay = (day) => {
     setAttendancePolicy(prev => ({
       ...prev,
-      working_days: prev.working_days.includes(day)
+      working_days: (prev?.working_days || []).includes(day)
         ? (prev?.working_days || []).filter(d => d !== day)
-        : [...prev.working_days, day]
+        : [...(prev?.working_days || []), day]
     }));
   };
 
@@ -243,10 +255,10 @@ const AttendanceLeaveSettings = () => {
               {(allDays || []).map(day => (
                 <Button
                   key={day}
-                  variant={attendancePolicy.working_days.includes(day) ? 'default' : 'outline'}
+                  variant={(attendancePolicy?.working_days || []).includes(day) ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => toggleWorkingDay(day)}
-                  className={attendancePolicy.working_days.includes(day) 
+                  className={(attendancePolicy?.working_days || []).includes(day) 
                     ? 'bg-blue-600 hover:bg-blue-700' 
                     : 'border-zinc-300'}
                 >
