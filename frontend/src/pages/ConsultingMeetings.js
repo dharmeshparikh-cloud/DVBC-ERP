@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -99,7 +99,7 @@ const ConsultingMeetings = () => {
   const [momAttachments, setMomAttachments] = useState([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
 
-  // Travel expense state
+  // Travel expense state (MOM dialog - existing)
   const [addTravelExpense, setAddTravelExpense] = useState(false);
   const [travelData, setTravelData] = useState({
     start_location: '',
@@ -112,6 +112,30 @@ const ConsultingMeetings = () => {
     travel_start_location: '',
     travel_end_location: ''
   });
+
+  // Schedule dialog travel state (MeetingLocationPicker)
+  const [scheduleTravelData, setScheduleTravelData] = useState({
+    startLocation: '',
+    startLocationData: null,
+    endLocation: '',
+    endLocationData: null,
+    viaLocations: [],
+    isRoundTrip: true,
+    travelMode: 'DRIVING',
+    distance: null,
+    duration: null,
+    startTime: '',
+    endTime: '',
+    totalKm: 0,
+    expenseAmount: 0,
+    transitAmount: 0,
+    accompaniedBy: null
+  });
+
+  // Stable onChange handler for MeetingLocationPicker (avoids infinite re-render loop)
+  const handleScheduleTravelChange = useCallback((data) => {
+    setScheduleTravelData(prev => ({ ...prev, ...data }));
+  }, []);
 
   const [formData, setFormData] = useState({
     project_id: '', client_id: '', sow_id: '', 
@@ -458,7 +482,8 @@ const ConsultingMeetings = () => {
     onSuccess: () => {
       toast.success('Consulting meeting created');
       setDialogOpen(false);
-      setFormData({ title: '', project_id: '', client_id: '', sow_id: '', meeting_date: '', mode: 'online', duration_minutes: '', notes: '', is_delivered: false, agenda: [''], attendees: [], attendee_names: [] });
+      setFormData({ title: '', project_id: '', client_id: '', sow_id: '', meeting_date: '', mode: 'online', duration_minutes: '', notes: '', is_delivered: false, agenda: [''], attendees: [], attendee_names: [], meeting_type_code: '' });
+      setScheduleTravelData({ startLocation: '', startLocationData: null, endLocation: '', endLocationData: null, viaLocations: [], isRoundTrip: true, travelMode: 'DRIVING', distance: null, duration: null, startTime: '', endTime: '', totalKm: 0, expenseAmount: 0, transitAmount: 0, accompaniedBy: null });
       queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
     },
     onError: (error) => {
@@ -529,9 +554,29 @@ const ConsultingMeetings = () => {
       client_id: project?.client_id || formData.client_id,
       client_name: project?.client_name,
       project_name: project?.name,
-      // Conveyance tracking (expense claimed only during MOM, not scheduling)
+      // Travel companions
       travel_companion_names: companionNames,
-      is_conveyance_claimable: false, // Set to true only when MOM is recorded
+      // Travel & Expense details (from MeetingLocationPicker)
+      ...(formData.mode === 'offline' && scheduleTravelData.startLocation ? {
+        travel_details: {
+          start_location: scheduleTravelData.startLocation,
+          start_location_data: scheduleTravelData.startLocationData,
+          end_location: scheduleTravelData.endLocation,
+          end_location_data: scheduleTravelData.endLocationData,
+          via_locations: scheduleTravelData.viaLocations || [],
+          distance_km: scheduleTravelData.totalKm || (scheduleTravelData.distance ? scheduleTravelData.distance.value / 1000 : 0),
+          is_round_trip: scheduleTravelData.isRoundTrip || false,
+          travel_mode: scheduleTravelData.travelMode || 'DRIVING',
+          transit_amount: scheduleTravelData.transitAmount || 0,
+          expense_amount: scheduleTravelData.expenseAmount || 0,
+          accompanied_by: scheduleTravelData.accompaniedBy || null,
+          travel_start_time: scheduleTravelData.startTime || formData.start_time,
+          travel_end_time: scheduleTravelData.endTime || formData.end_time
+        },
+        is_conveyance_claimable: true,
+      } : {
+        is_conveyance_claimable: false,
+      }),
       // Audit fields
       scheduled_by: user?.id,
       scheduled_by_name: user?.full_name,
@@ -1115,22 +1160,11 @@ const ConsultingMeetings = () => {
                   </div>
                 )}
 
-                {/* Travel Companions & Vehicle Details (for In-person meetings) */}
+                {/* Travel & Conveyance — Full Google Maps Picker (for In-person meetings) */}
                 {formData.mode === 'offline' && (
-                  <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-sm">
-                    <div className="flex items-center gap-2 text-blue-800 font-medium">
-                      <Car className="w-5 h-5" />
-                      <span>Travel & Conveyance Details</span>
-                    </div>
-                    
-                    {/* Conveyance Claim Notice */}
-                    <div className="p-2 bg-white border border-blue-200 rounded text-xs text-blue-700">
-                      <strong>Note:</strong> Only you (meeting scheduler) can claim conveyance for this visit. 
-                      Companions will have this meeting in their calendar but cannot claim separate conveyance.
-                    </div>
-
+                  <div className="space-y-3">
                     {/* Travel Companions */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-sm">
                       <Label className="text-sm font-medium text-blue-900 flex items-center gap-2">
                         <UserPlus className="w-4 h-4" /> Travel Companions
                       </Label>
@@ -1146,75 +1180,26 @@ const ConsultingMeetings = () => {
                           <option key={u.id} value={u.id}>{u.full_name}</option>
                         ))}
                       </select>
-                      <p className="text-xs text-blue-500">Hold Ctrl/Cmd to select multiple consultants traveling with you</p>
+                      <p className="text-xs text-blue-500">Hold Ctrl/Cmd to select multiple</p>
                     </div>
-
-                    {/* Companion Purpose */}
-                    {formData.travel_companions?.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-blue-900">Purpose of Accompanying</Label>
-                        <select 
-                          value={formData.companion_purpose || ''}
-                          onChange={(e) => setFormData({ ...formData, companion_purpose: e.target.value })}
-                          className="w-full h-10 px-3 rounded-sm border border-blue-200 bg-white text-sm">
-                          <option value="">Select purpose...</option>
-                          <option value="training">Training / Knowledge Transfer</option>
-                          <option value="handover">Project Handover</option>
-                          <option value="support">Technical Support</option>
-                          <option value="presentation">Joint Presentation</option>
-                          <option value="audit">Audit / Quality Review</option>
-                          <option value="introduction">Client Introduction</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Vehicle Details */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-blue-900">Vehicle Type</Label>
-                        <select 
-                          value={formData.vehicle_type || ''}
-                          onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value })}
-                          className="w-full h-10 px-3 rounded-sm border border-blue-200 bg-white text-sm">
-                          <option value="">Select...</option>
-                          <option value="own_car">Own Car</option>
-                          <option value="own_bike">Own Bike</option>
-                          <option value="cab">Cab/Taxi</option>
-                          <option value="auto">Auto Rickshaw</option>
-                          <option value="public">Public Transport</option>
-                          <option value="company">Company Vehicle</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-blue-900">Vehicle Number (Optional)</Label>
-                        <Input 
-                          value={formData.vehicle_number || ''}
-                          onChange={(e) => setFormData({ ...formData, vehicle_number: e.target.value.toUpperCase() })}
-                          placeholder="e.g., MH12AB1234"
-                          className="rounded-sm border-blue-200 bg-white" />
-                      </div>
-                    </div>
-
-                    {/* Start/End Locations */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-blue-900">Start Location</Label>
-                        <Input 
-                          value={formData.travel_start_location || ''}
-                          onChange={(e) => setFormData({ ...formData, travel_start_location: e.target.value })}
-                          placeholder="e.g., Office / Home"
-                          className="rounded-sm border-blue-200 bg-white" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-blue-900">End Location</Label>
-                        <Input 
-                          value={formData.travel_end_location || ''}
-                          onChange={(e) => setFormData({ ...formData, travel_end_location: e.target.value })}
-                          placeholder="Client office address"
-                          className="rounded-sm border-blue-200 bg-white" />
-                      </div>
-                    </div>
+                    
+                    {/* Full MeetingLocationPicker — Google Maps, Distance, Expense Auto-Calc */}
+                    <MeetingLocationPicker 
+                      value={{
+                        startLocation: scheduleTravelData.startLocation || '',
+                        endLocation: scheduleTravelData.endLocation || '',
+                        travelMode: scheduleTravelData.travelMode || 'DRIVING',
+                        isRoundTrip: scheduleTravelData.isRoundTrip ?? true,
+                        transitAmount: scheduleTravelData.transitAmount || 0,
+                        distance: scheduleTravelData.distance || null,
+                        viaLocations: scheduleTravelData.viaLocations || [],
+                        startTime: formData.start_time || '',
+                        endTime: formData.end_time || ''
+                      }}
+                      onChange={handleScheduleTravelChange}
+                      meetingType="Offline"
+                      data-testid="schedule-meeting-location-picker"
+                    />
                   </div>
                 )}
 

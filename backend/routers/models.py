@@ -381,7 +381,9 @@ class Meeting(BaseModel):
 class MeetingCreate(BaseModel):
     type: str = "consulting"
     project_id: Optional[str] = None
+    project_name: Optional[str] = None
     client_id: Optional[str] = None
+    client_name: Optional[str] = None
     lead_id: Optional[str] = None
     sow_id: Optional[str] = None
     meeting_date: datetime
@@ -393,6 +395,17 @@ class MeetingCreate(BaseModel):
     is_delivered: bool = False
     title: Optional[str] = None
     agenda: Optional[List[str]] = []
+    meeting_type_code: Optional[str] = None
+    meeting_type_name: Optional[str] = None
+    # Travel & conveyance (in-person meetings)
+    travel_details: Optional[Dict[str, Any]] = None
+    travel_companions: Optional[List[str]] = []
+    travel_companion_names: Optional[List[str]] = []
+    is_conveyance_claimable: bool = False
+    scheduled_by: Optional[str] = None
+    scheduled_by_name: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    is_short_notice: bool = False
 
 
 class MOMCreate(BaseModel):

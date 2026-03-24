@@ -82,6 +82,85 @@ async def create_meeting(meeting_create: MeetingCreate, current_user: User = Dep
             {"$inc": {"total_meetings_delivered": 1, "number_of_visits": 1}}
         )
 
+    # Create travel expense for in-person meetings with travel_details
+    travel_details = meeting_create.travel_details
+    if travel_details and meeting_create.mode in ("offline", "in-person"):
+        try:
+            travel_mode = travel_details.get("travel_mode", "")
+            if travel_mode != "ACCOMPANIED":
+                distance_km = travel_details.get("distance_km", 0)
+                is_round_trip = travel_details.get("is_round_trip", False)
+                total_km = distance_km * 2 if is_round_trip else distance_km
+                
+                expense_amount = 0
+                if travel_mode == "DRIVING":
+                    expense_amount = total_km * 7
+                elif travel_mode == "TWO_WHEELER":
+                    expense_amount = total_km * 3
+                elif travel_mode == "TRANSIT":
+                    expense_amount = travel_details.get("transit_amount", 0)
+                
+                # Use pre-calculated expense_amount from frontend if available
+                if travel_details.get("expense_amount", 0) > 0:
+                    expense_amount = travel_details["expense_amount"]
+                
+                if expense_amount > 0:
+                    expense_id = str(uuid.uuid4())
+                    expense_doc = {
+                        "id": expense_id,
+                        "employee_id": current_user.employee_id,
+                        "user_id": current_user.id,
+                        "created_by": current_user.id,
+                        "employee_name": current_user.full_name,
+                        "category": "travel",
+                        "subcategory": f"consulting_travel_{travel_mode.lower()}",
+                        "description": f"Consulting Meeting Travel - {meeting_create.project_name or meeting_create.client_name or 'Client'} ({travel_mode})",
+                        "amount": round(expense_amount, 2),
+                        "total_amount": round(expense_amount, 2),
+                        "currency": "INR",
+                        "expense_date": doc['meeting_date'],
+                        "status": "pending",
+                        "receipt_url": None,
+                        "receipt_uploaded": False,
+                        "meeting_id": meeting.id,
+                        "meeting_type": "consulting",
+                        "project_id": meeting_create.project_id,
+                        "project_name": meeting_create.project_name,
+                        "client_id": meeting_create.client_id,
+                        "client_name": meeting_create.client_name,
+                        "travel_details": {
+                            "start_location": travel_details.get("start_location"),
+                            "end_location": travel_details.get("end_location"),
+                            "via_locations": travel_details.get("via_locations", []),
+                            "distance_km": distance_km,
+                            "total_km": total_km,
+                            "is_round_trip": is_round_trip,
+                            "travel_mode": travel_mode,
+                            "rate_per_km": 7 if travel_mode == "DRIVING" else (3 if travel_mode == "TWO_WHEELER" else 0),
+                            "travel_start_time": travel_details.get("travel_start_time"),
+                            "travel_end_time": travel_details.get("travel_end_time"),
+                        },
+                        "expense_type": "meeting_expense",
+                        "payroll_month": meeting.meeting_date.strftime("%Y-%m"),
+                        "payroll_linked": False,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    await db.expenses.insert_one(expense_doc)
+                    
+                    await db.meetings.update_one(
+                        {"id": meeting.id},
+                        {"$set": {
+                            "expense_id": expense_id,
+                            "expense_amount": round(expense_amount, 2),
+                            "is_conveyance_claimable": True,
+                            "travel_details": travel_details
+                        }}
+                    )
+                    print(f"Created consulting travel expense: {expense_id} for Rs.{expense_amount} linked to payroll month {expense_doc['payroll_month']}")
+        except Exception as e:
+            print(f"Failed to create consulting travel expense: {e}")
+
     return meeting
 
 
