@@ -40,7 +40,7 @@ export const MobileNavigation = memo(({
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 shadow-lg z-50 px-safe pb-safe">
       <div className="flex items-center justify-around h-14 max-w-md mx-auto px-2">
-        {tabs.map(tab => (
+        {(tabs || []).map(tab => (
           <NavItem
             key={tab.id}
             icon={tab.icon}

@@ -61,7 +61,7 @@ const DraftSelector = ({
               <p className="text-sm text-zinc-400">Start a new entry and it will be auto-saved</p>
             </div>
           ) : (
-            drafts.map((draft) => (
+            (drafts || []).map((draft) => (
               <Card 
                 key={draft.id} 
                 className="cursor-pointer hover:border-orange-300 transition-colors"

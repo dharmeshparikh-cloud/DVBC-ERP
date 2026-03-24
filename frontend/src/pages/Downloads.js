@@ -99,7 +99,7 @@ const Downloads = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {downloadItems.map((item) => {
+        {(downloadItems || []).map((item) => {
           const Icon = item.icon;
           const isDownloading = downloading === item.id;
           

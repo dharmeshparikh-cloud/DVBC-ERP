@@ -140,7 +140,7 @@ const Meetings = () => {
         ...data,
         meeting_date: new Date(data.meeting_date).toISOString(),
         duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
-        agenda: data.agenda.filter(a => a.trim())
+        agenda: (data?.agenda || []).filter(a => a.trim())
       };
       await axios.post(`${API}/meetings`, meetingData);
     },
@@ -204,9 +204,9 @@ const Meetings = () => {
     try {
       const momPayload = {
         ...momData,
-        agenda: momData.agenda.filter(a => a.trim()),
-        discussion_points: momData.discussion_points.filter(d => d.trim()),
-        decisions_made: momData.decisions_made.filter(d => d.trim()),
+        agenda: (momData?.agenda || []).filter(a => a.trim()),
+        discussion_points: (momData?.discussion_points || []).filter(d => d.trim()),
+        decisions_made: (momData?.decisions_made || []).filter(d => d.trim()),
         next_meeting_date: momData.next_meeting_date ? new Date(momData.next_meeting_date).toISOString() : null
       };
       
@@ -263,7 +263,7 @@ const Meetings = () => {
       // Update local state
       setMomData(prev => ({
         ...prev,
-        action_items: prev.action_items.map(item =>
+        action_items: prev.action_(items || []).map(item =>
           item.id === actionItemId ? { ...item, status } : item
         )
       }));
@@ -397,7 +397,7 @@ const Meetings = () => {
                     <select
                       value={formData.project_id}
                       onChange={(e) => {
-                        const project = projects.find(p => p.id === e.target.value);
+                        const project = (projects || []).find(p => p.id === e.target.value);
                         setFormData({ 
                           ...formData, 
                           project_id: e.target.value,
@@ -408,7 +408,7 @@ const Meetings = () => {
                       className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
                     >
                       <option value="">Select a project</option>
-                      {projects.map((project) => (
+                      {(projects || []).map((project) => (
                         <option key={project.id} value={project.id}>
                           {project.name} - {project.client_name}
                         </option>
@@ -426,7 +426,7 @@ const Meetings = () => {
                       className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
                     >
                       <option value="">Select client</option>
-                      {clients.map((client) => (
+                      {(clients || []).map((client) => (
                         <option key={client.id} value={client.id}>{client.company_name}</option>
                       ))}
                     </select>
@@ -439,7 +439,7 @@ const Meetings = () => {
                       className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
                     >
                       <option value="">Select lead</option>
-                      {leads.map((lead) => (
+                      {(leads || []).map((lead) => (
                         <option key={lead.id} value={lead.id}>
                           {lead.first_name} {lead.last_name} - {lead.company}
                         </option>
@@ -487,7 +487,7 @@ const Meetings = () => {
                 {/* Agenda Items */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-zinc-950">Agenda Items</Label>
-                  {formData.agenda.map((item, idx) => (
+                  {(formData?.agenda || []).map((item, idx) => (
                     <div key={idx} className="flex gap-2">
                       <Input
                         value={item}
@@ -515,15 +515,15 @@ const Meetings = () => {
                     value={formData.attendees}
                     onChange={(e) => {
                       const selected = Array.from(e.target.selectedOptions, option => option.value);
-                      const selectedNames = selected.map(id => {
-                        const u = users.find(usr => usr.id === id);
+                      const selectedNames = (selected || []).map(id => {
+                        const u = (users || []).find(usr => usr.id === id);
                         return u?.full_name || '';
                       });
                       setFormData({ ...formData, attendees: selected, attendee_names: selectedNames });
                     }}
                     className="w-full h-24 px-3 py-2 rounded-sm border border-zinc-200 bg-transparent text-sm"
                   >
-                    {users.map((u) => (
+                    {(users || []).map((u) => (
                       <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
                     ))}
                   </select>
@@ -578,8 +578,8 @@ const Meetings = () => {
         </Card>
       ) : (
         <div className="space-y-3">
-          {meetings.map((meeting) => {
-            const project = projects.find((p) => p.id === meeting.project_id);
+          {(meetings || []).map((meeting) => {
+            const project = (projects || []).find((p) => p.id === meeting.project_id);
             const isExpanded = expandedMeetings[meeting.id];
             const actionItemsCount = meeting.action_items?.length || 0;
             const completedCount = meeting.action_items?.filter(a => a.status === 'completed').length || 0;
@@ -643,7 +643,7 @@ const Meetings = () => {
                             <div>
                               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Agenda</div>
                               <ul className="list-disc list-inside text-sm text-zinc-600">
-                                {meeting.agenda.map((item, idx) => <li key={idx}>{item}</li>)}
+                                {(meeting?.agenda || []).map((item, idx) => <li key={idx}>{item}</li>)}
                               </ul>
                             </div>
                           )}
@@ -657,7 +657,7 @@ const Meetings = () => {
                             <div>
                               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Action Items</div>
                               <div className="space-y-2">
-                                {meeting.action_items.map((item) => (
+                                {meeting.action_(items || []).map((item) => (
                                   <div key={item.id} className={`flex items-center justify-between p-2 rounded-sm border ${item.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-200'}`}>
                                     <div className="flex items-center gap-2">
                                       {item.status === 'completed' ? (
@@ -762,7 +762,7 @@ const Meetings = () => {
             {/* Agenda */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Agenda</Label>
-              {momData.agenda.map((item, idx) => (
+              {(momData?.agenda || []).map((item, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Input
                     value={item}
@@ -785,7 +785,7 @@ const Meetings = () => {
             {/* Discussion Points */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Discussion Points</Label>
-              {momData.discussion_points.map((item, idx) => (
+              {(momData?.discussion_points || []).map((item, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Input
                     value={item}
@@ -808,7 +808,7 @@ const Meetings = () => {
             {/* Decisions Made */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Decisions Made</Label>
-              {momData.decisions_made.map((item, idx) => (
+              {(momData?.decisions_made || []).map((item, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Input
                     value={item}
@@ -835,7 +835,7 @@ const Meetings = () => {
               {/* Existing Action Items */}
               {momData.action_items.length > 0 && (
                 <div className="space-y-2">
-                  {momData.action_items.map((item) => (
+                  {momData.action_(items || []).map((item) => (
                     <div key={item.id} className={`flex items-center justify-between p-3 rounded-sm border ${item.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-200'}`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -886,7 +886,7 @@ const Meetings = () => {
                     className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
                   >
                     <option value="">Assign to...</option>
-                    {users.map((u) => (
+                    {(users || []).map((u) => (
                       <option key={u.id} value={u.id}>{u.full_name}</option>
                     ))}
                   </select>

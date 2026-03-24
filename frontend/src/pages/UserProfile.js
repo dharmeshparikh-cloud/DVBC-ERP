@@ -317,13 +317,13 @@ const UserProfile = () => {
             <CardContent>
               {showPermissions ? (
                 <div className="space-y-4">
-                  {Object.entries(permissions).map(([module, perms]) => (
+                  {Object.entries(permissions || {}).map(([module, perms]) => (
                     <div key={module} className="pb-4 border-b border-zinc-100 last:border-0">
                       <h4 className="font-medium text-zinc-950 capitalize mb-2">
                         {module.replace('_', ' ')}
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(perms).map(([action, allowed]) => (
+                        {Object.entries(perms || {}).map(([action, allowed]) => (
                           <div
                             key={action}
                             className={`flex items-center gap-1 text-xs px-2 py-1 rounded-sm ${

@@ -161,7 +161,7 @@ const HelpWidget = () => {
       // Add to recent
       const recent = JSON.parse(localStorage.getItem('help_recent') || '[]');
       const updated = [{ id: topicId, title: res.data.title, viewedAt: new Date() }, 
-                       ...recent.filter(r => r.id !== topicId)].slice(0, 10);
+                       ...(recent || []).filter(r => r.id !== topicId)].slice(0, 10);
       localStorage.setItem('help_recent', JSON.stringify(updated));
       setRecentTopics(updated);
     } catch (err) {
@@ -183,10 +183,10 @@ const HelpWidget = () => {
   };
   
   const toggleBookmark = (topic) => {
-    const isBookmarked = bookmarks.some(b => b.id === topic.id);
+    const isBookmarked = (bookmarks || []).some(b => b.id === topic.id);
     let updated;
     if (isBookmarked) {
-      updated = bookmarks.filter(b => b.id !== topic.id);
+      updated = (bookmarks || []).filter(b => b.id !== topic.id);
     } else {
       updated = [...bookmarks, { id: topic.id, title: topic.title }];
     }
@@ -292,7 +292,7 @@ const HelpWidget = () => {
             {view === 'topic' && currentTopic && (
               <TopicView 
                 topic={currentTopic}
-                isBookmarked={bookmarks.some(b => b.id === currentTopic.id)}
+                isBookmarked={(bookmarks || []).some(b => b.id === currentTopic.id)}
                 onToggleBookmark={() => toggleBookmark(currentTopic)}
                 onFeedback={(helpful) => sendFeedback(currentTopic.id, helpful)}
                 onOpenRelated={openTopic}
@@ -339,7 +339,7 @@ const HomeView = ({ contextTopics, categories, recentTopics, bookmarks, currentR
     '/payroll': 'Payroll & CTC',
   };
   
-  const currentPageLabel = Object.entries(routeLabels).find(([route]) => 
+  const currentPageLabel = Object.entries(routeLabels || {}).find(([route]) => 
     currentRoute.startsWith(route)
   )?.[1] || 'Current Page';
   
@@ -353,7 +353,7 @@ const HomeView = ({ contextTopics, categories, recentTopics, bookmarks, currentR
             <h3 className="font-semibold text-sm">Help for {currentPageLabel}</h3>
           </div>
           <div className="space-y-2">
-            {contextTopics.slice(0, 4).map(topic => (
+            {(contextTopics || []).slice(0, 4).map(topic => (
               <button
                 key={topic.id}
                 onClick={() => onOpenTopic(topic.id)}
@@ -391,7 +391,7 @@ const HomeView = ({ contextTopics, categories, recentTopics, bookmarks, currentR
       <div>
         <h3 className="font-semibold text-sm mb-3">Browse by Module</h3>
         <div className="space-y-1">
-          {categories.map(cat => (
+          {(categories || []).map(cat => (
             <button
               key={cat.id}
               onClick={() => onSelectCategory(cat)}
@@ -423,7 +423,7 @@ const HomeView = ({ contextTopics, categories, recentTopics, bookmarks, currentR
                 Bookmarked
               </h3>
               <div className="space-y-1">
-                {bookmarks.slice(0, 3).map(b => (
+                {(bookmarks || []).slice(0, 3).map(b => (
                   <button
                     key={b.id}
                     onClick={() => onOpenTopic(b.id)}
@@ -443,7 +443,7 @@ const HomeView = ({ contextTopics, categories, recentTopics, bookmarks, currentR
                 Recently Viewed
               </h3>
               <div className="space-y-1">
-                {recentTopics.slice(0, 3).map(r => (
+                {(recentTopics || []).slice(0, 3).map(r => (
                   <button
                     key={r.id}
                     onClick={() => onOpenTopic(r.id)}
@@ -486,7 +486,7 @@ const SearchResults = ({ results, query, onOpenTopic }) => (
       </div>
     ) : (
       <div className="space-y-2">
-        {results.map(result => (
+        {(results || []).map(result => (
           <button
             key={result.id}
             onClick={() => onOpenTopic(result.id)}
@@ -565,7 +565,7 @@ const TopicView = ({ topic, isBookmarked, onToggleBookmark, onFeedback, onOpenRe
               <CheckCircle2 className="w-4 h-4 text-green-500" />
               Step-by-Step Instructions
             </h3>
-            {topic.steps.map((step, idx) => (
+            {(topic?.steps || []).map((step, idx) => (
               <div key={idx} className="flex gap-3 p-3 bg-zinc-50 rounded-lg">
                 <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">
                   {idx + 1}
@@ -595,7 +595,7 @@ const TopicView = ({ topic, isBookmarked, onToggleBookmark, onFeedback, onOpenRe
               <AlertTriangle className="w-4 h-4 text-amber-500" />
               Common Issues & Solutions
             </h3>
-            {topic.troubleshooting.map((item, idx) => (
+            {(topic?.troubleshooting || []).map((item, idx) => (
               <details key={idx} className="group bg-zinc-50 rounded-lg">
                 <summary className="p-3 cursor-pointer font-medium text-sm flex items-center justify-between">
                   <span className="text-red-600">{item.problem}</span>
@@ -624,7 +624,7 @@ const TopicView = ({ topic, isBookmarked, onToggleBookmark, onFeedback, onOpenRe
         <div className="mt-6">
           <h3 className="font-semibold text-sm mb-2">Related Topics</h3>
           <div className="space-y-1">
-            {topic.relatedTopics.map(related => (
+            {(topic?.relatedTopics || []).map(related => (
               <button
                 key={related.id}
                 onClick={() => onOpenRelated(related.id)}
@@ -697,7 +697,7 @@ const CategoryView = ({ category, onOpenTopic, userRole }) => {
         <p className="text-zinc-500 text-center py-8">No topics in this category</p>
       ) : (
         <div className="space-y-2">
-          {topics.map(topic => (
+          {(topics || []).map(topic => (
             <button
               key={topic.id}
               onClick={() => onOpenTopic(topic.id)}

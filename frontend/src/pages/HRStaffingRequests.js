@@ -207,19 +207,19 @@ const HRStaffingRequests = () => {
   const removeSkill = (skill) => {
     setFormData(prev => ({
       ...prev,
-      skills_required: prev.skills_required.filter(s => s !== skill)
+      skills_required: (prev?.skills_required || []).filter(s => s !== skill)
     }));
   };
 
   const filteredRequests = filterStatus === 'all' 
     ? requests 
-    : requests.filter(r => r.status === filterStatus);
+    : (requests || []).filter(r => r.status === filterStatus);
 
   const stats = {
     total: requests.length,
-    pending: requests.filter(r => r.status === 'pending_approval').length,
-    approved: requests.filter(r => r.status === 'approved').length,
-    totalHeadcount: requests.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.headcount || 1), 0)
+    pending: (requests || []).filter(r => r.status === 'pending_approval').length,
+    approved: (requests || []).filter(r => r.status === 'approved').length,
+    totalHeadcount: (requests || []).filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.headcount || 1), 0)
   };
 
   if (loading) {
@@ -315,7 +315,7 @@ const HRStaffingRequests = () => {
         <CardContent>
           {filteredRequests.length > 0 ? (
             <div className="space-y-3">
-              {filteredRequests.map(request => (
+              {(filteredRequests || []).map(request => (
                 <div
                   key={request.id}
                   className="flex items-center justify-between p-4 border border-zinc-200 rounded-lg hover:bg-zinc-50 cursor-pointer"
@@ -511,7 +511,7 @@ const HRStaffingRequests = () => {
                 </div>
                 {formData.skills_required.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.skills_required.map(skill => (
+                    {(formData?.skills_required || []).map(skill => (
                       <Badge key={skill} variant="secondary" className="flex items-center gap-1">
                         {skill}
                         <X className="w-3 h-3 cursor-pointer" onClick={() => removeSkill(skill)} />
@@ -624,7 +624,7 @@ const HRStaffingRequests = () => {
                 <div>
                   <p className="text-xs text-zinc-400 mb-2">Required Skills</p>
                   <div className="flex flex-wrap gap-2">
-                    {selectedRequest.skills_required.map(skill => (
+                    {(selectedRequest?.skills_required || []).map(skill => (
                       <Badge key={skill} variant="outline">{skill}</Badge>
                     ))}
                   </div>

@@ -210,7 +210,7 @@ export const ApprovalCard = ({
                     {formatDate(requestedAt)}
                   </span>
                 )}
-                {meta.map((item, idx) => (
+                {(meta || []).map((item, idx) => (
                   <span key={idx} className="flex items-center gap-1">
                     {item.icon && <item.icon className="w-3 h-3" />}
                     {item.label}

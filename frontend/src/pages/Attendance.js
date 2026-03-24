@@ -144,7 +144,7 @@ const Attendance = () => {
       try {
         const clientsRes = await axios.get(`${API}/clients`);
         const clientsData = Array.isArray(clientsRes.data) ? clientsRes.data : (clientsRes.data?.items || []);
-        setAssignedClients(clientsData.map(c => ({
+        setAssignedClients((clientsData || []).map(c => ({
           id: c.id,
           client_name: c.company_name,
           project_name: null
@@ -248,7 +248,7 @@ const Attendance = () => {
         
         // Check geo-fencing (for in_office)
         if (formData.work_location === 'in_office' && officeLocations.length > 0) {
-          const isInRange = officeLocations.some(office => {
+          const isInRange = (officeLocations || []).some(office => {
             const distance = calculateDistance(coords.latitude, coords.longitude, office.latitude, office.longitude);
             return distance <= (office.radius || 500);
           });
@@ -371,7 +371,7 @@ const Attendance = () => {
   
   // Handle client selection
   const handleClientSelect = (clientId) => {
-    const client = assignedClients.find(c => c.id === clientId);
+    const client = (assignedClients || []).find(c => c.id === clientId);
     if (client) {
       setFormData({
         ...formData,
@@ -428,7 +428,7 @@ const Attendance = () => {
 
   const handleBulkUpload = async () => {
     const lines = uploadText.trim().split('\n');
-    const records = lines.slice(1).map(line => {
+    const records = (lines || []).slice(1).map(line => {
       const cols = line.split(',').map(c => c.trim());
       return { employee_id: cols[0], date: cols[1], status: cols[2] || 'present', remarks: cols[3] || '' };
     }).filter(r => r.employee_id && r.date);
@@ -446,8 +446,8 @@ const Attendance = () => {
     return s ? s.color : 'bg-zinc-100 text-zinc-700';
   };
 
-  const totalPresent = summary.reduce((s, r) => s + r.present, 0);
-  const totalAbsent = summary.reduce((s, r) => s + r.absent, 0);
+  const totalPresent = (summary || []).reduce((s, r) => s + r.present, 0);
+  const totalAbsent = (summary || []).reduce((s, r) => s + r.absent, 0);
 
   return (
     <div data-testid="attendance-page">
@@ -504,7 +504,7 @@ const Attendance = () => {
                     <select value={formData.employee_id} onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
                       required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="att-employee-select">
                       <option value="">Select employee</option>
-                      {employees.map(e => <option key={e.id} value={e.id}>{e.employee_id} - {e.first_name} {e.last_name}</option>)}
+                      {(employees || []).map(e => <option key={e.id} value={e.id}>{e.employee_id} - {e.first_name} {e.last_name}</option>)}
                     </select>
                   </div>
                   
@@ -573,7 +573,7 @@ const Attendance = () => {
                           data-testid="att-client-select"
                         >
                           <option value="">Select client</option>
-                          {assignedClients.map(c => (
+                          {(assignedClients || []).map(c => (
                             <option key={c.id} value={c.id}>
                               {c.client_name} {c.project_name ? `(${c.project_name})` : ''}
                             </option>
@@ -825,7 +825,7 @@ const Attendance = () => {
                 </tr>
               </thead>
               <tbody>
-                {summary.map(row => (
+                {(summary || []).map(row => (
                   <tr key={row.employee_id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`att-summary-${row.employee_id}`}>
                     <td className="px-4 py-3 text-zinc-600 font-mono text-xs">{row.emp_code}</td>
                     <td className="px-4 py-3 font-medium text-zinc-950">{row.name}</td>
@@ -866,7 +866,7 @@ const Attendance = () => {
                 </tr>
               </thead>
               <tbody>
-                {records.map((r, idx) => (
+                {(records || []).map((r, idx) => (
                   <tr key={r.id || idx} className="border-t border-zinc-100 hover:bg-zinc-50">
                     <td className="px-3 py-2 text-zinc-700 text-xs">{r.date}</td>
                     <td className="px-3 py-2">

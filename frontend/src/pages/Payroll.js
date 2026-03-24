@@ -46,7 +46,7 @@ const Payroll = () => {
   const { data: inputsData = [], isLoading: inputsLoading } = usePayrollInputs(month, { enabled: isHR });
   
   // Derived data
-  const employees = employeesData.filter(e => e.salary > 0);
+  const employees = (employeesData || []).filter(e => e.salary > 0);
   const components = componentsData || [];
   const loading = empLoading || slipsLoading || compLoading;
   
@@ -119,7 +119,7 @@ const Payroll = () => {
 
   // --- Payroll Input Table ---
   const updateInput = (empId, field, value) => {
-    setPayrollInputs(prev => prev.map(p =>
+    setPayrollInputs(prev => (prev || []).map(p =>
       p.employee_id === empId ? { ...p, [field]: value } : p
     ));
   };
@@ -141,7 +141,7 @@ const Payroll = () => {
       if (field !== null) invalid.push(`${inp.name} → ${field.replace(/_/g, ' ')}`);
     }
     if (invalid.length > 0) {
-      toast.error(`All fields are mandatory. Put 0 where not applicable.\nMissing: ${invalid.slice(0, 3).join(', ')}${invalid.length > 3 ? ` +${invalid.length - 3} more` : ''}`);
+      toast.error(`All fields are mandatory. Put 0 where not applicable.\nMissing: ${(invalid || []).slice(0, 3).join(', ')}${invalid.length > 3 ? ` +${invalid.length - 3} more` : ''}`);
       return;
     }
     
@@ -170,13 +170,13 @@ const Payroll = () => {
   // --- Download payroll inputs as CSV ---
   const downloadTemplate = () => {
     const headers = ['Employee ID', 'Emp Code', 'Name', 'Department', 'CTC', 'Working Days', 'Present Days', 'Absent Days', 'Public Holidays', 'Leaves', 'OT Hours', 'Incentive', 'Incentive Reason', 'Advance', 'Advance Reason', 'Penalty', 'Penalty Reason', 'Remarks'];
-    const rows = payrollInputs.map(inp => [
+    const rows = (payrollInputs || []).map(inp => [
       inp.employee_id, inp.emp_code, inp.name, inp.department, inp.salary,
       inp.working_days, inp.present_days, inp.absent_days, inp.public_holidays, inp.leaves,
       inp.overtime_hours, inp.incentive, inp.incentive_reason, inp.advance, inp.advance_reason,
       inp.penalty, inp.penalty_reason, inp.remarks
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => (r || []).map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -212,18 +212,18 @@ const Payroll = () => {
           return result;
         };
         const headers = parseCSVLine(headerLine);
-        const empIdIdx = headers.findIndex(h => h.toLowerCase().includes('employee id'));
+        const empIdIdx = (headers || []).findIndex(h => h.toLowerCase().includes('employee id'));
         if (empIdIdx === -1) return toast.error('CSV must have "Employee ID" column');
         let updated = 0;
         for (let i = 1; i < lines.length; i++) {
           const cols = parseCSVLine(lines[i]);
           const empId = cols[empIdIdx];
           if (!empId) continue;
-          const match = payrollInputs.find(p => p.employee_id === empId);
+          const match = (payrollInputs || []).find(p => p.employee_id === empId);
           if (!match) continue;
           // Map columns by header name
           const getCol = (keyword) => {
-            const idx = headers.findIndex(h => h.toLowerCase().includes(keyword.toLowerCase()));
+            const idx = (headers || []).findIndex(h => h.toLowerCase().includes(keyword.toLowerCase()));
             return idx >= 0 ? cols[idx] : null;
           };
           const toNum = (v) => parseFloat(v) || 0;
@@ -252,7 +252,7 @@ const Payroll = () => {
     e.target.value = '';
   };
 
-  const totalPayout = slips.reduce((s, sl) => s + (sl.net_salary || 0), 0);
+  const totalPayout = (slips || []).reduce((s, sl) => s + (sl.net_salary || 0), 0);
 
   const tabs = [
     { id: 'slips', label: 'Salary Slips', icon: FileText },
@@ -290,7 +290,7 @@ const Payroll = () => {
                     <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)} className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm" data-testid="payroll-emp-select">
                       <option value="">Select...</option>
                       <option value="all">All Employees (Bulk)</option>
-                      {employees.map(e => (<option key={e.id} value={e.id}>{e.employee_id} - {e.first_name} {e.last_name} ({fmt(e.salary)})</option>))}
+                      {(employees || []).map(e => (<option key={e.id} value={e.id}>{e.employee_id} - {e.first_name} {e.last_name} ({fmt(e.salary)})</option>))}
                     </select>
                   </div>
                   <Button onClick={handleGenerate} disabled={!selectedEmployee} className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm" data-testid="confirm-generate">Generate</Button>
@@ -323,7 +323,7 @@ const Payroll = () => {
       {/* Tabs + Month - Stack on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         <div className="flex gap-0.5 bg-zinc-100 rounded-sm p-0.5 overflow-x-auto">
-          {tabs.map(t => (
+          {(tabs || []).map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} data-testid={`tab-${t.id}`}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-sm transition-colors whitespace-nowrap ${
                 activeTab === t.id ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
@@ -435,7 +435,7 @@ const Payroll = () => {
                 </tr>
               </thead>
               <tbody>
-                {payrollInputs.map(inp => (
+                {(payrollInputs || []).map(inp => (
                   <tr key={inp.employee_id} className="border-t border-zinc-100 hover:bg-zinc-50/50" data-testid={`input-row-${inp.employee_id}`}>
                     <td className="px-2 py-1">
                       <div className="font-medium text-zinc-900 text-[10px] truncate">{inp.name}</div>
@@ -525,7 +525,7 @@ const Payroll = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {slips.map(slip => (
+                  {(slips || []).map(slip => (
                     <tr key={slip.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`slip-row-${slip.id}`}>
                       <td className="px-4 py-2.5 text-zinc-500 font-mono text-xs">{slip.employee_code}</td>
                       <td className="px-4 py-2.5 font-medium text-zinc-900 text-xs">{slip.employee_name}</td>

@@ -37,7 +37,7 @@ const ProjectConsultantAssignment = ({ projectId, projectStartDate, onUpdate }) 
       setConsultants(allConsultants);
       
       // Filter assigned consultants for this project
-      const assigned = allConsultants.filter(c => 
+      const assigned = (allConsultants || []).filter(c => 
         c.assignments?.some(a => a.project_id === projectId && a.is_active)
       ).map(c => ({
         ...c,
@@ -47,7 +47,7 @@ const ProjectConsultantAssignment = ({ projectId, projectStartDate, onUpdate }) 
       setAssignedConsultants(assigned);
       
       // Filter available consultants (with available slots and not already assigned)
-      const available = allConsultants.filter(c => 
+      const available = (allConsultants || []).filter(c => 
         c.stats?.available_slots > 0 &&
         !c.assignments?.some(a => a.project_id === projectId && a.is_active)
       );
@@ -149,7 +149,7 @@ const ProjectConsultantAssignment = ({ projectId, projectStartDate, onUpdate }) 
         </div>
       ) : (
         <div className="space-y-2">
-          {assignedConsultants.map((consultant) => (
+          {(assignedConsultants || []).map((consultant) => (
             <div
               key={consultant.id}
               className="flex items-center justify-between p-3 border border-zinc-200 rounded-sm"
@@ -215,7 +215,7 @@ const ProjectConsultantAssignment = ({ projectId, projectStartDate, onUpdate }) 
                 className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
               >
                 <option value="">Select a consultant</option>
-                {availableConsultants.map(c => (
+                {(availableConsultants || []).map(c => (
                   <option key={c.id} value={c.id}>
                     {c.full_name} ({c.stats?.available_slots} slots available)
                   </option>
@@ -284,7 +284,7 @@ const ProjectConsultantAssignment = ({ projectId, projectStartDate, onUpdate }) 
                 className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
               >
                 <option value="">Select a consultant</option>
-                {availableConsultants.map(c => (
+                {(availableConsultants || []).map(c => (
                   <option key={c.id} value={c.id}>
                     {c.full_name} ({c.stats?.available_slots} slots available)
                   </option>

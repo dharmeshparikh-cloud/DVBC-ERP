@@ -48,9 +48,9 @@ const ResponsiveTable = ({ columns = [], data = [], onRowClick, mobileCard, empt
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => (
+            {(data || []).map((row, i) => (
               <tr
-                key={row.id || i}
+                key={row?.id || i}
                 onClick={() => onRowClick?.(row)}
                 className={`border-b transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${
                   isDark
@@ -58,9 +58,9 @@ const ResponsiveTable = ({ columns = [], data = [], onRowClick, mobileCard, empt
                     : 'border-zinc-100 hover:bg-zinc-50'
                 }`}
               >
-                {columns.map(col => (
-                  <td key={col.key} className={`px-4 py-3 ${col.className || ''}`}>
-                    {col.render ? col.render(row, i) : row[col.key]}
+                {(columns || []).map(col => (
+                  <td key={col?.key} className={`px-4 py-3 ${col?.className || ''}`}>
+                    {col?.render ? col.render(row, i) : row?.[col?.key]}
                   </td>
                 ))}
               </tr>
@@ -71,9 +71,9 @@ const ResponsiveTable = ({ columns = [], data = [], onRowClick, mobileCard, empt
 
       {/* Mobile Card List */}
       <div className="md:hidden space-y-2">
-        {data.map((row, i) => (
+        {(data || []).map((row, i) => (
           <div
-            key={row.id || i}
+            key={row?.id || i}
             onClick={() => onRowClick?.(row)}
             className={`p-3 rounded-sm border transition-colors ${onRowClick ? 'cursor-pointer active:scale-[0.99]' : ''} ${
               isDark

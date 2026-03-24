@@ -122,7 +122,7 @@ const ConsultantExpenses = () => {
   };
 
   const handleProjectChange = (projectId) => {
-    const project = projects.find(p => p.id === projectId);
+    const project = (projects || []).find(p => p.id === projectId);
     setFormData({
       ...formData,
       project_id: projectId,
@@ -151,11 +151,11 @@ const ConsultantExpenses = () => {
 
   const removeLineItem = (idx) => {
     if (formData.line_items.length > 1) {
-      setFormData({ ...formData, line_items: formData.line_items.filter((_, i) => i !== idx) });
+      setFormData({ ...formData, line_items: formData.line_(items || []).filter((_, i) => i !== idx) });
     }
   };
 
-  const totalAmount = formData.line_items.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const totalAmount = (formData?.line_items || []).reduce((sum, item) => sum + (item.amount || 0), 0);
 
   const handleSubmit = async (submitForApproval = false) => {
     if (!formData.project_id) {
@@ -163,7 +163,7 @@ const ConsultantExpenses = () => {
       return;
     }
 
-    if (formData.line_items.every(li => !li.description && li.amount === 0)) {
+    if ((formData?.line_items || []).every(li => !li.description && li.amount === 0)) {
       toast.error('Please add at least one expense item');
       return;
     }
@@ -175,7 +175,7 @@ const ConsultantExpenses = () => {
       notes: formData.notes,
       expense_date: formData.expense_date,
       is_office_expense: false,
-      line_items: formData.line_items.map(li => ({
+      line_items: formData.line_(items || []).map(li => ({
         ...li,
         amount: parseFloat(li.amount) || 0,
         date: new Date(li.date).toISOString()
@@ -200,7 +200,7 @@ const ConsultantExpenses = () => {
 
   const expenses = expenseData?.expenses || [];
   const summary = expenseData?.summary || {};
-  const activeProjects = projects.filter(p => !['completed', 'cancelled', 'closed'].includes(p.status));
+  const activeProjects = (projects || []).filter(p => !['completed', 'cancelled', 'closed'].includes(p.status));
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -318,7 +318,7 @@ const ConsultantExpenses = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {expenses.slice(0, 10).map((expense) => (
+              {(expenses || []).slice(0, 10).map((expense) => (
                 <div 
                   key={expense.id} 
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-zinc-50"
@@ -397,7 +397,7 @@ const ConsultantExpenses = () => {
                     <SelectValue placeholder="Select a project" />
                   </SelectTrigger>
                   <SelectContent>
-                    {activeProjects.map((p) => (
+                    {(activeProjects || []).map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name} - {p.client_name}
                       </SelectItem>
@@ -420,7 +420,7 @@ const ConsultantExpenses = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">No meeting linkage</SelectItem>
-                    {meetings.map((m) => (
+                    {(meetings || []).map((m) => (
                       <SelectItem key={m.id} value={m.id}>
                         {m.title || m.meeting_type} - {m.meeting_date?.split('T')[0]}
                       </SelectItem>
@@ -446,7 +446,7 @@ const ConsultantExpenses = () => {
             {/* Line Items */}
             <div className="space-y-2">
               <Label>Expense Items</Label>
-              {formData.line_items.map((li, idx) => (
+              {formData.line_(items || []).map((li, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-3">
                     <Select value={li.category} onValueChange={(v) => updateLineItem(idx, 'category', v)}>

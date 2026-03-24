@@ -47,8 +47,8 @@ const PasswordManagement = () => {
       const userData = Array.isArray(usersRes.data) ? usersRes.data : [];
       
       // Merge employee data with user data
-      return empData.map(emp => {
-        const linkedUser = userData.find(u => u.email === emp.email);
+      return (empData || []).map(emp => {
+        const linkedUser = (userData || []).find(u => u.email === emp.email);
         return {
           ...emp,
           user_id: linkedUser?.id,
@@ -150,7 +150,7 @@ const PasswordManagement = () => {
     setDisableDialog(true);
   };
 
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = (employees || []).filter(emp => {
     const query = searchQuery.toLowerCase();
     return (
       emp.employee_id?.toLowerCase().includes(query) ||
@@ -211,7 +211,7 @@ const PasswordManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-zinc-500 uppercase">With Access</p>
-                <p className="text-2xl font-bold text-emerald-600">{employees.filter(e => e.has_access && e.is_active).length}</p>
+                <p className="text-2xl font-bold text-emerald-600">{(employees || []).filter(e => e.has_access && e.is_active).length}</p>
               </div>
               <UserCheck className="w-8 h-8 text-emerald-200" />
             </div>
@@ -222,7 +222,7 @@ const PasswordManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-zinc-500 uppercase">Disabled</p>
-                <p className="text-2xl font-bold text-red-600">{employees.filter(e => !e.is_active).length}</p>
+                <p className="text-2xl font-bold text-red-600">{(employees || []).filter(e => !e.is_active).length}</p>
               </div>
               <UserX className="w-8 h-8 text-red-200" />
             </div>
@@ -233,7 +233,7 @@ const PasswordManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-zinc-500 uppercase">No Access</p>
-                <p className="text-2xl font-bold text-amber-600">{employees.filter(e => !e.has_access).length}</p>
+                <p className="text-2xl font-bold text-amber-600">{(employees || []).filter(e => !e.has_access).length}</p>
               </div>
               <Lock className="w-8 h-8 text-amber-200" />
             </div>
@@ -283,7 +283,7 @@ const PasswordManagement = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredEmployees.map((emp) => (
+                (filteredEmployees || []).map((emp) => (
                   <TableRow key={emp.id || emp.employee_id}>
                     <TableCell className="font-mono font-medium">{emp.employee_id}</TableCell>
                     <TableCell>{emp.first_name} {emp.last_name}</TableCell>

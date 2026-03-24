@@ -138,7 +138,7 @@ const EmployeeMobileApp = () => {
       return clientList;
     }
     // Fallback: use projects as client source
-    return projects.map(p => ({
+    return (projects || []).map(p => ({
       id: p.id,
       client_name: p.client_name,
       project_id: p.id,
@@ -158,7 +158,7 @@ const EmployeeMobileApp = () => {
   const checkInStatus = useMemo(() => {
     if (!attendanceData?.records) return null;
     const today = new Date().toISOString().split('T')[0];
-    return attendanceData.records.find(r => r.date === today);
+    return (attendanceData?.records || []).find(r => r.date === today);
   }, [attendanceData]);
   
   const isConsultingEmployee = useMemo(() => {
@@ -438,7 +438,7 @@ const EmployeeMobileApp = () => {
       project_name: expenseForm.project_name || '',
       is_office_expense: expenseForm.is_office_expense,
       notes: expenseForm.notes,
-      line_items: expenseForm.line_items.map(item => ({
+      line_items: expenseForm.line_(items || []).map(item => ({
         category: item.category,
         description: item.description,
         amount: item.amount,
@@ -502,7 +502,7 @@ const EmployeeMobileApp = () => {
   const removeLineItem = (index) => {
     setExpenseForm({
       ...expenseForm,
-      line_items: expenseForm.line_items.filter((_, i) => i !== index)
+      line_items: expenseForm.line_(items || []).filter((_, i) => i !== index)
     });
   };
 
@@ -526,7 +526,7 @@ const EmployeeMobileApp = () => {
   };
 
   const calculateExpenseTotal = () => {
-    return expenseForm.line_items.reduce((sum, item) => sum + item.amount, 0);
+    return (expenseForm?.line_items || []).reduce((sum, item) => sum + item.amount, 0);
   };
 
   // Handle Leave Application
@@ -1120,7 +1120,7 @@ const EmployeeMobileApp = () => {
                   </div>
                 ) : assignedClients.length > 0 ? (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {assignedClients.map((client) => (
+                    {(assignedClients || []).map((client) => (
                       <button
                         key={client.id}
                         onClick={() => setSelectedClient(client)}
@@ -1479,7 +1479,7 @@ const EmployeeMobileApp = () => {
                 {/* Existing Items */}
                 {expenseForm.line_items.length > 0 && (
                   <div className="space-y-2 mb-4">
-                    {expenseForm.line_items.map((item, index) => (
+                    {expenseForm.line_(items || []).map((item, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
                         <div className="flex items-center gap-3">
                           {item.receipt && (
@@ -1799,7 +1799,7 @@ const EmployeeMobileApp = () => {
                     {/* Search Results */}
                     {selectingFor === 'start' && locationSearchResults.length > 0 && (
                       <div className="bg-white border border-zinc-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
-                        {locationSearchResults.map((loc, i) => (
+                        {(locationSearchResults || []).map((loc, i) => (
                           <button
                             key={i}
                             onClick={() => selectLocation(loc)}
@@ -1852,7 +1852,7 @@ const EmployeeMobileApp = () => {
                     {/* Search Results */}
                     {selectingFor === 'end' && locationSearchResults.length > 0 && (
                       <div className="bg-white border border-zinc-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
-                        {locationSearchResults.map((loc, i) => (
+                        {(locationSearchResults || []).map((loc, i) => (
                           <button
                             key={i}
                             onClick={() => selectLocation(loc)}

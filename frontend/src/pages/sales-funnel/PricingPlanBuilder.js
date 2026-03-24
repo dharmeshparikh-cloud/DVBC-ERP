@@ -266,16 +266,16 @@ const PricingPlanBuilder = () => {
     if (team.length === 0 || totalInvestment <= 0) return;
     
     // Calculate total allocation percentage
-    const totalAllocationPercent = team.reduce((sum, m) => {
-      const tenure = tenureTypes.find(t => t.code === m.tenure_type_code);
+    const totalAllocationPercent = (team || []).reduce((sum, m) => {
+      const tenure = (tenureTypes || []).find(t => t.code === m.tenure_type_code);
       return sum + (tenure?.allocation_percentage || 0);
     }, 0);
     
     if (totalAllocationPercent === 0) return;
     
     // Recalculate each member
-    const updatedTeam = team.map(member => {
-      const tenure = tenureTypes.find(t => t.code === member.tenure_type_code);
+    const updatedTeam = (team || []).map(member => {
+      const tenure = (tenureTypes || []).find(t => t.code === member.tenure_type_code);
       if (!tenure) return member;
       
       // Normalize allocation percentage
@@ -311,8 +311,8 @@ const PricingPlanBuilder = () => {
       return;
     }
     
-    const tenure = tenureTypes.find(t => t.code === newMember.tenure_type_code);
-    const role = consultantRoles.find(r => r.name === newMember.role);
+    const tenure = (tenureTypes || []).find(t => t.code === newMember.tenure_type_code);
+    const role = (consultantRoles || []).find(r => r.name === newMember.role);
     
     if (!tenure) {
       toast.error('Invalid tenure type selected');
@@ -320,8 +320,8 @@ const PricingPlanBuilder = () => {
     }
     
     // Calculate total allocation after adding this member
-    const currentTotalAllocation = teamDeployment.reduce((sum, m) => {
-      const t = tenureTypes.find(tt => tt.code === m.tenure_type_code);
+    const currentTotalAllocation = (teamDeployment || []).reduce((sum, m) => {
+      const t = (tenureTypes || []).find(tt => tt.code === m.tenure_type_code);
       return sum + (t?.allocation_percentage || 0);
     }, 0);
     const newTotalAllocation = currentTotalAllocation + tenure.allocation_percentage;
@@ -366,7 +366,7 @@ const PricingPlanBuilder = () => {
 
   // Remove team member
   const removeTeamMember = (index) => {
-    const updated = teamDeployment.filter((_, i) => i !== index);
+    const updated = (teamDeployment || []).filter((_, i) => i !== index);
     
     // Recalculate allocations after removal (pass the updated team directly)
     if (updated.length > 0 && totalInvestment > 0) {
@@ -390,7 +390,7 @@ const PricingPlanBuilder = () => {
       return {
         ...prev,
         selected_components: isSelected
-          ? selectedComponents.filter(id => id !== componentId)
+          ? (selectedComponents || []).filter(id => id !== componentId)
           : [...selectedComponents, componentId]
       };
     });
@@ -409,7 +409,7 @@ const PricingPlanBuilder = () => {
 
   // Calculate totals (before discount, without GST)
   const calculateTotals = () => {
-    const totalMeetings = teamDeployment.reduce((sum, m) => sum + (m.committed_meetings || 0), 0);
+    const totalMeetings = (teamDeployment || []).reduce((sum, m) => sum + (m.committed_meetings || 0), 0);
     const subtotal = totalInvestment;
     const discount = subtotal * (formData.discount_percentage / 100);
     const afterDiscount = subtotal - discount;
@@ -423,7 +423,7 @@ const PricingPlanBuilder = () => {
     const total = afterDiscount + gst;
     
     // Validate allocation percentages
-    const allocatedTotal = teamDeployment.reduce((sum, m) => sum + (m.breakup_amount || 0), 0);
+    const allocatedTotal = (teamDeployment || []).reduce((sum, m) => sum + (m.breakup_amount || 0), 0);
     const allocationDiff = Math.abs(allocatedTotal - subtotal);
     const isAllocationValid = allocationDiff < 1;
     
@@ -449,7 +449,7 @@ const PricingPlanBuilder = () => {
   const updateCustomPayment = (id, field, value) => {
     setPaymentPlan(prev => ({
       ...prev,
-      custom_payments: prev.custom_payments.map(p => 
+      custom_payments: (prev?.custom_payments || []).map(p => 
         p.id === id ? { ...p, [field]: field === 'amount' ? parseFloat(value) || 0 : value } : p
       )
     }));
@@ -458,13 +458,13 @@ const PricingPlanBuilder = () => {
   const removeCustomPayment = (id) => {
     setPaymentPlan(prev => ({
       ...prev,
-      custom_payments: prev.custom_payments.filter(p => p.id !== id)
+      custom_payments: (prev?.custom_payments || []).filter(p => p.id !== id)
     }));
   };
 
   // Calculate custom payments total
   const customPaymentsTotal = useMemo(() => {
-    return paymentPlan.custom_payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    return (paymentPlan?.custom_payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
   }, [paymentPlan.custom_payments]);
 
   // Calculate number of payments based on schedule
@@ -493,7 +493,7 @@ const PricingPlanBuilder = () => {
     
     // Handle custom payment schedule
     if (schedule === 'custom') {
-      return paymentPlan.custom_payments.map(payment => {
+      return (paymentPlan?.custom_payments || []).map(payment => {
         const basicAmount = payment.amount;
         let gst = 0, tds = 0, conveyance = 0;
         
@@ -592,7 +592,7 @@ const PricingPlanBuilder = () => {
 
   // Convert team deployment for backend
   const convertToBackendFormat = () => {
-    return teamDeployment.map(member => ({
+    return (teamDeployment || []).map(member => ({
       consultant_type: member.role.toLowerCase().replace(/\s+/g, '_'),
       role: member.role,
       meeting_type: member.meeting_type,
@@ -647,7 +647,7 @@ const PricingPlanBuilder = () => {
           component_values: paymentPlan.component_values,
           conveyance_lumpsum: paymentPlan.conveyance_lumpsum || 0,
           custom_payments: formData.payment_schedule === 'custom' ? paymentPlan.custom_payments : [],
-          schedule_breakdown: paymentScheduleBreakdown.map(p => ({
+          schedule_breakdown: (paymentScheduleBreakdown || []).map(p => ({
             ...p,
             due_date: p.due_date.toISOString()
           }))
@@ -675,8 +675,8 @@ const PricingPlanBuilder = () => {
           'team_deployment': 'Team Deployment'
         };
         
-        const errorMessages = detail.map(e => {
-          const fieldPath = Array.isArray(e.loc) ? e.loc.filter(l => l !== 'body').join(' → ') : (e.loc || 'Unknown field');
+        const errorMessages = (detail || []).map(e => {
+          const fieldPath = Array.isArray(e.loc) ? (e?.loc || []).filter(l => l !== 'body').join(' → ') : (e.loc || 'Unknown field');
           const label = fieldLabels[fieldPath] || fieldPath.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
           const message = e.msg?.replace('Field required', 'is required').replace('Value error, ', '') || 'Invalid value';
           return `${label} ${message}`;
@@ -694,7 +694,7 @@ const PricingPlanBuilder = () => {
 
   // Get tenure type name
   const getTenureTypeName = (code) => {
-    const tenure = tenureTypes.find(t => t.code === code);
+    const tenure = (tenureTypes || []).find(t => t.code === code);
     return tenure?.name || code;
   };
 
@@ -702,11 +702,11 @@ const PricingPlanBuilder = () => {
   const getNewMemberPreview = () => {
     if (!newMember.tenure_type_code || totalInvestment <= 0) return null;
     
-    const tenure = tenureTypes.find(t => t.code === newMember.tenure_type_code);
+    const tenure = (tenureTypes || []).find(t => t.code === newMember.tenure_type_code);
     if (!tenure) return null;
     
-    const currentTotalAllocation = teamDeployment.reduce((sum, m) => {
-      const t = tenureTypes.find(tt => tt.code === m.tenure_type_code);
+    const currentTotalAllocation = (teamDeployment || []).reduce((sum, m) => {
+      const t = (tenureTypes || []).find(tt => tt.code === m.tenure_type_code);
       return sum + (t?.allocation_percentage || 0);
     }, 0);
     const newTotalAllocation = currentTotalAllocation + tenure.allocation_percentage;
@@ -957,7 +957,7 @@ const PricingPlanBuilder = () => {
                     data-testid="team-role-select"
                   >
                     <option value="">Select Role</option>
-                    {consultantRoles.map(role => (
+                    {(consultantRoles || []).map(role => (
                       <option key={role.code} value={role.name}>{role.name}</option>
                     ))}
                   </select>
@@ -971,7 +971,7 @@ const PricingPlanBuilder = () => {
                     data-testid="team-tenure-select"
                   >
                     <option value="">Select Tenure</option>
-                    {tenureTypes.map(tt => (
+                    {(tenureTypes || []).map(tt => (
                       <option key={tt.code} value={tt.code}>
                         {tt.name} ({tt.allocation_percentage}%)
                       </option>
@@ -987,7 +987,7 @@ const PricingPlanBuilder = () => {
                     data-testid="team-meeting-type-select"
                   >
                     <option value="">Select Type</option>
-                    {meetingTypes.map(mt => (
+                    {(meetingTypes || []).map(mt => (
                       <option key={mt.code} value={mt.name}>{mt.name}</option>
                     ))}
                   </select>
@@ -1065,7 +1065,7 @@ const PricingPlanBuilder = () => {
                   <div className="text-center">Count</div>
                   <div></div>
                 </div>
-                {teamDeployment.map((member, index) => (
+                {(teamDeployment || []).map((member, index) => (
                   <div 
                     key={member.id || index} 
                     className={`grid ${user?.role === 'admin' ? 'grid-cols-9' : 'grid-cols-7'} gap-2 items-center px-3 py-2 bg-white border border-zinc-100 rounded-sm text-sm`}
@@ -1327,7 +1327,7 @@ const PricingPlanBuilder = () => {
                 
                 {/* Custom payments list */}
                 <div className="space-y-3">
-                  {paymentPlan.custom_payments.map((payment, index) => (
+                  {(paymentPlan?.custom_payments || []).map((payment, index) => (
                     <div key={payment.id} className="grid grid-cols-12 gap-3 items-end p-3 bg-white rounded-sm border border-amber-100">
                       <div className="col-span-2 space-y-1">
                         <Label className="text-xs text-zinc-500">Payment #{index + 1}</Label>
@@ -1423,7 +1423,7 @@ const PricingPlanBuilder = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                      {paymentScheduleBreakdown.map((payment, index) => (
+                      {(paymentScheduleBreakdown || []).map((payment, index) => (
                         <tr key={index} className="text-sm hover:bg-zinc-50" data-testid={`payment-row-${index}`}>
                           <td className="px-4 py-3 font-medium text-zinc-900">{payment.frequency}</td>
                           <td className="px-4 py-3 text-zinc-600">{formatDate(payment.due_date)}</td>
@@ -1445,25 +1445,25 @@ const PricingPlanBuilder = () => {
                       <tr className="text-sm font-bold">
                         <td className="px-4 py-3" colSpan={2}>Total</td>
                         <td className="px-4 py-3 text-right">
-                          {formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.basic, 0))}
+                          {formatINR((paymentScheduleBreakdown || []).reduce((sum, p) => sum + p.basic, 0))}
                         </td>
                         {(paymentPlan?.selected_components || []).includes('gst') && (
                           <td className="px-4 py-3 text-right text-emerald-600">
-                            +{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.gst, 0))}
+                            +{formatINR((paymentScheduleBreakdown || []).reduce((sum, p) => sum + p.gst, 0))}
                           </td>
                         )}
                         {(paymentPlan?.selected_components || []).includes('tds') && (
                           <td className="px-4 py-3 text-right text-red-600">
-                            -{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.tds, 0))}
+                            -{formatINR((paymentScheduleBreakdown || []).reduce((sum, p) => sum + p.tds, 0))}
                           </td>
                         )}
                         {(paymentPlan?.selected_components || []).includes('conveyance') && (
                           <td className="px-4 py-3 text-right text-emerald-600">
-                            +{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.conveyance, 0))}
+                            +{formatINR((paymentScheduleBreakdown || []).reduce((sum, p) => sum + p.conveyance, 0))}
                           </td>
                         )}
                         <td className="px-4 py-3 text-right text-blue-700">
-                          {formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.net, 0))}
+                          {formatINR((paymentScheduleBreakdown || []).reduce((sum, p) => sum + p.net, 0))}
                         </td>
                       </tr>
                     </tfoot>

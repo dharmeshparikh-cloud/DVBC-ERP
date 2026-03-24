@@ -112,7 +112,7 @@ const ConsentPage = () => {
 
   const pendingDocs = consentData?.pending_documents || [];
   const currentDoc = pendingDocs[currentDocIndex];
-  const progress = ((Object.keys(acceptedDocs).length) / (pendingDocs.length + Object.keys(acceptedDocs).length)) * 100;
+  const progress = ((Object.keys(acceptedDocs || {}).length) / (pendingDocs.length + Object.keys(acceptedDocs || {}).length)) * 100;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
@@ -136,7 +136,7 @@ const ConsentPage = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-zinc-700">Progress</span>
             <span className="text-sm text-zinc-500">
-              {Object.keys(acceptedDocs).length} of {pendingDocs.length + Object.keys(acceptedDocs).length} documents accepted
+              {Object.keys(acceptedDocs || {}).length} of {pendingDocs.length + Object.keys(acceptedDocs || {}).length} documents accepted
             </span>
           </div>
           <div className="w-full bg-zinc-200 rounded-full h-2">
@@ -151,11 +151,11 @@ const ConsentPage = () => {
       {/* Content */}
       <div className="max-w-4xl mx-auto p-4 py-8">
         {/* Already Accepted Documents */}
-        {Object.keys(acceptedDocs).length > 0 && (
+        {Object.keys(acceptedDocs || {}).length > 0 && (
           <div className="mb-6">
             <h3 className="text-sm font-medium text-zinc-500 mb-3">Accepted Documents</h3>
             <div className="flex flex-wrap gap-2">
-              {Object.keys(acceptedDocs).map(docType => (
+              {Object.keys(acceptedDocs || {}).map(docType => (
                 <div key={docType} className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-sm">
                   <CheckCircle2 className="h-4 w-4" />
                   {docType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -193,7 +193,7 @@ const ConsentPage = () => {
                 <div className="mb-6">
                   <h4 className="font-medium text-zinc-900 mb-3">Key Points</h4>
                   <div className="space-y-2">
-                    {currentDoc.key_points.map((point, idx) => (
+                    {(currentDoc?.key_points || []).map((point, idx) => (
                       <div key={idx} className="flex items-start gap-3 bg-zinc-50 p-3 rounded-lg">
                         <ChevronRight className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-zinc-700">{point}</p>
@@ -261,7 +261,7 @@ const ConsentPage = () => {
           <div className="mt-6">
             <h3 className="text-sm font-medium text-zinc-500 mb-3">Remaining Documents</h3>
             <div className="space-y-2">
-              {pendingDocs.slice(currentDocIndex + 1).map((doc, idx) => (
+              {(pendingDocs || []).slice(currentDocIndex + 1).map((doc, idx) => (
                 <div key={doc.type} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-zinc-200">
                   <div className="w-8 h-8 bg-zinc-100 rounded flex items-center justify-center text-sm font-medium text-zinc-500">
                     {currentDocIndex + idx + 2}

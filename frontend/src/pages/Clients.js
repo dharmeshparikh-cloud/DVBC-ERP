@@ -105,13 +105,13 @@ const Clients = () => {
       if (!isAdmin && !isFinance) {
         // Sales team sees clients where they are sales_owner
         if (isSales) {
-          clientData = clientData.filter(c => 
+          clientData = (clientData || []).filter(c => 
             c.sales_owner_id === user?.id || c.sales_person_id === user?.id
           );
         }
         // Consulting team sees clients where they are consulting_owner
         else if (isConsulting) {
-          clientData = clientData.filter(c => 
+          clientData = (clientData || []).filter(c => 
             c.consulting_owner_id === user?.id
           );
         }
@@ -370,7 +370,7 @@ const Clients = () => {
     }
   };
 
-  const filteredClients = clients.filter(client => {
+  const filteredClients = (clients || []).filter(client => {
     const matchesSearch = !searchTerm || 
       client.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.industry?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -380,7 +380,7 @@ const Clients = () => {
 
   const getTotalRevenue = (client) => {
     if (!client.revenue_history || client.revenue_history.length === 0) return 0;
-    return client.revenue_history.reduce((sum, r) => sum + (r.amount || 0), 0);
+    return (client?.revenue_history || []).reduce((sum, r) => sum + (r.amount || 0), 0);
   };
 
   if (loading) {
@@ -415,7 +415,7 @@ const Clients = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase text-zinc-500">Industries</p>
-                  <p className="text-2xl font-semibold text-blue-600">{Object.keys(stats.by_industry).length}</p>
+                  <p className="text-2xl font-semibold text-blue-600">{Object.keys(stats.by_industry || {}).length}</p>
                 </div>
                 <Globe className="w-8 h-8 text-blue-200" />
               </div>
@@ -484,7 +484,7 @@ const Clients = () => {
 
       {/* Clients Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredClients.map(client => (
+        {(filteredClients || []).map(client => (
           <Card key={client.id} className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors" data-testid={`client-card-${client.id}`}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-3">
@@ -678,7 +678,7 @@ const Clients = () => {
                   <select
                     value={formData.sales_person_id}
                     onChange={(e) => {
-                      const sp = users.find(u => u.id === e.target.value);
+                      const sp = (users || []).find(u => u.id === e.target.value);
                       setFormData({ 
                         ...formData, 
                         sales_person_id: e.target.value,
@@ -688,7 +688,7 @@ const Clients = () => {
                     className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
                   >
                     <option value="">Select sales person...</option>
-                    {users.filter(u => ['executive', 'sales_manager', 'admin'].includes(u.role)).map(u => (
+                    {(users || []).filter(u => ['executive', 'sales_manager', 'admin'].includes(u.role)).map(u => (
                       <option key={u.id} value={u.id}>{u.full_name}</option>
                     ))}
                   </select>
@@ -788,7 +788,7 @@ const Clients = () => {
                 </div>
                 {selectedClient.contacts?.length > 0 ? (
                   <div className="space-y-2">
-                    {selectedClient.contacts.map((contact, idx) => (
+                    {(selectedClient?.contacts || []).map((contact, idx) => (
                       <div key={idx} className="p-3 bg-zinc-50 rounded-sm flex items-center justify-between">
                         <div>
                           <div className="flex items-center gap-2">
@@ -829,7 +829,7 @@ const Clients = () => {
                 </div>
                 {selectedClient.revenue_history?.length > 0 ? (
                   <div className="space-y-2">
-                    {selectedClient.revenue_history.map((rev, idx) => (
+                    {(selectedClient?.revenue_history || []).map((rev, idx) => (
                       <div key={idx} className="p-3 bg-zinc-50 rounded-sm flex items-center justify-between">
                         <div>
                           <span className="font-medium">{rev.year}{rev.quarter ? ` Q${rev.quarter}` : ' (Annual)'}</span>
@@ -1048,7 +1048,7 @@ const Clients = () => {
                 {importPreview.warning_records?.length > 0 && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-sm p-3 max-h-32 overflow-y-auto">
                     <p className="text-xs font-medium text-yellow-800 mb-2">Warnings (will be skipped):</p>
-                    {importPreview.warning_records.slice(0, 5).map((w, i) => (
+                    {(importPreview?.warning_records || []).slice(0, 5).map((w, i) => (
                       <p key={i} className="text-xs text-yellow-700">Row {w.row}: {w.warning}</p>
                     ))}
                     {importPreview.warning_records.length > 5 && (
@@ -1061,7 +1061,7 @@ const Clients = () => {
                 {importPreview.error_records?.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-sm p-3 max-h-32 overflow-y-auto">
                     <p className="text-xs font-medium text-red-800 mb-2">Errors:</p>
-                    {importPreview.error_records.slice(0, 5).map((e, i) => (
+                    {(importPreview?.error_records || []).slice(0, 5).map((e, i) => (
                       <p key={i} className="text-xs text-red-700">Row {e.row}: {e.error}</p>
                     ))}
                     {importPreview.error_records.length > 5 && (

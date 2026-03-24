@@ -71,7 +71,7 @@ export const preloadRoutesByRole = (role) => {
   
   // Delay preloading to not block initial render
   setTimeout(() => {
-    routesToPreload.forEach(route => preloadRoute(route));
+    (routesToPreload || []).forEach(route => preloadRoute(route));
   }, 2000);
 };
 

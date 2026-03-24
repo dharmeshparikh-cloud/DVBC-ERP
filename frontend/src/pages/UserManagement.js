@@ -157,7 +157,7 @@ const UserManagement = () => {
     });
   };
 
-  const filteredUsers = users.filter(u => {
+  const filteredUsers = (users || []).filter(u => {
     const matchesSearch = !searchTerm || 
       u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -246,7 +246,7 @@ const UserManagement = () => {
                 className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
               >
                 <option value="">All Roles</option>
-                {roles.map(role => (
+                {(roles || []).map(role => (
                   <option key={role.id} value={role.id}>{role.name}</option>
                 ))}
               </select>
@@ -277,7 +277,7 @@ const UserManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map(u => (
+                  {(filteredUsers || []).map(u => (
                     <tr key={u.id} className="border-b border-zinc-100 hover:bg-zinc-50" data-testid={`user-row-${u.id}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -297,7 +297,7 @@ const UserManagement = () => {
                             className={`h-8 px-2 text-xs rounded border ${getRoleBadgeColor(u.role)}`}
                             data-testid={`role-select-${u.id}`}
                           >
-                            {roles.map(role => (
+                            {(roles || []).map(role => (
                               <option key={role.id} value={role.id}>{role.name}</option>
                             ))}
                           </select>
@@ -354,7 +354,7 @@ const UserManagement = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {roles.map(role => (
+            {(roles || []).map(role => (
               <Card key={role.id} className="border-zinc-200 shadow-none rounded-sm" data-testid={`role-card-${role.id}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
@@ -372,7 +372,7 @@ const UserManagement = () => {
                   {/* Users count with this role */}
                   <div className="text-xs text-zinc-400 mb-4">
                     <Users className="w-3 h-3 inline mr-1" />
-                    {users.filter(u => u.role === role.id).length} user(s)
+                    {(users || []).filter(u => u.role === role.id).length} user(s)
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ const UserManagement = () => {
                 onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
                 className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
               >
-                {roles.map(role => (
+                {(roles || []).map(role => (
                   <option key={role.id} value={role.id}>{role.name}</option>
                 ))}
               </select>
@@ -542,7 +542,7 @@ const UserManagement = () => {
           
           {permissionModules?.modules?.length > 0 && (
             <div className="space-y-4 mt-4">
-              {permissionModules.modules.map(module => {
+              {(permissionModules?.modules || []).map(module => {
                 const modulePerms = editingPermissions[module.id] || {};
                 const actions = permissionModules.actions?.[module.id] || permissionModules.actions?.common || [];
                 
@@ -555,7 +555,7 @@ const UserManagement = () => {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {actions.map(action => (
+                      {(actions || []).map(action => (
                         <button
                           key={action}
                           onClick={() => handlePermissionChange(module.id, action, !modulePerms[action])}

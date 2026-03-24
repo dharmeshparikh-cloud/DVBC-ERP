@@ -220,7 +220,7 @@ const ClientPortal = () => {
                   <p className="text-sm">No projects found</p>
                 </div>
               ) : (
-                projects.map((project) => (
+                (projects || []).map((project) => (
                   <button
                     key={project.id}
                     onClick={() => {
@@ -387,7 +387,7 @@ const ClientPortal = () => {
                   <CardContent>
                     {projectDetails.active_consultants?.length > 0 ? (
                       <div className="space-y-3">
-                        {projectDetails.active_consultants.map((assignment, idx) => (
+                        {(projectDetails?.active_consultants || []).map((assignment, idx) => (
                           <div key={idx} className="flex items-center gap-3 p-3 bg-black/5 rounded-lg border border-black/5">
                             <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center">
                               <User className="w-5 h-5 text-black/60" />
@@ -478,7 +478,7 @@ const ClientPortal = () => {
                 <CardContent>
                   {projectDetails.meetings?.length > 0 ? (
                     <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {projectDetails.meetings.map((meeting, idx) => (
+                      {(projectDetails?.meetings || []).map((meeting, idx) => (
                         <div key={idx} className="p-4 bg-black/5 rounded-lg border border-black/5">
                           <div className="flex items-start justify-between">
                             <div>
@@ -579,7 +579,7 @@ const ClientPortal = () => {
                       <div className="mb-4">
                         <p className="text-xs font-medium text-black/50 mb-2 uppercase tracking-wide">Payment History</p>
                         <div className="space-y-2">
-                          {projectDetails.payments.slice(0, 3).map((payment, idx) => (
+                          {(projectDetails?.payments || []).slice(0, 3).map((payment, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                               <div>
                                 <p className="text-sm font-medium text-black">
@@ -600,7 +600,7 @@ const ClientPortal = () => {
                       <div>
                         <p className="text-xs font-medium text-black/50 mb-2 uppercase tracking-wide">Upcoming</p>
                         <div className="space-y-2">
-                          {projectDetails.upcoming_payments.map((payment, idx) => (
+                          {(projectDetails?.upcoming_payments || []).map((payment, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
                               <div>
                                 <p className="text-sm font-medium text-black">

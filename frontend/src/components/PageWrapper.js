@@ -23,7 +23,9 @@ class PageErrorBoundary extends React.Component {
     this.state = { 
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
+      retryCount: 0,
+      autoRetried: false
     };
   }
 
@@ -31,38 +33,48 @@ class PageErrorBoundary extends React.Component {
     return { hasError: true };
   }
 
+  isDataLoadingError(error) {
+    if (!error?.message) return false;
+    const msg = error.message;
+    return (
+      msg.includes('Cannot read properties of undefined') ||
+      msg.includes('Cannot read properties of null') ||
+      msg.includes('is not a function') ||
+      msg.includes('is not iterable') ||
+      msg.includes('is undefined') ||
+      msg.includes('is null')
+    );
+  }
+
   componentDidCatch(error, errorInfo) {
     this.setState({ error, errorInfo });
     
     const { pageName } = this.props;
+    const isDataError = this.isDataLoadingError(error);
     
-    // Enhanced logging for array errors
-    const isArrayError = error?.message?.includes('is not a function') ||
-                         error?.message?.includes('is not iterable') ||
-                         error?.message?.includes('Cannot read properties of undefined') ||
-                         error?.message?.includes('Cannot read properties of null');
-    
-    console.group(`🚨 Page Error: ${pageName}`);
-    console.error('Error:', error?.message);
-    
-    if (isArrayError) {
-      console.warn(
-        '⚠️ This looks like an array safety issue!\n' +
-        'Common causes:\n' +
-        '  1. API returned null/undefined instead of []\n' +
-        '  2. State not initialized as array (useState(null) instead of useState([]))\n' +
-        '  3. Missing optional chaining on .map()/.filter()/.reduce()\n' +
-        '  4. API returned object instead of array\n\n' +
-        'Fix: Use ensureArray() from utils/arraySafety.js or || [] fallback'
-      );
+    // Auto-retry once for data loading errors (timing issues)
+    if (isDataError && !this.state.autoRetried && this.state.retryCount < 2) {
+      console.warn(`[PageWrapper:${pageName}] Data error, auto-retrying...`, error?.message);
+      setTimeout(() => {
+        this.setState(prev => ({ 
+          hasError: false, 
+          error: null, 
+          errorInfo: null,
+          retryCount: prev.retryCount + 1,
+          autoRetried: true
+        }));
+      }, 500);
+      return;
     }
     
+    console.group(`[PageWrapper] Error: ${pageName}`);
+    console.error('Error:', error?.message);
     console.error('Component Stack:', errorInfo?.componentStack);
     console.groupEnd();
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState({ hasError: false, error: null, errorInfo: null, retryCount: 0, autoRetried: false });
   };
 
   render() {

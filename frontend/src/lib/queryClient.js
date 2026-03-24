@@ -308,8 +308,8 @@ export const optimisticUpdate = {
   removeFromList: (queryKey, itemId) => {
     queryClient.setQueryData(queryKey, (old) => {
       if (!old) return old;
-      if (Array.isArray(old)) return old.filter(item => item.id !== itemId);
-      if (old.items) return { ...old, items: old.items.filter(item => item.id !== itemId) };
+      if (Array.isArray(old)) return (old || []).filter(item => item.id !== itemId);
+      if (old.items) return { ...old, items: (old?.items || []).filter(item => item.id !== itemId) };
       return old;
     });
   },

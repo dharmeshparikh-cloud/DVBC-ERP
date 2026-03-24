@@ -11,10 +11,10 @@ export const TravelTab = memo(({
   travelClaims = [],
   onAddTravel
 }) => {
-  const totalAmount = travelClaims.reduce((sum, c) => sum + (c.final_amount || 0), 0);
-  const totalKm = travelClaims.reduce((sum, c) => sum + (c.distance_km || 0), 0);
-  const pendingCount = travelClaims.filter(c => c.status === 'pending').length;
-  const approvedCount = travelClaims.filter(c => c.status === 'approved').length;
+  const totalAmount = (travelClaims || []).reduce((sum, c) => sum + (c.final_amount || 0), 0);
+  const totalKm = (travelClaims || []).reduce((sum, c) => sum + (c.distance_km || 0), 0);
+  const pendingCount = (travelClaims || []).filter(c => c.status === 'pending').length;
+  const approvedCount = (travelClaims || []).filter(c => c.status === 'approved').length;
 
   return (
     <div className="space-y-4 pb-24">
@@ -84,7 +84,7 @@ export const TravelTab = memo(({
         </div>
         {travelClaims.length > 0 ? (
           <div className="divide-y divide-zinc-100">
-            {travelClaims.slice(0, 5).map((claim, i) => (
+            {(travelClaims || []).slice(0, 5).map((claim, i) => (
               <div key={i} className="flex items-center gap-3 p-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   claim.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :

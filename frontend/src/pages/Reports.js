@@ -68,7 +68,7 @@ const Reports = () => {
   const loading = reportsLoading;
   
   // Group reports by category
-  const reportsByCategory = reports.reduce((acc, report) => {
+  const reportsByCategory = (reports || []).reduce((acc, report) => {
     const cat = report.category || 'Other';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(report);
@@ -113,7 +113,7 @@ const Reports = () => {
     });
   };
 
-  const filteredReports = reports.filter(report => {
+  const filteredReports = (reports || []).filter(report => {
     const matchesSearch = !searchTerm || 
       report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -123,7 +123,7 @@ const Reports = () => {
 
   // Group filtered reports by category
   const groupedReports = {};
-  filteredReports.forEach(report => {
+  (filteredReports || []).forEach(report => {
     if (!groupedReports[report.category]) {
       groupedReports[report.category] = [];
     }
@@ -214,7 +214,7 @@ const Reports = () => {
           className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
         >
           <option value="">All Categories</option>
-          {categories.map(cat => (
+          {(categories || []).map(cat => (
             <option key={cat.id || cat} value={cat.id || cat}>{cat.name || cat}</option>
           ))}
         </select>
@@ -224,7 +224,7 @@ const Reports = () => {
       </div>
 
       {/* Reports by Category */}
-      {Object.entries(groupedReports).map(([category, categoryReports]) => {
+      {Object.entries(groupedReports || {}).map(([category, categoryReports]) => {
         const CategoryIcon = CATEGORY_ICONS[category] || BarChart3;
         const colorClass = CATEGORY_COLORS[category] || 'bg-zinc-50 text-zinc-700 border-zinc-200';
         
@@ -239,7 +239,7 @@ const Reports = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoryReports.map(report => (
+              {(categoryReports || []).map(report => (
                 <Card 
                   key={report.id} 
                   className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
@@ -328,7 +328,7 @@ const Reports = () => {
                 <div className="mb-4 p-4 bg-zinc-50 rounded-sm">
                   <h4 className="font-medium text-zinc-950 mb-2">Summary</h4>
                   <div className="flex flex-wrap gap-4">
-                    {Object.entries(previewData.data.summary).map(([key, value]) => (
+                    {Object.entries(previewData.data.summary || {}).map(([key, value]) => (
                       <div key={key} className="text-sm">
                         <span className="text-zinc-500">{key}: </span>
                         <span className="font-medium text-zinc-900">
@@ -356,7 +356,7 @@ const Reports = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {previewData.data.rows.slice(0, 50).map((row, rowIdx) => (
+                      {(previewData?.data?.rows || []).slice(0, 50).map((row, rowIdx) => (
                         <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-zinc-50'}>
                           {previewData.data.columns?.map((col, colIdx) => (
                             <td key={colIdx} className="px-3 py-2 border-t border-zinc-100">

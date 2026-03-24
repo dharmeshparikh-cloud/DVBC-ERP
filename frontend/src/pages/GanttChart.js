@@ -88,8 +88,8 @@ const GanttChart = () => {
       const res = await axios.get(`${API}/sows`);
       const data = res.data?.items || res.data || [];
       const sowList = Array.isArray(data) ? data : [];
-      const proj = projects.find(p => p.id === selectedProject);
-      return sowList.filter(s => s.lead_id === proj?.lead_id || s.project_id === selectedProject);
+      const proj = (projects || []).find(p => p.id === selectedProject);
+      return (sowList || []).filter(s => s.lead_id === proj?.lead_id || s.project_id === selectedProject);
     },
     enabled: !!selectedProject && projects.length > 0,
     staleTime: 5 * 60 * 1000,
@@ -172,7 +172,7 @@ const GanttChart = () => {
     if (!dragState) return;
     const daysDelta = Math.round((e.clientX - dragState.startX) / colWidth);
     if (daysDelta === 0) return;
-    setTasks(prev => prev.map(t => {
+    setTasks(prev => (prev || []).map(t => {
       if (t.id !== dragState.taskId) return t;
       const os = new Date(dragState.origStart), oe = new Date(dragState.origEnd);
       if (dragState.type === 'move') return { ...t, start: toISO(addDays(os, daysDelta)), end: toISO(addDays(oe, daysDelta)) };
@@ -184,7 +184,7 @@ const GanttChart = () => {
 
   const handleMouseUp = useCallback(() => {
     if (!dragState) return;
-    const task = tasks.find(t => t.id === dragState.taskId);
+    const task = (tasks || []).find(t => t.id === dragState.taskId);
     if (task && (task.start !== dragState.origStart || task.end !== dragState.origEnd)) {
       updateTaskDates(task.id, task.start, task.end);
       toast.success(`Updated: ${task.name}`);
@@ -202,22 +202,22 @@ const GanttChart = () => {
 
   const onScroll = (e) => { if (headerRef.current) headerRef.current.scrollLeft = e.target.scrollLeft; };
 
-  const tasksWithDates = tasks.filter(t => t.start && t.end);
-  const tasksWithoutDates = tasks.filter(t => !t.start || !t.end);
-  const project = projects.find(p => p.id === selectedProject);
+  const tasksWithDates = (tasks || []).filter(t => t.start && t.end);
+  const tasksWithoutDates = (tasks || []).filter(t => !t.start || !t.end);
+  const project = (projects || []).find(p => p.id === selectedProject);
 
   // Group tasks by SOW item
   const sowGroups = {};
-  tasksWithDates.forEach(t => {
+  (tasksWithDates || []).forEach(t => {
     const key = t.sow_item_title || (t.sow_item_id ? `SOW Item ${t.sow_item_id.slice(0, 6)}` : 'Unlinked Tasks');
     if (!sowGroups[key]) sowGroups[key] = [];
     sowGroups[key].push(t);
   });
-  const hasSOWGrouping = Object.keys(sowGroups).length > 1 || (Object.keys(sowGroups).length === 1 && !sowGroups['Unlinked Tasks']);
+  const hasSOWGrouping = Object.keys(sowGroups || {}).length > 1 || (Object.keys(sowGroups || {}).length === 1 && !sowGroups['Unlinked Tasks']);
 
   // Flat ordered list for rendering
   const orderedTasks = hasSOWGrouping
-    ? Object.entries(sowGroups).flatMap(([group, items]) => [{ _isGroup: true, label: group, count: items.length }, ...items])
+    ? Object.entries(sowGroups || {}).flatMap(([group, items]) => [{ _isGroup: true, label: group, count: items.length }, ...items])
     : tasksWithDates;
 
   return (
@@ -251,10 +251,10 @@ const GanttChart = () => {
       <div className="flex items-center justify-between">
         <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
           className="h-9 px-3 rounded-sm border border-zinc-200 bg-white text-sm min-w-[250px]" data-testid="gantt-project-select">
-          {projects.map(p => (<option key={p.id} value={p.id}>{p.name} — {p.client_name}</option>))}
+          {(projects || []).map(p => (<option key={p.id} value={p.id}>{p.name} — {p.client_name}</option>))}
         </select>
         <div className="flex items-center gap-2.5">
-          {Object.entries(STATUS_COLORS).map(([k, v]) => (
+          {Object.entries(STATUS_COLORS || {}).map(([k, v]) => (
             <div key={k} className="flex items-center gap-1 text-[10px]"><div className={`w-3 h-2 rounded-sm ${v.bar}`} /><span className="text-zinc-500">{v.label}</span></div>
           ))}
         </div>
@@ -275,7 +275,7 @@ const GanttChart = () => {
             <div className="w-[220px] min-w-[220px] px-3 py-2 bg-zinc-50 border-r border-zinc-200 text-[10px] font-semibold text-zinc-500 uppercase tracking-widest">Task</div>
             <div className="flex-1 overflow-hidden" ref={headerRef}>
               <div className="flex" style={{ width: columns.length * colWidth }}>
-                {columns.map((d, i) => {
+                {(columns || []).map((d, i) => {
                   const isWe = d.getDay() === 0 || d.getDay() === 6;
                   const isToday = toISO(d) === toISO(new Date());
                   const isFOM = d.getDate() === 1;
@@ -294,7 +294,7 @@ const GanttChart = () => {
           <div className="max-h-[500px] overflow-y-auto">
             <div className="flex">
               <div className="w-[220px] min-w-[220px] border-r border-zinc-200 bg-white">
-                {orderedTasks.map((item, idx) => {
+                {(orderedTasks || []).map((item, idx) => {
                   if (item._isGroup) {
                     return (
                       <div key={`g-${idx}`} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 border-b border-zinc-200 h-[28px]">
@@ -318,7 +318,7 @@ const GanttChart = () => {
               </div>
               <div className="flex-1 overflow-x-auto" ref={ganttRef} onScroll={onScroll}>
                 <div style={{ width: columns.length * colWidth, position: 'relative' }}>
-                  {orderedTasks.map((item, idx) => {
+                  {(orderedTasks || []).map((item, idx) => {
                     if (item._isGroup) {
                       return <div key={`gb-${idx}`} className="h-[28px] bg-zinc-100/50 border-b border-zinc-200" style={{ width: columns.length * colWidth }} />;
                     }
@@ -329,7 +329,7 @@ const GanttChart = () => {
                     if (startOff + dur < 0 || startOff > daysVisible) return <div key={item.id} className="h-[40px] border-b border-zinc-50" style={{ width: columns.length * colWidth }} />;
                     return (
                       <div key={item.id} className="relative border-b border-zinc-50 h-[40px]" style={{ width: columns.length * colWidth }}>
-                        {columns.map((d, i) => {
+                        {(columns || []).map((d, i) => {
                           const isWe = d.getDay() === 0 || d.getDay() === 6;
                           const isToday = toISO(d) === toISO(new Date());
                           return <div key={i} className={`absolute top-0 bottom-0 border-r border-zinc-50 ${isWe ? 'bg-zinc-50/50' : ''} ${isToday ? 'bg-blue-50/40' : ''}`} style={{ left: i * colWidth, width: colWidth }} />;
@@ -360,7 +360,7 @@ const GanttChart = () => {
           <CardContent className="p-4">
             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3">Unscheduled Tasks ({tasksWithoutDates.length})</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {tasksWithoutDates.map(t => (
+              {(tasksWithoutDates || []).map(t => (
                 <div key={t.id} className="flex items-center gap-2 px-3 py-2 border border-zinc-200 rounded-sm text-xs">
                   <div className={`w-2 h-2 rounded-full ${(STATUS_COLORS[t.status] || STATUS_COLORS.to_do).bar}`} />
                   <span className="text-zinc-700 truncate">{t.name}</span>
@@ -381,7 +381,7 @@ const GanttChart = () => {
               <select value={reportForm.sow_id} onChange={e => setReportForm({ ...reportForm, sow_id: e.target.value })}
                 className="w-full h-9 px-3 rounded-sm border border-zinc-200 bg-white text-sm" data-testid="report-sow-select">
                 <option value="">Select SOW (optional for manual)</option>
-                {sows.map(s => (<option key={s.id} value={s.id}>{s.title || `SOW-${s.id.slice(0, 8)}`}</option>))}
+                {(sows || []).map(s => (<option key={s.id} value={s.id}>{s.title || `SOW-${s.id.slice(0, 8)}`}</option>))}
               </select>
             </div>
             <div>
@@ -421,7 +421,7 @@ const GanttChart = () => {
             <div className="text-center py-8 text-zinc-400 text-sm">No communications logged yet</div>
           ) : (
             <div className="space-y-3">
-              {commLogs.map(c => (
+              {(commLogs || []).map(c => (
                 <div key={c.id} className="border border-zinc-200 rounded-sm p-3" data-testid={`comm-${c.id}`}>
                   <div className="flex items-start justify-between mb-1">
                     <div>

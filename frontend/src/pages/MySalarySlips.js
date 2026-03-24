@@ -261,7 +261,7 @@ const MySalarySlips = () => {
               <TrendingUp className="w-6 h-6 text-zinc-300" />
               <div>
                 <div className="text-xs uppercase tracking-wide text-zinc-500">Total Earned (YTD)</div>
-                <div className="text-2xl font-semibold text-zinc-950">{fmt(slips.reduce((s, sl) => s + (sl.net_salary || 0), 0))}</div>
+                <div className="text-2xl font-semibold text-zinc-950">{fmt((slips || []).reduce((s, sl) => s + (sl.net_salary || 0), 0))}</div>
               </div>
             </CardContent>
           </Card>
@@ -293,7 +293,7 @@ const MySalarySlips = () => {
               </tr>
             </thead>
             <tbody>
-              {slips.map(slip => (
+              {(slips || []).map(slip => (
                 <tr key={slip.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`my-slip-${slip.month}`}>
                   <td className="px-4 py-3 font-medium text-zinc-950">
                     {slip.month ? new Date(slip.month + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : slip.month}

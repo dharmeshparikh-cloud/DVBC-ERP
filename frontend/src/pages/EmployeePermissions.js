@@ -36,7 +36,7 @@ const getDefaultPermissions = () => {
   const defaultPerms = {};
   MODULES.forEach(mod => {
     defaultPerms[mod.id] = {};
-    mod.features.forEach(feat => {
+    (mod?.features || []).forEach(feat => {
       defaultPerms[mod.id][feat] = { view: false, create: false, edit: false, delete: false };
     });
   });
@@ -73,7 +73,7 @@ const EmployeePermissions = () => {
     queryFn: async () => {
       const res = await axios.get(`${API}/employees/all`);
       const empList = Array.isArray(res.data) ? res.data : (res.data?.items || []);
-      return empList.filter(e => e.is_active !== false);
+      return (empList || []).filter(e => e.is_active !== false);
     }
   });
 
@@ -121,7 +121,7 @@ const EmployeePermissions = () => {
   });
 
   // Extract departments from employees
-  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const departments = [...new Set((employees || []).map(e => e.department).filter(Boolean))];
   const loading = employeesLoading;
 
   const handlePermissionChange = (moduleId, feature, action, value) => {
@@ -255,7 +255,7 @@ const EmployeePermissions = () => {
   };
 
   // Filter employees
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = (employees || []).filter(emp => {
     const matchesSearch = searchQuery === '' ||
       `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.employee_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -306,7 +306,7 @@ const EmployeePermissions = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {pendingChanges.slice(0, 3).map(req => (
+            {(pendingChanges || []).slice(0, 3).map(req => (
               <div key={req.id} className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-lg">
                 <div>
                   <p className="font-medium">{req.employee_name}</p>
@@ -352,7 +352,7 @@ const EmployeePermissions = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map(dept => (
+                  {(departments || []).map(dept => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}
                 </SelectContent>
@@ -360,7 +360,7 @@ const EmployeePermissions = () => {
             </div>
           </CardHeader>
           <CardContent className="max-h-[500px] overflow-y-auto space-y-1 pt-0">
-            {filteredEmployees.map(emp => (
+            {(filteredEmployees || []).map(emp => (
               <button
                 key={emp.id}
                 onClick={() => {
@@ -518,7 +518,7 @@ const EmployeePermissions = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {module.features.map(feature => (
+                            {(module?.features || []).map(feature => (
                               <tr key={feature} className="border-t border-zinc-100">
                                 <td className="py-2 capitalize">{feature.replace('_', ' ')}</td>
                                 {ACTIONS.map(action => (

@@ -175,7 +175,7 @@ const LeadSelector = ({
                 </div>
               ) : (
                 <CommandGroup heading={`Leads ${searchResults?.filtered ? '(Eligible)' : ''}`}>
-                  {leads.map((lead) => (
+                  {(leads || []).map((lead) => (
                     <CommandItem
                       key={lead.id}
                       value={lead.id}
@@ -314,7 +314,7 @@ export const DuplicateLeadWarning = ({
               A lead with similar details already exists:
             </p>
             
-            {duplicates.map((dup, idx) => (
+            {(duplicates || []).map((dup, idx) => (
               <div key={idx} className="mt-2 p-2 bg-white dark:bg-zinc-800 rounded border">
                 <div className="flex items-center justify-between">
                   <div>

@@ -274,7 +274,7 @@ const Projects = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {projects.map((project) => (
+          {(projects || []).map((project) => (
             <Card
               key={project.id}
               data-testid={`project-card-${project.id}`}

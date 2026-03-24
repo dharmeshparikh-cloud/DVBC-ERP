@@ -169,7 +169,7 @@ const EmployeeWorkflows = () => {
     });
   };
 
-  const groupedRequests = pendingRequests.reduce((acc, req) => {
+  const groupedRequests = (pendingRequests || []).reduce((acc, req) => {
     const type = req.workflow_type || 'other';
     if (!acc[type]) acc[type] = [];
     acc[type].push(req);
@@ -265,7 +265,7 @@ const EmployeeWorkflows = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-4">
-        {Object.entries(WORKFLOW_TYPES).slice(0, 4).map(([type, config]) => {
+        {Object.entries(WORKFLOW_TYPES || {}).slice(0, 4).map(([type, config]) => {
           const count = groupedRequests[type]?.length || 0;
           const Icon = config.icon;
           return (
@@ -308,7 +308,7 @@ const EmployeeWorkflows = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {pendingRequests.map(renderRequestCard)}
+              {(pendingRequests || []).map(renderRequestCard)}
             </div>
           )}
         </TabsContent>
@@ -342,7 +342,7 @@ const EmployeeWorkflows = () => {
             <div className="space-y-2">
               <Label>Request Type *</Label>
               <div className="grid grid-cols-2 gap-2">
-                {Object.entries(WORKFLOW_TYPES).slice(0, 4).map(([type, config]) => {
+                {Object.entries(WORKFLOW_TYPES || {}).slice(0, 4).map(([type, config]) => {
                   const Icon = config.icon;
                   return (
                     <Button
@@ -369,13 +369,13 @@ const EmployeeWorkflows = () => {
                 <select
                   value={selectedEmployee?.id || ''}
                   onChange={(e) => {
-                    const emp = employees.find(emp => emp.id === e.target.value);
+                    const emp = (employees || []).find(emp => emp.id === e.target.value);
                     setSelectedEmployee(emp);
                   }}
                   className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm"
                 >
                   <option value="">Select an employee</option>
-                  {employees.filter(e => e.go_live_status === 'active' || e.has_portal_access).map(emp => (
+                  {(employees || []).filter(e => e.go_live_status === 'active' || e.has_portal_access).map(emp => (
                     <option key={emp.id} value={emp.id}>
                       {emp.employee_id || 'Pending'} - {emp.first_name} {emp.last_name} ({emp.designation || 'No designation'})
                     </option>
@@ -410,7 +410,7 @@ const EmployeeWorkflows = () => {
                     className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm"
                   >
                     <option value="">Select department</option>
-                    {departments.map(dept => (
+                    {(departments || []).map(dept => (
                       <option key={dept} value={dept}>{dept}</option>
                     ))}
                   </select>
@@ -421,7 +421,7 @@ const EmployeeWorkflows = () => {
                     className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm"
                   >
                     <option value="">Select reporting manager</option>
-                    {employees.filter(e => e.id !== selectedEmployee?.id).map(emp => (
+                    {(employees || []).filter(e => e.id !== selectedEmployee?.id).map(emp => (
                       <option key={emp.id} value={emp.id}>
                         {emp.employee_id || 'Pending'} - {emp.first_name} {emp.last_name}
                       </option>

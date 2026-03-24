@@ -276,8 +276,8 @@ export function useSecurityAuditLogs(limit = 8, enabled = true) {
     queryFn: async () => {
       const { data } = await axios.get(`${API}/security-audit-logs?limit=${limit}`);
       const logs = data.logs || [];
-      const failedCount = logs.filter(l => l.event_type?.includes('failed') || l.event_type?.includes('rejected')).length;
-      const successCount = logs.filter(l => l.event_type?.includes('success')).length;
+      const failedCount = (logs || []).filter(l => l.event_type?.includes('failed') || l.event_type?.includes('rejected')).length;
+      const successCount = (logs || []).filter(l => l.event_type?.includes('success')).length;
       return { logs, total: data.total, failedCount, successCount };
     },
     enabled,
@@ -539,7 +539,7 @@ export function useApiMutation(mutationFn, options = {}) {
         toast.success(options.successMessage);
       }
       if (options.invalidateKeys) {
-        options.invalidateKeys.forEach(key => {
+        (options?.invalidateKeys || []).forEach(key => {
           queryClient.invalidateQueries({ queryKey: key });
         });
       }

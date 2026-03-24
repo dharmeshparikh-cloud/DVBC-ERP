@@ -104,7 +104,7 @@ const MyDetails = () => {
 
   const handleExitSubmit = async () => {
     // Validate all required questions answered
-    const requiredQuestions = exitQuestions.filter(q => q.type !== 'text');
+    const requiredQuestions = (exitQuestions || []).filter(q => q.type !== 'text');
     for (const q of requiredQuestions) {
       if (!exitResponses[q.id]) {
         toast.error(`Please answer: ${q.question}`);
@@ -249,7 +249,7 @@ const MyDetails = () => {
   };
 
   const hasPendingRequest = (section) => {
-    return pendingRequests.some(r => r.section === section && r.status === 'pending');
+    return (pendingRequests || []).some(r => r.section === section && r.status === 'pending');
   };
 
   if (loading) {
@@ -295,7 +295,7 @@ const MyDetails = () => {
             </span>
           </div>
           <div className="space-y-2">
-            {pendingRequests.filter(r => r.status === 'pending').map(req => {
+            {(pendingRequests || []).filter(r => r.status === 'pending').map(req => {
               const Icon = getSectionIcon(req.section);
               return (
                 <div key={req.id} className={`flex items-center gap-2 text-sm ${isDark ? 'text-amber-200' : 'text-amber-600'}`} data-testid={`pending-request-${req.id}`}>
@@ -706,7 +706,7 @@ const MyDetails = () => {
                 <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
                   Please answer the following questions honestly. Your feedback helps us improve.
                 </p>
-                {exitQuestions.map((q) => (
+                {(exitQuestions || []).map((q) => (
                   <div key={q.id} className={`p-3 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
                     <Label className="font-medium flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-orange-500" />
@@ -723,7 +723,7 @@ const MyDetails = () => {
                           <SelectValue placeholder="Select an option" />
                         </SelectTrigger>
                         <SelectContent>
-                          {q.options.map(opt => (
+                          {(q?.options || []).map(opt => (
                             <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                           ))}
                         </SelectContent>

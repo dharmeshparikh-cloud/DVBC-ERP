@@ -134,7 +134,7 @@ const CustomReportBuilder = () => {
   const [reportName, setReportName] = useState('');
 
   // Get available sources based on user role
-  const availableSources = Object.entries(DATA_SOURCES).filter(([key, source]) => 
+  const availableSources = Object.entries(DATA_SOURCES || {}).filter(([key, source]) => 
     source.roles.includes(user?.role)
   );
 
@@ -150,7 +150,7 @@ const CustomReportBuilder = () => {
   const toggleField = (fieldKey) => {
     setSelectedFields(prev => 
       prev.includes(fieldKey) 
-        ? prev.filter(f => f !== fieldKey)
+        ? (prev || []).filter(f => f !== fieldKey)
         : [...prev, fieldKey]
     );
   };
@@ -158,7 +158,7 @@ const CustomReportBuilder = () => {
   // Select all fields
   const selectAllFields = () => {
     if (selectedSource) {
-      setSelectedFields(DATA_SOURCES[selectedSource].fields.map(f => f.key));
+      setSelectedFields((DATA_SOURCES[selectedSource]?.fields || []).map(f => f.key));
     }
   };
 
@@ -174,12 +174,12 @@ const CustomReportBuilder = () => {
 
   // Update filter
   const updateFilter = (index, key, value) => {
-    setFilters(prev => prev.map((f, i) => i === index ? { ...f, [key]: value } : f));
+    setFilters(prev => (prev || []).map((f, i) => i === index ? { ...f, [key]: value } : f));
   };
 
   // Remove filter
   const removeFilter = (index) => {
-    setFilters(prev => prev.filter((_, i) => i !== index));
+    setFilters(prev => (prev || []).filter((_, i) => i !== index));
   };
 
   // Generate preview
@@ -205,8 +205,8 @@ const CustomReportBuilder = () => {
     const rows = [];
     for (let i = 0; i < 5; i++) {
       const row = {};
-      selectedFields.forEach(fieldKey => {
-        const field = source.fields.find(f => f.key === fieldKey);
+      (selectedFields || []).forEach(fieldKey => {
+        const field = (source?.fields || []).find(f => f.key === fieldKey);
         if (field) {
           switch (field.type) {
             case 'number':
@@ -285,7 +285,7 @@ const CustomReportBuilder = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {availableSources.map(([key, source]) => {
+              {(availableSources || []).map(([key, source]) => {
                 const Icon = source.icon;
                 return (
                   <div
@@ -331,7 +331,7 @@ const CustomReportBuilder = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {DATA_SOURCES[selectedSource].fields.map((field) => (
+              {(DATA_SOURCES[selectedSource]?.fields || []).map((field) => (
                 <div
                   key={field.key}
                   onClick={() => toggleField(field.key)}
@@ -404,7 +404,7 @@ const CustomReportBuilder = () => {
 
             {/* Custom Filters */}
             <div className="space-y-3">
-              {filters.map((filter, index) => (
+              {(filters || []).map((filter, index) => (
                 <div key={index} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg">
                   <select
                     value={filter.field}
@@ -412,8 +412,8 @@ const CustomReportBuilder = () => {
                     className="flex-1 px-3 py-2 border rounded-md text-sm"
                   >
                     <option value="">Select Field</option>
-                    {selectedFields.map(fieldKey => {
-                      const field = DATA_SOURCES[selectedSource].fields.find(f => f.key === fieldKey);
+                    {(selectedFields || []).map(fieldKey => {
+                      const field = (DATA_SOURCES[selectedSource]?.fields || []).find(f => f.key === fieldKey);
                       return <option key={fieldKey} value={fieldKey}>{field?.label}</option>;
                     })}
                   </select>
@@ -516,8 +516,8 @@ const CustomReportBuilder = () => {
                 <table className="w-full text-sm">
                   <thead className="bg-zinc-50">
                     <tr>
-                      {selectedFields.map(fieldKey => {
-                        const field = DATA_SOURCES[selectedSource].fields.find(f => f.key === fieldKey);
+                      {(selectedFields || []).map(fieldKey => {
+                        const field = (DATA_SOURCES[selectedSource]?.fields || []).find(f => f.key === fieldKey);
                         return (
                           <th key={fieldKey} className="px-4 py-3 text-left font-medium text-zinc-600">
                             {field?.label}
@@ -527,9 +527,9 @@ const CustomReportBuilder = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {previewData.map((row, index) => (
+                    {(previewData || []).map((row, index) => (
                       <tr key={index} className="hover:bg-zinc-50">
-                        {selectedFields.map(fieldKey => (
+                        {(selectedFields || []).map(fieldKey => (
                           <td key={fieldKey} className="px-4 py-3 text-zinc-700">
                             {typeof row[fieldKey] === 'boolean' 
                               ? (row[fieldKey] ? '✓ Yes' : '✗ No')
@@ -582,7 +582,7 @@ const CustomReportBuilder = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {availableSources.map(([key, source]) => {
+            {(availableSources || []).map(([key, source]) => {
               const Icon = source.icon;
               return (
                 <div key={key} className="flex items-center gap-2 p-2 bg-zinc-50 rounded-lg">

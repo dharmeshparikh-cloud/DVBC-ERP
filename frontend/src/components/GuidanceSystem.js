@@ -497,7 +497,7 @@ export const HelpPanel = () => {
 
                   {/* Pending Items List */}
                   <div className="space-y-3">
-                    {smartRecommendations.items.map((item, idx) => (
+                    {(smartRecommendations?.items || []).map((item, idx) => (
                       <div
                         key={idx}
                         onClick={() => handleNavigateTo(item.route)}
@@ -618,7 +618,7 @@ export const HelpPanel = () => {
                     </div>
                   ) : categoryTopics.length > 0 ? (
                     <div className="space-y-2">
-                      {categoryTopics.map(topic => (
+                      {(categoryTopics || []).map(topic => (
                         <button
                           key={topic.id}
                           onClick={() => openHelpTopic(topic.id)}
@@ -669,7 +669,7 @@ export const HelpPanel = () => {
                       <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                         {helpSearchResults.length} results for "{helpSearchQuery}"
                       </p>
-                      {helpSearchResults.map(result => (
+                      {(helpSearchResults || []).map(result => (
                         <button
                           key={result.id}
                           onClick={() => openHelpTopic(result.id)}
@@ -697,7 +697,7 @@ export const HelpPanel = () => {
                         Help for this page
                       </p>
                       <div className="space-y-2">
-                        {contextTopics.slice(0, 4).map(topic => (
+                        {(contextTopics || []).slice(0, 4).map(topic => (
                           <button
                             key={topic.id}
                             onClick={() => openHelpTopic(topic.id)}
@@ -724,7 +724,7 @@ export const HelpPanel = () => {
                         What's New
                       </p>
                       <div className="space-y-2">
-                        {whatsNew.slice(0, 3).map(item => (
+                        {(whatsNew || []).slice(0, 3).map(item => (
                           <button
                             key={item.id}
                             onClick={() => openHelpTopic(item.id)}
@@ -750,7 +750,7 @@ export const HelpPanel = () => {
                         Browse by Module
                       </p>
                       <div className="grid grid-cols-2 gap-2">
-                        {helpCategories.map(cat => (
+                        {(helpCategories || []).map(cat => (
                           <button
                             key={cat.id}
                             onClick={() => openCategory(cat)}
@@ -876,7 +876,7 @@ export const HelpPanel = () => {
                     Suggested for this page
                   </p>
                   <div className="space-y-2">
-                    {relevantWorkflows.map(workflow => (
+                    {(relevantWorkflows || []).map(workflow => (
                       <WorkflowCard
                         key={workflow.id}
                         workflow={workflow}
@@ -890,13 +890,13 @@ export const HelpPanel = () => {
               )}
 
               {/* All workflows by category */}
-              {Object.entries(workflowCategories).map(([category, workflowIds]) => (
+              {Object.entries(workflowCategories || {}).map(([category, workflowIds]) => (
                 <div key={category}>
                   <p className={`text-sm font-medium mb-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
                     {category}
                   </p>
                   <div className="space-y-2">
-                    {workflowIds.map(id => {
+                    {(workflowIds || []).map(id => {
                       const workflow = WORKFLOWS[id];
                       if (!workflow) return null;
                       return (
@@ -939,7 +939,7 @@ export const HelpPanel = () => {
                         Pro Tips:
                       </p>
                       <ul className="space-y-2">
-                        {currentPageTips.tips.map((tip, idx) => (
+                        {(currentPageTips?.tips || []).map((tip, idx) => (
                           <li
                             key={idx}
                             className={`flex items-center gap-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}
@@ -1068,7 +1068,7 @@ export const WorkflowOverlay = () => {
           </button>
         </div>
         <div className="flex items-center gap-1 mt-2">
-          {activeWorkflow.steps.map((_, idx) => (
+          {(activeWorkflow?.steps || []).map((_, idx) => (
             <div
               key={idx}
               className={`h-1 flex-1 rounded-full ${
@@ -1106,7 +1106,7 @@ export const WorkflowOverlay = () => {
 
         {/* Steps preview */}
         <div className="mt-4 space-y-2">
-          {activeWorkflow.steps.map((step, idx) => (
+          {(activeWorkflow?.steps || []).map((step, idx) => (
             <div
               key={idx}
               className={`flex items-center gap-2 text-sm ${
@@ -1299,7 +1299,7 @@ const HelpTopicDetail = ({ topic, isDark, onFeedback, onOpenRelated }) => {
             <CheckCircle2 className="w-4 h-4 text-green-500" />
             Step-by-Step Instructions
           </h3>
-          {topic.steps.map((step, idx) => (
+          {(topic?.steps || []).map((step, idx) => (
             <div key={idx} className={`flex gap-3 p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
               <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">
                 {idx + 1}
@@ -1326,7 +1326,7 @@ const HelpTopicDetail = ({ topic, isDark, onFeedback, onOpenRelated }) => {
             <AlertCircle className="w-4 h-4 text-amber-500" />
             Common Issues & Solutions
           </h3>
-          {topic.troubleshooting.map((item, idx) => (
+          {(topic?.troubleshooting || []).map((item, idx) => (
             <details key={idx} className={`group rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
               <summary className={`p-3 cursor-pointer font-medium text-sm flex items-center justify-between ${isDark ? 'text-red-400' : 'text-red-600'}`}>
                 <span>{item.problem}</span>
@@ -1354,7 +1354,7 @@ const HelpTopicDetail = ({ topic, isDark, onFeedback, onOpenRelated }) => {
         <div>
           <h3 className={`font-semibold text-sm mb-2 ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>Related Topics</h3>
           <div className="space-y-1">
-            {topic.relatedTopics.map(related => (
+            {(topic?.relatedTopics || []).map(related => (
               <button
                 key={related.id}
                 onClick={() => onOpenRelated(related.id)}

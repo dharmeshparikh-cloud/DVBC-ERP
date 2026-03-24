@@ -18,10 +18,10 @@ export const ExpenseTab = memo(({
   const { user } = useContext(AuthContext);
   const canCreateManualExpense = EXPENSE_CREATION_ROLES.includes(user?.role);
   
-  const totalClaims = expenses.reduce((sum, e) => sum + (e.total_amount || 0), 0);
-  const pendingCount = expenses.filter(e => e.status === 'pending').length;
-  const approvedCount = expenses.filter(e => e.status === 'approved').length;
-  const reimbursedCount = expenses.filter(e => e.status === 'reimbursed').length;
+  const totalClaims = (expenses || []).reduce((sum, e) => sum + (e.total_amount || 0), 0);
+  const pendingCount = (expenses || []).filter(e => e.status === 'pending').length;
+  const approvedCount = (expenses || []).filter(e => e.status === 'approved').length;
+  const reimbursedCount = (expenses || []).filter(e => e.status === 'reimbursed').length;
 
   return (
     <div className="space-y-4 pb-24">
@@ -75,7 +75,7 @@ export const ExpenseTab = memo(({
         </div>
         {expenses.length > 0 ? (
           <div className="divide-y divide-zinc-100">
-            {expenses.slice(0, 5).map((expense, i) => (
+            {(expenses || []).slice(0, 5).map((expense, i) => (
               <div key={i} className="flex items-center gap-3 p-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   expense.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :

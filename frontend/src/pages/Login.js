@@ -141,7 +141,7 @@ const Login = () => {
 
           {/* Feature Grid - 6 boxes */}
           <div className="grid grid-cols-2 gap-4 mb-12">
-            {features.map((feature, idx) => (
+            {(features || []).map((feature, idx) => (
               <div 
                 key={idx}
                 className="bg-neutral-900/80 border border-neutral-800 rounded-xl p-5 hover:border-amber-500/30 hover:bg-neutral-900 transition-all duration-300 group"
@@ -163,7 +163,7 @@ const Login = () => {
         {/* Bottom highlights */}
         <div className="relative z-10">
           <div className="flex flex-wrap gap-4">
-            {highlights.map((item, idx) => (
+            {(highlights || []).map((item, idx) => (
               <div key={idx} className="flex items-center gap-2 text-neutral-500">
                 <item.icon className="w-4 h-4 text-amber-500/70" />
                 <span className="text-sm">{item.text}</span>

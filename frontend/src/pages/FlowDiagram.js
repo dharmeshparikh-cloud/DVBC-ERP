@@ -201,13 +201,13 @@ const FlowDiagram = () => {
                 <p className="text-sm font-normal text-emerald-600">GET PEOPLE</p>
               </div>
               <Badge className="ml-auto bg-emerald-100 text-emerald-700">
-                {hrFlow.filter(s => s.status === 'exists').length}/{hrFlow.length} Complete
+                {(hrFlow || []).filter(s => s.status === 'exists').length}/{hrFlow.length} Complete
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
-              {hrFlow.map((step, i) => (
+              {(hrFlow || []).map((step, i) => (
                 <FlowStep key={step.id} step={step} index={i} total={hrFlow.length} />
               ))}
             </div>
@@ -237,13 +237,13 @@ const FlowDiagram = () => {
                 <p className="text-sm font-normal text-orange-600">WORK PEOPLE ON</p>
               </div>
               <Badge className="ml-auto bg-orange-100 text-orange-700">
-                {salesFlow.filter(s => s.status === 'exists').length}/{salesFlow.length} Complete
+                {(salesFlow || []).filter(s => s.status === 'exists').length}/{salesFlow.length} Complete
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
-              {salesFlow.map((step, i) => (
+              {(salesFlow || []).map((step, i) => (
                 <FlowStep key={step.id} step={step} index={i} total={salesFlow.length} />
               ))}
             </div>
@@ -273,13 +273,13 @@ const FlowDiagram = () => {
                 <p className="text-sm font-normal text-blue-600">ENCASH PEOPLE TO</p>
               </div>
               <Badge className="ml-auto bg-blue-100 text-blue-700">
-                {consultingFlow.filter(s => s.status === 'exists').length}/{consultingFlow.length} Complete
+                {(consultingFlow || []).filter(s => s.status === 'exists').length}/{consultingFlow.length} Complete
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
-              {consultingFlow.map((step, i) => (
+              {(consultingFlow || []).map((step, i) => (
                 <FlowStep key={step.id} step={step} index={i} total={consultingFlow.length} />
               ))}
             </div>
@@ -308,7 +308,7 @@ const FlowDiagram = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            {linkages.map((link, i) => (
+            {(linkages || []).map((link, i) => (
               <div 
                 key={i}
                 className={`p-4 rounded-lg border-2 ${
@@ -349,11 +349,11 @@ const FlowDiagram = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            {duplicates.map((dup, i) => (
+            {(duplicates || []).map((dup, i) => (
               <div key={i} className="p-4 rounded-lg bg-amber-50 border border-amber-200">
                 <p className="font-medium text-amber-800 mb-2">{dup.area}</p>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {dup.modules.map((mod, j) => (
+                  {(dup?.modules || []).map((mod, j) => (
                     <Badge key={j} variant="outline" className="bg-white">{mod}</Badge>
                   ))}
                 </div>
@@ -397,7 +397,7 @@ const FlowDiagram = () => {
           <CardContent className="pt-6">
             <p className="text-purple-100 text-sm">Linkages</p>
             <p className="text-4xl font-bold">
-              {linkages.filter(l => l.status === 'missing').length}/{linkages.length}
+              {(linkages || []).filter(l => l.status === 'missing').length}/{linkages.length}
             </p>
             <p className="text-purple-200 text-sm">disconnected</p>
           </CardContent>

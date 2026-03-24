@@ -47,8 +47,8 @@ const LeaveManagement = () => {
   const allRequests = leaveData?.allRequests || [];
 
   const displayRequests = activeTab === 'all' ? allRequests : myRequests;
-  const pendingCount = myRequests.filter(r => r.status === 'pending').length;
-  const approvedCount = myRequests.filter(r => r.status === 'approved').length;
+  const pendingCount = (myRequests || []).filter(r => r.status === 'pending').length;
+  const approvedCount = (myRequests || []).filter(r => r.status === 'approved').length;
 
   return (
     <div data-testid="leave-management-page">
@@ -78,7 +78,7 @@ const LeaveManagement = () => {
             <XCircle className="w-6 h-6 text-red-400" />
             <div>
               <div className="text-xs uppercase tracking-wide text-zinc-500">Rejected</div>
-              <div className="text-2xl font-semibold text-zinc-950">{myRequests.filter(r => r.status === 'rejected').length}</div>
+              <div className="text-2xl font-semibold text-zinc-950">{(myRequests || []).filter(r => r.status === 'rejected').length}</div>
             </div>
           </CardContent>
         </Card>
@@ -122,7 +122,7 @@ const LeaveManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {displayRequests.filter(req => req.id).map(req => (
+              {(displayRequests || []).filter(req => req.id).map(req => (
                 <tr key={req.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`leave-row-${req.id}`}>
                   {activeTab === 'all' && <td className="px-4 py-3 font-medium text-zinc-950">{req.employee_name}</td>}
                   <td className="px-4 py-3 text-zinc-700">{req.leave_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>

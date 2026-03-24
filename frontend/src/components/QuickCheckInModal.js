@@ -399,7 +399,7 @@ const QuickCheckInModal = ({ isOpen, onClose, user }) => {
                     </div>
                   ) : assignedClients.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-                      {assignedClients.map((client) => (
+                      {(assignedClients || []).map((client) => (
                         <button
                           key={client.id}
                           onClick={() => setSelectedClient(client)}

@@ -112,14 +112,14 @@ export const CheckInModal = ({
                 <select
                   value={selectedClient?.id || ''}
                   onChange={(e) => {
-                    const client = assignedClients.find(c => c.id === e.target.value);
+                    const client = (assignedClients || []).find(c => c.id === e.target.value);
                     onSelectClient(client);
                   }}
                   className="w-full p-2 border rounded-lg text-sm"
                   data-testid="client-select"
                 >
                   <option value="">Select a client...</option>
-                  {assignedClients.map(client => (
+                  {(assignedClients || []).map(client => (
                     <option key={client.id} value={client.id}>
                       {client.client_name} {client.project_name ? `- ${client.project_name}` : ''}
                     </option>

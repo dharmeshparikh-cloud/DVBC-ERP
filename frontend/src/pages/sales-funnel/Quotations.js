@@ -117,7 +117,7 @@ const Quotations = () => {
   // Auto-open dialog with pre-selected plan when coming from SOW selection
   useEffect(() => {
     if (!loading && pricingPlanIdFromUrl && !autoOpenHandled && pricingPlans.length > 0) {
-      const plan = pricingPlans.find(p => p.id === pricingPlanIdFromUrl);
+      const plan = (pricingPlans || []).find(p => p.id === pricingPlanIdFromUrl);
       if (plan) {
         setSelectedPlanDetails(plan);
         setFormData(prev => ({ 
@@ -133,7 +133,7 @@ const Quotations = () => {
 
   // When pricing plan is selected, show its details
   const handlePlanSelect = (planId) => {
-    const plan = pricingPlans.find(p => p.id === planId);
+    const plan = (pricingPlans || []).find(p => p.id === planId);
     setSelectedPlanDetails(plan);
     setFormData({ ...formData, pricing_plan_id: planId });
   };
@@ -144,7 +144,7 @@ const Quotations = () => {
     if (loadedDraft) {
       setFormData(loadedDraft.data);
       if (loadedDraft.data.pricing_plan_id) {
-        const plan = pricingPlans.find(p => p.id === loadedDraft.data.pricing_plan_id);
+        const plan = (pricingPlans || []).find(p => p.id === loadedDraft.data.pricing_plan_id);
         setSelectedPlanDetails(plan);
       }
       toast.success('Draft loaded');
@@ -177,7 +177,7 @@ const Quotations = () => {
   };
 
   const openDetailDialog = (quotation) => {
-    const plan = pricingPlans.find(p => p.id === quotation.pricing_plan_id);
+    const plan = (pricingPlans || []).find(p => p.id === quotation.pricing_plan_id);
     setSelectedQuotation(quotation);
     setSelectedPlanDetails(plan);
     setDetailDialogOpen(true);
@@ -195,17 +195,17 @@ const Quotations = () => {
   };
 
   const getLeadName = (leadId) => {
-    const lead = leads.find(l => l.id === leadId);
+    const lead = (leads || []).find(l => l.id === leadId);
     return lead ? `${lead.first_name} ${lead.last_name} - ${lead.company}` : 'Unknown Lead';
   };
 
   const getLead = (leadId) => {
-    return leads.find(l => l.id === leadId);
+    return (leads || []).find(l => l.id === leadId);
   };
 
   // Check if quotation is used in an agreement
   const isUsedInAgreement = (quotationId) => {
-    return agreements.some(a => a.quotation_id === quotationId);
+    return (agreements || []).some(a => a.quotation_id === quotationId);
   };
 
   const canEdit = user?.role !== 'manager';
@@ -219,13 +219,13 @@ const Quotations = () => {
     
     if (!teamData || teamData.length === 0) return { totalMeetings: 0, subtotal: 0 };
     
-    const totalMeetings = teamData.reduce((sum, m) => {
+    const totalMeetings = (teamData || []).reduce((sum, m) => {
       const meetings = m.committed_meetings || m.meetings || 0;
       const count = m.count || 1;
       return sum + (meetings * count);
     }, 0);
     
-    const subtotal = teamData.reduce((sum, m) => {
+    const subtotal = (teamData || []).reduce((sum, m) => {
       const meetings = m.committed_meetings || m.meetings || 0;
       const count = m.count || 1;
       const rate = m.rate_per_meeting || 12500;
@@ -236,7 +236,7 @@ const Quotations = () => {
   };
 
   // Group quotations by lead for history view
-  const groupedByLead = quotations.reduce((acc, quotation) => {
+  const groupedByLead = (quotations || []).reduce((acc, quotation) => {
     const key = quotation.lead_id;
     if (!acc[key]) {
       acc[key] = [];
@@ -246,7 +246,7 @@ const Quotations = () => {
   }, {});
 
   // Sort quotations within each group by created_at (newest first)
-  Object.keys(groupedByLead).forEach(leadId => {
+  Object.keys(groupedByLead || {}).forEach(leadId => {
     groupedByLead[leadId].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   });
 
@@ -321,7 +321,7 @@ const Quotations = () => {
       ) : activeView === 'list' ? (
         /* LIST VIEW - All Quotations */
         <div className="space-y-4">
-          {quotations.map((quotation) => {
+          {(quotations || []).map((quotation) => {
             const usedInAgreement = isUsedInAgreement(quotation.id);
             return (
               <Card
@@ -417,10 +417,10 @@ const Quotations = () => {
       ) : (
         /* HISTORY VIEW - Grouped by Lead/Prospect */
         <div className="space-y-6">
-          {Object.keys(groupedByLead).map(leadId => {
+          {Object.keys(groupedByLead || {}).map(leadId => {
             const lead = getLead(leadId);
             const quotationsList = groupedByLead[leadId];
-            const selectedQuotation = quotationsList.find(q => isUsedInAgreement(q.id));
+            const selectedQuotation = (quotationsList || []).find(q => isUsedInAgreement(q.id));
             
             return (
               <Card key={leadId} className="border-zinc-200 shadow-none rounded-sm" data-testid={`lead-group-${leadId}`}>
@@ -443,7 +443,7 @@ const Quotations = () => {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y divide-zinc-100">
-                    {quotationsList.map((quotation, idx) => {
+                    {(quotationsList || []).map((quotation, idx) => {
                       const isLatest = idx === 0;
                       const usedInAgreement = isUsedInAgreement(quotation.id);
                       const versionNumber = quotationsList.length - idx;
@@ -612,7 +612,7 @@ const Quotations = () => {
                 data-testid="pricing-plan-select"
               >
                 <option value="">{formData.lead_id ? 'Select a pricing plan' : 'Select a lead first'}</option>
-                {pricingPlans.filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
+                {(pricingPlans || []).filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
                   <option key={plan.id} value={plan.id}>
                     {plan.project_duration_months} months ({plan.project_duration_type}) - {formatINR(plan.total_amount || calculatePlanTotals(plan).subtotal)}
                   </option>

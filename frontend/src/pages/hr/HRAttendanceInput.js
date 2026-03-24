@@ -75,16 +75,16 @@ const HRAttendanceInput = () => {
       let data = response.data;
       // Filter results if specific employee selected
       if (selectedEmployeeId && selectedEmployeeId !== 'all') {
-        data.employees = data.employees.filter(e => e.employee_id === selectedEmployeeId);
+        data.employees = (data?.employees || []).filter(e => e.employee_id === selectedEmployeeId);
         data.summary = {
           total_employees: data.employees.length,
-          clean: data.employees.filter(e => e.status === 'clean').length,
-          penalty_pending: data.employees.filter(e => e.status === 'penalty_pending').length,
-          total_pending_penalties: data.employees.reduce((sum, e) => sum + e.pending_penalty_amount, 0)
+          clean: (data?.employees || []).filter(e => e.status === 'clean').length,
+          penalty_pending: (data?.employees || []).filter(e => e.status === 'penalty_pending').length,
+          total_pending_penalties: (data?.employees || []).reduce((sum, e) => sum + (e?.pending_penalty_amount || 0), 0)
         };
       }
       setValidationResults(data);
-      toast.success(`Validation complete: ${data.summary.clean} clean, ${data.summary.penalty_pending} with penalties`);
+      toast.success(`Validation complete: ${data.summary?.clean || 0} clean, ${data.summary?.penalty_pending || 0} with penalties`);
     },
     onError: () => {
       toast.error('Failed to run validation');
@@ -149,7 +149,7 @@ const HRAttendanceInput = () => {
       return;
     }
 
-    const records = selectedEmployees.map(empId => ({
+    const records = (selectedEmployees || []).map(empId => ({
       employee_id: empId,
       status,
       check_in: status === 'present' ? `${bulkDate}T10:00:00Z` : null,
@@ -212,27 +212,27 @@ const HRAttendanceInput = () => {
   const toggleEmployeeSelection = (empId) => {
     setSelectedEmployees(prev => 
       prev.includes(empId) 
-        ? prev.filter(id => id !== empId)
+        ? (prev || []).filter(id => id !== empId)
         : [...prev, empId]
     );
   };
 
   const selectAll = () => {
-    setSelectedEmployees(filteredEmployees.map(e => e.employee_id));
+    setSelectedEmployees((filteredEmployees || []).map(e => e.employee_id));
   };
 
   const deselectAll = () => {
     setSelectedEmployees([]);
   };
 
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = (employees || []).filter(emp => {
     const matchesSearch = emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           emp.employee_code?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDept = departmentFilter === 'all' || emp.department === departmentFilter;
     return matchesSearch && matchesDept;
   });
 
-  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const departments = [...new Set((employees || []).map(e => e.department).filter(Boolean))];
 
   return (
     <div className="p-6 space-y-6" data-testid="hr-attendance-input">
@@ -248,7 +248,7 @@ const HRAttendanceInput = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Employees</SelectItem>
-              {allEmployees.map(emp => (
+              {(allEmployees || []).map(emp => (
                 <SelectItem key={emp.id} value={emp.id}>
                   {emp.first_name} {emp.last_name} ({emp.employee_id})
                 </SelectItem>
@@ -317,7 +317,7 @@ const HRAttendanceInput = () => {
                   Custom Employee Policies ({customPolicies.length})
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {customPolicies.map(cp => (
+                  {(customPolicies || []).map(cp => (
                     <div key={cp.employee_id} className="bg-blue-50 p-3 rounded-lg flex justify-between items-center">
                       <div>
                         <p className="text-zinc-800 font-medium text-sm">{cp.employee_name}</p>
@@ -435,11 +435,11 @@ const HRAttendanceInput = () => {
               </div>
             </div>
             
-            {validationResults.employees.filter(e => e.status === 'penalty_pending').length > 0 && (
+            {(validationResults?.employees || []).filter(e => e.status === 'penalty_pending').length > 0 && (
               <div className="mt-4">
                 <h4 className="text-sm font-medium text-zinc-700 mb-2">Employees with Penalties:</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {validationResults.employees
+                  {(validationResults?.employees || [])
                     .filter(e => e.status === 'penalty_pending')
                     .map(emp => (
                       <div key={emp.employee_id} className="bg-zinc-50 p-3 rounded-lg flex justify-between items-center">
@@ -490,7 +490,7 @@ const HRAttendanceInput = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {departments.map(dept => (
+                {(departments || []).map(dept => (
                   <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                 ))}
               </SelectContent>
@@ -523,7 +523,7 @@ const HRAttendanceInput = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEmployees.map(emp => (
+                  {(filteredEmployees || []).map(emp => (
                     <tr key={emp.employee_id} className="border-b border-zinc-100 hover:bg-zinc-50">
                       <td className="p-3">
                         <input 
@@ -575,7 +575,7 @@ const HRAttendanceInput = () => {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allEmployees.map(emp => (
+                  {(allEmployees || []).map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.first_name} {emp.last_name} ({emp.employee_id})
                     </SelectItem>

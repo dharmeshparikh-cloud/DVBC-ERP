@@ -291,7 +291,7 @@ export const GuidanceProvider = ({ children }) => {
 
         // Group approvals by type
         const groupedApprovals = {};
-        approvals.forEach(approval => {
+        (approvals || []).forEach(approval => {
           const type = approval.approval_type || 'general';
           if (!groupedApprovals[type]) {
             groupedApprovals[type] = [];
@@ -347,7 +347,7 @@ export const GuidanceProvider = ({ children }) => {
           }
         };
 
-        Object.entries(groupedApprovals).forEach(([type, typeApprovals]) => {
+        Object.entries(groupedApprovals || {}).forEach(([type, typeApprovals]) => {
           const config = typeConfig[type] || {
             icon: 'attendance',
             title: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
@@ -385,7 +385,7 @@ export const GuidanceProvider = ({ children }) => {
         });
 
         setSmartRecommendations({
-          totalPending: items.reduce((sum, item) => sum + item.count, 0),
+          totalPending: (items || []).reduce((sum, item) => sum + item.count, 0),
           items
         });
       } catch (error) {
@@ -511,8 +511,8 @@ export const GuidanceProvider = ({ children }) => {
 
   // Get relevant workflows for current page
   const getWorkflowsForPage = useCallback((pathname) => {
-    return Object.values(WORKFLOWS).filter(w => 
-      w.steps.some(s => s.route === pathname)
+    return Object.values(WORKFLOWS || {}).filter(w => 
+      (w?.steps || []).some(s => s.route === pathname)
     );
   }, []);
 

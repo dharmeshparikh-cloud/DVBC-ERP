@@ -103,7 +103,7 @@ const FunnelProgressIndicator = ({ progress, onClick }) => {
           <div className="space-y-2">
             <div className="text-xs font-semibold">Funnel Progress</div>
             <div className="flex flex-wrap gap-1">
-              {steps.map((step) => (
+              {(steps || []).map((step) => (
                 <div 
                   key={step.key}
                   className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${
@@ -180,7 +180,7 @@ const Leads = () => {
   // We prefetch suggestions for high-scoring leads when the leads list loads
   useEffect(() => {
     if (leads.length > 0) {
-      leads.forEach((lead) => {
+      (leads || []).forEach((lead) => {
         if (lead.lead_score >= 60 && !suggestions[lead.id]) {
           // Prefetch suggestions query - it will be cached by React Query
           queryClient.prefetchQuery({
@@ -445,7 +445,7 @@ const Leads = () => {
         errorMessage = detail;
       } else if (Array.isArray(detail) && detail.length > 0) {
         // Validation errors are usually in format [{loc: [...], msg: '...', type: '...'}]
-        errorMessage = detail.map(d => d.msg || d.message || String(d)).join(', ');
+        errorMessage = (detail || []).map(d => d.msg || d.message || String(d)).join(', ');
       } else if (detail && typeof detail === 'object') {
         errorMessage = detail.msg || detail.message || JSON.stringify(detail);
       }
@@ -465,7 +465,7 @@ const Leads = () => {
       const values = lines[i].split(',').map(v => v.trim().replace(/['"]/g, ''));
       if (values.length === headers.length) {
         const row = {};
-        headers.forEach((header, idx) => {
+        (headers || []).forEach((header, idx) => {
           row[header] = values[idx];
         });
         data.push(row);
@@ -506,7 +506,7 @@ const Leads = () => {
     }
     
     // Map CSV rows to lead data format
-    const leadsToCreate = parsed.map(row => ({
+    const leadsToCreate = (parsed || []).map(row => ({
       first_name: row.first_name || row.firstname || row.name?.split(' ')[0] || '',
       last_name: row.last_name || row.lastname || row.name?.split(' ').slice(1).join(' ') || '',
       company: row.company || row.organization || '',
@@ -581,7 +581,7 @@ const Leads = () => {
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(lead => 
+      result = (result || []).filter(lead => 
         lead.first_name?.toLowerCase().includes(query) ||
         lead.last_name?.toLowerCase().includes(query) ||
         lead.company?.toLowerCase().includes(query) ||
@@ -594,7 +594,7 @@ const Leads = () => {
     // Timeline filter
     if (timelineFilter !== 'all') {
       const now = new Date();
-      result = result.filter(lead => {
+      result = (result || []).filter(lead => {
         const createdAt = new Date(lead.created_at);
         const daysDiff = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
         
@@ -795,7 +795,7 @@ const Leads = () => {
                         className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
                       >
                         <option value="">Select Industry</option>
-                        {industryOptions.map(ind => (
+                        {(industryOptions || []).map(ind => (
                           <option key={ind} value={ind}>{ind}</option>
                         ))}
                       </select>
@@ -1010,7 +1010,7 @@ const Leads = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {csvPreview.map((row, idx) => (
+                      {(csvPreview || []).map((row, idx) => (
                         <tr key={idx} className="border-t border-zinc-100">
                           <td className="px-2 py-1">{row.first_name || row.firstname} {row.last_name || row.lastname}</td>
                           <td className="px-2 py-1">{row.company}</td>
@@ -1084,7 +1084,7 @@ const Leads = () => {
             data-testid="lead-status-filter"
             className="px-3 py-1.5 text-sm border border-zinc-200 rounded-sm bg-white focus:outline-none focus:ring-1 focus:ring-zinc-400 min-w-[160px]"
           >
-            {leadStatusOptions.map((option) => (
+            {(leadStatusOptions || []).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label} {option.value === '' && filteredLeads ? `(${leads.length})` : ''}
               </option>
@@ -1136,7 +1136,7 @@ const Leads = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {filteredLeads.map((lead) => {
+              {(filteredLeads || []).map((lead) => {
                 const progress = leadProgress[lead.id] || {};
                 const isPaused = lead.status === 'paused';
                 return (
@@ -1227,7 +1227,7 @@ const Leads = () => {
       ) : (
         /* Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLeads.map((lead) => {
+          {(filteredLeads || []).map((lead) => {
             const leadSuggestions = suggestions[lead.id] || [];
             const progress = leadProgress[lead.id] || {};
             return (

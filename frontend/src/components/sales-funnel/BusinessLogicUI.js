@@ -343,7 +343,7 @@ export const KickoffRequestPanel = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {pendingRequests.map((req) => (
+          {(pendingRequests || []).map((req) => (
             <div key={req.id} className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-900/20">
               <div className="flex items-start justify-between">
                 <div>
@@ -427,7 +427,7 @@ export const KickoffRequestPanel = ({
                   <SelectValue placeholder={loading ? "Loading..." : "Select consultant"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {consultants.map((consultant) => (
+                  {(consultants || []).map((consultant) => (
                     <SelectItem key={consultant.id} value={consultant.id}>
                       <div className="flex items-center gap-2">
                         <UserCheck className="h-4 w-4 text-purple-500" />

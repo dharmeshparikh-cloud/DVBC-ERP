@@ -201,7 +201,7 @@ const Dashboard = () => {
       <TodayFollowUpsWidget />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {statCards.map((stat) => {
+        {(statCards || []).map((stat) => {
           const Icon = stat.icon;
           return (
             <Card
@@ -345,7 +345,7 @@ const Dashboard = () => {
               <div className="text-sm text-zinc-500 text-center py-4">No leads yet</div>
             ) : (
               <div className="space-y-3">
-                {highPriorityLeads.map((lead) => (
+                {(highPriorityLeads || []).map((lead) => (
                   <div
                     key={lead.id}
                     className="p-3 rounded-sm border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 transition-colors cursor-pointer group"
@@ -417,7 +417,7 @@ const Dashboard = () => {
               <div className="text-sm text-zinc-400 text-center py-4">No login activity recorded yet</div>
             ) : (
               <div className="space-y-1">
-                {loginActivity.logs.map((log) => {
+                {(loginActivity?.logs || []).map((log) => {
                   const isSuccess = log.event_type?.includes('success');
                   const isFailed = log.event_type?.includes('failed') || log.event_type?.includes('rejected');
                   const eventLabel = {

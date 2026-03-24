@@ -143,7 +143,7 @@ export default function PayrollEngine() {
   );
   
   // Get current register for the selected month
-  const currentRegister = registers.find(r => r.month === selectedMonth);
+  const currentRegister = (registers || []).find(r => r.month === selectedMonth);
   
   // Handle simulation
   const handleSimulate = async () => {
@@ -235,7 +235,7 @@ export default function PayrollEngine() {
       // Convert to CSV
       const csvContent = [
         columns.join(','),
-        ...data.map(row => columns.map(col => `"${row[col] || ''}"`).join(','))
+        ...(data || []).map(row => (columns || []).map(col => `"${row[col] || ''}"`).join(','))
       ].join('\n');
       
       // Download
@@ -408,7 +408,7 @@ export default function PayrollEngine() {
                       <SelectValue placeholder="Choose employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {employees.map(emp => (
+                      {(employees || []).map(emp => (
                         <SelectItem key={emp.id} value={emp.id}>
                           {emp.employee_id} - {emp.first_name} {emp.last_name} ({emp.department})
                         </SelectItem>
@@ -721,7 +721,7 @@ export default function PayrollEngine() {
                       <div>
                         <p className={`text-sm font-medium mb-2 ${isDark ? 'text-zinc-300' : ''}`}>Earnings</p>
                         <div className="space-y-1">
-                          {simulationResult.earnings.map((e, i) => (
+                          {(simulationResult?.earnings || []).map((e, i) => (
                             <div key={i} className={`flex justify-between text-sm p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
                               <span>{e.name}</span>
                               <span className="font-medium text-green-600">+{formatCurrency(e.amount)}</span>
@@ -734,7 +734,7 @@ export default function PayrollEngine() {
                       <div>
                         <p className={`text-sm font-medium mb-2 ${isDark ? 'text-zinc-300' : ''}`}>Deductions</p>
                         <div className="space-y-1">
-                          {simulationResult.deductions.map((d, i) => (
+                          {(simulationResult?.deductions || []).map((d, i) => (
                             <div key={i} className={`text-sm p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-gray-50'}`}>
                               <div className="flex justify-between">
                                 <span>{d.name}</span>
@@ -854,7 +854,7 @@ export default function PayrollEngine() {
                           
                           {comparisonData.changes?.length > 0 ? (
                             <div className="space-y-2">
-                              {comparisonData.changes.slice(0, 5).map((change, idx) => {
+                              {(comparisonData?.changes || []).slice(0, 5).map((change, idx) => {
                                 const isIncrease = change.difference > 0;
                                 const isDeduction = change.field.toLowerCase().includes('deduction');
                                 const color = isDeduction 
@@ -963,7 +963,7 @@ export default function PayrollEngine() {
                       // Convert to CSV
                       const csvContent = [
                         columns.join(','),
-                        ...template.map(row => columns.map(col => {
+                        ...(template || []).map(row => (columns || []).map(col => {
                           const val = row[col];
                           return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
                         }).join(','))
@@ -1153,11 +1153,11 @@ export default function PayrollEngine() {
                     </div>
                     
                     {/* Department Summary */}
-                    {currentRegister.department_summary && Object.keys(currentRegister.department_summary).length > 0 && (
+                    {currentRegister.department_summary && Object.keys(currentRegister.department_summary || {}).length > 0 && (
                       <div className="mt-4">
                         <p className={`text-sm font-medium mb-2 ${isDark ? 'text-zinc-300' : ''}`}>By Department</p>
                         <div className="grid grid-cols-3 gap-2">
-                          {Object.entries(currentRegister.department_summary).map(([dept, data]) => (
+                          {Object.entries(currentRegister.department_summary || {}).map(([dept, data]) => (
                             <div key={dept} className={`p-2 rounded text-sm ${isDark ? 'bg-zinc-700' : 'bg-gray-50'}`}>
                               <p className="font-medium">{dept}</p>
                               <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>
@@ -1329,31 +1329,31 @@ export default function PayrollEngine() {
                     <div className={`p-3 rounded-lg ${isDark ? 'bg-green-900/30' : 'bg-green-50'}`}>
                       <p className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'}`}>Total Gross</p>
                       <p className="text-xl font-bold text-green-600">
-                        {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.gross_monthly || 0), 0))}
+                        {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.gross_monthly || 0), 0))}
                       </p>
                     </div>
                     <div className={`p-3 rounded-lg ${isDark ? 'bg-red-900/30' : 'bg-red-50'}`}>
                       <p className={`text-xs ${isDark ? 'text-red-400' : 'text-red-600'}`}>Total Deductions</p>
                       <p className="text-xl font-bold text-red-600">
-                        {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_deductions || 0), 0))}
+                        {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.total_deductions || 0), 0))}
                       </p>
                     </div>
                     <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
                       <p className={`text-xs ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Net Payable</p>
                       <p className="text-xl font-bold text-blue-600">
-                        {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.net_payable || 0), 0))}
+                        {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.net_payable || 0), 0))}
                       </p>
                     </div>
                     <div className={`p-3 rounded-lg ${isDark ? 'bg-purple-900/30' : 'bg-purple-50'}`}>
                       <p className={`text-xs ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>TDS Liability</p>
                       <p className="text-xl font-bold text-purple-600">
-                        {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.tds_details?.monthly_tds || 0), 0))}
+                        {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.tds_details?.monthly_tds || 0), 0))}
                       </p>
                     </div>
                     <div className={`p-3 rounded-lg ${isDark ? 'bg-amber-900/30' : 'bg-amber-50'}`}>
                       <p className={`text-xs ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>Total Expenses</p>
                       <p className="text-xl font-bold text-amber-600">
-                        {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.reimbursements || 0), 0))}
+                        {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.reimbursements || 0), 0))}
                       </p>
                     </div>
                   </div>
@@ -1381,7 +1381,7 @@ export default function PayrollEngine() {
                           </tr>
                         </thead>
                         <tbody>
-                          {registerDetails.calculations.map((calc, i) => {
+                          {(registerDetails?.calculations || []).map((calc, i) => {
                             const basic = calc.earnings?.find(e => e.key === 'basic_salary')?.amount || 0;
                             const hra = calc.earnings?.find(e => e.key === 'hra')?.amount || 0;
                             const special = calc.earnings?.find(e => e.key === 'special_allowance')?.amount || 0;
@@ -1429,37 +1429,37 @@ export default function PayrollEngine() {
                           <tr className={`font-bold border-t-2 ${isDark ? 'border-zinc-600 bg-zinc-800' : 'border-gray-300 bg-gray-100'}`}>
                             <td className="p-2" colSpan={5}>Total ({registerDetails.calculations.length} employees)</td>
                             <td className="p-2 text-right text-green-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.gross_monthly || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.gross_monthly || 0), 0))}
                             </td>
                             <td className="p-2 text-right text-red-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => {
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => {
                                 const lop = c.deductions?.find(d => d.key === 'lop')?.amount || 0;
                                 return s + lop;
                               }, 0))}
                             </td>
                             <td className="p-2 text-right text-red-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => {
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => {
                                 const pf = c.deductions?.find(d => d.key === 'pf')?.amount || 0;
                                 return s + pf;
                               }, 0))}
                             </td>
                             <td className="p-2 text-right text-red-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => {
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => {
                                 const pt = c.deductions?.find(d => d.key === 'pt')?.amount || 0;
                                 return s + pt;
                               }, 0))}
                             </td>
                             <td className="p-2 text-right text-red-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.tds_details?.monthly_tds || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.tds_details?.monthly_tds || 0), 0))}
                             </td>
                             <td className="p-2 text-right text-amber-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.reimbursements || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.reimbursements || 0), 0))}
                             </td>
                             <td className="p-2 text-right text-red-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_deductions || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.total_deductions || 0), 0))}
                             </td>
                             <td className="p-2 text-right text-blue-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.net_payable || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.net_payable || 0), 0))}
                             </td>
                             <td></td>
                           </tr>
@@ -1471,7 +1471,7 @@ export default function PayrollEngine() {
                   {/* DETAILED VIEW */}
                   {registerViewMode === 'detailed' && (
                     <div className="space-y-4">
-                      {registerDetails.calculations.map((calc, i) => {
+                      {(registerDetails?.calculations || []).map((calc, i) => {
                         const lopDed = calc.deductions?.find(d => d.key === 'lop');
                         const pfDed = calc.deductions?.find(d => d.key === 'pf');
                         const ptDed = calc.deductions?.find(d => d.key === 'pt');
@@ -1716,7 +1716,7 @@ export default function PayrollEngine() {
                           </tr>
                         </thead>
                         <tbody>
-                          {registerDetails.calculations.map((calc, i) => {
+                          {(registerDetails?.calculations || []).map((calc, i) => {
                             // Parse all data
                             const earnings = calc.earnings || [];
                             const deductions = calc.deductions || [];
@@ -1724,24 +1724,24 @@ export default function PayrollEngine() {
                             const expenseBreakdown = calc.expense_breakdown || {};
                             const bankDetails = calc.bank_details || {};
                             
-                            const basic = earnings.find(e => e.key === 'basic_salary' || e.key === 'basic')?.amount || 0;
-                            const hra = earnings.find(e => e.key === 'hra')?.amount || 0;
-                            const special = earnings.find(e => e.key === 'special_allowance')?.amount || 0;
-                            const incentive = earnings.find(e => e.key === 'incentive')?.amount || 0;
-                            const arrears = earnings.find(e => e.key === 'arrears')?.amount || 0;
+                            const basic = (earnings || []).find(e => e.key === 'basic_salary' || e.key === 'basic')?.amount || 0;
+                            const hra = (earnings || []).find(e => e.key === 'hra')?.amount || 0;
+                            const special = (earnings || []).find(e => e.key === 'special_allowance')?.amount || 0;
+                            const incentive = (earnings || []).find(e => e.key === 'incentive')?.amount || 0;
+                            const arrears = (earnings || []).find(e => e.key === 'arrears')?.amount || 0;
                             
-                            const lopDed = Math.abs(deductions.find(d => d.key === 'lop')?.amount || 0);
-                            const pfDed = Math.abs(deductions.find(d => d.key === 'pf')?.amount || 0);
-                            const ptDed = Math.abs(deductions.find(d => d.key === 'pt' || d.key === 'professional_tax')?.amount || 0);
+                            const lopDed = Math.abs((deductions || []).find(d => d.key === 'lop')?.amount || 0);
+                            const pfDed = Math.abs((deductions || []).find(d => d.key === 'pf')?.amount || 0);
+                            const ptDed = Math.abs((deductions || []).find(d => d.key === 'pt' || d.key === 'professional_tax')?.amount || 0);
                             const tdsDed = Math.abs(calc.tds_details?.monthly_tds || 0);
-                            const esiDed = Math.abs(deductions.find(d => d.key === 'esi')?.amount || 0);
-                            const advanceDed = Math.abs(deductions.find(d => d.key === 'advance_recovery')?.amount || 0);
-                            const loanEmi = Math.abs(deductions.find(d => d.key === 'loan_emi')?.amount || 0);
+                            const esiDed = Math.abs((deductions || []).find(d => d.key === 'esi')?.amount || 0);
+                            const advanceDed = Math.abs((deductions || []).find(d => d.key === 'advance_recovery')?.amount || 0);
+                            const loanEmi = Math.abs((deductions || []).find(d => d.key === 'loan_emi')?.amount || 0);
                             
                             // Penalty - aggregate all penalty types
-                            const penaltyItems = deductions.filter(d => d.key?.includes('penalty'));
-                            const totalPenalty = penaltyItems.reduce((s, p) => s + Math.abs(p.amount || 0), 0);
-                            const penaltySources = penaltyItems.map(p => p.details || p.name || 'Manual').join(', ');
+                            const penaltyItems = (deductions || []).filter(d => d.key?.includes('penalty'));
+                            const totalPenalty = (penaltyItems || []).reduce((s, p) => s + Math.abs(p.amount || 0), 0);
+                            const penaltySources = (penaltyItems || []).map(p => p.details || p.name || 'Manual').join(', ');
                             
                             const workingDays = attendance.working_days || calc.working_days || 22;
                             const payableDays = workingDays - (attendance.lop_days || calc.lop_days || 0);
@@ -1829,30 +1829,30 @@ export default function PayrollEngine() {
                             <td className="p-2" colSpan={4}>Total ({registerDetails.calculations.length} employees)</td>
                             <td colSpan={6}></td>
                             <td className="p-2 text-right text-green-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.gross_monthly || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.gross_monthly || 0), 0))}
                             </td>
                             <td></td>
                             <td colSpan={5}></td>
                             <td className="p-2 text-right text-green-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_earnings || c.gross_monthly || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.total_earnings || c.gross_monthly || 0), 0))}
                             </td>
                             <td colSpan={8}></td>
                             <td className="p-2 text-right text-orange-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => {
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => {
                                 const penalties = (c.deductions || []).filter(d => d.key?.includes('penalty'));
-                                return s + penalties.reduce((ps, p) => ps + Math.abs(p.amount || 0), 0);
+                                return s + (penalties || []).reduce((ps, p) => ps + Math.abs(p.amount || 0), 0);
                               }, 0))}
                             </td>
                             <td></td>
                             <td className="p-2 text-right text-red-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_deductions || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.total_deductions || 0), 0))}
                             </td>
                             <td colSpan={4}></td>
                             <td className="p-2 text-right text-amber-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_reimbursements || c.reimbursements || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.total_reimbursements || c.reimbursements || 0), 0))}
                             </td>
                             <td className="p-2 text-right text-blue-600">
-                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.net_payable || 0), 0))}
+                              {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.net_payable || 0), 0))}
                             </td>
                             <td colSpan={3}></td>
                           </tr>
@@ -1912,7 +1912,7 @@ export default function PayrollEngine() {
               ) : (
                 <div className="space-y-4">
                   {registers.length > 0 ? (
-                    registers.map((reg, i) => (
+                    (registers || []).map((reg, i) => (
                       <div 
                         key={i}
                         className={`p-4 rounded-lg border ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-gray-200'}`}
@@ -1985,7 +1985,7 @@ export default function PayrollEngine() {
                           <div className="mt-3 pt-3 border-t border-dashed">
                             <p className={`text-xs font-medium mb-2 ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>History</p>
                             <div className="space-y-1">
-                              {reg.approval_history.map((h, idx) => (
+                              {(reg?.approval_history || []).map((h, idx) => (
                                 <p key={idx} className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
                                   {h.action.toUpperCase()} by {h.by_name} • {new Date(h.at).toLocaleString()}
                                   {h.remarks && ` - "${h.remarks}"`}
@@ -2189,13 +2189,13 @@ export default function PayrollEngine() {
                   <div>
                     <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>Total Gross</p>
                     <p className="font-bold text-green-600">
-                      {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.gross_monthly || 0), 0))}
+                      {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.gross_monthly || 0), 0))}
                     </p>
                   </div>
                   <div>
                     <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>Net Payable</p>
                     <p className="font-bold text-blue-600">
-                      {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.net_payable || 0), 0))}
+                      {formatCurrency((registerDetails?.calculations || []).reduce((s, c) => s + (c.net_payable || 0), 0))}
                     </p>
                   </div>
                 </div>
@@ -2310,7 +2310,7 @@ function PenaltyDashboard({ isDark }) {
   } = dashboardData || {};
   
   // Calculate max for chart scaling
-  const maxPenalty = Math.max(...monthly_trends.map(t => t.total_amount), 1);
+  const maxPenalty = Math.max(...(monthly_trends || []).map(t => t.total_amount), 1);
   
   return (
     <div className="space-y-6">
@@ -2417,7 +2417,7 @@ function PenaltyDashboard({ isDark }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {monthly_trends.slice().reverse().map((trend, idx) => {
+              {(monthly_trends || []).slice().reverse().map((trend, idx) => {
                 const percentage = (trend.total_amount / maxPenalty) * 100;
                 const isCurrentMonth = idx === monthly_trends.length - 1;
                 
@@ -2467,7 +2467,7 @@ function PenaltyDashboard({ isDark }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {top_violators.slice(0, 5).map((violator, idx) => (
+              {(top_violators || []).slice(0, 5).map((violator, idx) => (
                 <div 
                   key={violator.employee_id}
                   className={`flex items-center gap-3 p-2 rounded ${isDark ? 'bg-zinc-800/50' : 'bg-gray-50'}`}
@@ -2528,7 +2528,7 @@ function PenaltyDashboard({ isDark }) {
                 </tr>
               </thead>
               <tbody>
-                {department_breakdown.map((dept) => {
+                {(department_breakdown || []).map((dept) => {
                   const complianceRate = dept.total_employees > 0 
                     ? ((dept.total_employees - dept.employees_with_penalties) / dept.total_employees * 100).toFixed(0)
                     : 100;
@@ -2566,12 +2566,12 @@ function PenaltyDashboard({ isDark }) {
                 <tfoot>
                   <tr className={`font-bold ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
                     <td className="p-3">Total</td>
-                    <td className="p-3 text-center">{department_breakdown.reduce((sum, d) => sum + d.total_employees, 0)}</td>
-                    <td className="p-3 text-center text-red-500">{department_breakdown.reduce((sum, d) => sum + d.employees_with_penalties, 0)}</td>
+                    <td className="p-3 text-center">{(department_breakdown || []).reduce((sum, d) => sum + d.total_employees, 0)}</td>
+                    <td className="p-3 text-center text-red-500">{(department_breakdown || []).reduce((sum, d) => sum + d.employees_with_penalties, 0)}</td>
                     <td className="p-3 text-center">-</td>
-                    <td className="p-3 text-right">{department_breakdown.reduce((sum, d) => sum + d.total_penalty_days, 0)}</td>
+                    <td className="p-3 text-right">{(department_breakdown || []).reduce((sum, d) => sum + d.total_penalty_days, 0)}</td>
                     <td className="p-3 text-right text-red-500">
-                      {formatCurrency(department_breakdown.reduce((sum, d) => sum + d.total_penalty_amount, 0))}
+                      {formatCurrency((department_breakdown || []).reduce((sum, d) => sum + d.total_penalty_amount, 0))}
                     </td>
                   </tr>
                 </tfoot>

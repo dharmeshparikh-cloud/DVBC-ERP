@@ -645,7 +645,7 @@ const SalesFunnelOnboarding = () => {
                       
                       const requirements = stepChecklist.requirements || [];
                       const tips = stepChecklist.tips || [];
-                      const completedReqs = requirements.filter(r => r.completed).length;
+                      const completedReqs = (requirements || []).filter(r => r.completed).length;
                       const totalReqs = requirements.length;
                       const reqProgress = totalReqs > 0 ? (completedReqs / totalReqs) * 100 : 0;
                       
@@ -673,7 +673,7 @@ const SalesFunnelOnboarding = () => {
                           
                           {/* Requirements List */}
                           <div className="space-y-2 mb-4">
-                            {requirements.map((req, idx) => (
+                            {(requirements || []).map((req, idx) => (
                               <div 
                                 key={idx}
                                 className={`flex items-center gap-2 text-sm ${
@@ -711,7 +711,7 @@ const SalesFunnelOnboarding = () => {
                               
                               {showTips && (
                                 <ul className="mt-2 ml-6 space-y-1">
-                                  {tips.map((tip, idx) => (
+                                  {(tips || []).map((tip, idx) => (
                                     <li key={idx} className="text-xs text-zinc-500 dark:text-zinc-400 flex items-start gap-2">
                                       <Info className="w-3 h-3 mt-0.5 flex-shrink-0 text-amber-500" />
                                       {tip}

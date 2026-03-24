@@ -105,7 +105,7 @@ export const RevenueExpanded = ({ data, isDark }) => {
               outerRadius={80}
               dataKey="value"
             >
-              {revenueByDept.map((entry, index) => (
+              {(revenueByDept || []).map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
@@ -114,7 +114,7 @@ export const RevenueExpanded = ({ data, isDark }) => {
         </ResponsiveContainer>
         
         <div className="space-y-2">
-          {revenueByDept.map((dept, i) => (
+          {(revenueByDept || []).map((dept, i) => (
             <div key={i} className={`flex items-center justify-between p-3 rounded-lg ${
               isDark ? 'bg-zinc-800' : 'bg-zinc-100'
             }`}>
@@ -172,7 +172,7 @@ export const LeadsExpanded = ({ data, isDark }) => {
           Lead Conversion Funnel
         </h3>
         <div className="space-y-2">
-          {leadsByStatus.map((stage, i) => (
+          {(leadsByStatus || []).map((stage, i) => (
             <div key={i} className="flex items-center gap-4">
               <div className={`w-24 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
                 {stage.status}
@@ -208,7 +208,7 @@ export const LeadsExpanded = ({ data, isDark }) => {
               </tr>
             </thead>
             <tbody>
-              {recentLeads.map((lead, i) => (
+              {(recentLeads || []).map((lead, i) => (
                 <tr key={i} className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
                   <td className={`px-4 py-3 ${isDark ? 'text-zinc-200' : 'text-zinc-900'}`}>{lead.name}</td>
                   <td className={`px-4 py-3 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>{lead.source}</td>
@@ -240,7 +240,7 @@ export const LeadsExpanded = ({ data, isDark }) => {
                 outerRadius={70}
                 dataKey="count"
               >
-                {leadsBySource.map((entry, index) => (
+                {(leadsBySource || []).map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -248,7 +248,7 @@ export const LeadsExpanded = ({ data, isDark }) => {
             </PieChart>
           </ResponsiveContainer>
           <div className="space-y-2 mt-2">
-            {leadsBySource.map((src, i) => (
+            {(leadsBySource || []).map((src, i) => (
               <div key={i} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
@@ -297,7 +297,7 @@ export const MeetingsExpanded = ({ data, isDark }) => {
           Today's Schedule
         </h3>
         <div className="space-y-3">
-          {todaysMeetings.map((meeting, i) => (
+          {(todaysMeetings || []).map((meeting, i) => (
             <div 
               key={i}
               className={`flex items-center gap-4 p-4 rounded-lg border ${
@@ -396,7 +396,7 @@ export const ProjectsExpanded = ({ data, isDark }) => {
           Active Projects
         </h3>
         <div className="space-y-3">
-          {projects.map((project, i) => (
+          {(projects || []).map((project, i) => (
             <div 
               key={i}
               className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200 bg-white'}`}
@@ -445,7 +445,7 @@ export const ProjectsExpanded = ({ data, isDark }) => {
             Team Utilization
           </h3>
           <div className="space-y-4">
-            {utilizationByTeam.map((team, i) => (
+            {(utilizationByTeam || []).map((team, i) => (
               <div key={i}>
                 <div className="flex justify-between mb-1">
                   <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>{team.team}</span>
@@ -548,7 +548,7 @@ export const AttendanceExpanded = ({ data, isDark }) => {
               </tr>
             </thead>
             <tbody>
-              {onLeaveToday.map((person, i) => (
+              {(onLeaveToday || []).map((person, i) => (
                 <tr key={i} className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
                   <td className={`px-4 py-3 ${isDark ? 'text-zinc-200' : 'text-zinc-900'}`}>{person.name}</td>
                   <td className="px-4 py-3"><Badge variant="secondary">{person.type}</Badge></td>
@@ -567,7 +567,7 @@ export const AttendanceExpanded = ({ data, isDark }) => {
             Leave Distribution
           </h3>
           <div className="space-y-3">
-            {leaveTypes.map((leave, i) => (
+            {(leaveTypes || []).map((leave, i) => (
               <div key={i} className={`flex items-center justify-between p-3 rounded-lg ${
                 isDark ? 'bg-zinc-800' : 'bg-zinc-100'
               }`}>

@@ -229,7 +229,7 @@ const DocumentBuilder = () => {
   // Query: Fetch employees
   const { data: employeesData, isLoading: loading } = useFetch('/api/employees/all');
   const employees = Array.isArray(employeesData) 
-    ? employeesData.filter(e => e.is_active !== false) 
+    ? (employeesData || []).filter(e => e.is_active !== false) 
     : (employeesData?.items || []).filter(e => e.is_active !== false);
 
   // Query: Fetch document history
@@ -257,7 +257,7 @@ const DocumentBuilder = () => {
   useEffect(() => {
     // Pre-select employee if provided in URL
     if (preSelectedEmployeeId && employees.length > 0) {
-      const emp = employees.find(e => 
+      const emp = (employees || []).find(e => 
         e.employee_id === preSelectedEmployeeId || 
         e.id === preSelectedEmployeeId
       );
@@ -349,7 +349,7 @@ const DocumentBuilder = () => {
     };
 
     // Replace all placeholders
-    Object.entries(replacements).forEach(([key, value]) => {
+    Object.entries(replacements || {}).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       html = html.replace(regex, value || `[${key}]`);
     });
@@ -617,7 +617,7 @@ const DocumentBuilder = () => {
               <Select 
                 value={selectedEmployee?.id || ''} 
                 onValueChange={(v) => {
-                  const emp = employees.find(e => e.id === v);
+                  const emp = (employees || []).find(e => e.id === v);
                   setSelectedEmployee(emp);
                 }}
               >
@@ -625,7 +625,7 @@ const DocumentBuilder = () => {
                   <SelectValue placeholder="Choose an employee..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map(emp => (
+                  {(employees || []).map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs text-zinc-500">{emp.employee_id}</span>
@@ -864,7 +864,7 @@ const DocumentBuilder = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {generatedDocs.slice(0, 5).map((doc) => (
+              {(generatedDocs || []).slice(0, 5).map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded">
@@ -929,7 +929,7 @@ const DocumentBuilder = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {documentHistory.map((doc) => (
+                  {(documentHistory || []).map((doc) => (
                     <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                       <div className="flex items-center gap-4">
                         <div className={`p-3 rounded-lg ${

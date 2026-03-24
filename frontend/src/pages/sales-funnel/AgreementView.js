@@ -105,16 +105,16 @@ const AgreementView = () => {
       let targetSow = null;
 
       if (quotationId) {
-        targetQuotation = quotationsRes.data.find(q => q.id === quotationId);
+        targetQuotation = (quotationsRes?.data || []).find(q => q.id === quotationId);
         if (targetQuotation) {
-          targetPlan = plansRes.data.find(p => p.id === targetQuotation.pricing_plan_id);
-          targetLead = leadsRes.data.find(l => l.id === targetQuotation.lead_id);
+          targetPlan = (plansRes?.data || []).find(p => p.id === targetQuotation.pricing_plan_id);
+          targetLead = (leadsRes?.data || []).find(l => l.id === targetQuotation.lead_id);
         }
       } else if (pricingPlanId) {
-        targetPlan = plansRes.data.find(p => p.id === pricingPlanId);
+        targetPlan = (plansRes?.data || []).find(p => p.id === pricingPlanId);
         if (targetPlan) {
-          targetLead = leadsRes.data.find(l => l.id === targetPlan.lead_id);
-          targetQuotation = quotationsRes.data.find(q => q.pricing_plan_id === pricingPlanId);
+          targetLead = (leadsRes?.data || []).find(l => l.id === targetPlan.lead_id);
+          targetQuotation = (quotationsRes?.data || []).find(q => q.pricing_plan_id === pricingPlanId);
         }
       }
 
@@ -134,7 +134,7 @@ const AgreementView = () => {
     onError: () => toast.error('Failed to load data'),
     onSuccess: (data) => {
       if (data.pricingPlan?.payment_plan?.installments) {
-        const defaultMilestones = data.pricingPlan.payment_plan.installments.map((inst, idx) => ({
+        const defaultMilestones = (data?.pricingPlan?.payment_plan?.installments || []).map((inst, idx) => ({
           id: `milestone-${idx + 1}`,
           description: inst.description || `Milestone ${idx + 1}`,
           amount: inst.amount || 0,
@@ -168,7 +168,7 @@ const AgreementView = () => {
   };
 
   const removeMilestone = (index) => {
-    setMilestones(milestones.filter((_, i) => i !== index));
+    setMilestones((milestones || []).filter((_, i) => i !== index));
   };
 
   const handleSaveAgreement = async () => {
@@ -199,7 +199,7 @@ const AgreementView = () => {
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        const msg = (detail || []).map(e => e.msg || e.message || 'Validation error').join(', ');
         toast.error(msg);
       } else if (typeof detail === 'string') {
         toast.error(detail);
@@ -346,7 +346,7 @@ const AgreementView = () => {
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        const msg = (detail || []).map(e => e.msg || e.message || 'Validation error').join(', ');
         toast.error(msg);
       } else if (typeof detail === 'string') {
         toast.error(detail);
@@ -457,7 +457,7 @@ const AgreementView = () => {
     (pricingPlan?.total_investment || pricingPlan?.total_amount || 0);
   const gstAmount = totalAmount * 0.18;
   const grandTotal = totalAmount + gstAmount;
-  const milestoneTotalAmount = milestones.reduce((sum, m) => sum + (m.amount || 0), 0);
+  const milestoneTotalAmount = (milestones || []).reduce((sum, m) => sum + (m.amount || 0), 0);
 
   if (loading) {
     return (
@@ -700,7 +700,7 @@ const AgreementView = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {pricingPlan.team_deployment.map((member, idx) => (
+                    {(pricingPlan?.team_deployment || []).map((member, idx) => (
                       <tr key={idx} className="border-b border-zinc-100">
                         <td className="p-2 font-medium">{member.role}</td>
                         <td className="p-2">{member.meeting_type}</td>
@@ -719,7 +719,7 @@ const AgreementView = () => {
               <div className="mb-8">
                 <h3 className="text-sm font-semibold text-zinc-800 mb-3 border-b pb-2">SCOPE OF WORK SUMMARY</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {sow.scopes.slice(0, 10).map((scope, idx) => (
+                  {(sow?.scopes || []).slice(0, 10).map((scope, idx) => (
                     <div key={idx} className="p-2 bg-zinc-50 rounded-sm text-sm">
                       <span className="text-zinc-500 mr-2">{idx + 1}.</span>
                       {scope.name}
@@ -759,7 +759,7 @@ const AgreementView = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {milestones.map((milestone, idx) => (
+                  {(milestones || []).map((milestone, idx) => (
                     <tr key={milestone.id} className="border-b border-zinc-100">
                       <td className="p-2">{idx + 1}</td>
                       <td className="p-2">{milestone.description}</td>
@@ -1110,7 +1110,7 @@ const AgreementView = () => {
                   {consultants.length === 0 ? (
                     <SelectItem value="no-consultants" disabled>No Senior/Principal Consultants available</SelectItem>
                   ) : (
-                    consultants.map((consultant) => (
+                    (consultants || []).map((consultant) => (
                       <SelectItem 
                         key={consultant.id} 
                         value={consultant.id}

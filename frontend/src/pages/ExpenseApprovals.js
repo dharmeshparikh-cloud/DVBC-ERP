@@ -40,7 +40,7 @@ const ExpenseApprovals = () => {
   // Calculate stats from expenses data (memoized)
   const stats = useMemo(() => {
     const newStats = { pending: 0, manager_approved: 0, approved: 0, rejected: 0 };
-    expenses.forEach(e => {
+    (expenses || []).forEach(e => {
       if (newStats[e.status] !== undefined) newStats[e.status]++;
     });
     return newStats;
@@ -93,7 +93,7 @@ const ExpenseApprovals = () => {
     setActionDialog({ open: true, type: 'reject' });
   };
 
-  const filteredExpenses = expenses.filter(e => {
+  const filteredExpenses = (expenses || []).filter(e => {
     if (activeTab === 'pending') return e.status === 'pending';
     if (activeTab === 'hr_pending') return e.status === 'manager_approved';
     if (activeTab === 'approved') return e.status === 'approved';
@@ -212,7 +212,7 @@ const ExpenseApprovals = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {filteredExpenses.map(expense => {
+              {(filteredExpenses || []).map(expense => {
                 const statusConfig = STATUS_CONFIG[expense.status] || STATUS_CONFIG.pending;
                 const StatusIcon = statusConfig.icon;
                 
@@ -244,7 +244,7 @@ const ExpenseApprovals = () => {
                             {/* Line Items */}
                             {expense.line_items?.length > 0 && (
                               <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-                                {expense.line_items.map((item, idx) => (
+                                {expense.line_(items || []).map((item, idx) => (
                                   <div key={idx} className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">
                                       {item.category}: {item.description}
@@ -258,7 +258,7 @@ const ExpenseApprovals = () => {
                             {/* Approval Flow */}
                             {expense.approval_flow?.length > 0 && (
                               <div className="flex items-center gap-2 text-xs">
-                                {expense.approval_flow.map((step, idx) => (
+                                {(expense?.approval_flow || []).map((step, idx) => (
                                   <React.Fragment key={idx}>
                                     <div className={`flex items-center gap-1 px-2 py-1 rounded ${
                                       step.status === 'approved' ? 'bg-green-100 text-green-700' :

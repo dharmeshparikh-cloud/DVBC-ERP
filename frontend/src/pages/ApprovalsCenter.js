@@ -723,7 +723,7 @@ const ApprovalsCenter = () => {
   };
 
   const selectAllPending = () => {
-    const allIds = pendingApprovals.map(a => a.id);
+    const allIds = (pendingApprovals || []).map(a => a.id);
     setSelectedItems(new Set(allIds));
   };
 
@@ -846,7 +846,7 @@ const ApprovalsCenter = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {permissionApprovals.map((perm, idx) => (
+              {(permissionApprovals || []).map((perm, idx) => (
                 <div 
                   key={idx}
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
@@ -953,7 +953,7 @@ const ApprovalsCenter = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {modificationApprovals.map((req, idx) => (
+              {(modificationApprovals || []).map((req, idx) => (
                 <div 
                   key={idx}
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
@@ -1019,11 +1019,11 @@ const ApprovalsCenter = () => {
                     </div>
                   </div>
                   {/* Show requested changes */}
-                  {req.requested_changes && Object.keys(req.requested_changes).length > 0 && (
+                  {req.requested_changes && Object.keys(req.requested_changes || {}).length > 0 && (
                     <div className={`mt-3 pt-3 border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
                       <p className={`text-xs font-medium mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Requested Changes:</p>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                        {Object.entries(req.requested_changes).map(([key, value]) => (
+                        {Object.entries(req.requested_changes || {}).map(([key, value]) => (
                           <div key={key} className={`p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-white border border-zinc-200'}`}>
                             <span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>{key}:</span>
                             <span className={`ml-1 font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
@@ -1057,7 +1057,7 @@ const ApprovalsCenter = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {agreementApprovals.map((agreement, idx) => (
+              {(agreementApprovals || []).map((agreement, idx) => (
                 <div 
                   key={idx}
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
@@ -1162,7 +1162,7 @@ const ApprovalsCenter = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {kickoffApprovals.map((request, idx) => (
+              {(kickoffApprovals || []).map((request, idx) => (
                 <div 
                   key={request.id || idx}
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
@@ -1263,7 +1263,7 @@ const ApprovalsCenter = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {bankApprovals.map((bank, idx) => (
+              {(bankApprovals || []).map((bank, idx) => (
                 <div 
                   key={idx}
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
@@ -1329,7 +1329,7 @@ const ApprovalsCenter = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {profileChangeApprovals.map((req, idx) => (
+              {(profileChangeApprovals || []).map((req, idx) => (
                 <div 
                   key={idx}
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
@@ -1485,7 +1485,7 @@ const ApprovalsCenter = () => {
               </CardContent>
             </Card>
           ) : (
-            pendingApprovals.map(approval => (
+            (pendingApprovals || []).map(approval => (
               <Card 
                 key={approval.id} 
                 className={`shadow-none rounded-lg transition-all ${
@@ -1601,7 +1601,7 @@ const ApprovalsCenter = () => {
               </CardContent>
             </Card>
           ) : (
-            myRequests.map(approval => (
+            (myRequests || []).map(approval => (
               <Card key={approval.id} className="border-zinc-200 shadow-none rounded-sm">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
@@ -1667,7 +1667,7 @@ const ApprovalsCenter = () => {
                 </tr>
               </thead>
               <tbody>
-                {allApprovals.map(approval => (
+                {(allApprovals || []).map(approval => (
                   <tr key={approval.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                     <td className="px-4 py-3 font-medium text-zinc-900">{approval.reference_title}</td>
                     <td className="px-4 py-3 text-sm text-zinc-600">
@@ -1804,7 +1804,7 @@ const ApprovalsCenter = () => {
                     <tbody>
                       {/* Handle components as object (dictionary) from backend */}
                       {selectedCtc.components && typeof selectedCtc.components === 'object' && !Array.isArray(selectedCtc.components) && 
-                        Object.values(selectedCtc.components)
+                        Object.values(selectedCtc.components || {})
                           .filter(c => c.enabled !== false)
                           .sort((a, b) => (a.is_deduction ? 1 : 0) - (b.is_deduction ? 1 : 0))
                           .map((comp, idx) => (
@@ -1819,7 +1819,7 @@ const ApprovalsCenter = () => {
                         </tr>
                       ))}
                       {/* Handle components as array (legacy) */}
-                      {Array.isArray(selectedCtc.components) && selectedCtc.components.filter(c => c.enabled !== false).map((comp, idx) => (
+                      {Array.isArray(selectedCtc.components) && (selectedCtc?.components || []).filter(c => c.enabled !== false).map((comp, idx) => (
                         <tr key={idx} className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'} ${comp.is_deduction ? 'text-red-600' : ''}`}>
                           <td className={`px-3 py-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{comp.name}</td>
                           <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
@@ -1831,7 +1831,7 @@ const ApprovalsCenter = () => {
                         </tr>
                       ))}
                       {/* Show message only if no components */}
-                      {(!selectedCtc.components || (typeof selectedCtc.components === 'object' && !Array.isArray(selectedCtc.components) && Object.keys(selectedCtc.components).length === 0) || (Array.isArray(selectedCtc.components) && selectedCtc.components.length === 0)) && (
+                      {(!selectedCtc.components || (typeof selectedCtc.components === 'object' && !Array.isArray(selectedCtc.components) && Object.keys(selectedCtc.components || {}).length === 0) || (Array.isArray(selectedCtc.components) && selectedCtc.components.length === 0)) && (
                         <tr>
                           <td colSpan={3} className={`px-3 py-4 text-center ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                             No component breakdown available
@@ -2061,11 +2061,11 @@ const ApprovalsCenter = () => {
                     <div>
                       <p className={`${isDark ? 'text-zinc-500' : 'text-zinc-400'} mb-1`}>Module Permissions:</p>
                       <div className="pl-2 space-y-1">
-                        {Object.entries(selectedPermission.changes.permissions).map(([module, perms]) => (
+                        {Object.entries(selectedPermission.changes.permissions || {}).map(([module, perms]) => (
                           <div key={module} className="text-xs">
-                            <strong className="capitalize">{module}:</strong> {Object.entries(perms).map(([feature, actions]) => (
+                            <strong className="capitalize">{module}:</strong> {Object.entries(perms || {}).map(([feature, actions]) => (
                               <span key={feature} className="ml-2">
-                                {feature}: {Object.entries(actions).filter(([,v]) => v).map(([k]) => k).join(', ')}
+                                {feature}: {Object.entries(actions || {}).filter(([,v]) => v).map(([k]) => k).join(', ')}
                               </span>
                             ))}
                           </div>
@@ -2271,7 +2271,7 @@ const ApprovalsCenter = () => {
                 <div className="space-y-2">
                   {goLiveChecklist?.checklist ? (
                     <>
-                      {Object.entries(goLiveChecklist.checklist).map(([key, item]) => (
+                      {Object.entries(goLiveChecklist.checklist || {}).map(([key, item]) => (
                         <div key={key} className={`flex items-center justify-between p-3 rounded-lg border ${
                           item.completed 
                             ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
@@ -2529,7 +2529,7 @@ const ApprovalsCenter = () => {
                   </h4>
                   <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
                     <div className="space-y-2">
-                      {selectedAgreement.team_deployment.slice(0, 5).map((member, idx) => (
+                      {(selectedAgreement?.team_deployment || []).slice(0, 5).map((member, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm">
                           <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>
                             {member.consultant_name || member.name || `Team Member ${idx + 1}`}
@@ -2785,7 +2785,7 @@ const ApprovalsCenter = () => {
                 {/* Line Items */}
                 {selectedExpense.line_items?.length > 0 && (
                   <div className={`mt-3 pt-3 border-t space-y-1 ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
-                    {selectedExpense.line_items.map((item, idx) => (
+                    {selectedExpense.line_(items || []).map((item, idx) => (
                       <div key={idx} className="flex justify-between text-sm">
                         <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>
                           {item.category}: {item.description}
@@ -2883,7 +2883,7 @@ const ApprovalsCenter = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                {expenseReceipts.map((receipt) => (
+                {(expenseReceipts || []).map((receipt) => (
                   <div 
                     key={receipt.id}
                     className={`flex items-center justify-between p-3 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200 bg-zinc-50'}`}

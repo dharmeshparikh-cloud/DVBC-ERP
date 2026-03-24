@@ -141,7 +141,7 @@ const AllProjects = () => {
     return statusConfig[status?.toLowerCase()] || { bg: 'bg-black/5', text: 'text-black/70', border: 'border-black/10' };
   };
 
-  const filteredProjects = projects.filter(project => {
+  const filteredProjects = (projects || []).filter(project => {
     if (!search) return true;
     const searchLower = search.toLowerCase();
     return (
@@ -151,7 +151,7 @@ const AllProjects = () => {
     );
   });
 
-  const needsAssignmentCount = projects.filter(p => !p.has_consultants).length;
+  const needsAssignmentCount = (projects || []).filter(p => !p.has_consultants).length;
 
   // Get available consultants (not already assigned to selected project)
   const getAvailableConsultants = () => {
@@ -159,7 +159,7 @@ const AllProjects = () => {
     const assignedIds = (selectedProject.consultant_assignments || [])
       .filter(a => a.is_active)
       .map(a => a.consultant_id);
-    return consultants.filter(c => !assignedIds.includes(c.id));
+    return (consultants || []).filter(c => !assignedIds.includes(c.id));
   };
 
   // Check if user has permission
@@ -276,7 +276,7 @@ const AllProjects = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredProjects.map((project) => (
+          {(filteredProjects || []).map((project) => (
             <Card
               key={project.id}
               className={`border-black/10 hover:border-black/20 transition-colors ${
@@ -349,7 +349,7 @@ const AllProjects = () => {
                     
                     {project.consultant_assignments?.length > 0 ? (
                       <div className="space-y-2">
-                        {project.consultant_assignments.filter(a => a.is_active).map((assignment) => (
+                        {(project?.consultant_assignments || []).filter(a => a.is_active).map((assignment) => (
                           <div
                             key={assignment.id}
                             className="flex items-center justify-between p-2 bg-black/5 rounded-lg"
@@ -502,7 +502,7 @@ const AllProjects = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {assignmentHistory.map((assignment) => (
+              {(assignmentHistory || []).map((assignment) => (
                 <div
                   key={assignment.id}
                   className={`p-4 rounded-lg border ${

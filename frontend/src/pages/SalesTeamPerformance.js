@@ -183,7 +183,7 @@ const SalesTeamPerformance = () => {
               <div>
                 <p className="text-xs text-zinc-500 uppercase">Total Leads</p>
                 <p className="text-2xl font-bold text-zinc-900">
-                  {team.reduce((sum, m) => sum + (m.stats?.leads_count || 0), 0)}
+                  {(team || []).reduce((sum, m) => sum + (m.stats?.leads_count || 0), 0)}
                 </p>
               </div>
               <Target className="w-8 h-8 text-blue-500 opacity-70" />
@@ -197,7 +197,7 @@ const SalesTeamPerformance = () => {
               <div>
                 <p className="text-xs text-zinc-500 uppercase">Closures (This Month)</p>
                 <p className="text-2xl font-bold text-zinc-900">
-                  {team.reduce((sum, m) => sum + (m.stats?.closures_this_month || 0), 0)}
+                  {(team || []).reduce((sum, m) => sum + (m.stats?.closures_this_month || 0), 0)}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500 opacity-70" />
@@ -211,7 +211,7 @@ const SalesTeamPerformance = () => {
               <div>
                 <p className="text-xs text-zinc-500 uppercase">Meetings (This Month)</p>
                 <p className="text-2xl font-bold text-zinc-900">
-                  {team.reduce((sum, m) => sum + (m.stats?.meetings_this_month || 0), 0)}
+                  {(team || []).reduce((sum, m) => sum + (m.stats?.meetings_this_month || 0), 0)}
                 </p>
               </div>
               <Calendar className="w-8 h-8 text-purple-500 opacity-70" />
@@ -230,7 +230,7 @@ const SalesTeamPerformance = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {team.map((member) => (
+            {(team || []).map((member) => (
               <div 
                 key={member.id}
                 className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg border border-zinc-100"

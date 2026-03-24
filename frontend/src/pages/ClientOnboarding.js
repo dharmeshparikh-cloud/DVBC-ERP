@@ -184,7 +184,7 @@ const ClientOnboarding = () => {
       return;
     }
 
-    const selectedPM = consultants.find(c => c.id === kickoffForm.assigned_pm_id || c.employee_id === kickoffForm.assigned_pm_id);
+    const selectedPM = (consultants || []).find(c => c.id === kickoffForm.assigned_pm_id || c.employee_id === kickoffForm.assigned_pm_id);
     
     createKickoffMutation.mutate({
       agreement_id: agreementId,
@@ -200,7 +200,7 @@ const ClientOnboarding = () => {
   const creatingKickoff = createKickoffMutation.isPending;
 
   const agreementValue = agreement?.total_value || agreement?.grand_total || 0;
-  const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalPaid = (payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
   const remaining = agreementValue - totalPaid;
   const progress = ((currentStep + 1) / ONBOARDING_STEPS.length) * 100;
 
@@ -527,7 +527,7 @@ const ClientOnboarding = () => {
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                      {payments.map((payment, index) => (
+                      {(payments || []).map((payment, index) => (
                         <div
                           key={payment.id || index}
                           className="p-3 bg-zinc-50 rounded-lg border border-zinc-100"
@@ -626,7 +626,7 @@ const ClientOnboarding = () => {
                             <SelectValue placeholder="Select PM" />
                           </SelectTrigger>
                           <SelectContent>
-                            {consultants.map(c => (
+                            {(consultants || []).map(c => (
                               <SelectItem key={c.id || c.employee_id} value={c.id || c.employee_id}>
                                 {c.first_name} {c.last_name} - {c.role || c.designation}
                               </SelectItem>

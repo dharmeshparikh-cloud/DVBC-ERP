@@ -231,7 +231,7 @@ const HROnboarding = () => {
   const generateEmployeeId = useCallback(() => {
     // Find the highest EMP number from cached employees
     let maxNum = 0;
-    allEmployeesData.forEach(emp => {
+    (allEmployeesData || []).forEach(emp => {
       const match = emp.employee_id?.match(/EMP(\d+)/i);
       if (match) {
         const num = parseInt(match[1], 10);
@@ -395,7 +395,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
         const row = {};
-        headers.forEach((header, idx) => {
+        (headers || []).forEach((header, idx) => {
           row[header] = values[idx]?.replace(/"/g, '').trim() || '';
         });
         if (row.first_name && row.email) {
@@ -495,7 +495,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
     setBulkResults(results);
     setLoading(false);
     
-    const successCount = results.filter(r => r.status === 'success').length;
+    const successCount = (results || []).filter(r => r.status === 'success').length;
     toast.success(`Bulk onboarding complete: ${successCount}/${csvData.length} successful`);
   };
 
@@ -504,7 +504,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
     if (bulkResults.length === 0) return;
     
     const headers = 'Name,Email,Employee ID,Password,Status,Error\n';
-    const rows = bulkResults.map(r => 
+    const rows = (bulkResults || []).map(r => 
       `"${r.name}","${r.email}","${r.employee_id || ''}","${r.password || ''}","${r.status}","${r.error || ''}"`
     ).join('\n');
     
@@ -527,7 +527,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
     
     // Create CSV content
     const headers = ['Employee ID', 'First Name', 'Last Name', 'Email', 'Department', 'Designation', 'Employment Type', 'Joining Date', 'Status'];
-    const rows = allEmployeesData.map(emp => [
+    const rows = (allEmployeesData || []).map(emp => [
       emp.employee_id,
       emp.first_name || '',
       emp.last_name || '',
@@ -541,7 +541,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
     
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...(rows || []).map(row => (row || []).map(cell => `"${cell}"`).join(','))
     ].join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -800,7 +800,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
         const employee = result.employee;
         
         // Get reporting manager details
-        const reportingManager = managers.find(m => m.id === formData.reporting_manager_id);
+        const reportingManager = (managers || []).find(m => m.id === formData.reporting_manager_id);
         
         // Grant portal access using mutation
         grantAccessMutation.mutate({ 
@@ -939,7 +939,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {csvData.slice(0, 10).map((row, idx) => (
+                        {(csvData || []).slice(0, 10).map((row, idx) => (
                           <TableRow key={idx}>
                             <TableCell>{row.first_name} {row.last_name}</TableCell>
                             <TableCell className="text-zinc-500">{row.email}</TableCell>
@@ -996,7 +996,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {bulkResults.map((r, idx) => (
+                        {(bulkResults || []).map((r, idx) => (
                           <TableRow key={idx}>
                             <TableCell>{r.name}</TableCell>
                             <TableCell className="font-mono">{r.employee_id || '-'}</TableCell>
@@ -1225,7 +1225,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                 {formData.departments.length === 0 ? (
                   <span className="text-sm text-zinc-400">No departments selected</span>
                 ) : (
-                  formData.departments.map((dept) => (
+                  (formData?.departments || []).map((dept) => (
                     <Badge 
                       key={dept} 
                       variant={dept === formData.primary_department ? "default" : "secondary"}
@@ -1238,7 +1238,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                       <button
                         type="button"
                         onClick={() => {
-                          const newDepts = formData.departments.filter(d => d !== dept);
+                          const newDepts = (formData?.departments || []).filter(d => d !== dept);
                           const newPrimary = dept === formData.primary_department 
                             ? (newDepts[0] || '') 
                             : formData.primary_department;
@@ -1321,7 +1321,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {formData.departments.map(dept => (
+                      {(formData?.departments || []).map(dept => (
                         <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1393,7 +1393,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                         Self (First Employee / Admin)
                       </SelectItem>
                     )}
-                    {managers.map(mgr => (
+                    {(managers || []).map(mgr => (
                       <SelectItem key={mgr.id} value={mgr.id}>
                         {mgr.full_name} ({mgr.employee_id || mgr.id})
                       </SelectItem>
@@ -1684,7 +1684,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                 <div className="col-span-2">
                   <p className="text-zinc-500">Departments</p>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {formData.departments.map(dept => (
+                    {(formData?.departments || []).map(dept => (
                       <Badge 
                         key={dept} 
                         variant={dept === formData.primary_department ? "default" : "secondary"}

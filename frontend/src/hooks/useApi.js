@@ -577,7 +577,7 @@ export const useFetch = (endpoint, options = {}) => {
     params = {}
   } = options;
   
-  const queryString = Object.keys(params).length > 0 
+  const queryString = Object.keys(params || {}).length > 0 
     ? '?' + new URLSearchParams(params).toString() 
     : '';
   

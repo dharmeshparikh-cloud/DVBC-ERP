@@ -70,7 +70,7 @@ const SecurityAuditLog = () => {
 
   const downloadCSV = () => {
     const headers = ['Timestamp', 'Event', 'Email', 'IP Address', 'User Agent', 'Details'];
-    const rows = logs.map(l => [
+    const rows = (logs || []).map(l => [
       new Date(l.timestamp).toLocaleString(),
       EVENT_LABELS[l.event_type] || l.event_type,
       l.email || '-',
@@ -78,7 +78,7 @@ const SecurityAuditLog = () => {
       l.user_agent || '-',
       JSON.stringify(l.details || {}),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => (r || []).map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -89,7 +89,7 @@ const SecurityAuditLog = () => {
   };
 
   const totalPages = Math.ceil(total / limit);
-  const eventTypes = [...new Set(Object.keys(EVENT_LABELS))];
+  const eventTypes = [...new Set(Object.keys(EVENT_LABELS || {}))];
 
   if (user?.role !== 'admin') {
     return (
@@ -138,7 +138,7 @@ const SecurityAuditLog = () => {
                 className="w-full h-9 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
               >
                 <option value="">All Events</option>
-                {eventTypes.map(t => (
+                {(eventTypes || []).map(t => (
                   <option key={t} value={t}>{EVENT_LABELS[t]}</option>
                 ))}
               </select>
@@ -154,9 +154,9 @@ const SecurityAuditLog = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total Events', value: total, color: 'text-zinc-900' },
-          { label: 'Successful Logins', value: logs.filter(l => l.event_type?.includes('success')).length, color: 'text-emerald-700' },
-          { label: 'Failed Attempts', value: logs.filter(l => l.event_type?.includes('failed')).length, color: 'text-red-700' },
-          { label: 'Rejected Access', value: logs.filter(l => l.event_type?.includes('rejected')).length, color: 'text-orange-700' },
+          { label: 'Successful Logins', value: (logs || []).filter(l => l.event_type?.includes('success')).length, color: 'text-emerald-700' },
+          { label: 'Failed Attempts', value: (logs || []).filter(l => l.event_type?.includes('failed')).length, color: 'text-red-700' },
+          { label: 'Rejected Access', value: (logs || []).filter(l => l.event_type?.includes('rejected')).length, color: 'text-orange-700' },
         ].map((s, i) => (
           <Card key={i} className="border-zinc-200">
             <CardContent className="pt-3 pb-3 text-center">
@@ -186,7 +186,7 @@ const SecurityAuditLog = () => {
                   <tr><td colSpan={5} className="p-8 text-center text-zinc-400">Loading...</td></tr>
                 ) : logs.length === 0 ? (
                   <tr><td colSpan={5} className="p-8 text-center text-zinc-400">No audit logs found</td></tr>
-                ) : logs.map(log => (
+                ) : (logs || []).map(log => (
                   <tr key={log.id} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors" data-testid={`audit-log-${log.id}`}>
                     <td className="p-3 text-zinc-600 whitespace-nowrap text-xs">
                       {new Date(log.timestamp).toLocaleString()}
@@ -199,8 +199,8 @@ const SecurityAuditLog = () => {
                     <td className="p-3 text-zinc-700 font-mono text-xs">{log.email || '-'}</td>
                     <td className="p-3 text-zinc-500 font-mono text-xs">{log.ip_address || '-'}</td>
                     <td className="p-3 text-zinc-500 text-xs max-w-[200px] truncate">
-                      {log.details && Object.keys(log.details).length > 0
-                        ? Object.entries(log.details).filter(([k]) => k !== 'otp_code').map(([k, v]) => `${k}: ${v}`).join(', ')
+                      {log.details && Object.keys(log.details || {}).length > 0
+                        ? Object.entries(log.details || {}).filter(([k]) => k !== 'otp_code').map(([k, v]) => `${k}: ${v}`).join(', ')
                         : '-'}
                     </td>
                   </tr>

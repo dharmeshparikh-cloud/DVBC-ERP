@@ -350,7 +350,7 @@ const Layout = () => {
   ];
   
   // Filter HR items based on permissions
-  const filteredHrItems = hrItems.filter(item => {
+  const filteredHrItems = (hrItems || []).filter(item => {
     // Skip header items based on their section's visibility
     if (item.isHeader) {
       // Show header if user has access to at least one item in that section
@@ -514,7 +514,7 @@ const Layout = () => {
         <div data-tour="my-workspace">
           <SectionHeader label="My Workspace" sectionKey="workspace" />
         </div>
-        {expanded.workspace && workspaceWithCommunication.map(item => (
+        {expanded.workspace && (workspaceWithCommunication || []).map(item => (
           <div 
             key={item.name} 
             data-tour={item.name === 'Team Chat' ? 'chat-link' : item.name === 'AI Assistant' ? 'ai-assistant-link' : undefined}
@@ -529,7 +529,7 @@ const Layout = () => {
             <div data-tour="hr-section">
               <SectionHeader label="HR" sectionKey="hr" />
             </div>
-            {expanded.hr && filteredHrItems.map(item => (
+            {expanded.hr && (filteredHrItems || []).map(item => (
               <div 
                 key={item.name}
                 data-tour={item.name === 'Expense Approvals' ? 'expense-approvals' : undefined}
@@ -578,7 +578,7 @@ const Layout = () => {
                 {salesOtherItems.length > 0 && (
                   <>
                     <div className={`my-0.5 mx-3 border-t ${isDark ? 'border-[#2A2A2E]' : 'border-zinc-100'}`} />
-                    {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
+                    {(salesOtherItems || []).map(item => <NavLink key={item.name} item={item} />)}
                   </>
                 )}
                 
@@ -625,7 +625,7 @@ const Layout = () => {
             <div data-tour="projects-link">
               <SectionHeader label="Consulting" sectionKey="consulting" />
             </div>
-            {expanded.consulting && consultingItems.map(item => (
+            {expanded.consulting && (consultingItems || []).map(item => (
               <NavLink key={item.name} item={item} badge={item.badge} />
             ))}
           </>
@@ -635,7 +635,7 @@ const Layout = () => {
         {showAdmin && (
           <>
             <SectionHeader label="Admin" sectionKey="admin" />
-            {expanded.admin && adminItems.map(item => (
+            {expanded.admin && (adminItems || []).map(item => (
               <div
                 key={item.name}
                 data-tour={item.name === 'Approvals Center' ? 'approvals-link' : undefined}
@@ -716,7 +716,7 @@ const Layout = () => {
           isGuidedSalesMode={isGuidedSalesMode}
           workspaceItems={workspaceWithCommunication}
           hrItems={filteredHrItems}
-          salesItems={salesFlowItems.filter(item => {
+          salesItems={(salesFlowItems || []).filter(item => {
             if (item.managerOnly && !isManagerOrAbove) return false;
             if (item.adminOnly && user?.role !== 'admin') return false;
             return true;

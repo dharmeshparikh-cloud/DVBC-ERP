@@ -184,9 +184,9 @@ const CandidateOnboardingForm = () => {
     // Validate documents
     const uploadedDocs = submission?.documents || [];
     const requiredDocs = ['pan_card', 'aadhaar', 'cv'];
-    const missingDocs = requiredDocs.filter(d => !uploadedDocs.find(doc => doc.type === d));
+    const missingDocs = (requiredDocs || []).filter(d => !(uploadedDocs || []).find(doc => doc.type === d));
     if (missingDocs.length > 0) {
-      toast.error(`Please upload required documents: ${missingDocs.map(d => d.replace('_', ' ').toUpperCase()).join(', ')}`);
+      toast.error(`Please upload required documents: ${(missingDocs || []).map(d => d.replace('_', ' ').toUpperCase()).join(', ')}`);
       setCurrentStep(2);
       return;
     }
@@ -299,9 +299,9 @@ const CandidateOnboardingForm = () => {
         if (!isValidPhone(ec.phone)) { toast.error('Enter valid 10-digit Emergency Contact Phone'); return false; }
         const uploadedDocs = submission?.documents || [];
         const requiredDocs = ['pan_card', 'aadhaar', 'cv'];
-        const missingDocs = requiredDocs.filter(d => !uploadedDocs.find(doc => doc.type === d));
+        const missingDocs = (requiredDocs || []).filter(d => !(uploadedDocs || []).find(doc => doc.type === d));
         if (missingDocs.length > 0) {
-          toast.error(`Please upload: ${missingDocs.map(d => d.replace('_', ' ').toUpperCase()).join(', ')}`);
+          toast.error(`Please upload: ${(missingDocs || []).map(d => d.replace('_', ' ').toUpperCase()).join(', ')}`);
           return false;
         }
         return true;
@@ -454,7 +454,7 @@ Phone: ${ec.phone || 'N/A'}
 
 DOCUMENTS UPLOADED
 ------------------
-${docs.map(d => `[✓] ${d.type.replace('_', ' ').toUpperCase()}`).join('\n') || 'No documents uploaded'}
+${(docs || []).map(d => `[✓] ${d.type.replace('_', ' ').toUpperCase()}`).join('\n') || 'No documents uploaded'}
 
 DECLARATION
 -----------
@@ -898,7 +898,7 @@ Submission Status: ${submission?.status || 'Draft'}
                       { type: 'aadhaar', label: 'Aadhaar Card' },
                       { type: 'cv', label: 'CV / Resume' },
                     ].map((doc) => {
-                      const uploaded = uploadedDocs.find(d => d.type === doc.type);
+                      const uploaded = (uploadedDocs || []).find(d => d.type === doc.type);
                       return (
                         <div key={doc.type} className="flex items-center justify-between p-4 border rounded-lg bg-neutral-50">
                           <div className="flex items-center gap-3">

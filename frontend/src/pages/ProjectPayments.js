@@ -56,15 +56,15 @@ const ProjectPayments = () => {
 
   // Calculate totals only if user can view amounts
   const totalReceived = canViewAmounts 
-    ? myPayments.payments.filter(p => p.first_payment_received).reduce((sum, p) => sum + (p.first_payment_amount || 0), 0)
+    ? (myPayments?.payments || []).filter(p => p.first_payment_received).reduce((sum, p) => sum + (p.first_payment_amount || 0), 0)
     : 0;
   
   const totalValue = canViewAmounts 
-    ? myPayments.payments.reduce((sum, p) => sum + (p.total_value || 0), 0)
+    ? (myPayments?.payments || []).reduce((sum, p) => sum + (p.total_value || 0), 0)
     : 0;
   
   const totalUpcoming = canViewAmounts 
-    ? upcomingPayments.payments.reduce((sum, p) => sum + (p.amount || 0), 0)
+    ? (upcomingPayments?.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0)
     : 0;
 
   if (loading) {
@@ -152,7 +152,7 @@ const ProjectPayments = () => {
                 <div>
                   <p className="text-blue-100 text-sm uppercase tracking-wide">Upcoming Payments</p>
                   <p className="text-2xl font-bold mt-1">
-                    {myPayments.payments.reduce((sum, p) => sum + (p.upcoming_payments_count || 0), 0)}
+                    {(myPayments?.payments || []).reduce((sum, p) => sum + (p.upcoming_payments_count || 0), 0)}
                   </p>
                 </div>
                 <Calendar className="w-10 h-10 opacity-50" />
@@ -196,7 +196,7 @@ const ProjectPayments = () => {
               </CardContent>
             </Card>
           ) : (
-            myPayments.payments.map((payment) => (
+            (myPayments?.payments || []).map((payment) => (
               <Card 
                 key={payment.project_id} 
                 className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
@@ -340,7 +340,7 @@ const ProjectPayments = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {upcomingPayments.payments.map((payment, idx) => (
+                      {(upcomingPayments?.payments || []).map((payment, idx) => (
                         <tr 
                           key={idx} 
                           className="border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer"

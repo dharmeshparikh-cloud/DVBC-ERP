@@ -272,7 +272,7 @@ const Notifications = () => {
     });
   };
 
-  const filteredNotifications = notifications.filter(n => {
+  const filteredNotifications = (notifications || []).filter(n => {
     if (filter === 'unread') return !n.is_read;
     if (filter === 'actionable') {
       const config = NOTIFICATION_CONFIG[n.type] || NOTIFICATION_CONFIG.default;
@@ -281,12 +281,12 @@ const Notifications = () => {
     return true;
   });
 
-  const actionableCount = notifications.filter(n => {
+  const actionableCount = (notifications || []).filter(n => {
     const config = NOTIFICATION_CONFIG[n.type] || NOTIFICATION_CONFIG.default;
     return config.actionable && n.status !== 'actioned';
   }).length;
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = (notifications || []).filter(n => !n.is_read).length;
 
   if (loading) {
     return (
@@ -349,7 +349,7 @@ const Notifications = () => {
             </CardContent>
           </Card>
         ) : (
-          filteredNotifications.map(notif => {
+          (filteredNotifications || []).map(notif => {
             const config = NOTIFICATION_CONFIG[notif.type] || NOTIFICATION_CONFIG.default;
             const IconComponent = config.icon;
             const isActioned = notif.status === 'actioned';

@@ -263,7 +263,7 @@ const WorkflowPage = () => {
 
       {/* Workflow Selector - Responsive grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        {Object.values(WORKFLOWS).map((workflow) => {
+        {Object.values(WORKFLOWS || {}).map((workflow) => {
           const Icon = workflow.icon;
           const isActive = activeWorkflow === workflow.id;
           
@@ -363,7 +363,7 @@ const WorkflowPage = () => {
         <CardContent className="p-8">
           {/* Horizontal Flow */}
           <div className="flex items-center justify-between overflow-x-auto pb-4">
-            {currentWorkflow.steps.map((step, index) => {
+            {(currentWorkflow?.steps || []).map((step, index) => {
               const Icon = step.icon;
               const moduleColor = MODULE_COLORS[step.module];
               const isAnimated = isAnimating && index <= animatingStep;
@@ -459,7 +459,7 @@ const WorkflowPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
-                {stats.map(stat => (
+                {(stats || []).map(stat => (
                   <Link 
                     key={stat.label} 
                     to={stat.link}

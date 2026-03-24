@@ -117,7 +117,7 @@ const ConsultingScopeView = () => {
       if (sowRes.data?.lead_id) {
         try {
           const leadsRes = await axios.get(`${API}/leads`);
-          const leadData = leadsRes.data.find(l => l.id === sowRes.data.lead_id);
+          const leadData = (leadsRes?.data || []).find(l => l.id === sowRes.data.lead_id);
           setLead(leadData);
         } catch (err) {
           console.error('Error fetching lead:', err);
@@ -216,10 +216,10 @@ const ConsultingScopeView = () => {
     
     return {
       total: sow.scopes.length,
-      notStarted: sow.scopes.filter(s => s.status === 'not_started').length,
-      inProgress: sow.scopes.filter(s => s.status === 'in_progress').length,
-      completed: sow.scopes.filter(s => s.status === 'completed').length,
-      notApplicable: sow.scopes.filter(s => s.status === 'not_applicable').length
+      notStarted: (sow?.scopes || []).filter(s => s.status === 'not_started').length,
+      inProgress: (sow?.scopes || []).filter(s => s.status === 'in_progress').length,
+      completed: (sow?.scopes || []).filter(s => s.status === 'completed').length,
+      notApplicable: (sow?.scopes || []).filter(s => s.status === 'not_applicable').length
     };
   }, [sow?.scopes]);
 
@@ -228,7 +228,7 @@ const ConsultingScopeView = () => {
     if (!sow?.scopes) return [];
     
     const grouped = {};
-    sow.scopes.forEach(scope => {
+    (sow?.scopes || []).forEach(scope => {
       const catCode = scope.category_code || 'other';
       if (!grouped[catCode]) {
         grouped[catCode] = {
@@ -240,7 +240,7 @@ const ConsultingScopeView = () => {
       grouped[catCode].scopes.push(scope);
     });
     
-    return Object.values(grouped);
+    return Object.values(grouped || {});
   }, [sow?.scopes]);
 
   // Task management functions
@@ -262,7 +262,7 @@ const ConsultingScopeView = () => {
     if (!selectedScope || !newTask.name) return;
     
     try {
-      const assignee = employees.find(e => e.id === newTask.assigned_to_id);
+      const assignee = (employees || []).find(e => e.id === newTask.assigned_to_id);
       const payload = {
         ...newTask,
         assigned_to_name: assignee ? `${assignee.first_name} ${assignee.last_name}` : null
@@ -370,10 +370,10 @@ const ConsultingScopeView = () => {
     if (!sow?.scopes) return [];
     
     return [
-      { id: 'not_started', title: 'Not Started', scopes: sow.scopes.filter(s => s.status === 'not_started') },
-      { id: 'in_progress', title: 'In Progress', scopes: sow.scopes.filter(s => s.status === 'in_progress') },
-      { id: 'completed', title: 'Completed', scopes: sow.scopes.filter(s => s.status === 'completed') },
-      { id: 'not_applicable', title: 'Not Applicable', scopes: sow.scopes.filter(s => s.status === 'not_applicable') }
+      { id: 'not_started', title: 'Not Started', scopes: (sow?.scopes || []).filter(s => s.status === 'not_started') },
+      { id: 'in_progress', title: 'In Progress', scopes: (sow?.scopes || []).filter(s => s.status === 'in_progress') },
+      { id: 'completed', title: 'Completed', scopes: (sow?.scopes || []).filter(s => s.status === 'completed') },
+      { id: 'not_applicable', title: 'Not Applicable', scopes: (sow?.scopes || []).filter(s => s.status === 'not_applicable') }
     ];
   }, [sow?.scopes]);
 
@@ -381,11 +381,11 @@ const ConsultingScopeView = () => {
   const ganttData = useMemo(() => {
     if (!sow?.scopes) return { scopes: [], maxWeeks: 12 };
     
-    const scopesWithTimeline = sow.scopes.filter(s => s.timeline_weeks);
-    const maxWeeks = Math.max(...scopesWithTimeline.map(s => (s.start_week || 1) + (s.timeline_weeks || 1)), 12);
+    const scopesWithTimeline = (sow?.scopes || []).filter(s => s.timeline_weeks);
+    const maxWeeks = Math.max(...(scopesWithTimeline || []).map(s => (s.start_week || 1) + (s.timeline_weeks || 1)), 12);
     
     return {
-      scopes: scopesWithTimeline.map((s, idx) => ({
+      scopes: (scopesWithTimeline || []).map((s, idx) => ({
         ...s,
         startWeek: idx * 2 + 1, // Stagger for demo
         endWeek: (idx * 2 + 1) + (s.timeline_weeks || 2)
@@ -400,7 +400,7 @@ const ConsultingScopeView = () => {
     
     const today = new Date();
     
-    return sow.scopes.map((scope, idx) => {
+    return (sow?.scopes || []).map((scope, idx) => {
       // Use actual dates if available, otherwise calculate from timeline_weeks
       let startDate = scope.start_date ? new Date(scope.start_date) : addDays(today, idx * 7);
       let endDate = scope.end_date ? new Date(scope.end_date) : addDays(startDate, (scope.timeline_weeks || 2) * 7);
@@ -660,7 +660,7 @@ const ConsultingScopeView = () => {
       {/* List View */}
       {viewMode === 'list' && (
         <div className="space-y-4">
-          {scopesByCategory.map(group => (
+          {(scopesByCategory || []).map(group => (
             <Card key={group.category_code} className="border-zinc-200 shadow-none rounded-sm">
               <CardHeader className="pb-2 bg-zinc-50">
                 <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-700">
@@ -669,7 +669,7 @@ const ConsultingScopeView = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-zinc-100">
-                  {group.scopes.map(scope => {
+                  {(group?.scopes || []).map(scope => {
                     const statusConfig = STATUS_CONFIG[scope.status] || STATUS_CONFIG.not_started;
                     const revisionConfig = REVISION_STATUS_CONFIG[scope.revision_status] || REVISION_STATUS_CONFIG.pending_review;
                     const StatusIcon = statusConfig.icon;
@@ -765,7 +765,7 @@ const ConsultingScopeView = () => {
                             ) : (
                               <div className="space-y-2">
                                 <div className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Tasks</div>
-                                {tasks.map(task => (
+                                {(tasks || []).map(task => (
                                   <div 
                                     key={task.id} 
                                     className="bg-white border border-zinc-200 rounded-sm p-3"
@@ -881,7 +881,7 @@ const ConsultingScopeView = () => {
       {/* Kanban View */}
       {viewMode === 'kanban' && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {kanbanColumns.map(column => {
+          {(kanbanColumns || []).map(column => {
             const statusConfig = STATUS_CONFIG[column.id] || STATUS_CONFIG.not_started;
             return (
               <div key={column.id} className="space-y-2">
@@ -889,7 +889,7 @@ const ConsultingScopeView = () => {
                   {column.title} ({column.scopes.length})
                 </div>
                 <div className="space-y-2 min-h-[200px]">
-                  {column.scopes.map(scope => (
+                  {(column?.scopes || []).map(scope => (
                     <Card 
                       key={scope.id} 
                       className="border-zinc-200 shadow-none rounded-sm cursor-pointer hover:border-zinc-300"
@@ -993,7 +993,7 @@ const ConsultingScopeView = () => {
       {/* Timeline View */}
       {viewMode === 'timeline' && (
         <div className="space-y-4">
-          {scopesByCategory.map(group => (
+          {(scopesByCategory || []).map(group => (
             <Card key={group.category_code} className="border-zinc-200 shadow-none rounded-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-700">
@@ -1002,7 +1002,7 @@ const ConsultingScopeView = () => {
               </CardHeader>
               <CardContent>
                 <div className="relative pl-6 border-l-2 border-zinc-200 space-y-4">
-                  {group.scopes.map((scope, idx) => {
+                  {(group?.scopes || []).map((scope, idx) => {
                     const statusConfig = STATUS_CONFIG[scope.status] || STATUS_CONFIG.not_started;
                     const StatusIcon = statusConfig.icon;
                     
@@ -1334,7 +1334,7 @@ const ConsultingScopeView = () => {
                 )}
               </div>
             ))}
-            {(!sow?.scopes || sow.scopes.every(s => !s.change_log?.length)) && (
+            {(!sow?.scopes || (sow?.scopes || []).every(s => !s.change_log?.length)) && (
               <div className="text-center py-8 text-zinc-400">
                 No changes recorded yet
               </div>
@@ -1410,7 +1410,7 @@ const ConsultingScopeView = () => {
                 data-testid="task-assign-select"
               >
                 <option value="">Unassigned</option>
-                {Array.isArray(employees) && employees.map(emp => (
+                {Array.isArray(employees) && (employees || []).map(emp => (
                   <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
                 ))}
               </select>
@@ -1460,7 +1460,7 @@ const ConsultingScopeView = () => {
               <select
                 value={approvalData.manager_id}
                 onChange={(e) => {
-                  const mgr = employees.find(emp => emp.id === e.target.value);
+                  const mgr = (employees || []).find(emp => emp.id === e.target.value);
                   setApprovalData({ 
                     ...approvalData, 
                     manager_id: e.target.value,

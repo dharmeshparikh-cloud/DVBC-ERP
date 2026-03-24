@@ -229,7 +229,7 @@ const ConsultantDashboard = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {projects.map((item) => (
+              {(projects || []).map((item) => (
                 <div
                   key={item.assignment.id}
                   className="p-4 border border-zinc-200 rounded-sm hover:border-zinc-300 transition-colors"

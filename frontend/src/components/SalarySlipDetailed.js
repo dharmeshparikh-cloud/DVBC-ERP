@@ -214,7 +214,7 @@ export default function SalarySlipDetailed({ employeeId, month, onClose }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {earnings.map((e, i) => (
+                      {(earnings || []).map((e, i) => (
                         <tr key={i} className={`border-b ${isDark ? 'border-zinc-800' : 'border-gray-100'}`}>
                           <td className="p-2">{e.name}</td>
                           <td className="p-2 text-right font-medium text-green-600">
@@ -250,7 +250,7 @@ export default function SalarySlipDetailed({ employeeId, month, onClose }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {deductions.length > 0 ? deductions.map((d, i) => (
+                      {deductions.length > 0 ? (deductions || []).map((d, i) => (
                         <tr key={i} className={`border-b ${isDark ? 'border-zinc-800' : 'border-gray-100'}`}>
                           <td className="p-2">{d.name}</td>
                           <td className="p-2 text-right font-medium text-red-600">

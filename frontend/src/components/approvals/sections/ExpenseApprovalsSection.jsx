@@ -47,7 +47,7 @@ export const ExpenseApprovalsSection = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {expenseApprovals.map((expense, idx) => (
+          {(expenseApprovals || []).map((expense, idx) => (
             <div 
               key={expense.id || idx}
               className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}

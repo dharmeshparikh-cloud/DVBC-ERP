@@ -313,7 +313,7 @@ const AdminMasters = () => {
   });
 
   const handleDeleteCategory = (id) => {
-    const scopesInCategory = sowScopes.filter(s => s.category_id === id);
+    const scopesInCategory = (sowScopes || []).filter(s => s.category_id === id);
     if (scopesInCategory.length > 0) {
       toast.error(`Cannot delete category with ${scopesInCategory.length} scopes. Remove scopes first.`);
       return;
@@ -325,7 +325,7 @@ const AdminMasters = () => {
   // SOW Scope mutations
   const createScopeMutation = useMutation({
     mutationFn: async (data) => {
-      const category = sowCategories.find(c => c.id === data.category_id);
+      const category = (sowCategories || []).find(c => c.id === data.category_id);
       await axios.post(`${API}/sow-masters/scopes`, {
         ...data,
         category_code: category?.code || ''
@@ -459,7 +459,7 @@ const AdminMasters = () => {
 
   // Get scopes for selected category
   const filteredScopes = selectedCategory 
-    ? sowScopes.filter(s => s.category_id === selectedCategory)
+    ? (sowScopes || []).filter(s => s.category_id === selectedCategory)
     : sowScopes;
 
   // Format currency
@@ -616,7 +616,7 @@ const AdminMasters = () => {
                         onChange={(e) => setNewDept({...newDept, icon: e.target.value})}
                         className="h-9 w-full border rounded-md px-2 text-sm"
                       >
-                        {Object.keys(DEPT_ICONS).map(icon => (
+                        {Object.keys(DEPT_ICONS || {}).map(icon => (
                           <option key={icon} value={icon}>{icon}</option>
                         ))}
                       </select>
@@ -668,7 +668,7 @@ const AdminMasters = () => {
                 {departments.length === 0 ? (
                   <p className="text-center text-zinc-500 py-8">No departments configured. Add one above.</p>
                 ) : (
-                  departments.map((dept) => {
+                  (departments || []).map((dept) => {
                     const IconComponent = DEPT_ICONS[dept.icon] || Building2;
                     return editingDept?.id === dept.id ? (
                       <div key={dept.id} className="p-4 border rounded-lg bg-yellow-50 space-y-3">
@@ -696,7 +696,7 @@ const AdminMasters = () => {
                               onChange={(e) => setEditingDept({...editingDept, icon: e.target.value})}
                               className="h-9 w-full border rounded-md px-2 text-sm"
                             >
-                              {Object.keys(DEPT_ICONS).map(icon => (
+                              {Object.keys(DEPT_ICONS || {}).map(icon => (
                                 <option key={icon} value={icon}>{icon}</option>
                               ))}
                             </select>
@@ -749,7 +749,7 @@ const AdminMasters = () => {
                             </div>
                             <p className="text-xs text-zinc-500">{dept.description || 'No description'}</p>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {Array.isArray(dept.pages) && dept.pages.slice(0, 5).map((page, i) => (
+                              {Array.isArray(dept.pages) && (dept?.pages || []).slice(0, 5).map((page, i) => (
                                 <Badge key={i} variant="secondary" className="text-xs font-mono">{page}</Badge>
                               ))}
                               {Array.isArray(dept.pages) && dept.pages.length > 5 && (
@@ -907,7 +907,7 @@ const AdminMasters = () => {
                     ) : tenureTypes.length === 0 ? (
                       <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-400">No tenure types found. Click "Seed Defaults" to add default types.</td></tr>
                     ) : (
-                      tenureTypes.map((tenure) => (
+                      (tenureTypes || []).map((tenure) => (
                         <tr 
                           key={tenure.id} 
                           className={`hover:bg-zinc-50 ${!tenure.is_active ? 'opacity-50 bg-zinc-100' : ''}`}
@@ -1094,7 +1094,7 @@ const AdminMasters = () => {
                     ) : consultantRoles.length === 0 ? (
                       <tr><td colSpan={8} className="px-4 py-8 text-center text-zinc-400">No roles found.</td></tr>
                     ) : (
-                      consultantRoles.map((role) => (
+                      (consultantRoles || []).map((role) => (
                         <tr 
                           key={role.id} 
                           className={`hover:bg-zinc-50 ${!role.is_active ? 'opacity-50 bg-zinc-100' : ''}`}
@@ -1177,7 +1177,7 @@ const AdminMasters = () => {
                     ) : meetingTypes.length === 0 ? (
                       <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-400">No meeting types found.</td></tr>
                     ) : (
-                      meetingTypes.map((mt) => (
+                      (meetingTypes || []).map((mt) => (
                         <tr 
                           key={mt.id} 
                           className={`hover:bg-zinc-50 ${!mt.is_active ? 'opacity-50 bg-zinc-100' : ''}`}
@@ -1272,7 +1272,7 @@ const AdminMasters = () => {
                       No categories yet. Create one to get started.
                     </div>
                   ) : (
-                    sowCategories.map((cat) => (
+                    (sowCategories || []).map((cat) => (
                       <div 
                         key={cat.id}
                         className={`p-3 rounded-lg border cursor-pointer transition-all ${
@@ -1298,7 +1298,7 @@ const AdminMasters = () => {
                                 <div className="text-xs text-zinc-400 mt-1">{cat.description}</div>
                               )}
                               <div className="text-xs text-zinc-400 mt-1">
-                                {sowScopes.filter(s => s.category_id === cat.id).length} scopes
+                                {(sowScopes || []).filter(s => s.category_id === cat.id).length} scopes
                               </div>
                             </div>
                             <div className="flex gap-1">
@@ -1339,7 +1339,7 @@ const AdminMasters = () => {
                     Scope Templates
                     {selectedCategory && (
                       <span className="text-xs font-normal text-blue-600 ml-2">
-                        (Filtered: {sowCategories.find(c => c.id === selectedCategory)?.name})
+                        (Filtered: {(sowCategories || []).find(c => c.id === selectedCategory)?.name})
                       </span>
                     )}
                   </CardTitle>
@@ -1389,7 +1389,7 @@ const AdminMasters = () => {
                           data-testid="scope-category-select"
                         >
                           <option value="">Select category...</option>
-                          {sowCategories.filter(c => c.is_active).map(cat => (
+                          {(sowCategories || []).filter(c => c.is_active).map(cat => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                           ))}
                         </select>
@@ -1444,8 +1444,8 @@ const AdminMasters = () => {
                           </td>
                         </tr>
                       ) : (
-                        filteredScopes.map((scope) => {
-                          const category = sowCategories.find(c => c.id === scope.category_id);
+                        (filteredScopes || []).map((scope) => {
+                          const category = (sowCategories || []).find(c => c.id === scope.category_id);
                           return editingScope === scope.id ? (
                             <EditScopeRow 
                               key={scope.id}
@@ -1649,7 +1649,7 @@ const EditScopeRow = ({ scope, categories, onSave, onCancel }) => {
       </td>
       <td className="px-4 py-2 text-sm">
         <span className="px-2 py-1 bg-zinc-100 rounded text-xs text-zinc-600">
-          {categories.find(c => c.id === scope.category_id)?.name || scope.category_code}
+          {(categories || []).find(c => c.id === scope.category_id)?.name || scope.category_code}
         </span>
       </td>
       <td className="px-4 py-2">

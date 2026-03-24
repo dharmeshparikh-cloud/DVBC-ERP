@@ -32,7 +32,7 @@ const MyWorkspaceNav = () => {
 
   return (
     <div className="flex items-center gap-1 mb-5 pb-3 border-b border-zinc-200 overflow-x-auto scrollbar-hide" data-testid="my-workspace-nav">
-      {visibleItems.map(item => {
+      {(visibleItems || []).map(item => {
         const Icon = item.icon;
         const isActive = pathname === item.href;
         return (

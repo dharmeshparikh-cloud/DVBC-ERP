@@ -101,7 +101,7 @@ const KickoffRequests = () => {
   };
 
   const handleAgreementSelect = async (agreementId) => {
-    const agreement = agreements.find(a => a.id === agreementId);
+    const agreement = (agreements || []).find(a => a.id === agreementId);
     if (agreement) {
       // Set initial values from agreement
       let projectType = 'mixed';
@@ -116,7 +116,7 @@ const KickoffRequests = () => {
           // If no direct pricing_plan_id, get from quotation
           if (!pricingPlanId && agreement.quotation_id) {
             const quotationsRes = await axios.get(`${API}/api/quotations`, { headers });
-            const quotation = quotationsRes.data.find(q => q.id === agreement.quotation_id);
+            const quotation = (quotationsRes?.data || []).find(q => q.id === agreement.quotation_id);
             if (quotation) {
               pricingPlanId = quotation.pricing_plan_id;
             }
@@ -179,7 +179,7 @@ const KickoffRequests = () => {
   };
 
   const handlePMSelect = (pmId) => {
-    const pm = projectManagers.find(p => p.id === pmId);
+    const pm = (projectManagers || []).find(p => p.id === pmId);
     setFormData(prev => ({
       ...prev,
       assigned_pm_id: pmId,
@@ -371,12 +371,12 @@ const KickoffRequests = () => {
     );
   }
 
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  const returnedRequests = requests.filter(r => r.status === 'returned');
-  const processedRequests = requests.filter(r => !['pending', 'returned'].includes(r.status));
+  const pendingRequests = (requests || []).filter(r => r.status === 'pending');
+  const returnedRequests = (requests || []).filter(r => r.status === 'returned');
+  const processedRequests = (requests || []).filter(r => !['pending', 'returned'].includes(r.status));
   
   // Check if user has any eligible agreements for kickoff
-  const eligibleAgreements = agreements.filter(a => a.status === 'approved');
+  const eligibleAgreements = (agreements || []).filter(a => a.status === 'approved');
   const hasEligibleAgreements = eligibleAgreements.length > 0;
   const hasAnyRequests = requests.length > 0;
 
@@ -463,7 +463,7 @@ const KickoffRequests = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-orange-100">
-                  {returnedRequests.map((request) => (
+                  {(returnedRequests || []).map((request) => (
                     <tr 
                       key={request.id} 
                       className="hover:bg-orange-50/50 cursor-pointer transition-colors"
@@ -494,7 +494,7 @@ const KickoffRequests = () => {
             </div>
           ) : (
             <div className="grid gap-4">
-              {returnedRequests.map((request) => (
+              {(returnedRequests || []).map((request) => (
                 <Card key={request.id} className="border-orange-200 bg-orange-50/50 cursor-pointer hover:border-orange-300 transition-colors" onClick={() => handleViewDetails(request)} data-testid={`returned-request-${request.id}`}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
@@ -576,7 +576,7 @@ const KickoffRequests = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-amber-100">
-                  {pendingRequests.map((request) => (
+                  {(pendingRequests || []).map((request) => (
                     <tr 
                       key={request.id} 
                       className="hover:bg-amber-50/50 cursor-pointer transition-colors"
@@ -607,7 +607,7 @@ const KickoffRequests = () => {
             </div>
           ) : (
             <div className="grid gap-4">
-              {pendingRequests.map((request) => (
+              {(pendingRequests || []).map((request) => (
                 <Card key={request.id} className="border-amber-200 bg-amber-50/50 cursor-pointer hover:border-amber-300 transition-colors" onClick={() => handleViewDetails(request)} data-testid={`pending-request-${request.id}`}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
@@ -688,7 +688,7 @@ const KickoffRequests = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {processedRequests.map((request) => (
+                {(processedRequests || []).map((request) => (
                   <tr 
                     key={request.id} 
                     className="hover:bg-zinc-50 cursor-pointer transition-colors"
@@ -723,7 +723,7 @@ const KickoffRequests = () => {
           </div>
         ) : (
           <div className="grid gap-4">
-            {processedRequests.map((request) => (
+            {(processedRequests || []).map((request) => (
               <Card key={request.id} className="border-zinc-200 cursor-pointer hover:border-zinc-300 transition-colors" onClick={() => handleViewDetails(request)} data-testid={`processed-request-${request.id}`}>
                 <CardContent className="py-4">
                   <div className="flex items-center justify-between">
@@ -775,7 +775,7 @@ const KickoffRequests = () => {
                   <SelectValue placeholder="Select approved agreement" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agreements.map((agreement) => (
+                  {(agreements || []).map((agreement) => (
                     <SelectItem key={agreement.id} value={agreement.id}>
                       {agreement.party_name || agreement.client_name || agreement.id} - {agreement.agreement_number || 'Agreement'}
                     </SelectItem>
@@ -896,7 +896,7 @@ const KickoffRequests = () => {
                   <SelectValue placeholder="Select PM (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projectManagers.map((pm) => (
+                  {(projectManagers || []).map((pm) => (
                     <SelectItem key={pm.id} value={pm.id}>
                       {pm.full_name}
                     </SelectItem>
@@ -1067,7 +1067,7 @@ const KickoffRequests = () => {
                         </CardHeader>
                         <CardContent>
                           <ul className="space-y-1.5">
-                            {detailData.client_expectations_summary.map((concern, i) => (
+                            {(detailData?.client_expectations_summary || []).map((concern, i) => (
                               <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
                                 <span className="text-amber-500 mt-1">•</span>
                                 {concern}
@@ -1087,7 +1087,7 @@ const KickoffRequests = () => {
                         </CardHeader>
                         <CardContent>
                           <ul className="space-y-1.5">
-                            {detailData.key_commitments_summary.map((commitment, i) => (
+                            {(detailData?.key_commitments_summary || []).map((commitment, i) => (
                               <li key={i} className="text-sm text-green-900 flex items-start gap-2">
                                 <span className="text-green-500 mt-1">•</span>
                                 {commitment}
@@ -1111,7 +1111,7 @@ const KickoffRequests = () => {
                   <CardContent>
                     {detailData?.meeting_history?.length > 0 ? (
                       <div className="space-y-4">
-                        {detailData.meeting_history.map((meeting, index) => (
+                        {(detailData?.meeting_history || []).map((meeting, index) => (
                           <div key={meeting.id || index} className="border rounded-lg p-4 hover:bg-zinc-50 transition-colors">
                             {/* Meeting Header */}
                             <div className="flex items-center justify-between mb-3">
@@ -1156,7 +1156,7 @@ const KickoffRequests = () => {
                                   <div>
                                     <Label className="text-xs text-zinc-500 font-medium">Key Decisions</Label>
                                     <ul className="mt-1 space-y-1">
-                                      {meeting.mom.key_decisions.map((decision, i) => (
+                                      {(meeting?.mom?.key_decisions || []).map((decision, i) => (
                                         <li key={i} className="text-sm flex items-start gap-2">
                                           <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
                                           {decision}
@@ -1170,7 +1170,7 @@ const KickoffRequests = () => {
                                   <div>
                                     <Label className="text-xs text-zinc-500 font-medium">Discussion Points</Label>
                                     <ul className="mt-1 space-y-1">
-                                      {meeting.mom.discussion_points.map((point, i) => (
+                                      {(meeting?.mom?.discussion_points || []).map((point, i) => (
                                         <li key={i} className="text-sm flex items-start gap-2">
                                           <span className="text-zinc-400">•</span>
                                           {point}
@@ -1184,7 +1184,7 @@ const KickoffRequests = () => {
                                   <div className="bg-amber-50 rounded-md p-2">
                                     <Label className="text-xs text-amber-700 font-medium">Client Concerns Raised</Label>
                                     <ul className="mt-1 space-y-1">
-                                      {meeting.mom.client_concerns.map((concern, i) => (
+                                      {(meeting?.mom?.client_concerns || []).map((concern, i) => (
                                         <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
                                           <AlertCircle className="w-3 h-3 text-amber-500 mt-1 flex-shrink-0" />
                                           {concern}
@@ -1198,7 +1198,7 @@ const KickoffRequests = () => {
                                   <div className="bg-green-50 rounded-md p-2">
                                     <Label className="text-xs text-green-700 font-medium">Commitments Made</Label>
                                     <ul className="mt-1 space-y-1">
-                                      {meeting.mom.commitments_made.map((commitment, i) => (
+                                      {(meeting?.mom?.commitments_made || []).map((commitment, i) => (
                                         <li key={i} className="text-sm text-green-900 flex items-start gap-2">
                                           <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
                                           {commitment}
@@ -1212,7 +1212,7 @@ const KickoffRequests = () => {
                                   <div>
                                     <Label className="text-xs text-zinc-500 font-medium">Next Steps</Label>
                                     <ul className="mt-1 space-y-1">
-                                      {meeting.mom.next_steps.map((step, i) => (
+                                      {(meeting?.mom?.next_steps || []).map((step, i) => (
                                         <li key={i} className="text-sm flex items-start gap-2">
                                           <ArrowRight className="w-3 h-3 text-blue-500 mt-1 flex-shrink-0" />
                                           {step}
@@ -1236,7 +1236,7 @@ const KickoffRequests = () => {
                               <div className="mt-3 pl-11">
                                 <Label className="text-xs text-zinc-500 font-medium">Action Items</Label>
                                 <div className="mt-1 space-y-1">
-                                  {meeting.action_items.map((item, i) => (
+                                  {meeting.action_(items || []).map((item, i) => (
                                     <div key={i} className="flex items-center gap-2 text-sm">
                                       <div className={`w-2 h-2 rounded-full ${
                                         item.status === 'completed' ? 'bg-green-500' :
@@ -1293,7 +1293,7 @@ const KickoffRequests = () => {
                           <div>Frequency</div>
                           <div>Mode</div>
                         </div>
-                        {detailData.team_deployment.map((member, i) => (
+                        {(detailData?.team_deployment || []).map((member, i) => (
                           <div key={i} className="grid grid-cols-4 gap-4 text-sm py-2 border-b border-zinc-100">
                             <div className="font-medium">{member.role}</div>
                             <div>{member.meeting_type}</div>
@@ -1310,7 +1310,7 @@ const KickoffRequests = () => {
                           <div>Frequency</div>
                           <div>Mode</div>
                         </div>
-                        {detailData.agreement.team_deployment.map((member, i) => (
+                        {(detailData?.agreement?.team_deployment || []).map((member, i) => (
                           <div key={i} className="grid grid-cols-4 gap-4 text-sm py-2 border-b border-zinc-100">
                             <div className="font-medium">{member.role}</div>
                             <div>{member.meeting_type}</div>
@@ -1351,7 +1351,7 @@ const KickoffRequests = () => {
               <TabsContent value="sow" className="space-y-4">
                 {detailData.sow?.items?.length > 0 ? (
                   <div className="space-y-3">
-                    {detailData.sow.items.map((item, index) => (
+                    {(detailData?.sow?.items || []).map((item, index) => (
                       <Card key={item.id || index}>
                         <CardContent className="pt-4">
                           <div className="flex items-start justify-between">
@@ -1367,7 +1367,7 @@ const KickoffRequests = () => {
                                 <div className="mt-2">
                                   <Label className="text-xs text-zinc-500">Deliverables:</Label>
                                   <ul className="list-disc list-inside text-sm text-zinc-600">
-                                    {item.deliverables.map((d, i) => (
+                                    {(item?.deliverables || []).map((d, i) => (
                                       <li key={i}>{d}</li>
                                     ))}
                                   </ul>

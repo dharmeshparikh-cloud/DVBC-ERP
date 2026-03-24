@@ -21,7 +21,7 @@ const RoleGuard = ({ allowedRoles = [], allowedDepts = [], children }) => {
   if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && role && allowedRoles.includes(role)) return children;
 
   // Check department match - ensure allowedDepts is an array
-  if (Array.isArray(allowedDepts) && allowedDepts.length > 0 && dept && allowedDepts.some(d => dept.includes(d?.toLowerCase?.() || ''))) return children;
+  if (Array.isArray(allowedDepts) && allowedDepts.length > 0 && dept && (allowedDepts || []).some(d => dept.includes(d?.toLowerCase?.() || ''))) return children;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4" data-testid="access-denied">

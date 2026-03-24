@@ -77,8 +77,8 @@ const PerformanceDashboard = () => {
     // Build sales performance (only if can see financials)
     let salesPerformance = [];
     if (canSeeFinancials && users.length > 0) {
-      const salesUsers = users.filter(u => ['executive', 'sales_manager'].includes(u.role));
-      salesPerformance = salesUsers.map(s => ({
+      const salesUsers = (users || []).filter(u => ['executive', 'sales_manager'].includes(u.role));
+      salesPerformance = (salesUsers || []).map(s => ({
         id: s.id,
         name: s.full_name,
         email: s.email,
@@ -95,7 +95,7 @@ const PerformanceDashboard = () => {
     }
 
     // Build consultant performance data
-    const consultantPerformance = consultants.map(c => ({
+    const consultantPerformance = (consultants || []).map(c => ({
       id: c.id,
       name: c.full_name,
       email: c.email,
@@ -114,7 +114,7 @@ const PerformanceDashboard = () => {
 
     // Generate trend data
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const trends = months.map(month => ({
+    const trends = (months || []).map(month => ({
       month,
       utilization: Math.floor(Math.random() * 30) + 60,
       delivery: Math.floor(Math.random() * 20) + 75,
@@ -126,22 +126,22 @@ const PerformanceDashboard = () => {
     // Calculate summary
     const summary = {
       avgUtilization: consultantPerformance.length > 0 
-        ? Math.round(consultantPerformance.reduce((sum, c) => sum + c.utilization, 0) / consultantPerformance.length)
+        ? Math.round((consultantPerformance || []).reduce((sum, c) => sum + c.utilization, 0) / consultantPerformance.length)
         : 0,
-      totalProjectsDelivered: consultantPerformance.reduce((sum, c) => sum + c.projectsDelivered, 0),
+      totalProjectsDelivered: (consultantPerformance || []).reduce((sum, c) => sum + c.projectsDelivered, 0),
       avgClientRating: consultantPerformance.length > 0
-        ? (consultantPerformance.reduce((sum, c) => sum + parseFloat(c.clientRating), 0) / consultantPerformance.length).toFixed(1)
+        ? ((consultantPerformance || []).reduce((sum, c) => sum + parseFloat(c.clientRating), 0) / consultantPerformance.length).toFixed(1)
         : 0,
-      activeProjects: projects.filter(p => p.status === 'active').length,
+      activeProjects: (projects || []).filter(p => p.status === 'active').length,
       totalConsultants: consultants.length,
       totalSalesTeam: salesPerformance.length
     };
 
     // Only add financial metrics if allowed
     if (canSeeFinancials) {
-      summary.totalRevenue = salesPerformance.reduce((sum, s) => sum + s.achieved, 0);
+      summary.totalRevenue = (salesPerformance || []).reduce((sum, s) => sum + s.achieved, 0);
       summary.avgConversionRate = salesPerformance.length > 0
-        ? Math.round(salesPerformance.reduce((sum, s) => sum + s.conversionRate, 0) / salesPerformance.length)
+        ? Math.round((salesPerformance || []).reduce((sum, s) => sum + s.conversionRate, 0) / salesPerformance.length)
         : 0;
     }
 
@@ -353,7 +353,7 @@ const PerformanceDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              {workLocationData.length > 0 && workLocationData.some(d => d.value > 0) ? (
+              {workLocationData.length > 0 && (workLocationData || []).some(d => d.value > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -366,7 +366,7 @@ const PerformanceDashboard = () => {
                       dataKey="value"
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
-                      {workLocationData.map((entry, index) => (
+                      {(workLocationData || []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -588,7 +588,7 @@ const PerformanceDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {leaderboard.slice(0, 5).map((person, idx) => (
+              {(leaderboard || []).slice(0, 5).map((person, idx) => (
                 <div 
                   key={person.id}
                   className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
@@ -654,7 +654,7 @@ const PerformanceDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {consultantsList.map((c) => (
+                    {(consultantsList || []).map((c) => (
                       <tr key={c.id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
@@ -740,7 +740,7 @@ const PerformanceDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {sales.map((s) => {
+                        {(sales || []).map((s) => {
                           const achievement = Math.round((s.achieved / s.target) * 100);
                           return (
                             <tr key={s.id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">

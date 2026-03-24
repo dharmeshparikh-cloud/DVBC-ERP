@@ -58,7 +58,7 @@ const PaymentVerification = () => {
         params: { status: 'approved' }
       });
       const data = Array.isArray(response.data) ? response.data : [];
-      return data.filter(a => 
+      return (data || []).filter(a => 
         ['approved', 'signed', 'sent'].includes(a.status)
       );
     },
@@ -77,7 +77,7 @@ const PaymentVerification = () => {
   }, [agreementIdParam, agreements]);
 
   const handleAgreementSelect = async (agreementId) => {
-    const agreement = agreements.find(a => a.id === agreementId);
+    const agreement = (agreements || []).find(a => a.id === agreementId);
     if (!agreement) return;
     
     setSelectedAgreement(agreement);
@@ -91,7 +91,7 @@ const PaymentVerification = () => {
       // Fetch quotation and pricing plan details for expected amount
       if (agreement.quotation_id) {
         const quotationsRes = await axios.get(`${API}/quotations`);
-        const quotation = quotationsRes.data.find(q => q.id === agreement.quotation_id);
+        const quotation = (quotationsRes?.data || []).find(q => q.id === agreement.quotation_id);
         if (quotation) {
           setQuotationDetails(quotation);
           
@@ -151,7 +151,7 @@ const PaymentVerification = () => {
     onError: (error) => {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+        toast.error((detail || []).map(e => e.msg || 'Validation error').join(', '));
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
@@ -251,7 +251,7 @@ const PaymentVerification = () => {
                   <SelectValue placeholder="Select an approved agreement" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agreements.map((agreement) => (
+                  {(agreements || []).map((agreement) => (
                     <SelectItem key={agreement.id} value={agreement.id}>
                       {agreement.agreement_number} - {agreement.party_name || agreement.client_name}
                     </SelectItem>

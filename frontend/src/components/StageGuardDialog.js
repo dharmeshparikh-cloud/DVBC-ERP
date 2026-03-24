@@ -50,7 +50,7 @@ const StageGuardDialog = () => {
             
             {/* Stage Progress Indicator */}
             <div className="bg-zinc-50 rounded-lg p-4 space-y-2">
-              {missingStages.map((stage, idx) => (
+              {(missingStages || []).map((stage, idx) => (
                 <div key={stage} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs font-medium text-amber-700">
                     {idx + 1}

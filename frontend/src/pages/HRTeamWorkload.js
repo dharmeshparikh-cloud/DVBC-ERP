@@ -57,7 +57,7 @@ const HRTeamWorkload = () => {
   };
 
   const filteredConsultants = useMemo(() => {
-    return consultants.filter(c => {
+    return (consultants || []).filter(c => {
       const matchesSearch = c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            c.email?.toLowerCase().includes(searchQuery.toLowerCase());
       
@@ -71,11 +71,11 @@ const HRTeamWorkload = () => {
 
   // Calculate summary stats
   const totalConsultants = consultants.length;
-  const availableCount = consultants.filter(c => (c.bandwidth_percentage || 0) < 70).length;
-  const busyCount = consultants.filter(c => (c.bandwidth_percentage || 0) >= 70 && (c.bandwidth_percentage || 0) < 90).length;
-  const overloadedCount = consultants.filter(c => (c.bandwidth_percentage || 0) >= 90).length;
+  const availableCount = (consultants || []).filter(c => (c.bandwidth_percentage || 0) < 70).length;
+  const busyCount = (consultants || []).filter(c => (c.bandwidth_percentage || 0) >= 70 && (c.bandwidth_percentage || 0) < 90).length;
+  const overloadedCount = (consultants || []).filter(c => (c.bandwidth_percentage || 0) >= 90).length;
   const avgUtilization = totalConsultants > 0 
-    ? Math.round(consultants.reduce((sum, c) => sum + (c.bandwidth_percentage || 0), 0) / totalConsultants)
+    ? Math.round((consultants || []).reduce((sum, c) => sum + (c.bandwidth_percentage || 0), 0) / totalConsultants)
     : 0;
 
   if (loading) {
@@ -225,7 +225,7 @@ const HRTeamWorkload = () => {
         <CardContent>
           {filteredConsultants.length > 0 ? (
             <div className="space-y-4">
-              {filteredConsultants.map((consultant) => {
+              {(filteredConsultants || []).map((consultant) => {
                 const bandwidth = consultant.bandwidth_percentage || 0;
                 const projectCount = consultant.active_projects?.length || consultant.projects_count || 0;
                 
@@ -316,7 +316,7 @@ const HRTeamWorkload = () => {
         <CardContent>
           {projects.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
-              {projects.slice(0, 6).map((project) => (
+              {(projects || []).slice(0, 6).map((project) => (
                 <div
                   key={project.id}
                   className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg"

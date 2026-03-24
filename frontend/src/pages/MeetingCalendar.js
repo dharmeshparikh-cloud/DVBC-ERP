@@ -382,7 +382,7 @@ const MeetingCalendar = () => {
               })}
               
               {/* Day cells */}
-              {weekDates.map((date, idx) => {
+              {(weekDates || []).map((date, idx) => {
                 const meetings = getMeetingsForDate(date);
                 const isCurrentDay = isSameDay(date, today);
                 return (
@@ -397,7 +397,7 @@ const MeetingCalendar = () => {
                       <p className="text-xs text-zinc-400 text-center py-16">No meetings</p>
                     ) : (
                       <div className="space-y-2">
-                        {meetings.map((meeting, mIdx) => {
+                        {(meetings || []).map((meeting, mIdx) => {
                           const modeConfig = MODE_CONFIG[meeting.mode] || MODE_CONFIG.online;
                           const ModeIcon = modeConfig.icon;
                           return (
@@ -450,7 +450,7 @@ const MeetingCalendar = () => {
           ) : (
             /* List View */
             <div className="p-4 space-y-4">
-              {weekDates.map((date, idx) => {
+              {(weekDates || []).map((date, idx) => {
                 const meetings = getMeetingsForDate(date);
                 const isCurrentDay = isSameDay(date, today);
                 if (meetings.length === 0) return null;
@@ -463,7 +463,7 @@ const MeetingCalendar = () => {
                       {isCurrentDay && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Today</span>}
                     </div>
                     <div className="space-y-2 ml-6">
-                      {meetings.map((meeting, mIdx) => {
+                      {(meetings || []).map((meeting, mIdx) => {
                         const modeConfig = MODE_CONFIG[meeting.mode] || MODE_CONFIG.online;
                         const ModeIcon = modeConfig.icon;
                         return (

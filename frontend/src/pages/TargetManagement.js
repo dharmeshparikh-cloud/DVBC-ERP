@@ -171,11 +171,11 @@ const TargetManagement = () => {
 
   const getYearTotal = (target) => {
     if (!target.monthly_targets) return 0;
-    return Object.values(target.monthly_targets).reduce((sum, val) => sum + (val || 0), 0);
+    return Object.values(target.monthly_targets || {}).reduce((sum, val) => sum + (val || 0), 0);
   };
 
   const getEmployeeName = (empId) => {
-    const emp = subordinates.find(s => s.employee_id === empId || s.id === empId);
+    const emp = (subordinates || []).find(s => s.employee_id === empId || s.id === empId);
     return emp ? `${emp.first_name} ${emp.last_name}` : empId;
   };
 
@@ -256,7 +256,7 @@ const TargetManagement = () => {
               <div>
                 <p className="text-xs text-zinc-500 uppercase">Total Annual Target</p>
                 <p className="text-2xl font-semibold text-emerald-600">
-                  {formatCurrency(targets.filter(t => t.target_type === 'revenue').reduce((sum, t) => sum + getYearTotal(t), 0))}
+                  {formatCurrency((targets || []).filter(t => t.target_type === 'revenue').reduce((sum, t) => sum + getYearTotal(t), 0))}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-emerald-500/30" />
@@ -278,7 +278,7 @@ const TargetManagement = () => {
             <thead className="bg-zinc-50 border-b border-zinc-100">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase sticky left-0 bg-zinc-50">Employee</th>
-                {months.map((month, idx) => (
+                {(months || []).map((month, idx) => (
                   <th key={idx} className="text-center px-2 py-3 text-xs font-medium text-zinc-500 uppercase min-w-[70px]">
                     {month}
                   </th>
@@ -295,7 +295,7 @@ const TargetManagement = () => {
                   </td>
                 </tr>
               ) : (
-                targets.map(target => (
+                (targets || []).map(target => (
                   <tr key={target.id} className="hover:bg-zinc-50">
                     <td className="px-4 py-3 font-medium text-zinc-900 sticky left-0 bg-white">
                       {getEmployeeName(target.employee_id)}
@@ -303,7 +303,7 @@ const TargetManagement = () => {
                         {target.target_type}
                       </Badge>
                     </td>
-                    {months.map((_, idx) => (
+                    {(months || []).map((_, idx) => (
                       <td key={idx} className="text-center px-2 py-3 text-sm text-zinc-600">
                         {target.target_type === 'revenue' 
                           ? formatCurrency(target.monthly_targets?.[idx + 1] || 0).replace('₹', '')
@@ -367,7 +367,7 @@ const TargetManagement = () => {
                   disabled={editingTarget}
                 >
                   <option value="">Select Employee</option>
-                  {subordinates.map(sub => (
+                  {(subordinates || []).map(sub => (
                     <option key={sub.id} value={sub.employee_id}>
                       {sub.first_name} {sub.last_name}
                     </option>
@@ -410,7 +410,7 @@ const TargetManagement = () => {
             <div>
               <Label className="mb-3 block">Monthly Targets</Label>
               <div className="grid grid-cols-4 gap-3">
-                {months.map((month, idx) => (
+                {(months || []).map((month, idx) => (
                   <div key={idx} className="space-y-1">
                     <Label className="text-xs text-zinc-500">{month}</Label>
                     <Input
@@ -430,8 +430,8 @@ const TargetManagement = () => {
               <span className="font-medium text-emerald-800">Annual Total</span>
               <span className="text-2xl font-semibold text-emerald-600">
                 {formData.target_type === 'revenue'
-                  ? formatCurrency(Object.values(formData.monthly_targets).reduce((sum, val) => sum + (val || 0), 0))
-                  : Object.values(formData.monthly_targets).reduce((sum, val) => sum + (val || 0), 0)
+                  ? formatCurrency(Object.values(formData.monthly_targets || {}).reduce((sum, val) => sum + (val || 0), 0))
+                  : Object.values(formData.monthly_targets || {}).reduce((sum, val) => sum + (val || 0), 0)
                 }
               </span>
             </div>

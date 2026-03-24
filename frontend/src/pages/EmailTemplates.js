@@ -202,7 +202,7 @@ const EmailTemplates = () => {
           Suggested Templates
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {defaultTemplates.map((template, idx) => (
+          {(defaultTemplates || []).map((template, idx) => (
             <Card
               key={idx}
               className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
@@ -272,7 +272,7 @@ const EmailTemplates = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {templates.map((template) => (
+              {(templates || []).map((template) => (
                 <Card
                   key={template.id}
                   data-testid={`template-card-${template.id}`}

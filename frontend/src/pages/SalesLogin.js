@@ -96,7 +96,7 @@ const SalesLogin = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-4 mt-12">
-            {features.map((feature, idx) => (
+            {(features || []).map((feature, idx) => (
               <div key={idx} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
                 <feature.icon className="w-8 h-8 text-white/80 mb-3" />
                 <h3 className="text-white font-semibold text-sm">{feature.label}</h3>

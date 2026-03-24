@@ -144,7 +144,7 @@ const OfficeLocationsSettings = () => {
   };
 
   const deleteLocation = (index) => {
-    const updated = locations.filter((_, i) => i !== index);
+    const updated = (locations || []).filter((_, i) => i !== index);
     setLocations(updated);
   };
 
@@ -214,7 +214,7 @@ const OfficeLocationsSettings = () => {
             </div>
           ) : (
             <div className="divide-y divide-zinc-200 dark:divide-zinc-700">
-              {locations.map((loc, index) => (
+              {(locations || []).map((loc, index) => (
                 <div key={index} className="flex items-center gap-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                   <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                     <Building2 className="w-6 h-6 text-blue-600" />

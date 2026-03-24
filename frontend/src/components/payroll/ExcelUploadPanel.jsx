@@ -153,7 +153,7 @@ const ExcelUploadPanel = ({ onSuccess }) => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {templates.map((template) => {
+              {(templates || []).map((template) => {
                 const Icon = TEMPLATE_ICONS[template.id] || FileSpreadsheet;
                 const colorClass = TEMPLATE_COLORS[template.id] || 'bg-zinc-100 text-zinc-600';
                 

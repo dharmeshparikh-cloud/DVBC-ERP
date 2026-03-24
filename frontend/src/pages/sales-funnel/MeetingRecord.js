@@ -117,8 +117,8 @@ const MeetingRecord = () => {
     
     // Only save if there's meaningful content
     const hasContent = momData.mom.trim() || momData.notes.trim() || 
-                       momData.discussion_points.some(p => p.trim()) ||
-                       momData.client_expectations.some(p => p.trim());
+                       (momData?.discussion_points || []).some(p => p.trim()) ||
+                       (momData?.client_expectations || []).some(p => p.trim());
     
     if (!hasContent) return;
     
@@ -198,7 +198,7 @@ const MeetingRecord = () => {
 
   // Check if this is the first offline meeting
   const isFirstOfflineMeeting = () => {
-    const offlineMeetings = meetings.filter(m => 
+    const offlineMeetings = (meetings || []).filter(m => 
       m.meeting_type?.toLowerCase() === 'offline' || m.mode === 'offline'
     );
     return offlineMeetings.length === 0 && formData.meeting_type === 'Offline';
@@ -214,14 +214,14 @@ const MeetingRecord = () => {
   const handleRemoveAttendee = (index) => {
     setFormData(prev => ({
       ...prev,
-      attendees: prev.attendees.filter((_, i) => i !== index)
+      attendees: (prev?.attendees || []).filter((_, i) => i !== index)
     }));
   };
 
   const handleAttendeeChange = (index, value) => {
     setFormData(prev => ({
       ...prev,
-      attendees: prev.attendees.map((a, i) => i === index ? value : a)
+      attendees: (prev?.attendees || []).map((a, i) => i === index ? value : a)
     }));
   };
 
@@ -387,15 +387,15 @@ const MeetingRecord = () => {
         meeting_time: formData.meeting_time,
         meeting_type: formData.meeting_type,
         title: formData.title || `Meeting with ${lead?.company || 'Client'}`,
-        attendees: formData.attendees.filter(a => a.trim()),
+        attendees: (formData?.attendees || []).filter(a => a.trim()),
         // MOM data
         notes: momData.notes,
         mom: momData.mom,
-        discussion_points: momData.discussion_points.filter(d => d.trim()),
-        decisions_made: momData.decisions_made.filter(d => d.trim()),
-        client_expectations: momData.client_expectations.filter(c => c.trim()),
-        key_commitments: momData.key_commitments.filter(k => k.trim()),
-        action_items: momData.action_items.filter(a => a.trim()),
+        discussion_points: (momData?.discussion_points || []).filter(d => d.trim()),
+        decisions_made: (momData?.decisions_made || []).filter(d => d.trim()),
+        client_expectations: (momData?.client_expectations || []).filter(c => c.trim()),
+        key_commitments: (momData?.key_commitments || []).filter(k => k.trim()),
+        action_items: momData.action_(items || []).filter(a => a.trim()),
         next_steps: momData.next_steps,
         // Travel data for offline meetings
         ...(formData.meeting_type === 'Offline' && travelData.startLocation ? {
@@ -611,7 +611,7 @@ const MeetingRecord = () => {
                   Add
                 </Button>
               </Label>
-              {formData.attendees.map((attendee, index) => (
+              {(formData?.attendees || []).map((attendee, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={attendee}
@@ -692,7 +692,7 @@ const MeetingRecord = () => {
                 {pendingAttachments.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs text-zinc-500">Attachments to upload:</p>
-                    {pendingAttachments.map((attachment, index) => (
+                    {(pendingAttachments || []).map((attachment, index) => (
                       <div 
                         key={index}
                         className="flex items-center gap-2 p-2 bg-zinc-50 rounded border border-zinc-200"
@@ -766,7 +766,7 @@ const MeetingRecord = () => {
               </div>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {meetings.map((meeting, index) => (
+                {(meetings || []).map((meeting, index) => (
                   <div
                     key={meeting.id || index}
                     className="p-4 border border-zinc-100 rounded-lg hover:bg-zinc-50 cursor-pointer transition-colors"
@@ -815,7 +815,7 @@ const MeetingRecord = () => {
                     {meeting.attendees?.length > 0 && (
                       <div className="flex items-center gap-1 text-xs text-zinc-500 mb-2">
                         <Users className="w-3 h-3" />
-                        {meeting.attendees.slice(0, 3).join(', ')}
+                        {(meeting?.attendees || []).slice(0, 3).join(', ')}
                         {meeting.attendees.length > 3 && ` +${meeting.attendees.length - 3} more`}
                       </div>
                     )}
@@ -995,7 +995,7 @@ const MeetingRecord = () => {
                   <Plus className="w-3 h-3 mr-1" /> Add
                 </Button>
               </Label>
-              {momData.discussion_points.map((point, index) => (
+              {(momData?.discussion_points || []).map((point, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={point}
@@ -1023,7 +1023,7 @@ const MeetingRecord = () => {
                   <Plus className="w-3 h-3 mr-1" /> Add
                 </Button>
               </Label>
-              {momData.decisions_made.map((decision, index) => (
+              {(momData?.decisions_made || []).map((decision, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={decision}
@@ -1051,7 +1051,7 @@ const MeetingRecord = () => {
                   <Plus className="w-3 h-3 mr-1" /> Add
                 </Button>
               </Label>
-              {momData.client_expectations.map((expectation, index) => (
+              {(momData?.client_expectations || []).map((expectation, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={expectation}
@@ -1079,7 +1079,7 @@ const MeetingRecord = () => {
                   <Plus className="w-3 h-3 mr-1" /> Add
                 </Button>
               </Label>
-              {momData.key_commitments.map((commitment, index) => (
+              {(momData?.key_commitments || []).map((commitment, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={commitment}
@@ -1187,11 +1187,11 @@ const MeetingRecord = () => {
               )}
 
               {/* Discussion Points */}
-              {selectedMeeting.discussion_points?.length > 0 && selectedMeeting.discussion_points.some(d => d) && (
+              {selectedMeeting.discussion_points?.length > 0 && (selectedMeeting?.discussion_points || []).some(d => d) && (
                 <div>
                   <p className="text-xs text-zinc-500 mb-1">Discussion Points</p>
                   <ul className="text-sm space-y-1">
-                    {selectedMeeting.discussion_points.filter(d => d).map((point, i) => (
+                    {(selectedMeeting?.discussion_points || []).filter(d => d).map((point, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <span className="text-zinc-400">•</span>
                         {point}
@@ -1202,11 +1202,11 @@ const MeetingRecord = () => {
               )}
 
               {/* Client Expectations */}
-              {selectedMeeting.client_expectations?.length > 0 && selectedMeeting.client_expectations.some(c => c) && (
+              {selectedMeeting.client_expectations?.length > 0 && (selectedMeeting?.client_expectations || []).some(c => c) && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="text-xs text-amber-600 font-medium mb-1">Client Expectations</p>
                   <ul className="text-sm space-y-1">
-                    {selectedMeeting.client_expectations.filter(c => c).map((exp, i) => (
+                    {(selectedMeeting?.client_expectations || []).filter(c => c).map((exp, i) => (
                       <li key={i} className="flex items-start gap-2 text-amber-900">
                         <Target className="w-3 h-3 mt-1 text-amber-500" />
                         {exp}
@@ -1217,11 +1217,11 @@ const MeetingRecord = () => {
               )}
 
               {/* Key Commitments */}
-              {selectedMeeting.key_commitments?.length > 0 && selectedMeeting.key_commitments.some(k => k) && (
+              {selectedMeeting.key_commitments?.length > 0 && (selectedMeeting?.key_commitments || []).some(k => k) && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/30 dark:border-green-800">
                   <p className="text-xs text-green-600 font-medium mb-1 dark:text-green-400">Key Commitments</p>
                   <ul className="text-sm space-y-1">
-                    {selectedMeeting.key_commitments.filter(k => k).map((com, i) => (
+                    {(selectedMeeting?.key_commitments || []).filter(k => k).map((com, i) => (
                       <li key={i} className="flex items-start gap-2 text-green-900 dark:text-green-300">
                         <Handshake className="w-3 h-3 mt-1 text-green-500" />
                         {com}
@@ -1250,7 +1250,7 @@ const MeetingRecord = () => {
                       <div className="flex items-start gap-2 pl-6">
                         <span className="text-zinc-400">↓</span>
                         <div className="text-zinc-600 dark:text-zinc-300">
-                          Via: {selectedMeeting.travel_details.via_locations.map(v => v.address).join(' → ')}
+                          Via: {(selectedMeeting?.travel_details?.via_locations || []).map(v => v.address).join(' → ')}
                         </div>
                       </div>
                     )}

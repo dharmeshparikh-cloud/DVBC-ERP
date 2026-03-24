@@ -53,12 +53,12 @@ const MeetingDetail = () => {
     const projectMeetings = allMeetings
       .filter(m => m.project_id === meeting.project_id)
       .sort((a, b) => new Date(a.meeting_date) - new Date(b.meeting_date));
-    return projectMeetings.findIndex(m => m.id === meeting.id) + 1;
+    return (projectMeetings || []).findIndex(m => m.id === meeting.id) + 1;
   };
 
   const getProjectStats = () => {
     if (!meeting) return { committed: 0, delivered: 0, pending: 0 };
-    const project = projects.find(p => p.id === meeting.project_id);
+    const project = (projects || []).find(p => p.id === meeting.project_id);
     if (!project) return { committed: 0, delivered: 0, pending: 0 };
     const committed = project.total_meetings_committed || 0;
     const delivered = project.total_meetings_delivered || 0;
@@ -300,12 +300,12 @@ const MeetingDetail = () => {
         )}
 
         {/* Agenda */}
-        {meeting.agenda?.length > 0 && meeting.agenda.some(a => a) && (
+        {meeting.agenda?.length > 0 && (meeting?.agenda || []).some(a => a) && (
           <Card className="border-zinc-200 shadow-sm print:shadow-none">
             <CardContent className="p-6">
               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-4 font-semibold">Agenda</div>
               <ul className="space-y-2">
-                {meeting.agenda.filter(a => a).map((item, idx) => (
+                {(meeting?.agenda || []).filter(a => a).map((item, idx) => (
                   <li key={idx} className="flex items-start gap-3 text-zinc-700">
                     <span className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-600 text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
                       {idx + 1}
@@ -334,11 +334,11 @@ const MeetingDetail = () => {
                 )}
               </div>
 
-              {meeting.discussion_points?.length > 0 && meeting.discussion_points.some(d => d) && (
+              {meeting.discussion_points?.length > 0 && (meeting?.discussion_points || []).some(d => d) && (
                 <div>
                   <div className="text-xs uppercase tracking-wide text-zinc-500 mb-3 font-semibold">Discussion Points</div>
                   <ul className="space-y-2">
-                    {meeting.discussion_points.filter(d => d).map((item, idx) => (
+                    {(meeting?.discussion_points || []).filter(d => d).map((item, idx) => (
                       <li key={idx} className="flex items-start gap-3 text-zinc-700 bg-zinc-50 p-3 rounded-lg">
                         <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                         <span>{item}</span>
@@ -348,11 +348,11 @@ const MeetingDetail = () => {
                 </div>
               )}
 
-              {meeting.decisions_made?.length > 0 && meeting.decisions_made.some(d => d) && (
+              {meeting.decisions_made?.length > 0 && (meeting?.decisions_made || []).some(d => d) && (
                 <div>
                   <div className="text-xs uppercase tracking-wide text-zinc-500 mb-3 font-semibold">Decisions Made</div>
                   <ul className="space-y-2">
-                    {meeting.decisions_made.filter(d => d).map((item, idx) => (
+                    {(meeting?.decisions_made || []).filter(d => d).map((item, idx) => (
                       <li key={idx} className="flex items-start gap-3 text-zinc-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
                         <CheckSquare className="w-4 h-4 text-emerald-700 mt-0.5 flex-shrink-0" />
                         <span>{item}</span>
@@ -387,7 +387,7 @@ const MeetingDetail = () => {
                 Action Items ({meeting.action_items.length})
               </div>
               <div className="space-y-3">
-                {meeting.action_items.map((item, idx) => (
+                {meeting.action_(items || []).map((item, idx) => (
                   <div 
                     key={item.id || idx} 
                     className={`flex items-start justify-between p-4 rounded-lg border ${
@@ -440,7 +440,7 @@ const MeetingDetail = () => {
                 Attachments ({meeting.mom_attachments.length})
               </div>
               <div className="flex flex-wrap gap-3">
-                {meeting.mom_attachments.map((file, idx) => (
+                {(meeting?.mom_attachments || []).map((file, idx) => (
                   <div key={idx} className="flex items-center gap-3 px-4 py-3 bg-zinc-50 rounded-lg border border-zinc-200">
                     <Paperclip className="w-5 h-5 text-zinc-500" />
                     <span className="text-sm font-medium text-zinc-700">{file.name || file.filename}</span>

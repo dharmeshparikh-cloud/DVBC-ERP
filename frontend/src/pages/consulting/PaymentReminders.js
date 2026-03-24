@@ -67,14 +67,14 @@ const PaymentReminders = () => {
 
   // Calculate stats
   const stats = {
-    total: reminders.reduce((sum, r) => sum + r.upcoming_payments?.length || 0, 0),
-    overdue: reminders.reduce((sum, r) => sum + (r.upcoming_payments?.filter(p => p.days_until_due < 0).length || 0), 0),
-    dueSoon: reminders.reduce((sum, r) => sum + (r.upcoming_payments?.filter(p => p.days_until_due >= 0 && p.days_until_due <= 7).length || 0), 0),
-    upcoming: reminders.reduce((sum, r) => sum + (r.upcoming_payments?.filter(p => p.days_until_due > 7 && p.days_until_due <= 30).length || 0), 0),
+    total: (reminders || []).reduce((sum, r) => sum + r.upcoming_payments?.length || 0, 0),
+    overdue: (reminders || []).reduce((sum, r) => sum + (r.upcoming_payments?.filter(p => p.days_until_due < 0).length || 0), 0),
+    dueSoon: (reminders || []).reduce((sum, r) => sum + (r.upcoming_payments?.filter(p => p.days_until_due >= 0 && p.days_until_due <= 7).length || 0), 0),
+    upcoming: (reminders || []).reduce((sum, r) => sum + (r.upcoming_payments?.filter(p => p.days_until_due > 7 && p.days_until_due <= 30).length || 0), 0),
   };
 
   // Flatten and filter reminders for display
-  const flattenedReminders = reminders.flatMap(project => 
+  const flattenedReminders = (reminders || []).flatMap(project => 
     (project.upcoming_payments || []).map(payment => ({
       ...payment,
       project_id: project.project_id,
@@ -277,7 +277,7 @@ const PaymentReminders = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {flattenedReminders.map((payment, index) => (
+                {(flattenedReminders || []).map((payment, index) => (
                   <tr 
                     key={`${payment.project_id}-${payment.installment_number}-${index}`}
                     className={`hover:bg-zinc-50 ${payment.status === 'overdue' ? 'bg-red-50/50' : ''}`}
@@ -352,7 +352,7 @@ const PaymentReminders = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {flattenedReminders.map((payment, index) => (
+            {(flattenedReminders || []).map((payment, index) => (
               <Card 
                 key={`${payment.project_id}-${payment.installment_number}-${index}`}
                 className={`shadow-none rounded-sm hover:border-zinc-300 cursor-pointer transition-colors ${

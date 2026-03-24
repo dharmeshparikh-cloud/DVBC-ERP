@@ -227,7 +227,7 @@ const RBACAdmin = () => {
     
     const currentRoles = editingGroup.roles || [];
     const newRoles = currentRoles.includes(roleCode)
-      ? currentRoles.filter(r => r !== roleCode)
+      ? (currentRoles || []).filter(r => r !== roleCode)
       : [...currentRoles, roleCode];
     
     try {
@@ -248,7 +248,7 @@ const RBACAdmin = () => {
   };
 
   const getDeptColor = (deptCode) => {
-    const dept = departments.find(d => d.code === deptCode);
+    const dept = (departments || []).find(d => d.code === deptCode);
     return dept?.color || '#6B7280';
   };
 
@@ -360,7 +360,7 @@ const RBACAdmin = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {roles.map(role => (
+                {(roles || []).map(role => (
                   <div 
                     key={role.code} 
                     className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg border border-zinc-200 hover:bg-zinc-100 transition-colors"
@@ -435,7 +435,7 @@ const RBACAdmin = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {departments.map(dept => (
+                {(departments || []).map(dept => (
                   <div 
                     key={dept.code}
                     className="p-4 border rounded-lg bg-white hover:shadow-md transition-shadow"
@@ -450,7 +450,7 @@ const RBACAdmin = () => {
                     </div>
                     <Badge variant="outline" className="font-mono text-xs mb-3">{dept.code}</Badge>
                     <div className="text-sm text-zinc-500">
-                      {roles.filter(r => r.department === dept.code).length} roles
+                      {(roles || []).filter(r => r.department === dept.code).length} roles
                     </div>
                     {isAdmin && (
                       <Button 
@@ -481,7 +481,7 @@ const RBACAdmin = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {roleGroups.map(group => (
+                {(roleGroups || []).map(group => (
                   <div 
                     key={group.code}
                     className="p-4 border rounded-lg bg-zinc-50"
@@ -576,7 +576,7 @@ const RBACAdmin = () => {
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map(d => (
+                    {(departments || []).map(d => (
                       <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -618,14 +618,14 @@ const RBACAdmin = () => {
             <div className="space-y-2">
               <Label>Inherits From (Optional)</Label>
               <div className="flex flex-wrap gap-2">
-                {roles.filter(r => r.code !== roleForm.code).map(r => (
+                {(roles || []).filter(r => r.code !== roleForm.code).map(r => (
                   <Badge 
                     key={r.code}
                     variant={roleForm.inherits_from.includes(r.code) ? 'default' : 'outline'}
                     className="cursor-pointer"
                     onClick={() => {
                       const newInherits = roleForm.inherits_from.includes(r.code)
-                        ? roleForm.inherits_from.filter(x => x !== r.code)
+                        ? (roleForm?.inherits_from || []).filter(x => x !== r.code)
                         : [...roleForm.inherits_from, r.code];
                       setRoleForm({...roleForm, inherits_from: newInherits});
                     }}
@@ -730,7 +730,7 @@ const RBACAdmin = () => {
           <div className="py-4">
             <p className="text-sm text-zinc-500 mb-3">{editingGroup?.description}</p>
             <div className="flex flex-wrap gap-2">
-              {roles.map(role => (
+              {(roles || []).map(role => (
                 <Badge 
                   key={role.code}
                   variant={editingGroup?.roles?.includes(role.code) ? 'default' : 'outline'}

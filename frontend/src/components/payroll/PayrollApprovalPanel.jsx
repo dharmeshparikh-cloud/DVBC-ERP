@@ -144,7 +144,7 @@ const PayrollApprovalPanel = ({ month, userRole, onRefresh }) => {
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed to unlock')
   });
 
-  const currentRun = payrollRuns.find(r => r.month === month);
+  const currentRun = (payrollRuns || []).find(r => r.month === month);
   const canCreate = !currentRun && userRole && ['admin', 'hr_manager'].includes(userRole);
   const canSubmit = currentRun?.status === 'draft' && userRole && ['admin', 'hr_manager'].includes(userRole);
   const canApprove = (

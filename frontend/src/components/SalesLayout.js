@@ -175,7 +175,7 @@ const SalesLayout = () => {
         <SectionHeader label="Sales Funnel" sectionKey="funnel" />
         {expanded.funnel && (
           <div className="space-y-0.5">
-            {salesFunnelItems.map(item => <NavLink key={item.name} item={item} />)}
+            {(salesFunnelItems || []).map(item => <NavLink key={item.name} item={item} />)}
           </div>
         )}
 
@@ -183,7 +183,7 @@ const SalesLayout = () => {
         <SectionHeader label="Other" sectionKey="other" />
         {expanded.other && (
           <div className="space-y-0.5">
-            {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
+            {(salesOtherItems || []).map(item => <NavLink key={item.name} item={item} />)}
           </div>
         )}
 
@@ -191,7 +191,7 @@ const SalesLayout = () => {
         <SectionHeader label="My Workspace" sectionKey="workspace" />
         {expanded.workspace && (
           <div className="space-y-0.5">
-            {workspaceItems.map(item => <NavLink key={item.name} item={item} />)}
+            {(workspaceItems || []).map(item => <NavLink key={item.name} item={item} />)}
           </div>
         )}
       </nav>

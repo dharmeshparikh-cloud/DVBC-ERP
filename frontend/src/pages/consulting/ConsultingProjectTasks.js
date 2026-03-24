@@ -97,7 +97,7 @@ const ConsultingProjectTasks = () => {
   // Derive lead from sow
   const lead = useMemo(() => {
     if (sow?.lead_id && leads.length > 0) {
-      return leads.find(l => l.id === sow.lead_id);
+      return (leads || []).find(l => l.id === sow.lead_id);
     }
     return null;
   }, [sow?.lead_id, leads]);
@@ -114,7 +114,7 @@ const ConsultingProjectTasks = () => {
   // Get tasks from SOW (scopes act as main tasks)
   const tasks = useMemo(() => {
     if (!sow?.scopes) return [];
-    return sow.scopes.map(scope => ({
+    return (sow?.scopes || []).map(scope => ({
       ...scope,
       subtasks: scope.subtasks || []
     }));
@@ -123,10 +123,10 @@ const ConsultingProjectTasks = () => {
   // Group tasks by status
   const tasksByStatus = useMemo(() => {
     return {
-      not_started: tasks.filter(t => t.status === 'not_started'),
-      in_progress: tasks.filter(t => t.status === 'in_progress'),
-      completed: tasks.filter(t => t.status === 'completed'),
-      not_applicable: tasks.filter(t => t.status === 'not_applicable'),
+      not_started: (tasks || []).filter(t => t.status === 'not_started'),
+      in_progress: (tasks || []).filter(t => t.status === 'in_progress'),
+      completed: (tasks || []).filter(t => t.status === 'completed'),
+      not_applicable: (tasks || []).filter(t => t.status === 'not_applicable'),
     };
   }, [tasks]);
 
@@ -137,7 +137,7 @@ const ConsultingProjectTasks = () => {
     inProgress: tasksByStatus.in_progress.length,
     completed: tasksByStatus.completed.length,
     avgProgress: tasks.length > 0 
-      ? Math.round(tasks.reduce((sum, t) => sum + (t.progress_percentage || 0), 0) / tasks.length)
+      ? Math.round((tasks || []).reduce((sum, t) => sum + (t.progress_percentage || 0), 0) / tasks.length)
       : 0
   }), [tasks, tasksByStatus]);
 
@@ -257,7 +257,7 @@ const ConsultingProjectTasks = () => {
   const toggleScopeForApproval = (scopeId) => {
     const currentIds = approvalData?.scope_ids || [];
     const newIds = currentIds.includes(scopeId)
-      ? currentIds.filter(id => id !== scopeId)
+      ? (currentIds || []).filter(id => id !== scopeId)
       : [...currentIds, scopeId];
     setApprovalData({ ...approvalData, scope_ids: newIds });
   };
@@ -397,7 +397,7 @@ const ConsultingProjectTasks = () => {
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-zinc-100">
-            {tasks.map(task => {
+            {(tasks || []).map(task => {
               const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.not_started;
               
               return (
@@ -619,7 +619,7 @@ const ConsultingProjectTasks = () => {
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
-              {tasks.map(task => (
+              {(tasks || []).map(task => (
                 <div 
                   key={task.id}
                   onClick={() => toggleScopeForApproval(task.id)}

@@ -165,7 +165,7 @@ const KickoffMeeting = () => {
       await axios.post(`${API}/projects/${projectId}/sow/${sowId}/items`, {
         title: sowItemForm.title,
         description: sowItemForm.description,
-        deliverables: sowItemForm.deliverables.filter(d => d.trim()),
+        deliverables: (sowItemForm?.deliverables || []).filter(d => d.trim()),
         timeline_weeks: sowItemForm.timeline_weeks ? parseInt(sowItemForm.timeline_weeks) : null
       });
       toast.success('SOW item added');
@@ -224,11 +224,11 @@ const KickoffMeeting = () => {
   const removeDeliverable = (index) => {
     setSowItemForm({
       ...sowItemForm,
-      deliverables: sowItemForm.deliverables.filter((_, i) => i !== index)
+      deliverables: (sowItemForm?.deliverables || []).filter((_, i) => i !== index)
     });
   };
 
-  const isFrozen = kickoffMeeting?.sow_frozen || sowEntries.some(s => s.is_frozen);
+  const isFrozen = kickoffMeeting?.sow_frozen || (sowEntries || []).some(s => s.is_frozen);
   const canEditSOW = !isFrozen || user?.role === 'admin';
 
   const getMeetingModeIcon = (mode) => {
@@ -436,7 +436,7 @@ const KickoffMeeting = () => {
               {/* Category Tabs/Sections */}
               <div className="space-y-6">
                 {SOW_CATEGORIES.map(category => {
-                  const sowEntry = sowEntries.find(s => s.category === category.value);
+                  const sowEntry = (sowEntries || []).find(s => s.category === category.value);
                   
                   return (
                     <div key={category.value} className="border border-zinc-200 rounded-sm">
@@ -484,7 +484,7 @@ const KickoffMeeting = () => {
                                         <div className="mt-2">
                                           <div className="text-xs uppercase tracking-wide text-zinc-400 mb-1">Deliverables</div>
                                           <ul className="text-sm text-zinc-600 list-disc list-inside">
-                                            {item.deliverables.map((d, i) => (
+                                            {(item?.deliverables || []).map((d, i) => (
                                               <li key={i}>{d}</li>
                                             ))}
                                           </ul>
@@ -619,7 +619,7 @@ const KickoffMeeting = () => {
                 className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
               >
                 <option value="">Select Principal Consultant</option>
-                {consultants.map(c => (
+                {(consultants || []).map(c => (
                   <option key={c.id} value={c.id}>{c.full_name}</option>
                 ))}
               </select>
@@ -703,7 +703,7 @@ const KickoffMeeting = () => {
             
             <div className="space-y-2">
               <Label>Deliverables</Label>
-              {sowItemForm.deliverables.map((d, idx) => (
+              {(sowItemForm?.deliverables || []).map((d, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Input
                     value={d}

@@ -207,7 +207,7 @@ const DocumentCenter = () => {
   const { data: historyData = [], isLoading: historyLoading, refetch: refetchHistory } = useDocumentHistory({ limit: 100 });
   
   // Derived data
-  const employees = employeesData.filter(e => e.is_active !== false);
+  const employees = (employeesData || []).filter(e => e.is_active !== false);
   const templates = templatesData;
   const documentHistory = historyData;
   const loading = empLoading || templatesLoading || historyLoading;
@@ -215,7 +215,7 @@ const DocumentCenter = () => {
   // Calculate stats from history
   const stats = React.useMemo(() => {
     const statsByType = {};
-    documentHistory.forEach(doc => {
+    (documentHistory || []).forEach(doc => {
       statsByType[doc.document_type] = (statsByType[doc.document_type] || 0) + 1;
     });
     return { total: documentHistory.length, by_type: statsByType };
@@ -286,7 +286,7 @@ const DocumentCenter = () => {
 
   useEffect(() => {
     if (preSelectedEmployeeId && employees.length > 0) {
-      const emp = employees.find(e => 
+      const emp = (employees || []).find(e => 
         e.employee_id === preSelectedEmployeeId || 
         e.id === preSelectedEmployeeId
       );
@@ -340,7 +340,7 @@ const DocumentCenter = () => {
 
     // Replace all placeholders
     let html = templateContent;
-    Object.entries(replacements).forEach(([key, value]) => {
+    Object.entries(replacements || {}).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       html = html.replace(regex, value || `[${key}]`);
     });
@@ -487,7 +487,7 @@ const DocumentCenter = () => {
   };
 
   // Filter documents
-  const filteredHistory = documentHistory.filter(doc => {
+  const filteredHistory = (documentHistory || []).filter(doc => {
     const matchesSearch = searchQuery === '' || 
       doc.employee_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.employee_id?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -626,7 +626,7 @@ const DocumentCenter = () => {
                   <Select 
                     value={selectedEmployee?.id || ''} 
                     onValueChange={(v) => {
-                      const emp = employees.find(e => e.id === v);
+                      const emp = (employees || []).find(e => e.id === v);
                       setSelectedEmployee(emp);
                     }}
                   >
@@ -634,7 +634,7 @@ const DocumentCenter = () => {
                       <SelectValue placeholder="Choose an employee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {employees.map(emp => (
+                      {(employees || []).map(emp => (
                         <SelectItem key={emp.id} value={emp.id}>
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs text-zinc-500">{emp.employee_id}</span>
@@ -835,7 +835,7 @@ const DocumentCenter = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredHistory.map((doc) => {
+                  {(filteredHistory || []).map((doc) => {
                     const docTypeInfo = DOCUMENT_TYPES.find(d => d.id === doc.document_type);
                     const Icon = docTypeInfo?.icon || FileText;
                     return (
@@ -946,7 +946,7 @@ const DocumentCenter = () => {
             })}
 
             {/* Custom Templates */}
-            {templates.map(tpl => {
+            {(templates || []).map(tpl => {
               const docTypeInfo = DOCUMENT_TYPES.find(d => d.id === tpl.document_type);
               const Icon = docTypeInfo?.icon || FileText;
               return (

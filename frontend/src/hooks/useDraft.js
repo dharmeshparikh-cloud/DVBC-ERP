@@ -208,7 +208,7 @@ const useDraft = (
     // Trigger immediate save on tab change
     if (formDataGetterRef.current) {
       const formData = formDataGetterRef.current();
-      if (formData && Object.keys(formData).length > 0) {
+      if (formData && Object.keys(formData || {}).length > 0) {
         saveDraft(formData, 0, {}, false);
       }
     }
@@ -227,7 +227,7 @@ const useDraft = (
         setVersion(1);
         lastDataRef.current = null;
       }
-      setDrafts(prev => prev.filter(d => d.id !== id));
+      setDrafts(prev => (prev || []).filter(d => d.id !== id));
       toast.success('Draft deleted');
       return true;
     } catch (error) {
@@ -340,7 +340,7 @@ const useDraft = (
     const handleBeforeUnload = (e) => {
       if (formDataGetterRef.current && lastDataRef.current) {
         const formData = formDataGetterRef.current();
-        if (formData && Object.keys(formData).length > 0) {
+        if (formData && Object.keys(formData || {}).length > 0) {
           const title = generateTitle ? generateTitle(formData) : `${draftType} Draft`;
           const draftData = {
             module,
@@ -363,7 +363,7 @@ const useDraft = (
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && formDataGetterRef.current) {
         const formData = formDataGetterRef.current();
-        if (formData && Object.keys(formData).length > 0) {
+        if (formData && Object.keys(formData || {}).length > 0) {
           saveDraft(formData, 0, {}, false);
         }
       }
@@ -386,7 +386,7 @@ const useDraft = (
       }
       if (formDataGetterRef.current) {
         const formData = formDataGetterRef.current();
-        if (formData && Object.keys(formData).length > 0) {
+        if (formData && Object.keys(formData || {}).length > 0) {
           saveDraft(formData, 0, {}, false);
         }
       }

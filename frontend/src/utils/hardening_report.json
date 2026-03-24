@@ -1,0 +1,704 @@
+{
+  "files_scanned": 254,
+  "files_modified": 173,
+  "total_fixes": 1227,
+  "array_method_fixes": 1120,
+  "object_entries_fixes": 53,
+  "object_keys_fixes": 45,
+  "object_values_fixes": 9,
+  "errors": [],
+  "modified_files": [
+    {
+      "file": "components/ChangePasswordDialog.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/DraftSelector.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/DraftUI.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/ExpandedCardViews.js",
+      "fixes": 10
+    },
+    {
+      "file": "components/GlobalSearch.js",
+      "fixes": 4
+    },
+    {
+      "file": "components/GuidanceSystem.js",
+      "fixes": 12
+    },
+    {
+      "file": "components/GuidedSalesSidebar.js",
+      "fixes": 2
+    },
+    {
+      "file": "components/HRLayout.js",
+      "fixes": 4
+    },
+    {
+      "file": "components/Layout.js",
+      "fixes": 7
+    },
+    {
+      "file": "components/LeadSelector.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/MOMScorecard.js",
+      "fixes": 2
+    },
+    {
+      "file": "components/MeetingLocationPicker.js",
+      "fixes": 4
+    },
+    {
+      "file": "components/ModernSidebar.js",
+      "fixes": 8
+    },
+    {
+      "file": "components/MyWorkspaceNav.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/NotificationBell.js",
+      "fixes": 4
+    },
+    {
+      "file": "components/ProjectConsultantAssignment.js",
+      "fixes": 5
+    },
+    {
+      "file": "components/ProjectMeetingQuotaWidget.js",
+      "fixes": 2
+    },
+    {
+      "file": "components/QuickCheckInModal.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/RBACWidget.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/RoleGuard.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/SalarySlipDetailed.js",
+      "fixes": 2
+    },
+    {
+      "file": "components/SalesFunnelProgress.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/SalesLayout.js",
+      "fixes": 3
+    },
+    {
+      "file": "components/StageGuardDialog.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/approvals/ApprovalCard.js",
+      "fixes": 1
+    },
+    {
+      "file": "components/approvals/sections/CtcApprovalsSection.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/approvals/sections/ExpenseApprovalsSection.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/approvals/sections/GoLiveApprovalsSection.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/help/HelpWidget.js",
+      "fixes": 11
+    },
+    {
+      "file": "components/mobile/MobileNavigation.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/mobile/attendance/CheckInModal.jsx",
+      "fixes": 2
+    },
+    {
+      "file": "components/mobile/tabs/ExpenseTab.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/mobile/tabs/TravelTab.jsx",
+      "fixes": 4
+    },
+    {
+      "file": "components/payroll/BankSchemaPanel.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/payroll/ExcelUploadPanel.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/payroll/PayrollApprovalPanel.jsx",
+      "fixes": 1
+    },
+    {
+      "file": "components/sales-funnel/BusinessLogicUI.js",
+      "fixes": 2
+    },
+    {
+      "file": "contexts/GuidanceContext.js",
+      "fixes": 5
+    },
+    {
+      "file": "contexts/PermissionContext.js",
+      "fixes": 2
+    },
+    {
+      "file": "contexts/StageGuardContext.js",
+      "fixes": 2
+    },
+    {
+      "file": "hooks/use-toast.js",
+      "fixes": 5
+    },
+    {
+      "file": "hooks/useApi.js",
+      "fixes": 1
+    },
+    {
+      "file": "hooks/useApprovals.js",
+      "fixes": 2
+    },
+    {
+      "file": "hooks/useDraft.js",
+      "fixes": 5
+    },
+    {
+      "file": "hooks/useHROnboarding.js",
+      "fixes": 1
+    },
+    {
+      "file": "hooks/useQueries.js",
+      "fixes": 3
+    },
+    {
+      "file": "hooks/useWebSocket.js",
+      "fixes": 1
+    },
+    {
+      "file": "lib/queryClient.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/AIAssistant.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/AdminDashboard.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/AdminMasters.js",
+      "fixes": 16
+    },
+    {
+      "file": "pages/AllProjects.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/ApprovalsCenter.js",
+      "fixes": 20
+    },
+    {
+      "file": "pages/Attendance.js",
+      "fixes": 7
+    },
+    {
+      "file": "pages/BankDetailsChangeRequest.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/CEOReportDashboard.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/CTCDesigner.js",
+      "fixes": 14
+    },
+    {
+      "file": "pages/Chat.js",
+      "fixes": 12
+    },
+    {
+      "file": "pages/ClientLogin.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/ClientOnboarding.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/ClientPortal.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/Clients.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/ConsentPage.js",
+      "fixes": 7
+    },
+    {
+      "file": "pages/ConsultantPerformance.js",
+      "fixes": 13
+    },
+    {
+      "file": "pages/Consultants.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/ConsultingEffortsSummary.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/ConsultingMeetings.js",
+      "fixes": 66
+    },
+    {
+      "file": "pages/CustomReportBuilder.js",
+      "fixes": 17
+    },
+    {
+      "file": "pages/Dashboard.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/DepartmentAccessManager.js",
+      "fixes": 21
+    },
+    {
+      "file": "pages/DocumentBuilder.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/DocumentCenter.js",
+      "fixes": 8
+    },
+    {
+      "file": "pages/Downloads.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/EmailTemplates.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/EmployeeAccessPermissions.js",
+      "fixes": 13
+    },
+    {
+      "file": "pages/EmployeeMobileApp.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/EmployeePermissions.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/EmployeeScorecard.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/EmployeeWorkflows.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/Employees.js",
+      "fixes": 11
+    },
+    {
+      "file": "pages/ExitManagement.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/ExpenseApprovals.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/Expenses.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/FlowDiagram.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/FollowUps.js",
+      "fixes": 11
+    },
+    {
+      "file": "pages/GanttChart.js",
+      "fixes": 17
+    },
+    {
+      "file": "pages/GoLiveDashboard.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/HRLogin.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/HROnboarding.js",
+      "fixes": 14
+    },
+    {
+      "file": "pages/HRStaffingRequests.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/HRTeamWorkload.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/HandoverAlerts.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/Help.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/Invoices.js",
+      "fixes": 8
+    },
+    {
+      "file": "pages/KickoffMeeting.js",
+      "fixes": 7
+    },
+    {
+      "file": "pages/KickoffRequests.js",
+      "fixes": 23
+    },
+    {
+      "file": "pages/Leads.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/LeaveManagement.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/LetterManagement.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/Login.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/ManagerLeadsDashboard.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/ManagerMOMReview.js",
+      "fixes": 8
+    },
+    {
+      "file": "pages/MeetingCalendar.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/MeetingDetail.js",
+      "fixes": 9
+    },
+    {
+      "file": "pages/MeetingResponse.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/Meetings.js",
+      "fixes": 16
+    },
+    {
+      "file": "pages/MobileAppDownload.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/MyDetails.js",
+      "fixes": 5
+    },
+    {
+      "file": "pages/MyDrafts.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/MyExpenses.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/MySalarySlips.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/NewJoinerPipeline.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/Notifications.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/OfficeLocationsSettings.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/OnboardingTutorial.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/OrgChart.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/PasswordManagement.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/Payroll.js",
+      "fixes": 11
+    },
+    {
+      "file": "pages/PayrollEngine.js",
+      "fixes": 55
+    },
+    {
+      "file": "pages/PerformanceDashboard.js",
+      "fixes": 13
+    },
+    {
+      "file": "pages/PermissionDashboard.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/PermissionManager.js",
+      "fixes": 17
+    },
+    {
+      "file": "pages/ProjectPaymentDetails.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/ProjectPayments.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/ProjectRoadmap.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/ProjectTasks.js",
+      "fixes": 8
+    },
+    {
+      "file": "pages/RBACAdmin.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/Reports.js",
+      "fixes": 7
+    },
+    {
+      "file": "pages/RoleManagement.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/SalesDashboard.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/SalesFunnelOnboarding.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/SalesLogin.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/SalesTeamPerformance.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/SecurityAuditLog.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/Settings.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/TargetManagement.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/TravelReimbursement.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/UserManagement.js",
+      "fixes": 9
+    },
+    {
+      "file": "pages/UserProfile.js",
+      "fixes": 2
+    },
+    {
+      "file": "pages/WorkflowPage.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/admin/AdminDashboardMockups.js",
+      "fixes": 7
+    },
+    {
+      "file": "pages/admin/EmailSettings.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/admin/HelpContentAdmin.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/consulting/AssignTeam.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/consulting/ConsultantExpenses.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/consulting/ConsultingProjectTasks.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/consulting/ConsultingSOWList.js",
+      "fixes": 13
+    },
+    {
+      "file": "pages/consulting/PaymentReminders.js",
+      "fixes": 7
+    },
+    {
+      "file": "pages/consulting/SOWChangeRequests.js",
+      "fixes": 3
+    },
+    {
+      "file": "pages/hr/AttendanceLeaveSettings.js",
+      "fixes": 8
+    },
+    {
+      "file": "pages/hr/BusinessRules.js",
+      "fixes": 44
+    },
+    {
+      "file": "pages/hr/HRAttendanceApprovals.js",
+      "fixes": 1
+    },
+    {
+      "file": "pages/hr/HRAttendanceInput.js",
+      "fixes": 8
+    },
+    {
+      "file": "pages/hr/HRLeaveInput.js",
+      "fixes": 12
+    },
+    {
+      "file": "pages/hr/HRManualEntry.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/hr/PayrollSummaryReport.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/onboarding/CandidateOnboardingForm.js",
+      "fixes": 8
+    },
+    {
+      "file": "pages/onboarding/OnboardingHub.js",
+      "fixes": 7
+    },
+    {
+      "file": "pages/onboarding/SubmissionReview.js",
+      "fixes": 6
+    },
+    {
+      "file": "pages/sales-funnel/AgreementView.js",
+      "fixes": 14
+    },
+    {
+      "file": "pages/sales-funnel/Agreements.js",
+      "fixes": 18
+    },
+    {
+      "file": "pages/sales-funnel/ConsultingScopeView.js",
+      "fixes": 24
+    },
+    {
+      "file": "pages/sales-funnel/ManagerApprovals.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/sales-funnel/MeetingRecord.js",
+      "fixes": 22
+    },
+    {
+      "file": "pages/sales-funnel/PaymentVerification.js",
+      "fixes": 4
+    },
+    {
+      "file": "pages/sales-funnel/PricingPlanBuilder.js",
+      "fixes": 35
+    },
+    {
+      "file": "pages/sales-funnel/ProformaInvoice.js",
+      "fixes": 23
+    },
+    {
+      "file": "pages/sales-funnel/Quotations.js",
+      "fixes": 16
+    },
+    {
+      "file": "pages/sales-funnel/SOWBuilder.js",
+      "fixes": 17
+    },
+    {
+      "file": "pages/sales-funnel/SalesSOWList.js",
+      "fixes": 10
+    },
+    {
+      "file": "pages/sales-funnel/SalesScopeSelection.js",
+      "fixes": 17
+    },
+    {
+      "file": "utils/apiDataExtractor.js",
+      "fixes": 3
+    },
+    {
+      "file": "utils/routePreloader.js",
+      "fixes": 1
+    }
+  ]
+}

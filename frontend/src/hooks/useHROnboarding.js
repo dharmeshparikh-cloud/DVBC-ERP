@@ -52,7 +52,7 @@ export const useManagers = (options = {}) => {
       const res = await axios.get(`${API}/api/employees/all`, { headers: getHeaders() });
       const allEmployees = extractArray(res.data);
       // Filter for potential managers (certain roles)
-      return allEmployees.filter(emp => 
+      return (allEmployees || []).filter(emp => 
         emp.role && ['manager', 'hr_manager', 'sales_manager', 'senior_consultant', 
                      'principal_consultant', 'project_manager', 'admin', 'lead_consultant'].includes(emp.role)
       );

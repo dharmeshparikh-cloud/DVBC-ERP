@@ -61,10 +61,10 @@ const OnboardingHub = () => {
       }
       
       // Convert to CSV
-      const headers = Object.keys(data[0]);
+      const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(h => {
+        ...(data || []).map(row => (headers || []).map(h => {
           const val = row[h] || '';
           // Escape quotes and wrap in quotes if contains comma
           return typeof val === 'string' && (val.includes(',') || val.includes('"')) 
@@ -162,7 +162,7 @@ const OnboardingHub = () => {
     let filtered = submissions;
     
     if (searchQuery) {
-      filtered = filtered.filter(s =>
+      filtered = (filtered || []).filter(s =>
         s.candidate_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.candidate_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.offered_position?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -171,11 +171,11 @@ const OnboardingHub = () => {
 
     switch (tab) {
       case 'pending':
-        return filtered.filter(s => s?.status && ['submitted', 'revision_requested'].includes(s.status));
+        return (filtered || []).filter(s => s?.status && ['submitted', 'revision_requested'].includes(s.status));
       case 'inprogress':
-        return filtered.filter(s => s?.status && ['invited', 'draft'].includes(s.status));
+        return (filtered || []).filter(s => s?.status && ['invited', 'draft'].includes(s.status));
       case 'completed':
-        return filtered.filter(s => s?.status && ['completed', 'rejected'].includes(s.status));
+        return (filtered || []).filter(s => s?.status && ['completed', 'rejected'].includes(s.status));
       default:
         return filtered;
     }
@@ -514,7 +514,7 @@ const OnboardingHub = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {legacyRecords.map(emp => (
+                    {(legacyRecords || []).map(emp => (
                       <TableRow key={emp.id}>
                         <TableCell className="font-mono">{emp.employee_id}</TableCell>
                         <TableCell>{emp.full_name || `${emp.first_name} ${emp.last_name}`}</TableCell>
@@ -592,7 +592,7 @@ const SubmissionTable = ({ submissions, onReview, loading, showResendLink, showE
         </TableRow>
       </TableHeader>
       <TableBody>
-        {submissions.map(sub => (
+        {(submissions || []).map(sub => (
           <TableRow key={sub.id}>
             <TableCell>
               <div>

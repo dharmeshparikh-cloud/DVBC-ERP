@@ -507,7 +507,7 @@ const GoLiveDashboard = () => {
     );
   };
 
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = (employees || []).filter(emp => {
     // Check if employee has CTC pending (onboarding complete but no CTC)
     const isCTCPending = emp.onboarding_complete === true && (!emp.current_ctc || emp.current_ctc === 0);
     
@@ -536,7 +536,7 @@ const GoLiveDashboard = () => {
   });
   
   // Count employees pending CTC
-  const ctcPendingCount = employees.filter(emp => 
+  const ctcPendingCount = (employees || []).filter(emp => 
     emp.onboarding_complete === true && (!emp.current_ctc || emp.current_ctc === 0)
   ).length;
 
@@ -581,7 +581,7 @@ const GoLiveDashboard = () => {
               Pending Go-Live Approvals ({pendingRequests.length})
             </h2>
             <div className="space-y-2">
-              {pendingRequests.map(req => (
+              {(pendingRequests || []).map(req => (
                 <div key={req.id} className={`flex items-center justify-between p-3 rounded-lg ${
                   isDark ? 'bg-zinc-800' : 'bg-white'
                 }`}>
@@ -702,7 +702,7 @@ const GoLiveDashboard = () => {
                   )}
                 </div>
               ) : (
-              filteredEmployees.map(emp => {
+              (filteredEmployees || []).map(emp => {
                 const isCTCPending = emp.onboarding_complete === true && (!emp.current_ctc || emp.current_ctc === 0);
                 return (
                 <div
@@ -777,7 +777,7 @@ const GoLiveDashboard = () => {
 
                 {/* Checklist Items - mapped from backend response */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                  {Object.entries(checklist.checklist).map(([key, item]) => {
+                  {Object.entries(checklist.checklist || {}).map(([key, item]) => {
                     const iconMap = {
                       User: User,
                       Building2: Building2,
@@ -988,7 +988,7 @@ const GoLiveDashboard = () => {
                   {bankProofs.length > 0 && (
                     <div className="mt-3 text-sm">
                       <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>
-                        Uploaded: {bankProofs.map(p => p.original_filename).join(', ')}
+                        Uploaded: {(bankProofs || []).map(p => p.original_filename).join(', ')}
                       </span>
                     </div>
                   )}
@@ -1163,7 +1163,7 @@ const GoLiveDashboard = () => {
               <p className="text-center text-zinc-500">No documents uploaded yet.</p>
             ) : (
               <div className="space-y-3">
-                {bankProofs.map((doc) => (
+                {(bankProofs || []).map((doc) => (
                   <div
                     key={doc.id}
                     className={`flex items-center justify-between p-3 rounded-lg border ${

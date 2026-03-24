@@ -50,11 +50,11 @@ function ProjectRoadmap() {
   // Mutation: Create Roadmap
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const project = projects.find(p => p.id === data.project_id);
+      const project = (projects || []).find(p => p.id === data.project_id);
       await axios.post(`${API}/roadmaps`, {
         project_id: data.project_id,
         title: data.title || ('Roadmap - ' + (project ? project.name : '')),
-        phases: data.phases.filter(p => p.month)
+        phases: (data?.phases || []).filter(p => p.month)
       });
     },
     onSuccess: () => {
@@ -138,7 +138,7 @@ function ProjectRoadmap() {
     if (!selectedRoadmap) return [];
     var items = [];
     (selectedRoadmap.phases || []).forEach(function(phase) {
-      (phase.items || []).forEach(function(item) {
+      ((phase?.items || [])).forEach(function(item) {
         items.push({ ...item, phase_month: phase.month, phase_title: phase.title });
       });
     });
@@ -147,7 +147,7 @@ function ProjectRoadmap() {
 
   var kanbanItems = getAllItems();
   var kanbanColumns = ITEM_STATUSES.map(function(s) {
-    return { ...s, items: kanbanItems.filter(function(i) { return i.status === s.value; }) };
+    return { ...s, items: (kanbanItems || []).filter(function(i) { return i.status === s.value; }) };
   });
 
   return (
@@ -176,7 +176,7 @@ function ProjectRoadmap() {
                     <select value={formData.project_id} onChange={function(e) { setFormData({ ...formData, project_id: e.target.value }); }}
                       required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="roadmap-project">
                       <option value="">Select project</option>
-                      {projects.map(function(p) { return <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>; })}
+                      {(projects || []).map(function(p) { return <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>; })}
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -188,7 +188,7 @@ function ProjectRoadmap() {
                 {/* Phases */}
                 <div className="space-y-4">
                   <Label className="text-sm font-medium text-zinc-950">Monthly Phases</Label>
-                  {formData.phases.map(function(phase, pi) {
+                  {(formData?.phases || []).map(function(phase, pi) {
                     return (
                       <div key={pi} className="border border-zinc-200 rounded-sm p-3 space-y-3">
                         <div className="grid grid-cols-3 gap-3">
@@ -197,7 +197,7 @@ function ProjectRoadmap() {
                           <Input value={phase.title} onChange={function(e) { var p = [...formData.phases]; p[pi].title = e.target.value; setFormData({ ...formData, phases: p }); }}
                             className="rounded-sm border-zinc-200 col-span-2" placeholder="Phase title (e.g., Discovery)" />
                         </div>
-                        {phase.items.map(function(item, ii) {
+                        {(phase?.items || []).map(function(item, ii) {
                           return (
                             <div key={ii} className="grid grid-cols-12 gap-2 ml-4">
                               <Input value={item.title} onChange={function(e) { var p = [...formData.phases]; p[pi].items[ii].title = e.target.value; setFormData({ ...formData, phases: p }); }}
@@ -242,7 +242,7 @@ function ProjectRoadmap() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {roadmaps.map(function(rm) {
+            {(roadmaps || []).map(function(rm) {
               var totalItems = 0, completed = 0;
               (rm.phases || []).forEach(function(p) { (p.items || []).forEach(function(i) { totalItems++; if (i.status === 'completed') completed++; }); });
               var pct = totalItems > 0 ? Math.round(completed / totalItems * 100) : 0;
@@ -303,11 +303,11 @@ function ProjectRoadmap() {
 
           {viewMode === 'kanban' ? (
             <div className="grid grid-cols-4 gap-4" data-testid="kanban-view">
-              {kanbanColumns.map(function(col) {
+              {(kanbanColumns || []).map(function(col) {
                 return (
                   <div key={col.value} className="space-y-2">
-                    <div className={'text-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-sm ' + col.color}>{col.label} ({col.items.length})</div>
-                    {col.items.map(function(item) {
+                    <div className={'text-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-sm ' + col.color}>{col.label} ({col.items?.length || 0})</div>
+                    {(col?.items || []).map(function(item) {
                       return (
                         <Card key={item.id} className="border-zinc-200 shadow-none rounded-sm" data-testid={'kanban-item-' + item.id}>
                           <CardContent className="p-3">
@@ -330,7 +330,7 @@ function ProjectRoadmap() {
             /* Table View */
             <div className="space-y-4" data-testid="table-view">
               {(selectedRoadmap.phases || []).map(function(phase) {
-                var phaseCompleted = (phase.items || []).filter(function(i) { return i.status === 'completed'; }).length;
+                var phaseCompleted = ((phase?.items || [])).filter(function(i) { return i.status === 'completed'; }).length;
                 return (
                   <div key={phase.id} className="border border-zinc-200 rounded-sm overflow-hidden">
                     <div className="bg-zinc-50 px-4 py-2 flex items-center justify-between">
@@ -338,7 +338,7 @@ function ProjectRoadmap() {
                         <span className="font-medium text-sm text-zinc-950">{phase.title || 'Phase'}</span>
                         <span className="text-xs text-zinc-500 ml-2">{phase.month}</span>
                       </div>
-                      <span className="text-xs text-zinc-500">{phaseCompleted}/{(phase.items || []).length} completed</span>
+                      <span className="text-xs text-zinc-500">{phaseCompleted}/{((phase?.items || [])).length} completed</span>
                     </div>
                     <table className="w-full text-sm">
                       <thead>
@@ -350,7 +350,7 @@ function ProjectRoadmap() {
                         </tr>
                       </thead>
                       <tbody>
-                        {(phase.items || []).map(function(item) {
+                        {((phase?.items || [])).map(function(item) {
                           return (
                             <tr key={item.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={'roadmap-item-' + item.id}>
                               <td className="px-4 py-2 font-medium text-zinc-950">{item.title}</td>

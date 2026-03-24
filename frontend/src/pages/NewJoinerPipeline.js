@@ -130,7 +130,7 @@ const NewJoinerPipeline = () => {
       // Filter to those joined in last 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return employees.filter(e => {
+      return (employees || []).filter(e => {
         const joinDate = new Date(e.joining_date || e.created_at);
         return joinDate >= thirtyDaysAgo && e.status !== 'inactive';
       });
@@ -159,7 +159,7 @@ const NewJoinerPipeline = () => {
     });
 
     // Add recent employees to "active" stage
-    recentEmployees.forEach(emp => {
+    (recentEmployees || []).forEach(emp => {
       groups['active'].push({
         ...emp,
         type: 'employee',
@@ -177,7 +177,7 @@ const NewJoinerPipeline = () => {
     if (!searchQuery) return groupedByStage;
     
     const filtered = {};
-    Object.keys(groupedByStage).forEach(stageId => {
+    Object.keys(groupedByStage || {}).forEach(stageId => {
       filtered[stageId] = groupedByStage[stageId].filter(item =>
         item.candidate_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.candidate_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -379,7 +379,7 @@ const NewJoinerPipeline = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {items.map((item, idx) => (
+                      {(items || []).map((item, idx) => (
                         <div
                           key={item.id || item._id || idx}
                           onClick={() => handleViewItem(item)}

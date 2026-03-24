@@ -108,7 +108,7 @@ const HelpContentAdmin = () => {
     deleteTopicMutation.mutate(topicId);
   };
   
-  const filteredTopics = Array.isArray(topics) ? topics.filter(topic => 
+  const filteredTopics = Array.isArray(topics) ? (topics || []).filter(topic => 
     topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     topic.category?.toLowerCase().includes(searchQuery.toLowerCase())
   ) : [];
@@ -232,7 +232,7 @@ const HelpContentAdmin = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(cat => (
+                {(categories || []).map(cat => (
                   <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -271,7 +271,7 @@ const HelpContentAdmin = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filteredTopics.map(topic => (
+                  {(filteredTopics || []).map(topic => (
                     <tr key={topic.id} className="hover:bg-zinc-50">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
@@ -342,7 +342,7 @@ const HelpContentAdmin = () => {
           </div>
           
           <div className="grid grid-cols-3 gap-4">
-            {categories.map(cat => (
+            {(categories || []).map(cat => (
               <Card key={cat.id}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -432,7 +432,7 @@ const HelpContentAdmin = () => {
                 <CardContent>
                   {analytics.needsImprovement?.length > 0 ? (
                     <div className="space-y-2">
-                      {analytics.needsImprovement.map(topic => (
+                      {(analytics?.needsImprovement || []).map(topic => (
                         <div key={topic.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
                           <span className="text-sm">{topic.title}</span>
                           <div className="flex items-center gap-2">
@@ -581,7 +581,7 @@ const TopicDialog = ({ open, onClose, topic, categories, queryClient }) => {
   const removeStep = (index) => {
     setFormData(prev => ({
       ...prev,
-      steps: prev.steps.filter((_, i) => i !== index)
+      steps: (prev?.steps || []).filter((_, i) => i !== index)
     }));
   };
   
@@ -601,7 +601,7 @@ const TopicDialog = ({ open, onClose, topic, categories, queryClient }) => {
   const removeTroubleshoot = (index) => {
     setFormData(prev => ({
       ...prev,
-      troubleshooting: prev.troubleshooting.filter((_, i) => i !== index)
+      troubleshooting: (prev?.troubleshooting || []).filter((_, i) => i !== index)
     }));
   };
   
@@ -642,7 +642,7 @@ const TopicDialog = ({ open, onClose, topic, categories, queryClient }) => {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map(cat => (
+                    {(categories || []).map(cat => (
                       <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -712,7 +712,7 @@ const TopicDialog = ({ open, onClose, topic, categories, queryClient }) => {
                 </Button>
               </div>
               <div className="space-y-3">
-                {formData.steps.map((step, idx) => (
+                {(formData?.steps || []).map((step, idx) => (
                   <div key={idx} className="flex gap-2 p-3 bg-zinc-50 rounded-lg">
                     <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">
                       {idx + 1}
@@ -752,7 +752,7 @@ const TopicDialog = ({ open, onClose, topic, categories, queryClient }) => {
                 </Button>
               </div>
               <div className="space-y-3">
-                {formData.troubleshooting.map((item, idx) => (
+                {(formData?.troubleshooting || []).map((item, idx) => (
                   <div key={idx} className="flex gap-2 p-3 bg-amber-50 rounded-lg">
                     <div className="flex-1 space-y-2">
                       <Input

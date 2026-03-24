@@ -228,7 +228,7 @@ export const DraftSelector = ({
           <SelectValue placeholder={loading ? "Loading drafts..." : placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {drafts.map((draft) => (
+          {(drafts || []).map((draft) => (
             <SelectItem key={draft.id} value={draft.id}>
               <div className="flex items-center justify-between w-full">
                 <span className="truncate max-w-[150px]">{draft.title || 'Untitled Draft'}</span>

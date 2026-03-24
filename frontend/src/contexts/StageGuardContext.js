@@ -102,7 +102,7 @@ export const getMissingStages = (currentStage, targetStage) => {
 
 // Get stage by path
 export const getStageByPath = (path) => {
-  for (const [key, stage] of Object.entries(SALES_STAGES)) {
+  for (const [key, stage] of Object.entries(SALES_STAGES || {})) {
     if (path.startsWith(stage.path)) return key;
   }
   return null;
@@ -188,7 +188,7 @@ export const StageGuardProvider = ({ children }) => {
       currentStage,
       targetStage,
       missingStages,
-      message: `Complete ${missingStages.map(s => SALES_STAGES[s].name).join(' → ')} before accessing ${SALES_STAGES[targetStage].name}.`,
+      message: `Complete ${(missingStages || []).map(s => SALES_STAGES[s].name).join(' → ')} before accessing ${SALES_STAGES[targetStage].name}.`,
       leadId
     });
     

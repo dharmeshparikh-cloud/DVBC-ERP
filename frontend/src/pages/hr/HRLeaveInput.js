@@ -58,7 +58,7 @@ const HRLeaveInput = () => {
   
   // Filter leave requests by selected employee
   const leaveRequests = selectedEmployeeFilter && selectedEmployeeFilter !== 'all'
-    ? leaveRequestsData.filter(req => req.employee_id === selectedEmployeeFilter)
+    ? (leaveRequestsData || []).filter(req => req.employee_id === selectedEmployeeFilter)
     : leaveRequestsData;
 
   // Mutation: Apply leave for employee
@@ -147,12 +147,12 @@ const HRLeaveInput = () => {
 
   // Get employee balance for selected employee
   const getEmployeeBalance = (empId) => {
-    const emp = allEmployees.find(e => e.id === empId);
+    const emp = (allEmployees || []).find(e => e.id === empId);
     if (!emp || !emp.leave_balance) return null;
     return emp.leave_balance;
   };
 
-  const filteredRequests = leaveRequests.filter(req => {
+  const filteredRequests = (leaveRequests || []).filter(req => {
     const matchesSearch = req.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           req.employee_code?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
@@ -203,7 +203,7 @@ const HRLeaveInput = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Employees</SelectItem>
-              {allEmployees.map(emp => (
+              {(allEmployees || []).map(emp => (
                 <SelectItem key={emp.id} value={emp.id}>
                   {emp.first_name} {emp.last_name} ({emp.employee_id})
                 </SelectItem>
@@ -244,12 +244,12 @@ const HRLeaveInput = () => {
                 </div>
                 <div>
                   <p className="font-medium text-zinc-800">
-                    {allEmployees.find(e => e.id === selectedEmployeeFilter)?.first_name}{' '}
-                    {allEmployees.find(e => e.id === selectedEmployeeFilter)?.last_name}
+                    {(allEmployees || []).find(e => e.id === selectedEmployeeFilter)?.first_name}{' '}
+                    {(allEmployees || []).find(e => e.id === selectedEmployeeFilter)?.last_name}
                   </p>
                   <p className="text-sm text-zinc-600">
-                    {allEmployees.find(e => e.id === selectedEmployeeFilter)?.employee_id} | 
-                    {allEmployees.find(e => e.id === selectedEmployeeFilter)?.department || 'No Department'}
+                    {(allEmployees || []).find(e => e.id === selectedEmployeeFilter)?.employee_id} | 
+                    {(allEmployees || []).find(e => e.id === selectedEmployeeFilter)?.department || 'No Department'}
                   </p>
                 </div>
               </div>
@@ -284,7 +284,7 @@ const HRLeaveInput = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-zinc-900">
-                  {leaveRequests.filter(r => r.status === 'pending').length}
+                  {(leaveRequests || []).filter(r => r.status === 'pending').length}
                 </p>
                 <p className="text-sm text-zinc-600">Pending Requests</p>
               </div>
@@ -299,7 +299,7 @@ const HRLeaveInput = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-zinc-900">
-                  {leaveRequests.filter(r => r.status === 'approved').length}
+                  {(leaveRequests || []).filter(r => r.status === 'approved').length}
                 </p>
                 <p className="text-sm text-zinc-600">Approved</p>
               </div>
@@ -314,7 +314,7 @@ const HRLeaveInput = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-zinc-900">
-                  {leaveRequests.filter(r => r.status === 'rejected').length}
+                  {(leaveRequests || []).filter(r => r.status === 'rejected').length}
                 </p>
                 <p className="text-sm text-zinc-600">Rejected</p>
               </div>
@@ -391,7 +391,7 @@ const HRLeaveInput = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRequests.slice(0, 50).map(req => (
+                  {(filteredRequests || []).slice(0, 50).map(req => (
                     <tr key={req.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                       <td className="p-3">
                         <p className="text-zinc-800 font-medium">{req.employee_name}</p>
@@ -468,7 +468,7 @@ const HRLeaveInput = () => {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allEmployees.map(emp => (
+                  {(allEmployees || []).map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.first_name} {emp.last_name} ({emp.employee_id})
                     </SelectItem>

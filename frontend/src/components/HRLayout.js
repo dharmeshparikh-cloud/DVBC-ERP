@@ -204,7 +204,7 @@ const HRLayout = () => {
             <SectionHeader title="People" section="employees" icon={Users} />
             {expanded.employees && (
               <div className="mt-1 space-y-0.5">
-                {employeeItems.map(item => <NavLink key={item.name} item={item} />)}
+                {(employeeItems || []).map(item => <NavLink key={item.name} item={item} />)}
               </div>
             )}
           </div>
@@ -214,7 +214,7 @@ const HRLayout = () => {
             <SectionHeader title="Operations" section="operations" icon={ClipboardCheck} />
             {expanded.operations && (
               <div className="mt-1 space-y-0.5">
-                {operationsItems.map(item => (
+                {(operationsItems || []).map(item => (
                   <NavLink 
                     key={item.name} 
                     item={{
@@ -236,7 +236,7 @@ const HRLayout = () => {
               <SectionHeader title="Team View" section="teamView" icon={Briefcase} />
               {expanded.teamView && (
                 <div className="mt-1 space-y-0.5">
-                  {teamViewItems.map(item => <NavLink key={item.name} item={item} />)}
+                  {(teamViewItems || []).map(item => <NavLink key={item.name} item={item} />)}
                 </div>
               )}
             </div>
@@ -247,7 +247,7 @@ const HRLayout = () => {
             <SectionHeader title="Self Service" section="selfService" icon={FileText} />
             {expanded.selfService && (
               <div className="mt-1 space-y-0.5">
-                {selfServiceItems.map(item => <NavLink key={item.name} item={item} />)}
+                {(selfServiceItems || []).map(item => <NavLink key={item.name} item={item} />)}
               </div>
             )}
           </div>

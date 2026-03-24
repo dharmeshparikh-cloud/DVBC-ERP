@@ -49,7 +49,7 @@ const getDefaultPermissions = () => {
   const defaultPerms = {};
   MODULES.forEach(mod => {
     defaultPerms[mod.id] = {};
-    mod.features.forEach(feat => {
+    (mod?.features || []).forEach(feat => {
       defaultPerms[mod.id][feat] = { view: false, create: false, edit: false, delete: false };
     });
   });
@@ -112,8 +112,8 @@ const EmployeeAccessPermissions = () => {
       ]);
       const empData = Array.isArray(empRes.data) ? empRes.data : [];
       const userData = Array.isArray(usersRes.data) ? usersRes.data : [];
-      return empData.map(emp => {
-        const linkedUser = userData.find(u => u.email === emp.email || u.employee_id === emp.employee_id);
+      return (empData || []).map(emp => {
+        const linkedUser = (userData || []).find(u => u.email === emp.email || u.employee_id === emp.employee_id);
         return {
           ...emp,
           user_id: linkedUser?.id,
@@ -134,7 +134,7 @@ const EmployeeAccessPermissions = () => {
     queryFn: async () => {
       const res = await axios.get(`${API}/employees/all`);
       const empList = Array.isArray(res.data) ? res.data : (res.data?.items || []);
-      return empList.filter(e => e.is_active !== false);
+      return (empList || []).filter(e => e.is_active !== false);
     },
     enabled: activeTab === 'permissions'
   });
@@ -343,7 +343,7 @@ const EmployeeAccessPermissions = () => {
   };
 
   // Filter employees based on search
-  const filteredAccessEmployees = employeesWithAccess.filter(emp => {
+  const filteredAccessEmployees = (employeesWithAccess || []).filter(emp => {
     const matchesSearch = !searchQuery || 
       `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.employee_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -352,14 +352,14 @@ const EmployeeAccessPermissions = () => {
     return matchesSearch && matchesDept;
   });
 
-  const filteredPermEmployees = employeesForPerms.filter(emp => {
+  const filteredPermEmployees = (employeesForPerms || []).filter(emp => {
     const matchesSearch = !searchQuery || 
       `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.employee_id?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
 
-  const departments = [...new Set(employeesWithAccess.map(e => e.department).filter(Boolean))];
+  const departments = [...new Set((employeesWithAccess || []).map(e => e.department).filter(Boolean))];
 
   if (!canManage) {
     return (
@@ -405,7 +405,7 @@ const EmployeeAccessPermissions = () => {
               className="h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm"
             >
               <option value="">All Departments</option>
-              {departments.map(dept => (
+              {(departments || []).map(dept => (
                 <option key={dept} value={dept}>{dept}</option>
               ))}
             </select>
@@ -463,7 +463,7 @@ const EmployeeAccessPermissions = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAccessEmployees.map(emp => (
+                    {(filteredAccessEmployees || []).map(emp => (
                       <TableRow key={emp.id} data-testid={`access-row-${emp.employee_id}`}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -553,7 +553,7 @@ const EmployeeAccessPermissions = () => {
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {filteredPermEmployees.map(emp => (
+                    {(filteredPermEmployees || []).map(emp => (
                       <button
                         key={emp.id}
                         onClick={() => { setSelectedEmployee(emp); setEditMode(false); }}
@@ -630,7 +630,7 @@ const EmployeeAccessPermissions = () => {
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          {roles.map(role => (
+                          {(roles || []).map(role => (
                             <SelectItem key={role.id || role.name} value={role.name}>
                               {role.name}
                             </SelectItem>
@@ -659,7 +659,7 @@ const EmployeeAccessPermissions = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {mod.features.map(feature => (
+                                {(mod?.features || []).map(feature => (
                                   <tr key={feature} className="border-t">
                                     <td className="py-2 capitalize">{feature.replace(/_/g, ' ')}</td>
                                     {ACTIONS.map(action => (
@@ -707,7 +707,7 @@ const EmployeeAccessPermissions = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {pendingChanges.map(request => (
+                  {(pendingChanges || []).map(request => (
                     <Card key={request.id} className="border-amber-200 bg-amber-50/50">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">

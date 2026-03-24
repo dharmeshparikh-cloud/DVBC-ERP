@@ -82,7 +82,7 @@ const TodayFollowUpsWidget = () => {
         )}
 
         <div className="space-y-2">
-          {items.slice(0, 5).map(fu => (
+          {(items || []).slice(0, 5).map(fu => (
             <div
               key={fu.id}
               onClick={() => navigate('/follow-ups')}

@@ -279,7 +279,7 @@ const MyDrafts = () => {
         >
           All Drafts
         </Button>
-        {Object.entries(DRAFT_TYPES).map(([key, config]) => (
+        {Object.entries(DRAFT_TYPES || {}).map(([key, config]) => (
           <Button
             key={key}
             variant={filter === key ? 'default' : 'outline'}
@@ -330,7 +330,7 @@ const MyDrafts = () => {
         </Card>
       ) : (
         <div className="space-y-3">
-          {drafts.map(draft => (
+          {(drafts || []).map(draft => (
             <DraftCard key={draft.id} draft={draft} />
           ))}
         </div>

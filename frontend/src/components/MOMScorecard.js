@@ -116,7 +116,7 @@ const MOMScorecard = ({ period = 'month', isManager = false }) => {
               Pending MOMs ({momData?.pending_mom_count || 0})
             </h4>
             <div className="space-y-1.5">
-              {pendingMoms.map((meeting, idx) => (
+              {(pendingMoms || []).map((meeting, idx) => (
                 <Link 
                   key={meeting.id || idx}
                   to={`/leads?lead_id=${meeting.lead_id}`}
@@ -145,7 +145,7 @@ const MOMScorecard = ({ period = 'month', isManager = false }) => {
               Top MOM Performers
             </h4>
             <div className="space-y-1.5">
-              {topPerformers.map((performer, idx) => (
+              {(topPerformers || []).map((performer, idx) => (
                 <div key={performer.employee_id || idx} className="flex items-center justify-between p-2 bg-zinc-50 rounded text-sm">
                   <div className="flex items-center gap-2">
                     <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${

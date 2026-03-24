@@ -254,7 +254,7 @@ const MeetingLocationPicker = ({
 
   // Remove via location
   const removeViaLocation = (index) => {
-    setViaLocations(viaLocations.filter((_, i) => i !== index));
+    setViaLocations((viaLocations || []).filter((_, i) => i !== index));
   };
 
   // Update via location
@@ -292,7 +292,7 @@ const MeetingLocationPicker = ({
       if (waypoints.length > 0) {
         // Calculate route with waypoints using Directions API
         const directionsService = new window.google.maps.DirectionsService();
-        const waypointsForDirections = waypoints.map(wp => ({ location: wp, stopover: true }));
+        const waypointsForDirections = (waypoints || []).map(wp => ({ location: wp, stopover: true }));
         
         directionsService.route({
           origin: origin,
@@ -304,7 +304,7 @@ const MeetingLocationPicker = ({
           if (status === 'OK') {
             let totalDistance = 0;
             let totalDuration = 0;
-            result.routes[0].legs.forEach(leg => {
+            (result?.routes?.[0]?.legs || []).forEach(leg => {
               totalDistance += leg.distance.value;
               totalDuration += leg.duration.value;
             });
@@ -409,7 +409,7 @@ const MeetingLocationPicker = ({
         />
 
         {/* Via Locations */}
-        {viaLocations.map((via, index) => (
+        {(viaLocations || []).map((via, index) => (
           <div key={index} className="flex items-end gap-2">
             <div className="flex-1">
               <LocationInput
@@ -547,7 +547,7 @@ const MeetingLocationPicker = ({
                 <SelectValue placeholder="Select employee" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((emp) => (
+                {(employees || []).map((emp) => (
                   <SelectItem key={emp.id} value={emp.id}>
                     {emp.full_name} ({emp.employee_id})
                   </SelectItem>

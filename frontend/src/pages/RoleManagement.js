@@ -257,7 +257,7 @@ const RoleManagement = () => {
             </Card>
           ) : (
             <div className="space-y-4">
-              {pendingRequests.map((request) => (
+              {(pendingRequests || []).map((request) => (
                 <Card key={request.id} className="hover:border-orange-200 transition-colors">
                   <CardContent className="pt-4">
                     <div className="flex items-start justify-between">
@@ -471,7 +471,7 @@ const RoleManagement = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-4 max-h-[400px] overflow-y-auto">
-            {Object.entries(editingPermissions).map(([key, value]) => (
+            {Object.entries(editingPermissions || {}).map(([key, value]) => (
               <div key={key} className="flex items-center justify-between">
                 <Label htmlFor={key} className="cursor-pointer">
                   {PERMISSION_LABELS[key] || key}

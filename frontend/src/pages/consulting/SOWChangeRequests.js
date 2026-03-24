@@ -221,7 +221,7 @@ const SOWChangeRequests = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {displayRequests.map(req => (
+                {(displayRequests || []).map(req => (
                   <tr 
                     key={req.id} 
                     className="hover:bg-zinc-50 cursor-pointer"
@@ -248,7 +248,7 @@ const SOWChangeRequests = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {displayRequests.map(req => (
+            {(displayRequests || []).map(req => (
               <Card 
                 key={req.id}
                 className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 cursor-pointer"
@@ -324,7 +324,7 @@ const SOWChangeRequests = () => {
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sows.map(sow => (
+                  {(sows || []).map(sow => (
                     <SelectItem key={sow.id} value={sow.id}>
                       {sow.client_name || sow.lead_name || 'Project'} - {sow.scopes?.length || 0} scopes
                     </SelectItem>

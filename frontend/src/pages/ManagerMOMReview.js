@@ -126,7 +126,7 @@ const ManagerMOMReview = () => {
       doc.text('Employee MOM Summary', 14, yPos);
       yPos += 5;
       
-      const employeeSummaryData = filteredEmployees.map(emp => [
+      const employeeSummaryData = (filteredEmployees || []).map(emp => [
         emp.employee_code || '-',
         emp.name || 'Unknown',
         emp.role || '-',
@@ -164,7 +164,7 @@ const ManagerMOMReview = () => {
       yPos += 8;
       
       // Meeting details table
-      const meetingData = filteredMeetings.slice(0, 100).map(meeting => [
+      const meetingData = (filteredMeetings || []).slice(0, 100).map(meeting => [
         meeting.meeting_date ? new Date(meeting.meeting_date).toLocaleDateString() : '-',
         meeting.employee_name || '-',
         meeting.company || '-',
@@ -195,7 +195,7 @@ const ManagerMOMReview = () => {
       });
       
       // Add detailed MOM content for meetings with MOM
-      const meetingsWithMOM = filteredMeetings.filter(m => m.has_mom && m.mom?.summary);
+      const meetingsWithMOM = (filteredMeetings || []).filter(m => m.has_mom && m.mom?.summary);
       if (meetingsWithMOM.length > 0) {
         doc.addPage();
         yPos = 15;
@@ -203,7 +203,7 @@ const ManagerMOMReview = () => {
         doc.text('Detailed MOM Content', 14, yPos);
         yPos += 10;
         
-        meetingsWithMOM.slice(0, 20).forEach((meeting, idx) => {
+        (meetingsWithMOM || []).slice(0, 20).forEach((meeting, idx) => {
           if (yPos > 180) {
             doc.addPage();
             yPos = 15;
@@ -238,7 +238,7 @@ const ManagerMOMReview = () => {
             doc.text('Key Decisions:', 16, yPos);
             yPos += 4;
             doc.setFontSize(7);
-            meeting.mom.key_decisions.slice(0, 3).forEach(decision => {
+            (meeting?.mom?.key_decisions || []).slice(0, 3).forEach(decision => {
               doc.text(`• ${decision.substring(0, 100)}`, 20, yPos);
               yPos += 3.5;
             });
@@ -251,7 +251,7 @@ const ManagerMOMReview = () => {
             doc.text('Commitments Made:', 16, yPos);
             yPos += 4;
             doc.setFontSize(7);
-            meeting.mom.commitments_made.slice(0, 3).forEach(commitment => {
+            (meeting?.mom?.commitments_made || []).slice(0, 3).forEach(commitment => {
               doc.text(`• ${commitment.substring(0, 100)}`, 20, yPos);
               yPos += 3.5;
             });
@@ -266,7 +266,7 @@ const ManagerMOMReview = () => {
             yPos += 4;
             doc.setFontSize(7);
             doc.setTextColor(30, 30, 30);
-            meeting.mom.client_concerns.slice(0, 2).forEach(concern => {
+            (meeting?.mom?.client_concerns || []).slice(0, 2).forEach(concern => {
               doc.text(`• ${concern.substring(0, 100)}`, 20, yPos);
               yPos += 3.5;
             });
@@ -448,7 +448,7 @@ const ManagerMOMReview = () => {
           ) : filteredEmployees.length === 0 ? (
             <div className="text-center py-8 text-zinc-500">No data found</div>
           ) : (
-            filteredEmployees.map((employee) => (
+            (filteredEmployees || []).map((employee) => (
               <Collapsible 
                 key={employee.employee_id} 
                 open={expandedEmployees[employee.employee_id]}
@@ -547,7 +547,7 @@ const ManagerMOMReview = () => {
                                   <div>
                                     <span className="font-medium text-zinc-700">Key Decisions:</span>
                                     <ul className="ml-4 mt-1 space-y-1">
-                                      {meeting.mom.key_decisions.map((decision, i) => (
+                                      {(meeting?.mom?.key_decisions || []).map((decision, i) => (
                                         <li key={i} className="flex items-start gap-2 text-zinc-600">
                                           <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
                                           {decision}
@@ -561,7 +561,7 @@ const ManagerMOMReview = () => {
                                   <div>
                                     <span className="font-medium text-zinc-700">Commitments Made:</span>
                                     <ul className="ml-4 mt-1 space-y-1">
-                                      {meeting.mom.commitments_made.map((commitment, i) => (
+                                      {(meeting?.mom?.commitments_made || []).map((commitment, i) => (
                                         <li key={i} className="flex items-start gap-2 text-zinc-600">
                                           <ArrowRight className="w-3 h-3 text-blue-500 mt-1 flex-shrink-0" />
                                           {commitment}
@@ -575,7 +575,7 @@ const ManagerMOMReview = () => {
                                   <div className="bg-amber-50 p-2 rounded">
                                     <span className="font-medium text-amber-700">Client Concerns:</span>
                                     <ul className="ml-4 mt-1 space-y-1">
-                                      {meeting.mom.client_concerns.map((concern, i) => (
+                                      {(meeting?.mom?.client_concerns || []).map((concern, i) => (
                                         <li key={i} className="flex items-start gap-2 text-amber-800">
                                           <AlertCircle className="w-3 h-3 text-amber-500 mt-1 flex-shrink-0" />
                                           {concern}
@@ -589,7 +589,7 @@ const ManagerMOMReview = () => {
                                   <div>
                                     <span className="font-medium text-zinc-700">Next Steps:</span>
                                     <ul className="ml-4 mt-1 space-y-1">
-                                      {meeting.mom.next_steps.map((step, i) => (
+                                      {(meeting?.mom?.next_steps || []).map((step, i) => (
                                         <li key={i} className="flex items-start gap-2 text-zinc-600">
                                           <Clock className="w-3 h-3 text-indigo-500 mt-1 flex-shrink-0" />
                                           {step}
@@ -646,7 +646,7 @@ const ManagerMOMReview = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {filteredMeetings.map((meeting, idx) => (
+                    {(filteredMeetings || []).map((meeting, idx) => (
                       <tr key={meeting.id || idx} className="hover:bg-zinc-50">
                         <td className="px-4 py-3 text-sm">
                           {meeting.meeting_date ? new Date(meeting.meeting_date).toLocaleDateString() : '-'}

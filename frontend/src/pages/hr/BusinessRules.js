@@ -1132,7 +1132,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
               Impact Analysis
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {sopData.impacts.map((item, idx) => (
+              {(sopData?.impacts || []).map((item, idx) => (
                 <div key={idx} className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium text-sm">{item.area}</span>
@@ -1162,7 +1162,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
                 <div>
                   <p className={`text-xs font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>Affects:</p>
                   <ul className="mt-1 space-y-1">
-                    {sopData.payrollLinkage.affects.map((item, idx) => (
+                    {(sopData?.payrollLinkage?.affects || []).map((item, idx) => (
                       <li key={idx} className={`text-xs flex items-center gap-1 ${isDark ? 'text-blue-200' : 'text-blue-600'}`}>
                         <ArrowRight className="w-3 h-3" /> {item}
                       </li>
@@ -1178,7 +1178,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
                 <div>
                   <p className={`text-xs font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>CTC Components:</p>
                   <ul className="mt-1 space-y-1">
-                    {sopData.payrollLinkage.ctcComponents.map((item, idx) => (
+                    {(sopData?.payrollLinkage?.ctcComponents || []).map((item, idx) => (
                       <li key={idx} className={`text-xs flex items-center gap-1 ${isDark ? 'text-blue-200' : 'text-blue-600'}`}>
                         <ArrowRight className="w-3 h-3" /> {item}
                       </li>
@@ -1191,7 +1191,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
           
           {/* SOP Sections with Checklists */}
           <Accordion type="multiple" className="w-full" defaultValue={['section-0', 'section-1']}>
-            {sopData.sop.sections.map((section, idx) => (
+            {(sopData?.sop?.sections || []).map((section, idx) => (
               <AccordionItem key={idx} value={`section-${idx}`} className={isDark ? 'border-zinc-700' : ''}>
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-2">
@@ -1202,7 +1202,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-2 pl-6">
-                    {section.checklist.map((item, itemIdx) => (
+                    {(section?.checklist || []).map((item, itemIdx) => (
                       <div key={itemIdx} className={`flex items-start gap-2 p-2 rounded ${isDark ? 'bg-zinc-800/50' : 'bg-zinc-50'}`}>
                         <ArrowRight className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                         <span className="text-sm">{item}</span>
@@ -1236,7 +1236,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
               Warnings & Cautions
             </h4>
             <ul className="space-y-2">
-              {sopData.sop.warnings.map((warning, idx) => (
+              {(sopData?.sop?.warnings || []).map((warning, idx) => (
                 <li key={idx} className={`text-sm flex items-start gap-2 ${isDark ? 'text-red-300' : 'text-red-700'}`}>
                   <span className="text-red-500">•</span>
                   {warning}
@@ -1252,7 +1252,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
               Best Practices
             </h4>
             <ul className="space-y-2">
-              {sopData.sop.bestPractices.map((practice, idx) => (
+              {(sopData?.sop?.bestPractices || []).map((practice, idx) => (
                 <li key={idx} className={`text-sm flex items-start gap-2 ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
                   <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                   {practice}
@@ -1287,7 +1287,7 @@ const QuickTipsTooltip = ({ policyType, children, isDark }) => {
           <div className="space-y-2">
             <p className="font-semibold text-sm">{sopData.title}</p>
             <ul className="space-y-1">
-              {sopData.quickTips.map((tip, idx) => (
+              {(sopData?.quickTips || []).map((tip, idx) => (
                 <li key={idx} className="text-xs flex items-start gap-1.5">
                   <Zap className="w-3 h-3 text-amber-500 mt-0.5 flex-shrink-0" />
                   {tip}
@@ -1564,7 +1564,7 @@ const BusinessRules = () => {
     
     const currentDays = attendanceConfig.working_days || [];
     const newDays = currentDays.includes(day)
-      ? currentDays.filter(d => d !== day)
+      ? (currentDays || []).filter(d => d !== day)
       : [...currentDays, day];
     
     // Maintain day order
@@ -1578,7 +1578,7 @@ const BusinessRules = () => {
   const toggleOverrideWorkingDay = (day) => {
     const currentDays = newOverride.working_days || [];
     const newDays = currentDays.includes(day)
-      ? currentDays.filter(d => d !== day)
+      ? (currentDays || []).filter(d => d !== day)
       : [...currentDays, day];
     
     const orderedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -1588,7 +1588,7 @@ const BusinessRules = () => {
   };
   
   // Filter policies
-  const filteredPolicies = policies.filter(p => {
+  const filteredPolicies = (policies || []).filter(p => {
     if (activeTab !== 'all' && p.policy_type !== activeTab) return false;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -1600,7 +1600,7 @@ const BusinessRules = () => {
   });
   
   // Group policies by type
-  const policiesByType = policies.reduce((acc, p) => {
+  const policiesByType = (policies || []).reduce((acc, p) => {
     if (!acc[p.policy_type]) acc[p.policy_type] = [];
     acc[p.policy_type].push(p);
     return acc;
@@ -1729,12 +1729,12 @@ const BusinessRules = () => {
     
     // If it's a simple key-value object, format nicely
     if (typeof conditions === 'object') {
-      const entries = Object.entries(conditions);
+      const entries = Object.entries(conditions || {});
       if (entries.length === 0) return null;
       
       // Check for slab-based conditions (like Professional Tax)
-      if (entries.some(([k]) => k.startsWith('slab'))) {
-        return entries.filter(([k]) => k.startsWith('slab')).map(([key, val]) => {
+      if ((entries || []).some(([k]) => k.startsWith('slab'))) {
+        return (entries || []).filter(([k]) => k.startsWith('slab')).map(([key, val]) => {
           if (typeof val === 'object' && val.min !== undefined) {
             return `WHEN ₹${val.min?.toLocaleString('en-IN') || 0} - ₹${val.max?.toLocaleString('en-IN') || '∞'} THEN ₹${val.tax || 0}`;
           }
@@ -1744,16 +1744,16 @@ const BusinessRules = () => {
       
       // Check for formula conditions - show prominently for FORMULA type
       if (conditions.formula) {
-        const otherConditions = entries.filter(([k]) => k !== 'formula');
+        const otherConditions = (entries || []).filter(([k]) => k !== 'formula');
         let result = `FORMULA: ${conditions.formula}`;
         if (otherConditions.length > 0) {
-          result += ' | ' + otherConditions.map(([k, v]) => `${k}=${v}`).join(', ');
+          result += ' | ' + (otherConditions || []).map(([k, v]) => `${k}=${v}`).join(', ');
         }
         return result;
       }
       
       // Format as key=value pairs with AND
-      return entries.map(([key, val]) => {
+      return (entries || []).map(([key, val]) => {
         if (typeof val === 'boolean') {
           return val ? key : `NOT ${key}`;
         }
@@ -1924,14 +1924,14 @@ const BusinessRules = () => {
             </div>
             
             {/* Payroll Integration Info */}
-            {policy.payroll_integration && Object.keys(policy.payroll_integration).length > 0 && (
+            {policy.payroll_integration && Object.keys(policy.payroll_integration || {}).length > 0 && (
               <div className={`mt-4 p-3 rounded-lg ${isDark ? 'bg-emerald-900/20 border border-emerald-800' : 'bg-emerald-50 border border-emerald-200'}`}>
                 <h5 className="font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-2 mb-2">
                   <IndianRupee className="w-4 h-4" />
                   Payroll Integration
                 </h5>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  {Object.entries(policy.payroll_integration).map(([key, value]) => (
+                  {Object.entries(policy.payroll_integration || {}).map(([key, value]) => (
                     <div key={key}>
                       <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
                         {key.replace(/_/g, ' ')}: 
@@ -1946,14 +1946,14 @@ const BusinessRules = () => {
             )}
             
             {/* CTC Linkage Info */}
-            {policy.ctc_linkage && Object.keys(policy.ctc_linkage).length > 0 && (
+            {policy.ctc_linkage && Object.keys(policy.ctc_linkage || {}).length > 0 && (
               <div className={`mt-4 p-3 rounded-lg ${isDark ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
                 <h5 className="font-medium text-blue-700 dark:text-blue-400 flex items-center gap-2 mb-2">
                   <Calculator className="w-4 h-4" />
                   CTC Component Linkage
                 </h5>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  {Object.entries(policy.ctc_linkage).map(([key, value]) => (
+                  {Object.entries(policy.ctc_linkage || {}).map(([key, value]) => (
                     <div key={key}>
                       <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>
                         {key.replace(/_/g, ' ')}: 
@@ -2047,7 +2047,7 @@ const BusinessRules = () => {
                 
                 {/* Quick Tips - Visible Summary */}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {POLICY_SOP_DATA[activeTab].quickTips.map((tip, idx) => (
+                  {(POLICY_SOP_DATA[activeTab]?.quickTips || []).map((tip, idx) => (
                     <div key={idx} className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${isDark ? 'bg-zinc-700 text-zinc-300' : 'bg-zinc-100 text-zinc-600'}`}>
                       <Lightbulb className="w-3 h-3 text-amber-500" />
                       {tip}
@@ -2058,7 +2058,7 @@ const BusinessRules = () => {
                 {/* Impact Badges */}
                 <div className="mt-3 flex items-center gap-3">
                   <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Impacts:</span>
-                  {POLICY_SOP_DATA[activeTab].impacts.map((impact, idx) => (
+                  {(POLICY_SOP_DATA[activeTab]?.impacts || []).map((impact, idx) => (
                     <Badge key={idx} variant="outline" className={`text-xs ${
                       impact.impact === 'Critical' ? 'border-red-300 text-red-600' :
                       impact.impact === 'High' ? 'border-amber-300 text-amber-600' :
@@ -2134,7 +2134,7 @@ const BusinessRules = () => {
         {policyTypes?.policy_types?.map(pt => {
           const Icon = POLICY_TYPE_ICONS[pt.id] || FileText;
           const policyList = policiesByType[pt.id] || [];
-          const totalRules = policyList.reduce((sum, p) => sum + (p.rules?.length || 0), 0);
+          const totalRules = (policyList || []).reduce((sum, p) => sum + (p.rules?.length || 0), 0);
           const sopData = POLICY_SOP_DATA[pt.id];
           
           return (
@@ -2394,7 +2394,7 @@ const BusinessRules = () => {
                       Role-wise Overrides ({attendanceOverrides.total_role_overrides})
                     </p>
                     <div className="space-y-2">
-                      {attendanceOverrides.role_overrides.map(override => {
+                      {(attendanceOverrides?.role_overrides || []).map(override => {
                         const rules = override.rules?.reduce((acc, r) => ({ ...acc, [r.rule_id]: r }), {}) || {};
                         return (
                           <div 
@@ -2431,7 +2431,7 @@ const BusinessRules = () => {
                       Employee-wise Overrides ({attendanceOverrides.total_employee_overrides})
                     </p>
                     <div className="space-y-2">
-                      {attendanceOverrides.employee_overrides.map(override => {
+                      {(attendanceOverrides?.employee_overrides || []).map(override => {
                         const rules = override.rules?.reduce((acc, r) => ({ ...acc, [r.rule_id]: r }), {}) || {};
                         return (
                           <div 
@@ -2488,7 +2488,7 @@ const BusinessRules = () => {
             </p>
           </div>
         ) : (
-          filteredPolicies.map(policy => renderPolicyCard(policy))
+          (filteredPolicies || []).map(policy => renderPolicyCard(policy))
         )}
       </div>
       
@@ -2601,7 +2601,7 @@ const BusinessRules = () => {
                       <SelectValue placeholder="Who does this apply to?" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {APPLIES_TO_OPTIONS.scope_type.map(opt => (
+                      {(APPLIES_TO_OPTIONS?.scope_type || []).map(opt => (
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
                         </SelectItem>
@@ -2647,37 +2647,37 @@ const BusinessRules = () => {
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
                         {editingRule.applies_to.scope_type === 'by_department' && 
-                          APPLIES_TO_OPTIONS.departments.map(opt => (
+                          (APPLIES_TO_OPTIONS?.departments || []).map(opt => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))
                         }
                         {editingRule.applies_to.scope_type === 'by_role' && 
-                          APPLIES_TO_OPTIONS.roles.map(opt => (
+                          (APPLIES_TO_OPTIONS?.roles || []).map(opt => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))
                         }
                         {editingRule.applies_to.scope_type === 'by_grade' && 
-                          APPLIES_TO_OPTIONS.grades.map(opt => (
+                          (APPLIES_TO_OPTIONS?.grades || []).map(opt => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))
                         }
                         {editingRule.applies_to.scope_type === 'by_employment_type' && 
-                          APPLIES_TO_OPTIONS.employment_types.map(opt => (
+                          (APPLIES_TO_OPTIONS?.employment_types || []).map(opt => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))
                         }
                         {editingRule.applies_to.scope_type === 'by_location' && 
-                          APPLIES_TO_OPTIONS.locations.map(opt => (
+                          (APPLIES_TO_OPTIONS?.locations || []).map(opt => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))
                         }
                         {editingRule.applies_to.scope_type === 'by_experience' && 
-                          APPLIES_TO_OPTIONS.experience_ranges.map(opt => (
+                          (APPLIES_TO_OPTIONS?.experience_ranges || []).map(opt => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))
                         }
                         {editingRule.applies_to.scope_type === 'by_ctc_range' && 
-                          APPLIES_TO_OPTIONS.ctc_ranges.map(opt => (
+                          (APPLIES_TO_OPTIONS?.ctc_ranges || []).map(opt => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))
                         }
@@ -3065,7 +3065,7 @@ const BusinessRules = () => {
                           onValueChange={(empId) => {
                             setSelectedEmployeeId(empId);
                             if (empId && empId !== 'manual') {
-                              const emp = employeesList.find(e => e.id === empId || e.employee_id === empId);
+                              const emp = (employeesList || []).find(e => e.id === empId || e.employee_id === empId);
                               if (emp) {
                                 // Calculate annual CTC from monthly gross salary (multiply by 12)
                                 const annualCTC = (emp.gross_salary || emp.salary || 0) * 12;
@@ -3127,7 +3127,7 @@ const BusinessRules = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="manual">✏️ Enter manually</SelectItem>
-                            {employeesList.map(emp => (
+                            {(employeesList || []).map(emp => (
                               <SelectItem key={emp.id || emp.employee_id} value={emp.id || emp.employee_id}>
                                 {emp.employee_id} - {emp.first_name} {emp.last_name} ({emp.department}, ₹{((emp.gross_salary || emp.salary || 0) * 12).toLocaleString('en-IN')}/yr)
                               </SelectItem>
@@ -3185,7 +3185,7 @@ const BusinessRules = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {APPLIES_TO_OPTIONS.departments.map(d => (
+                              {(APPLIES_TO_OPTIONS?.departments || []).map(d => (
                                 <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
                               ))}
                             </SelectContent>
@@ -3201,7 +3201,7 @@ const BusinessRules = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {APPLIES_TO_OPTIONS.roles.map(r => (
+                              {(APPLIES_TO_OPTIONS?.roles || []).map(r => (
                                 <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                               ))}
                             </SelectContent>
@@ -3217,7 +3217,7 @@ const BusinessRules = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {APPLIES_TO_OPTIONS.grades.map(g => (
+                              {(APPLIES_TO_OPTIONS?.grades || []).map(g => (
                                 <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
                               ))}
                             </SelectContent>
@@ -3233,7 +3233,7 @@ const BusinessRules = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {APPLIES_TO_OPTIONS.locations.map(l => (
+                              {(APPLIES_TO_OPTIONS?.locations || []).map(l => (
                                 <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
                               ))}
                             </SelectContent>
@@ -3652,7 +3652,7 @@ const BusinessRules = () => {
                     <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
                       <h5 className="text-xs font-medium mb-2">Rules Applied</h5>
                       <div className="flex flex-wrap gap-1">
-                        {simulationResult.rules_applied.map(rule => (
+                        {(simulationResult?.rules_applied || []).map(rule => (
                           <Badge key={rule} variant="outline" className="text-xs">
                             {rule}
                           </Badge>
@@ -3731,7 +3731,7 @@ const BusinessRules = () => {
                     <SelectValue placeholder="Select a role..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {APPLIES_TO_OPTIONS.roles.map(role => (
+                    {(APPLIES_TO_OPTIONS?.roles || []).map(role => (
                       <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -3748,7 +3748,7 @@ const BusinessRules = () => {
                     <SelectValue placeholder="Select an employee..." />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {employeesList.map(emp => (
+                    {(employeesList || []).map(emp => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.employee_id} - {emp.first_name} {emp.last_name} ({emp.department || '-'})
                       </SelectItem>

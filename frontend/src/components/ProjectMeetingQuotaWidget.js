@@ -32,7 +32,7 @@ const ProjectMeetingQuotaWidget = ({ limit = 5 }) => {
       
       // Fetch meeting status for each project
       const projectsWithStatus = await Promise.all(
-        projectList.slice(0, limit).map(async (project) => {
+        (projectList || []).slice(0, limit).map(async (project) => {
           try {
             const statusRes = await axios.get(`${API}/meeting-schedules/project/${project.id}/meeting-status`);
             return { ...project, meetingStatus: statusRes.data };
@@ -139,9 +139,9 @@ const ProjectMeetingQuotaWidget = ({ limit = 5 }) => {
   }
 
   // Calculate summary stats
-  const totalCommitted = projects.reduce((sum, p) => sum + (p.meetingStatus?.total_committed || 0), 0);
-  const totalDelivered = projects.reduce((sum, p) => sum + (p.meetingStatus?.total_delivered || 0), 0);
-  const projectsNeedingApproval = projects.filter(p => p.meetingStatus?.needs_approval).length;
+  const totalCommitted = (projects || []).reduce((sum, p) => sum + (p.meetingStatus?.total_committed || 0), 0);
+  const totalDelivered = (projects || []).reduce((sum, p) => sum + (p.meetingStatus?.total_delivered || 0), 0);
+  const projectsNeedingApproval = (projects || []).filter(p => p.meetingStatus?.needs_approval).length;
 
   return (
     <Card data-testid="meeting-quota-widget">
@@ -175,7 +175,7 @@ const ProjectMeetingQuotaWidget = ({ limit = 5 }) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {projects.map((project) => {
+        {(projects || []).map((project) => {
           const status = project.meetingStatus || {};
           const percentage = status.percentage_used || 0;
           

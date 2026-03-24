@@ -40,11 +40,11 @@ const SalesScopeSelection = () => {
     queryKey: ['pricing-plan-data', pricingPlanId],
     queryFn: async () => {
       const plansRes = await axios.get(`${API}/pricing-plans`);
-      const plan = plansRes.data.find(p => p.id === pricingPlanId);
+      const plan = (plansRes?.data || []).find(p => p.id === pricingPlanId);
       let lead = null;
       if (plan?.lead_id) {
         const leadsRes = await axios.get(`${API}/leads`);
-        lead = leadsRes.data.find(l => l.id === plan.lead_id);
+        lead = (leadsRes?.data || []).find(l => l.id === plan.lead_id);
       }
       return { pricingPlan: plan, lead };
     },
@@ -86,14 +86,14 @@ const SalesScopeSelection = () => {
   };
 
   const toggleCategory = (categoryScopes) => {
-    const scopeIds = categoryScopes.map(s => s.id);
-    const allSelected = scopeIds.every(id => selectedScopes.has(id));
+    const scopeIds = (categoryScopes || []).map(s => s.id);
+    const allSelected = (scopeIds || []).every(id => selectedScopes.has(id));
     
     const newSelected = new Set(selectedScopes);
     if (allSelected) {
-      scopeIds.forEach(id => newSelected.delete(id));
+      (scopeIds || []).forEach(id => newSelected.delete(id));
     } else {
-      scopeIds.forEach(id => newSelected.add(id));
+      (scopeIds || []).forEach(id => newSelected.add(id));
     }
     setSelectedScopes(newSelected);
   };
@@ -111,7 +111,7 @@ const SalesScopeSelection = () => {
   };
 
   const removeCustomScope = (customId) => {
-    setCustomScopes(customScopes.filter(s => s.id !== customId));
+    setCustomScopes((customScopes || []).filter(s => s.id !== customId));
   };
 
   const handleSubmit = async () => {
@@ -125,7 +125,7 @@ const SalesScopeSelection = () => {
     try {
       const payload = {
         scope_template_ids: Array.from(selectedScopes),
-        custom_scopes: customScopes.map(s => ({
+        custom_scopes: (customScopes || []).map(s => ({
           name: s.name,
           category_id: s.category_id,
           description: s.description
@@ -147,9 +147,9 @@ const SalesScopeSelection = () => {
     }
   };
 
-  const filteredGroupedScopes = groupedScopes.map(group => ({
+  const filteredGroupedScopes = (groupedScopes || []).map(group => ({
     ...group,
-    scopes: group.scopes.filter(scope => 
+    scopes: (group?.scopes || []).filter(scope => 
       scope.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       scope.description?.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -280,8 +280,8 @@ const SalesScopeSelection = () => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-blue-200">
-              {customScopes.map(scope => {
-                const category = groupedScopes.find(g => g.category.id === scope.category_id)?.category;
+              {(customScopes || []).map(scope => {
+                const category = (groupedScopes || []).find(g => g.category.id === scope.category_id)?.category;
                 return (
                   <div 
                     key={scope.id} 
@@ -315,9 +315,9 @@ const SalesScopeSelection = () => {
 
       {/* Scope Table - Categories with 2 scopes per row */}
       <div className="space-y-4">
-        {filteredGroupedScopes.map(group => {
+        {(filteredGroupedScopes || []).map(group => {
           const categoryScopes = group.scopes;
-          const selectedInCategory = categoryScopes.filter(s => selectedScopes.has(s.id)).length;
+          const selectedInCategory = (categoryScopes || []).filter(s => selectedScopes.has(s.id)).length;
           const allSelected = selectedInCategory === categoryScopes.length && categoryScopes.length > 0;
           
           // Create pairs of scopes (2 per row)
@@ -358,9 +358,9 @@ const SalesScopeSelection = () => {
               <CardContent className="p-4">
                 {/* Table View - 2 scopes per row */}
                 <div className="space-y-2">
-                  {scopePairs.map((pair, pairIndex) => (
+                  {(scopePairs || []).map((pair, pairIndex) => (
                     <div key={pairIndex} className="grid grid-cols-2 gap-3">
-                      {pair.map(scope => {
+                      {(pair || []).map(scope => {
                         const isSelected = selectedScopes.has(scope.id);
                         return (
                           <div
@@ -456,7 +456,7 @@ const SalesScopeSelection = () => {
                 data-testid="custom-scope-category"
               >
                 <option value="">Select category...</option>
-                {groupedScopes.map(group => (
+                {(groupedScopes || []).map(group => (
                   <option key={group.category.id} value={group.category.id}>
                     {group.category.name}
                   </option>

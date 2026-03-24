@@ -108,8 +108,8 @@ const Settings = () => {
       </div>
 
       <div className="space-y-8">
-        {settingsGroups.map((group) => {
-          const visibleItems = group.items.filter(item => item.show);
+        {(settingsGroups || []).map((group) => {
+          const visibleItems = (group?.items || []).filter(item => item.show);
           if (visibleItems.length === 0) return null;
 
           return (
@@ -118,7 +118,7 @@ const Settings = () => {
               <p className="text-sm text-zinc-500 mb-4">{group.description}</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visibleItems.map((item) => {
+                {(visibleItems || []).map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link

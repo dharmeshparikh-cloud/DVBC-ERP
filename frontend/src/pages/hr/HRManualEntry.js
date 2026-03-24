@@ -208,7 +208,7 @@ const HRManualEntry = () => {
   // Bulk mark attendance
   const bulkMarkAttendanceMutation = useMutation({
     mutationFn: async () => {
-      const records = Object.entries(bulkAttendance).map(([empId, status]) => ({
+      const records = Object.entries(bulkAttendance || {}).map(([empId, status]) => ({
         employee_id: empId,
         status
       }));
@@ -250,7 +250,7 @@ const HRManualEntry = () => {
   });
 
   // Filter employees
-  const filteredEmployees = allEmployees.filter(emp => {
+  const filteredEmployees = (allEmployees || []).filter(emp => {
     if (!searchQuery) return true;
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -260,7 +260,7 @@ const HRManualEntry = () => {
   });
 
   // Filter pending leaves
-  const pendingLeaves = leaveRequestsData.filter(l => l.status === 'pending' || l.rm_status === 'pending');
+  const pendingLeaves = (leaveRequestsData || []).filter(l => l.status === 'pending' || l.rm_status === 'pending');
 
   if (!canManage) {
     return (
@@ -362,7 +362,7 @@ const HRManualEntry = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingLeaves.slice(0, 10).map(leave => (
+                    {(pendingLeaves || []).slice(0, 10).map(leave => (
                       <TableRow key={leave.id || leave._id}>
                         <TableCell>
                           <div className="font-medium">{leave.employee_name || leave.employee_id}</div>
@@ -489,8 +489,8 @@ const HRManualEntry = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {customPolicies.map(policy => {
-                    const emp = allEmployees.find(e => e.id === policy.employee_id || e.employee_id === policy.employee_id);
+                  {(customPolicies || []).map(policy => {
+                    const emp = (allEmployees || []).find(e => e.id === policy.employee_id || e.employee_id === policy.employee_id);
                     return (
                       <div key={policy.employee_id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
                         <div>
@@ -532,7 +532,7 @@ const HRManualEntry = () => {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredEmployees.map(emp => (
+                  {(filteredEmployees || []).map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.first_name} {emp.last_name} ({emp.employee_id})
                     </SelectItem>
@@ -628,7 +628,7 @@ const HRManualEntry = () => {
             <div className="space-y-2">
               <Label>Select Employees (or leave empty for all)</Label>
               <div className="max-h-[200px] overflow-y-auto border rounded-md p-2">
-                {filteredEmployees.map(emp => (
+                {(filteredEmployees || []).map(emp => (
                   <label key={emp.id} className="flex items-center gap-2 p-1 hover:bg-zinc-50 cursor-pointer">
                     <input
                       type="checkbox"
@@ -638,7 +638,7 @@ const HRManualEntry = () => {
                           ...p,
                           employee_ids: e.target.checked
                             ? [...p.employee_ids, emp.id]
-                            : p.employee_ids.filter(id => id !== emp.id)
+                            : (p?.employee_ids || []).filter(id => id !== emp.id)
                         }));
                       }}
                     />
@@ -670,7 +670,7 @@ const HRManualEntry = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEmployees.slice(0, 50).map(emp => (
+                {(filteredEmployees || []).slice(0, 50).map(emp => (
                   <TableRow key={emp.id}>
                     <TableCell>
                       <div className="font-medium text-sm">{emp.first_name} {emp.last_name}</div>
@@ -719,7 +719,7 @@ const HRManualEntry = () => {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredEmployees.filter(emp => !customPolicies.some(p => p.employee_id === emp.id)).map(emp => (
+                  {(filteredEmployees || []).filter(emp => !(customPolicies || []).some(p => p.employee_id === emp.id)).map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.first_name} {emp.last_name}
                     </SelectItem>

@@ -126,7 +126,7 @@ const GuidedSalesSidebar = ({
 
   return (
     <>
-      {visibleItems.map(item => (
+      {(visibleItems || []).map(item => (
         <div key={item.key} className="relative">
           {accessMode !== 'guided' && item.stage && (
             <div className="absolute left-2 top-1/2 -translate-y-1/2 z-10">
@@ -176,7 +176,7 @@ const GuidedSalesSidebar = ({
             Your Progress
           </div>
           <div className="flex items-center gap-1">
-            {roleConfig.visibleStages.map((stage, idx) => {
+            {(roleConfig?.visibleStages || []).map((stage, idx) => {
               const stageIdx = STAGE_ORDER.indexOf(stage);
               const isCompleted = stageIdx < currentStageIdx;
               const isCurrent = stageIdx === currentStageIdx;

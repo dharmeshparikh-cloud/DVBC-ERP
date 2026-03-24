@@ -88,7 +88,7 @@ const DepartmentAccessManager = () => {
   useEffect(() => {
     if (configuredDepts.length > 0) {
       const deptObj = {};
-      configuredDepts.forEach(d => {
+      (configuredDepts || []).forEach(d => {
         deptObj[d.name] = {
           icon: DEPT_CONFIG[d.name]?.icon || Building2,
           color: `bg-[${d.color}]`,
@@ -115,7 +115,7 @@ const DepartmentAccessManager = () => {
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(e => 
+      filtered = (filtered || []).filter(e => 
         `${e.first_name} ${e.last_name}`.toLowerCase().includes(query) ||
         e.employee_id?.toLowerCase().includes(query) ||
         e.email?.toLowerCase().includes(query)
@@ -123,7 +123,7 @@ const DepartmentAccessManager = () => {
     }
     
     if (selectedDept !== 'all') {
-      filtered = filtered.filter(e => 
+      filtered = (filtered || []).filter(e => 
         e.departments?.includes(selectedDept) ||
         e.primary_department === selectedDept ||
         e.department === selectedDept ||
@@ -158,7 +158,7 @@ const DepartmentAccessManager = () => {
         toast.error('Employee must have at least one department');
         return;
       }
-      const newDepts = current.filter(d => d !== dept);
+      const newDepts = (current || []).filter(d => d !== dept);
       setEditForm({
         ...editForm,
         departments: newDepts,
@@ -303,7 +303,7 @@ const DepartmentAccessManager = () => {
     if (selectedIds.length === filteredEmployees.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(filteredEmployees.map(e => e.id));
+      setSelectedIds((filteredEmployees || []).map(e => e.id));
     }
   };
 
@@ -361,7 +361,7 @@ const DepartmentAccessManager = () => {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {Object.entries(DEPT_CONFIG).map(([dept, config]) => {
+          {Object.entries(DEPT_CONFIG || {}).map(([dept, config]) => {
             const Icon = config.icon;
             const count = stats.by_department?.[dept] || 0;
             return (
@@ -434,7 +434,7 @@ const DepartmentAccessManager = () => {
           >
             All ({employees.length})
           </Button>
-          {Object.keys(DEPT_CONFIG).map(dept => (
+          {Object.keys(DEPT_CONFIG || {}).map(dept => (
             <Button
               key={dept}
               variant={selectedDept === dept ? 'default' : 'outline'}
@@ -477,7 +477,7 @@ const DepartmentAccessManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredEmployees.map((emp) => {
+                {(filteredEmployees || []).map((emp) => {
                   const depts = emp.departments || (emp.department ? [emp.department] : []);
                   const primaryDept = emp.primary_department || emp.department;
                   const hasSpecialPerms = emp.additional_departments?.length > 0 || emp.temporary_role;
@@ -491,7 +491,7 @@ const DepartmentAccessManager = () => {
                               if (checked) {
                                 setSelectedIds([...selectedIds, emp.id]);
                               } else {
-                                setSelectedIds(selectedIds.filter(id => id !== emp.id));
+                                setSelectedIds((selectedIds || []).filter(id => id !== emp.id));
                               }
                             }}
                           />
@@ -507,7 +507,7 @@ const DepartmentAccessManager = () => {
                       <td className="p-2">
                         <div className="flex flex-wrap gap-1">
                           {depts.length > 0 ? (
-                            depts.map(d => (
+                            (depts || []).map(d => (
                               <DeptBadge key={d} dept={d} isPrimary={d === primaryDept} />
                             ))
                           ) : (
@@ -584,7 +584,7 @@ const DepartmentAccessManager = () => {
               <div>
                 <label className="text-sm font-medium mb-2 block">Departments</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(DEPT_CONFIG).map(([dept, config]) => {
+                  {Object.entries(DEPT_CONFIG || {}).map(([dept, config]) => {
                     const Icon = config.icon;
                     const isSelected = editForm.departments.includes(dept);
                     const isPrimary = editForm.primary_department === dept;
@@ -652,7 +652,7 @@ const DepartmentAccessManager = () => {
             <div>
               <label className="text-sm font-medium mb-2 block">Add Departments</label>
               <div className="flex flex-wrap gap-2">
-                {Object.keys(DEPT_CONFIG).map(dept => (
+                {Object.keys(DEPT_CONFIG || {}).map(dept => (
                   <Button
                     key={dept}
                     variant={bulkForm.add.includes(dept) ? 'default' : 'outline'}
@@ -660,12 +660,12 @@ const DepartmentAccessManager = () => {
                     data-testid={`add-dept-${dept.toLowerCase()}`}
                     onClick={() => {
                       if (bulkForm.add.includes(dept)) {
-                        setBulkForm({ ...bulkForm, add: bulkForm.add.filter(d => d !== dept) });
+                        setBulkForm({ ...bulkForm, add: (bulkForm?.add || []).filter(d => d !== dept) });
                       } else {
                         setBulkForm({ 
                           ...bulkForm, 
                           add: [...bulkForm.add, dept],
-                          remove: bulkForm.remove.filter(d => d !== dept)
+                          remove: (bulkForm?.remove || []).filter(d => d !== dept)
                         });
                       }
                     }}
@@ -679,19 +679,19 @@ const DepartmentAccessManager = () => {
             <div>
               <label className="text-sm font-medium mb-2 block">Remove Departments</label>
               <div className="flex flex-wrap gap-2">
-                {Object.keys(DEPT_CONFIG).map(dept => (
+                {Object.keys(DEPT_CONFIG || {}).map(dept => (
                   <Button
                     key={dept}
                     variant={bulkForm.remove.includes(dept) ? 'destructive' : 'outline'}
                     size="sm"
                     onClick={() => {
                       if (bulkForm.remove.includes(dept)) {
-                        setBulkForm({ ...bulkForm, remove: bulkForm.remove.filter(d => d !== dept) });
+                        setBulkForm({ ...bulkForm, remove: (bulkForm?.remove || []).filter(d => d !== dept) });
                       } else {
                         setBulkForm({ 
                           ...bulkForm, 
                           remove: [...bulkForm.remove, dept],
-                          add: bulkForm.add.filter(d => d !== dept)
+                          add: (bulkForm?.add || []).filter(d => d !== dept)
                         });
                       }
                     }}
@@ -762,7 +762,7 @@ const DepartmentAccessManager = () => {
                       Grant access to pages from other departments beyond their primary assignment
                     </p>
                     <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(DEPT_CONFIG).map(([dept, config]) => {
+                      {Object.entries(DEPT_CONFIG || {}).map(([dept, config]) => {
                         const Icon = config.icon;
                         const isBase = selectedEmployee.base_departments?.includes(dept);
                         const isAdditional = specialForm.additional_departments.includes(dept);
@@ -778,7 +778,7 @@ const DepartmentAccessManager = () => {
                               if (isAdditional) {
                                 setSpecialForm({
                                   ...specialForm,
-                                  additional_departments: specialForm.additional_departments.filter(d => d !== dept)
+                                  additional_departments: (specialForm?.additional_departments || []).filter(d => d !== dept)
                                 });
                               } else {
                                 setSpecialForm({
@@ -813,7 +813,7 @@ const DepartmentAccessManager = () => {
                       Allow this employee to approve leaves/expenses for other departments
                     </p>
                     <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(DEPT_CONFIG).map(([dept, config]) => {
+                      {Object.entries(DEPT_CONFIG || {}).map(([dept, config]) => {
                         const Icon = config.icon;
                         const canApprove = specialForm.can_approve_for_departments.includes(dept);
                         return (
@@ -826,7 +826,7 @@ const DepartmentAccessManager = () => {
                               if (canApprove) {
                                 setSpecialForm({
                                   ...specialForm,
-                                  can_approve_for_departments: specialForm.can_approve_for_departments.filter(d => d !== dept)
+                                  can_approve_for_departments: (specialForm?.can_approve_for_departments || []).filter(d => d !== dept)
                                 });
                               } else {
                                 setSpecialForm({

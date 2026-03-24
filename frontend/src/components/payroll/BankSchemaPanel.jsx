@@ -173,7 +173,7 @@ const BankSchemaPanel = ({ API, authHeaders }) => {
               <div className="mt-4">
                 <div className="text-sm font-medium text-zinc-700 mb-2">Employees with missing details:</div>
                 <div className="space-y-2">
-                  {bankStatus.incomplete_employees.map((emp, idx) => (
+                  {bankStatus.incomplete_(employees || []).map((emp, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2 border border-zinc-200 rounded">
                       <div>
                         <span className="font-medium">{emp.employee_code}</span>
@@ -282,7 +282,7 @@ const BankSchemaPanel = ({ API, authHeaders }) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {schemaStatus.old_format_samples.map((emp, idx) => (
+              {(schemaStatus?.old_format_samples || []).map((emp, idx) => (
                 <div key={idx} className="flex items-center justify-between p-2 bg-zinc-50 rounded">
                   <div>
                     <span className="font-medium">{emp.employee_id}</span>

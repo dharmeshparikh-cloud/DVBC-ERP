@@ -99,12 +99,12 @@ const ExitManagement = () => {
       
       // Create a map of settlements by employee_id for quick lookup
       const settlementMap = {};
-      settlements.forEach(s => {
+      (settlements || []).forEach(s => {
         settlementMap[s.employee_id] = s;
       });
       
       // Merge settlement data (especially clearance) into exit requests
-      const mergedRequests = exitRequests.map(req => {
+      const mergedRequests = (exitRequests || []).map(req => {
         const settlement = settlementMap[req.employee_id];
         if (settlement) {
           return {
@@ -313,7 +313,7 @@ const ExitManagement = () => {
   
   const allClearancesDone = (request) => {
     if (!request.clearance) return false;
-    return Object.values(request.clearance).every(c => c.status === 'cleared');
+    return Object.values(request.clearance || {}).every(c => c.status === 'cleared');
   };
   
   // Actions
@@ -474,7 +474,7 @@ const ExitManagement = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {requests.map(request => (
+          {(requests || []).map(request => (
             <Card 
               key={request.id} 
               className={`${isDark ? 'bg-zinc-800 border-zinc-700' : ''} hover:shadow-md transition-shadow`}
@@ -588,7 +588,7 @@ const ExitManagement = () => {
                 </div>
                 
                 {/* Progress Bar */}
-                {!['completed', 'rejected', 'cancelled'].includes(request.status) && (
+                {request?.status && !['completed', 'rejected', 'cancelled'].includes(request.status) && (
                   <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
                     <div className="flex items-center justify-between text-xs">
                       {['Submitted', 'Admin', 'HR', 'Clearance', 'F&F', 'Payment'].map((step, idx) => {
@@ -637,7 +637,7 @@ const ExitManagement = () => {
                   <SelectValue placeholder="Choose employee..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map(emp => (
+                  {(employees || []).map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.employee_id} - {emp.first_name} {emp.last_name} ({emp.department})
                     </SelectItem>
@@ -772,7 +772,7 @@ const ExitManagement = () => {
                 <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
                   <h4 className="font-medium mb-3">Clearance Status</h4>
                   <div className="grid grid-cols-5 gap-2">
-                    {Object.entries(selectedRequest.clearance).map(([dept, data]) => (
+                    {Object.entries(selectedRequest.clearance || {}).map(([dept, data]) => (
                       <div key={dept} className={`p-2 rounded text-center text-xs ${
                         data.status === 'cleared' ? 'bg-green-100 text-green-700' :
                         data.status === 'blocked' ? 'bg-red-100 text-red-700' :
@@ -791,7 +791,7 @@ const ExitManagement = () => {
                 <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
                   <h4 className="font-medium mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" />Exit Interview</h4>
                   <div className="space-y-2 text-sm">
-                    {Object.entries(selectedRequest.exit_interview).map(([key, value]) => (
+                    {Object.entries(selectedRequest.exit_interview || {}).map(([key, value]) => (
                       <div key={key} className={`p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'}`}>
                         <Label className="text-xs text-zinc-500 capitalize">{key.replace('_', ' ')}</Label>
                         <p className="mt-1">
@@ -900,7 +900,7 @@ const ExitManagement = () => {
           {selectedRequest?.clearance && (
             <div className="py-4 space-y-4">
               <div className="grid grid-cols-5 gap-3">
-                {Object.entries(selectedRequest.clearance).map(([dept, data]) => {
+                {Object.entries(selectedRequest.clearance || {}).map(([dept, data]) => {
                   const isCleared = data.status === 'cleared';
                   const isBlocked = data.status === 'blocked';
                   

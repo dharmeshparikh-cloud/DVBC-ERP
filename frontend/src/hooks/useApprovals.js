@@ -195,7 +195,7 @@ export const useAgreementApprovals = (enabled = false, options = {}) => {
     queryFn: async () => {
       const res = await axios.get(`${API}/api/agreements/pending-approval`, { headers: getHeaders() });
       const data = extractArray(res.data);
-      return data.map(item => item.agreement || item);
+      return (data || []).map(item => item.agreement || item);
     },
     enabled,
     staleTime: 60000,
@@ -758,7 +758,7 @@ export const useBulkApprovalAction = () => {
   return useMutation({
     mutationFn: async ({ ids, action, comments }) => {
       const results = await Promise.all(
-        ids.map(id => 
+        (ids || []).map(id => 
           axios.post(
             `${API}/api/approvals/${id}/action`,
             { action, comments },

@@ -115,7 +115,7 @@ const RBACWidget = () => {
             <div>
               <div className="text-[10px] uppercase tracking-wide text-zinc-400 mb-2">Permissions</div>
               <div className="grid grid-cols-2 gap-2">
-                {permissionIndicators.map((perm) => {
+                {(permissionIndicators || []).map((perm) => {
                   const PermIcon = perm.icon;
                   return (
                     <div 
@@ -145,7 +145,7 @@ const RBACWidget = () => {
                   Active Permissions ({permissions.raw_permissions.length})
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {permissions.raw_permissions.slice(0, 6).map((perm, idx) => (
+                  {(permissions?.raw_permissions || []).slice(0, 6).map((perm, idx) => (
                     <Badge 
                       key={idx} 
                       variant="secondary" 

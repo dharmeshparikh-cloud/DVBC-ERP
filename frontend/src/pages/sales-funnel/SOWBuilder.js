@@ -114,7 +114,7 @@ const SOWBuilder = () => {
   // Update local state when data loads
   useEffect(() => {
     if (plansData) {
-      const plan = plansData.find(p => p.id === pricingPlanId);
+      const plan = (plansData || []).find(p => p.id === pricingPlanId);
       if (plan) {
         setPricingPlan(plan);
         if (plan.lead_id && leadsData) {
@@ -275,7 +275,7 @@ const SOWBuilder = () => {
       return;
     }
 
-    const generatedRows = teamData.map((member, idx) => {
+    const generatedRows = (teamData || []).map((member, idx) => {
       const role = member.role || member.consultant_type || 'Consultant';
       const category = ROLE_TO_CATEGORY_MAP[role] || 'operations';
       const meetingsPerMonth = member.meetings_per_month || Math.ceil((member.committed_meetings || 12) / (pricingPlan.project_duration_months || 12));
@@ -311,7 +311,7 @@ const SOWBuilder = () => {
   };
 
   const updateNewRow = (rowId, field, value) => {
-    setNewRows(newRows.map(row => 
+    setNewRows((newRows || []).map(row => 
       row.id === rowId ? { ...row, [field]: value } : row
     ));
   };
@@ -340,7 +340,7 @@ const SOWBuilder = () => {
   };
 
   const removeNewRow = (rowId) => {
-    setNewRows(newRows.filter(row => row.id !== rowId));
+    setNewRows((newRows || []).filter(row => row.id !== rowId));
   };
 
   const saveNewRow = async (row) => {
@@ -632,11 +632,11 @@ const SOWBuilder = () => {
   const getRoadmapData = () => {
     if (!sow?.items) return { months: [], itemsByMonth: {} };
     
-    const items = sow.items.filter(i => i.timeline_weeks && i.start_week);
+    const items = (sow?.items || []).filter(i => i.timeline_weeks && i.start_week);
     const months = [];
     const itemsByMonth = {};
     
-    items.forEach(item => {
+    (items || []).forEach(item => {
       const monthIndex = Math.floor((item.start_week - 1) / 4);
       const monthLabel = `Month ${monthIndex + 1}`;
       
@@ -647,7 +647,7 @@ const SOWBuilder = () => {
       itemsByMonth[monthLabel].push(item);
     });
     
-    const unscheduled = sow.items.filter(i => !i.start_week);
+    const unscheduled = (sow?.items || []).filter(i => !i.start_week);
     if (unscheduled.length > 0) {
       itemsByMonth['Unscheduled'] = unscheduled;
       months.push('Unscheduled');
@@ -660,7 +660,7 @@ const SOWBuilder = () => {
   const getGanttData = () => {
     if (!sow?.items) return [];
     
-    return sow.items.map(item => ({
+    return (sow?.items || []).map(item => ({
       ...item,
       startWeek: item.start_week || 1,
       endWeek: (item.start_week || 1) + (item.timeline_weeks || 1) - 1
@@ -687,7 +687,7 @@ const SOWBuilder = () => {
     };
 
     const handleConsultantChange = (consultantId) => {
-      const consultant = consultants.find(c => c.id === consultantId);
+      const consultant = (consultants || []).find(c => c.id === consultantId);
       if (isNew) {
         updateNewRow(item.id, 'assigned_consultant_id', consultantId);
         updateNewRow(item.id, 'assigned_consultant_name', consultant?.full_name || '');
@@ -770,7 +770,7 @@ const SOWBuilder = () => {
               className="w-full h-8 px-2 text-xs rounded border border-zinc-300 bg-white"
             >
               <option value="">Select...</option>
-              {consultants.map(c => (
+              {(consultants || []).map(c => (
                 <option key={c.id} value={c.id}>{c.full_name}</option>
               ))}
             </select>
@@ -932,7 +932,7 @@ const SOWBuilder = () => {
             No items with timeline data. Add start week and duration to items to see the roadmap.
           </div>
         ) : (
-          months.map(month => (
+          (months || []).map(month => (
             <Card key={month} className="border-zinc-200 shadow-none rounded-sm">
               <CardHeader className="pb-2 bg-zinc-50">
                 <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-700 flex items-center gap-2">
@@ -981,7 +981,7 @@ const SOWBuilder = () => {
   // Gantt View
   const renderGanttView = () => {
     const items = getGanttData();
-    const maxWeek = Math.max(...items.map(i => i.endWeek), 12);
+    const maxWeek = Math.max(...(items || []).map(i => i.endWeek), 12);
     const weeks = Array.from({ length: maxWeek }, (_, i) => i + 1);
     
     return (
@@ -993,7 +993,7 @@ const SOWBuilder = () => {
               Task
             </div>
             <div className="flex-1 flex">
-              {weeks.map(week => (
+              {(weeks || []).map(week => (
                 <div key={week} className="flex-1 px-1 py-2 text-center text-xs text-zinc-500 border-r border-zinc-100">
                   W{week}
                 </div>
@@ -1002,7 +1002,7 @@ const SOWBuilder = () => {
           </div>
           
           {/* Rows */}
-          {items.map((item, idx) => (
+          {(items || []).map((item, idx) => (
             <div key={item.id} className="flex border-b border-zinc-100 hover:bg-zinc-50">
               <div className="w-64 px-4 py-3 border-r border-zinc-200">
                 <div className="font-medium text-sm text-zinc-900 truncate">{item.title}</div>
@@ -1012,7 +1012,7 @@ const SOWBuilder = () => {
                 </div>
               </div>
               <div className="flex-1 flex relative py-2">
-                {weeks.map(week => (
+                {(weeks || []).map(week => (
                   <div key={week} className="flex-1 border-r border-zinc-50" />
                 ))}
                 {/* Gantt Bar */}
@@ -1222,7 +1222,7 @@ const SOWBuilder = () => {
                 </thead>
                 <tbody>
                   {sow.items?.map((item, idx) => renderEditableRow(item, false))}
-                  {newRows.map(row => renderEditableRow(row, true))}
+                  {(newRows || []).map(row => renderEditableRow(row, true))}
                 </tbody>
               </table>
             </div>
@@ -1300,7 +1300,7 @@ const SOWBuilder = () => {
             {docsItem?.documents?.length > 0 ? (
               <div className="space-y-2">
                 <Label className="text-xs uppercase text-zinc-500">Attached Files</Label>
-                {docsItem.documents.map(doc => (
+                {(docsItem?.documents || []).map(doc => (
                   <div key={doc.id} className="flex items-center justify-between p-2 bg-zinc-50 rounded-sm border border-zinc-200">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-zinc-400" />
@@ -1415,7 +1415,7 @@ const SOWBuilder = () => {
               <select
                 value={supportItem?.backend_support_id || ''}
                 onChange={(e) => {
-                  const staff = backendStaff.find(s => s.id === e.target.value);
+                  const staff = (backendStaff || []).find(s => s.id === e.target.value);
                   setSupportItem({
                     ...supportItem,
                     backend_support_id: e.target.value,
@@ -1425,7 +1425,7 @@ const SOWBuilder = () => {
                 className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
               >
                 <option value="">Select staff member...</option>
-                {backendStaff.map(staff => (
+                {(backendStaff || []).map(staff => (
                   <option key={staff.id} value={staff.id}>{staff.full_name}</option>
                 ))}
               </select>
@@ -1455,7 +1455,7 @@ const SOWBuilder = () => {
             {/* Version List */}
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
               <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Select Version</div>
-              {versions.map((version, idx) => (
+              {(versions || []).map((version, idx) => (
                 <div
                   key={version.version}
                   className={`p-3 border rounded-sm cursor-pointer transition-colors ${
@@ -1504,11 +1504,11 @@ const SOWBuilder = () => {
                     </span>
                   </div>
                   
-                  {selectedVersion.changes && Object.keys(selectedVersion.changes).length > 0 && (
+                  {selectedVersion.changes && Object.keys(selectedVersion.changes || {}).length > 0 && (
                     <div className="bg-zinc-50 p-3 rounded-sm border border-zinc-200">
                       <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Changes Made</div>
                       <div className="space-y-1">
-                        {Object.entries(selectedVersion.changes).map(([key, value]) => (
+                        {Object.entries(selectedVersion.changes || {}).map(([key, value]) => (
                           <div key={key} className="text-sm">
                             <span className="text-zinc-500">{key.replace(/_/g, ' ')}:</span>{' '}
                             <span className="text-zinc-900 font-medium">

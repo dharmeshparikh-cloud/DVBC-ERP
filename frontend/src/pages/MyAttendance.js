@@ -146,16 +146,16 @@ const MyAttendance = () => {
               </tr>
             </thead>
             <tbody>
-              {data.records.map((r, i) => {
-                const st = STATUS_STYLES[r.status] || STATUS_STYLES.present;
-                const checkIn = r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
-                const checkOut = r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
+              {(data?.records || []).map((r, i) => {
+                const st = STATUS_STYLES[r?.status] || STATUS_STYLES.present;
+                const checkIn = r?.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
+                const checkOut = r?.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
                 return (
-                  <tr key={r.id || i} className="border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                    <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300 font-medium">{r.date}</td>
+                  <tr key={r?.id || i} className="border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300 font-medium">{r?.date}</td>
                     <td className="px-4 py-3 text-center"><span className={`text-xs px-2 py-1 rounded-sm ${st.color}`}>{st.label}</span></td>
                     <td className="px-4 py-3 text-center">
-                      {r.work_location ? (
+                      {r?.work_location ? (
                         <span className="flex items-center justify-center gap-1 text-xs">
                           {r.work_location === 'in_office' && <><Building2 className="w-3 h-3 text-blue-600" /><span className="text-blue-700 dark:text-blue-400">Office</span></>}
                           {r.work_location === 'onsite' && <><MapPin className="w-3 h-3 text-emerald-600" /><span className="text-emerald-700 dark:text-emerald-400">On-Site</span></>}

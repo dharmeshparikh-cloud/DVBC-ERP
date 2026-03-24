@@ -224,13 +224,13 @@ const NotificationBell = () => {
 
   const markAsRead = async (id) => {
     await axios.patch(`${API}/notifications/${id}/read`);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setNotifications(prev => (prev || []).map(n => n.id === id ? { ...n, is_read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   const markAllRead = async () => {
     await axios.patch(`${API}/notifications/mark-all-read`);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    setNotifications(prev => (prev || []).map(n => ({ ...n, is_read: true })));
     setUnreadCount(0);
   };
 
@@ -244,7 +244,7 @@ const NotificationBell = () => {
     // Filter by active tab
     if (activeTab === 'all') return sorted;
     
-    return sorted.filter(notif => {
+    return (sorted || []).filter(notif => {
       const notifType = notif.type || notif.notification_type || 'default';
       const meta = NOTIF_ICONS[notifType] || NOTIF_ICONS.default;
       return meta.category === activeTab;
@@ -254,7 +254,7 @@ const NotificationBell = () => {
   // Get counts per category for badges
   const categoryCounts = useMemo(() => {
     const counts = {};
-    notifications.forEach(notif => {
+    (notifications || []).forEach(notif => {
       if (!notif.is_read) {
         const notifType = notif.type || notif.notification_type || 'default';
         const meta = NOTIF_ICONS[notifType] || NOTIF_ICONS.default;
@@ -352,7 +352,7 @@ const NotificationBell = () => {
                 </p>
               </div>
             ) : (
-              filteredNotifications.slice(0, 15).map(notif => {
+              (filteredNotifications || []).slice(0, 15).map(notif => {
                 const notifType = notif.type || notif.notification_type || 'default';
                 const meta = NOTIF_ICONS[notifType] || NOTIF_ICONS.default;
                 const isActioned = notif.status === 'actioned';

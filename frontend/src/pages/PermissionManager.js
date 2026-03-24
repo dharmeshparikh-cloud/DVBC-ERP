@@ -157,11 +157,11 @@ const PermissionManager = () => {
     } else if (selectedRole) {
       // Initialize with empty permissions if none exist
       const emptyPerms = {};
-      Object.keys(MODULE_DEFINITIONS).forEach(moduleKey => {
+      Object.keys(MODULE_DEFINITIONS || {}).forEach(moduleKey => {
         emptyPerms[moduleKey] = { enabled: false, features: {} };
-        Object.keys(MODULE_DEFINITIONS[moduleKey].features).forEach(featureKey => {
+        Object.keys(MODULE_DEFINITIONS[moduleKey].features || {}).forEach(featureKey => {
           emptyPerms[moduleKey].features[featureKey] = {};
-          MODULE_DEFINITIONS[moduleKey].features[featureKey].actions.forEach(action => {
+          (MODULE_DEFINITIONS[moduleKey]?.features?.[featureKey]?.actions || []).forEach(action => {
             emptyPerms[moduleKey].features[featureKey][action] = false;
           });
         });
@@ -181,8 +181,8 @@ const PermissionManager = () => {
       
       // If disabling, turn off all features
       if (!enabled && updated[moduleKey].features) {
-        Object.keys(updated[moduleKey].features).forEach(featureKey => {
-          Object.keys(updated[moduleKey].features[featureKey]).forEach(action => {
+        Object.keys(updated[moduleKey].features || {}).forEach(featureKey => {
+          Object.keys(updated[moduleKey].features[featureKey] || {}).forEach(action => {
             updated[moduleKey].features[featureKey][action] = false;
           });
         });
@@ -217,7 +217,7 @@ const PermissionManager = () => {
 
   const handleSelectAllFeature = (moduleKey, featureKey, selectAll) => {
     const actions = MODULE_DEFINITIONS[moduleKey].features[featureKey].actions;
-    actions.forEach(action => {
+    (actions || []).forEach(action => {
       handleFeatureToggle(moduleKey, featureKey, action, selectAll);
     });
   };
@@ -225,7 +225,7 @@ const PermissionManager = () => {
   const handleSelectAllModule = (moduleKey, selectAll) => {
     handleModuleToggle(moduleKey, selectAll);
     if (selectAll) {
-      Object.keys(MODULE_DEFINITIONS[moduleKey].features).forEach(featureKey => {
+      Object.keys(MODULE_DEFINITIONS[moduleKey].features || {}).forEach(featureKey => {
         handleSelectAllFeature(moduleKey, featureKey, true);
       });
     }
@@ -296,10 +296,10 @@ const PermissionManager = () => {
     let enabled = 0;
     let total = 0;
     
-    Object.keys(MODULE_DEFINITIONS[moduleKey].features).forEach(featureKey => {
+    Object.keys(MODULE_DEFINITIONS[moduleKey].features || {}).forEach(featureKey => {
       const actions = MODULE_DEFINITIONS[moduleKey].features[featureKey].actions;
       total += actions.length;
-      actions.forEach(action => {
+      (actions || []).forEach(action => {
         if (modulePerms[featureKey]?.[action]) enabled++;
       });
     });
@@ -317,7 +317,7 @@ const PermissionManager = () => {
 
   const hasChanges = JSON.stringify(permissions) !== JSON.stringify(originalPermissions);
 
-  const selectedRoleData = roles.find(r => r.id === selectedRole);
+  const selectedRoleData = (roles || []).find(r => r.id === selectedRole);
 
   if (loading) {
     return (
@@ -375,7 +375,7 @@ const PermissionManager = () => {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map(role => (
+                  {(roles || []).map(role => (
                     <SelectItem key={role.id} value={role.id}>
                       <div className="flex items-center gap-2">
                         <UserCog className="w-4 h-4 text-zinc-400" />
@@ -419,7 +419,7 @@ const PermissionManager = () => {
         {/* Permissions Tab */}
         <TabsContent value="permissions" className="space-y-4">
           <Accordion type="multiple" className="space-y-3">
-            {Object.entries(MODULE_DEFINITIONS).map(([moduleKey, module]) => {
+            {Object.entries(MODULE_DEFINITIONS || {}).map(([moduleKey, module]) => {
               const { enabled, total } = getPermissionCount(moduleKey);
               const ModuleIcon = module.icon;
               const moduleEnabled = isModuleEnabled(moduleKey);
@@ -472,11 +472,11 @@ const PermissionManager = () => {
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
                     <div className="space-y-4 pt-2">
-                      {Object.entries(module.features).map(([featureKey, feature]) => {
-                        const allEnabled = feature.actions.every(
+                      {Object.entries(module.features || {}).map(([featureKey, feature]) => {
+                        const allEnabled = (feature?.actions || []).every(
                           action => isFeatureEnabled(moduleKey, featureKey, action)
                         );
-                        const someEnabled = feature.actions.some(
+                        const someEnabled = (feature?.actions || []).some(
                           action => isFeatureEnabled(moduleKey, featureKey, action)
                         );
                         
@@ -511,7 +511,7 @@ const PermissionManager = () => {
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              {feature.actions.map(action => (
+                              {(feature?.actions || []).map(action => (
                                 <label
                                   key={action}
                                   className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm cursor-pointer transition-colors ${
@@ -555,7 +555,7 @@ const PermissionManager = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-5 gap-4">
-                {Object.entries(MODULE_DEFINITIONS).map(([moduleKey, module]) => {
+                {Object.entries(MODULE_DEFINITIONS || {}).map(([moduleKey, module]) => {
                   const { enabled, total } = getPermissionCount(moduleKey);
                   const percentage = total > 0 ? Math.round((enabled / total) * 100) : 0;
                   const ModuleIcon = module.icon;

@@ -69,7 +69,7 @@ const Help = () => {
 
       {/* Support Options */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {supportOptions.map((option) => {
+        {(supportOptions || []).map((option) => {
           const Icon = option.icon;
           return (
             <Card key={option.title} className="border-zinc-200 hover:border-zinc-400 transition-colors">
@@ -106,7 +106,7 @@ const Help = () => {
       <div id="faqs">
         <h2 className="text-xl font-semibold text-zinc-900 mb-4">Frequently Asked Questions</h2>
         <div className="space-y-4">
-          {faqs.map((faq, index) => (
+          {(faqs || []).map((faq, index) => (
             <Card key={index} className="border-zinc-200">
               <CardContent className="p-5">
                 <div className="flex items-start gap-3">

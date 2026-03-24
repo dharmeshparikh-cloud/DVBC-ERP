@@ -101,7 +101,7 @@ const PermissionDashboard = () => {
     savePermissionsMutation.mutate({ level: editingLevel, permissions: editedPermissions });
   };
 
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = (employees || []).filter(emp => {
     const matchesSearch = 
       `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -237,7 +237,7 @@ const PermissionDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(permissionLabels).map(([key, label]) => (
+                {Object.entries(permissionLabels || {}).map(([key, label]) => (
                   <tr key={key} className={isDark ? 'border-b border-zinc-800' : 'border-b border-zinc-100'}>
                     <td className={`py-3 px-4 text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
                       {label}
@@ -336,7 +336,7 @@ const PermissionDashboard = () => {
                 No employees found
               </p>
             ) : (
-              filteredEmployees.map(emp => {
+              (filteredEmployees || []).map(emp => {
                 const Icon = levelIcons[emp.level] || Users;
                 const isExpanded = expandedEmployee === emp.id;
                 
@@ -407,7 +407,7 @@ const PermissionDashboard = () => {
                         </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                          {Object.entries(permissionLabels).map(([key, label]) => {
+                          {Object.entries(permissionLabels || {}).map(([key, label]) => {
                             const hasPermission = levelPermissions[emp.level]?.[key];
                             return (
                               <div

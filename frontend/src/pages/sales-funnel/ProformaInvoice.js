@@ -115,10 +115,10 @@ const ProformaInvoice = () => {
   // Auto-open dialog with pre-selected plan when coming from SOW selection
   useEffect(() => {
     if (!loading && pricingPlanIdFromUrl && !autoOpenHandled && pricingPlans.length > 0) {
-      const plan = pricingPlans.find(p => p.id === pricingPlanIdFromUrl);
+      const plan = (pricingPlans || []).find(p => p.id === pricingPlanIdFromUrl);
       if (plan) {
         setSelectedPlanDetails(plan);
-        const lead = leads.find(l => l.id === plan.lead_id);
+        const lead = (leads || []).find(l => l.id === plan.lead_id);
         setSelectedLead(lead);
         setFormData(prev => ({ 
           ...prev, 
@@ -132,18 +132,18 @@ const ProformaInvoice = () => {
   }, [loading, pricingPlanIdFromUrl, pricingPlans, autoOpenHandled, leads]);
 
   // Check if proforma invoice exists for current pricing plan
-  const currentInvoice = invoices.find(inv => inv.pricing_plan_id === pricingPlanIdFromUrl);
+  const currentInvoice = (invoices || []).find(inv => inv.pricing_plan_id === pricingPlanIdFromUrl);
   const hasProformaInvoice = !!currentInvoice;
   const isProformaFinalized = currentInvoice?.is_final || false;
 
   const handlePlanSelect = (planId) => {
-    const plan = pricingPlans.find(p => p.id === planId);
+    const plan = (pricingPlans || []).find(p => p.id === planId);
     setSelectedPlanDetails(plan);
     setFormData({ ...formData, pricing_plan_id: planId });
   };
 
   const handleLeadSelect = (selectedLeadId) => {
-    const lead = leads.find(l => l.id === selectedLeadId);
+    const lead = (leads || []).find(l => l.id === selectedLeadId);
     setSelectedLead(lead);
     setFormData({ ...formData, lead_id: selectedLeadId, pricing_plan_id: '' });
     setSelectedPlanDetails(null);
@@ -163,7 +163,7 @@ const ProformaInvoice = () => {
     onError: (error) => {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+        toast.error((detail || []).map(e => e.msg || 'Validation error').join(', '));
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
@@ -196,8 +196,8 @@ const ProformaInvoice = () => {
   };
 
   const openViewDialog = (invoice) => {
-    const plan = pricingPlans.find(p => p.id === invoice.pricing_plan_id);
-    const lead = leads.find(l => l.id === invoice.lead_id);
+    const plan = (pricingPlans || []).find(p => p.id === invoice.pricing_plan_id);
+    const lead = (leads || []).find(l => l.id === invoice.lead_id);
     setSelectedInvoice(invoice);
     setSelectedPlanDetails(plan);
     setSelectedLead(lead);
@@ -376,7 +376,7 @@ const ProformaInvoice = () => {
   };
 
   const getLeadName = (leadId) => {
-    const lead = leads.find(l => l.id === leadId);
+    const lead = (leads || []).find(l => l.id === leadId);
     return lead ? `${lead.first_name} ${lead.last_name} - ${lead.company}` : 'Unknown Lead';
   };
 
@@ -387,13 +387,13 @@ const ProformaInvoice = () => {
     const teamData = plan.team_deployment?.length > 0 ? plan.team_deployment : plan.consultants;
     if (!teamData || teamData.length === 0) return { totalMeetings: 0, subtotal: 0 };
     
-    const totalMeetings = teamData.reduce((sum, m) => {
+    const totalMeetings = (teamData || []).reduce((sum, m) => {
       const meetings = m.committed_meetings || m.meetings || 0;
       const count = m.count || 1;
       return sum + (meetings * count);
     }, 0);
     
-    const subtotal = teamData.reduce((sum, m) => {
+    const subtotal = (teamData || []).reduce((sum, m) => {
       const meetings = m.committed_meetings || m.meetings || 0;
       const count = m.count || 1;
       const rate = m.rate_per_meeting || 12500;
@@ -414,11 +414,11 @@ const ProformaInvoice = () => {
 
   // Check if invoice is used in agreement
   const isUsedInAgreement = (invoiceId) => {
-    return agreements.some(a => a.quotation_id === invoiceId);
+    return (agreements || []).some(a => a.quotation_id === invoiceId);
   };
 
   // Group invoices by lead for history view
-  const groupedByLead = invoices.reduce((acc, invoice) => {
+  const groupedByLead = (invoices || []).reduce((acc, invoice) => {
     const key = invoice.lead_id;
     if (!acc[key]) {
       acc[key] = [];
@@ -428,7 +428,7 @@ const ProformaInvoice = () => {
   }, {});
 
   // Sort invoices within each group by created_at (newest first)
-  Object.keys(groupedByLead).forEach(leadId => {
+  Object.keys(groupedByLead || {}).forEach(leadId => {
     groupedByLead[leadId].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   });
 
@@ -446,7 +446,7 @@ const ProformaInvoice = () => {
   };
 
   // Get current lead ID from pricing plan
-  const currentPlan = pricingPlans.find(p => p.id === pricingPlanIdFromUrl);
+  const currentPlan = (pricingPlans || []).find(p => p.id === pricingPlanIdFromUrl);
   const currentLeadId = currentPlan?.lead_id || leadId;
 
   return (
@@ -605,10 +605,10 @@ const ProformaInvoice = () => {
       ) : activeView === 'history' ? (
         /* HISTORY VIEW - Grouped by Lead/Prospect */
         <div className="space-y-6" data-testid="history-view">
-          {Object.keys(groupedByLead).map(groupLeadId => {
-            const lead = leads.find(l => l.id === groupLeadId);
+          {Object.keys(groupedByLead || {}).map(groupLeadId => {
+            const lead = (leads || []).find(l => l.id === groupLeadId);
             const invoicesList = groupedByLead[groupLeadId];
-            const selectedInvoice = invoicesList.find(inv => isUsedInAgreement(inv.id));
+            const selectedInvoice = (invoicesList || []).find(inv => isUsedInAgreement(inv.id));
             
             return (
               <Card key={groupLeadId} className="border-zinc-200 shadow-none rounded-sm" data-testid={`lead-group-${groupLeadId}`}>
@@ -631,7 +631,7 @@ const ProformaInvoice = () => {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y divide-zinc-100">
-                    {invoicesList.map((invoice, idx) => {
+                    {(invoicesList || []).map((invoice, idx) => {
                       const isLatest = idx === 0;
                       const usedInAgreement = isUsedInAgreement(invoice.id);
                       const versionNumber = invoicesList.length - idx;
@@ -749,7 +749,7 @@ const ProformaInvoice = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {invoices.map((invoice) => (
+              {(invoices || []).map((invoice) => (
                 <tr 
                   key={invoice.id} 
                   className="hover:bg-zinc-50 cursor-pointer transition-colors"
@@ -795,7 +795,7 @@ const ProformaInvoice = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {invoices.map((invoice) => (
+          {(invoices || []).map((invoice) => (
             <Card
               key={invoice.id}
               data-testid={`invoice-card-${invoice.id}`}
@@ -897,7 +897,7 @@ const ProformaInvoice = () => {
               <LeadSelector
                 value={formData.lead_id}
                 onChange={(leadId) => {
-                  const lead = leads.find(l => l.id === leadId);
+                  const lead = (leads || []).find(l => l.id === leadId);
                   setSelectedLead(lead);
                   setFormData({ ...formData, lead_id: leadId, pricing_plan_id: '' });
                   setSelectedPlanDetails(null);
@@ -923,7 +923,7 @@ const ProformaInvoice = () => {
                 data-testid="pricing-plan-select"
               >
                 <option value="">{formData.lead_id ? 'Select a pricing plan' : 'Select a lead first'}</option>
-                {pricingPlans.filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
+                {(pricingPlans || []).filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
                   <option key={plan.id} value={plan.id}>
                     Plan #{plan.id.slice(-6).toUpperCase()} • {plan.project_duration_months} months ({plan.project_duration_type}) • {formatINR(plan.total_amount || plan.total_investment || calculatePlanTotals(plan).subtotal)}
                   </option>

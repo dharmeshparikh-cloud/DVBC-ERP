@@ -117,7 +117,7 @@ export const extractPagination = (data) => {
  */
 export const safeFilter = (data, predicate) => {
   const arr = extractArray(data);
-  return arr.filter(predicate);
+  return (arr || []).filter(predicate);
 };
 
 /**
@@ -129,7 +129,7 @@ export const safeFilter = (data, predicate) => {
  */
 export const safeMap = (data, mapper) => {
   const arr = extractArray(data);
-  return arr.map(mapper);
+  return (arr || []).map(mapper);
 };
 
 /**
@@ -141,7 +141,7 @@ export const safeMap = (data, mapper) => {
  */
 export const safeFind = (data, predicate) => {
   const arr = extractArray(data);
-  return arr.find(predicate);
+  return (arr || []).find(predicate);
 };
 
 /**

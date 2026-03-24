@@ -59,7 +59,7 @@ const EmployeeScorecard = () => {
     }
   };
 
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = (employees || []).filter(emp => {
     const searchLower = searchTerm.toLowerCase();
     return (
       `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchLower) ||
@@ -158,14 +158,14 @@ const EmployeeScorecard = () => {
       </div>
 
       {/* Level Distribution */}
-      {stats?.by_level && Object.keys(stats.by_level).length > 0 && (
+      {stats?.by_level && Object.keys(stats.by_level || {}).length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">By Level</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
-              {Object.entries(stats.by_level).map(([level, count]) => (
+              {Object.entries(stats.by_level || {}).map(([level, count]) => (
                 <div key={level} className="flex items-center gap-2">
                   <Badge variant="outline" className="capitalize">{level}</Badge>
                   <span className="font-bold">{count}</span>
@@ -208,7 +208,7 @@ const EmployeeScorecard = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredEmployees.map(emp => (
+                {(filteredEmployees || []).map(emp => (
                   <tr key={emp.id} className="border-b hover:bg-zinc-50">
                     <td className="px-4 py-3 font-mono text-xs">{emp.employee_id || 'N/A'}</td>
                     <td className="px-4 py-3">
@@ -304,7 +304,7 @@ const EmployeeScorecard = () => {
                     <TrendingUp className="w-4 h-4" /> Linked Records ({linkedRecords.total_records})
                   </h4>
                   <div className="grid grid-cols-5 gap-2">
-                    {Object.entries(linkedRecords.linked_records).map(([key, count]) => (
+                    {Object.entries(linkedRecords.linked_records || {}).map(([key, count]) => (
                       <div key={key} className="p-2 bg-zinc-50 rounded text-center">
                         <p className="text-lg font-bold">{count}</p>
                         <p className="text-xs text-zinc-500 capitalize">{key.replace('_', ' ')}</p>
@@ -321,7 +321,7 @@ const EmployeeScorecard = () => {
                     <Clock className="w-4 h-4" /> Journey Timeline ({employeeTimeline.total_events} events)
                   </h4>
                   <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                    {employeeTimeline.timeline.map((event, idx) => (
+                    {(employeeTimeline?.timeline || []).map((event, idx) => (
                       <div key={idx} className="flex items-start gap-3 p-3 bg-zinc-50 rounded-lg">
                         <div className="mt-1">
                           {eventIcons[event.event] || <ChevronRight className="w-4 h-4" />}

@@ -173,7 +173,7 @@ const AdditionalMeetingRequests = () => {
     return null;
   };
 
-  const pendingCount = requests.filter(r => r.status === 'pending').length;
+  const pendingCount = (requests || []).filter(r => r.status === 'pending').length;
 
   return (
     <div className="p-6 space-y-6" data-testid="additional-meeting-requests-page">
@@ -215,7 +215,7 @@ const AdditionalMeetingRequests = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-zinc-500">Approved</p>
-                <p className="text-2xl font-bold text-green-600">{requests.filter(r => r.status === 'approved').length}</p>
+                <p className="text-2xl font-bold text-green-600">{(requests || []).filter(r => r.status === 'approved').length}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-400" />
             </div>
@@ -226,7 +226,7 @@ const AdditionalMeetingRequests = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-zinc-500">Rejected</p>
-                <p className="text-2xl font-bold text-red-600">{requests.filter(r => r.status === 'rejected').length}</p>
+                <p className="text-2xl font-bold text-red-600">{(requests || []).filter(r => r.status === 'rejected').length}</p>
               </div>
               <XCircle className="w-8 h-8 text-red-400" />
             </div>
@@ -273,7 +273,7 @@ const AdditionalMeetingRequests = () => {
             </Card>
           ) : (
             <div className="space-y-4">
-              {requests.map((request) => (
+              {(requests || []).map((request) => (
                 <Card key={request.id} className={`hover:shadow-md transition-shadow ${request.status === 'pending' && isAdmin ? 'border-l-4 border-l-amber-400' : ''}`} data-testid={`request-card-${request.id}`}>
                   <CardContent className="pt-4">
                     <div className="flex items-start justify-between">
@@ -445,7 +445,7 @@ const AdditionalMeetingRequests = () => {
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((p) => (
+                  {(projects || []).map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name} - {p.client_name}
                     </SelectItem>

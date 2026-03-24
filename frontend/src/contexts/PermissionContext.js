@@ -38,7 +38,7 @@ export const PermissionProvider = ({ children }) => {
         if (perms.includes('*')) return true;
         if (perms.includes(perm)) return true;
         // Check wildcard patterns (e.g., "hr.*" matches "hr.view")
-        return perms.some(p => p.endsWith('.*') && perm.startsWith(p.slice(0, -2)));
+        return (perms || []).some(p => p.endsWith('.*') && perm.startsWith(p.slice(0, -2)));
       };
       
       setPermissions({
@@ -99,7 +99,7 @@ export const PermissionProvider = ({ children }) => {
       if (perms.includes('*')) return true;
       if (perms.includes(permission)) return true;
       // Check wildcard patterns
-      if (perms.some(p => p.endsWith('.*') && permission.startsWith(p.slice(0, -2)))) {
+      if ((perms || []).some(p => p.endsWith('.*') && permission.startsWith(p.slice(0, -2)))) {
         return true;
       }
     }

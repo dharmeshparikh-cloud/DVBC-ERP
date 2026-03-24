@@ -57,10 +57,10 @@ const HandoverAlerts = () => {
     }
   };
 
-  const overdueCount = alerts.filter(a => a.alert_type === 'overdue').length;
-  const criticalCount = alerts.filter(a => a.alert_type === 'critical').length;
-  const warningCount = alerts.filter(a => a.alert_type === 'warning').length;
-  const onTrackCount = alerts.filter(a => a.alert_type === 'on_track').length;
+  const overdueCount = (alerts || []).filter(a => a.alert_type === 'overdue').length;
+  const criticalCount = (alerts || []).filter(a => a.alert_type === 'critical').length;
+  const warningCount = (alerts || []).filter(a => a.alert_type === 'warning').length;
+  const onTrackCount = (alerts || []).filter(a => a.alert_type === 'on_track').length;
 
   if (loading) {
     return (
@@ -133,7 +133,7 @@ const HandoverAlerts = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {alerts.map((alert) => {
+          {(alerts || []).map((alert) => {
             const style = getAlertStyle(alert.alert_type);
             return (
               <Card 

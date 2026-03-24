@@ -322,7 +322,7 @@ const AdminDashboard = () => {
                     outerRadius={40}
                     dataKey="value"
                   >
-                    {projectStatus.map((entry, index) => (
+                    {(projectStatus || []).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -339,7 +339,7 @@ const AdminDashboard = () => {
                     outerRadius={55}
                     dataKey="value"
                   >
-                    {projectStatus.map((entry, index) => (
+                    {(projectStatus || []).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -347,7 +347,7 @@ const AdminDashboard = () => {
                 </RechartsPie>
               </ResponsiveContainer>
               <div className="space-y-1 md:space-y-2 flex-1 w-full">
-                {projectStatus.map((s, i) => (
+                {(projectStatus || []).map((s, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 md:w-3 md:h-3 rounded" style={{ background: s.color }}></div>

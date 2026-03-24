@@ -206,16 +206,16 @@ const ProjectTasks = () => {
   };
 
   const getAssigneeName = (userId) => {
-    const consultant = consultants.find(c => c.id === userId);
+    const consultant = (consultants || []).find(c => c.id === userId);
     return consultant?.full_name || 'Unassigned';
   };
 
   const filteredTasks = filterStatus === 'all' 
     ? tasks 
-    : tasks.filter(t => t.status === filterStatus);
+    : (tasks || []).filter(t => t.status === filterStatus);
 
   const tasksByStatus = TASK_STATUSES.reduce((acc, status) => {
-    acc[status.value] = tasks.filter(t => t.status === status.value);
+    acc[status.value] = (tasks || []).filter(t => t.status === status.value);
     return acc;
   }, {});
 
@@ -329,7 +329,7 @@ const ProjectTasks = () => {
                   <div className="col-span-2">Actions</div>
                 </div>
                 
-                {filteredTasks.map((task) => (
+                {(filteredTasks || []).map((task) => (
                   <div
                     key={task.id}
                     data-testid={`task-row-${task.id}`}
@@ -504,7 +504,7 @@ const ProjectTasks = () => {
                   className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
                 >
                   <option value="">Unassigned</option>
-                  {consultants.map(c => (
+                  {(consultants || []).map(c => (
                     <option key={c.id} value={c.id}>{c.full_name}</option>
                   ))}
                 </select>
@@ -596,8 +596,8 @@ const GanttView = ({ tasks, project, consultants, onTaskClick }) => {
     days.push(day);
   }
 
-  const tasksWithDates = tasks.filter(t => t.start_date || t.due_date);
-  const tasksWithoutDates = tasks.filter(t => !t.start_date && !t.due_date);
+  const tasksWithDates = (tasks || []).filter(t => t.start_date || t.due_date);
+  const tasksWithoutDates = (tasks || []).filter(t => !t.start_date && !t.due_date);
 
   return (
     <Card className="border-zinc-200 shadow-none rounded-sm overflow-hidden">
@@ -610,7 +610,7 @@ const GanttView = ({ tasks, project, consultants, onTaskClick }) => {
                 <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Task</span>
               </div>
               <div className="flex">
-                {days.map((day, i) => (
+                {(days || []).map((day, i) => (
                   <div
                     key={i}
                     className={`flex-shrink-0 text-center py-2 border-r border-zinc-100 ${
@@ -628,7 +628,7 @@ const GanttView = ({ tasks, project, consultants, onTaskClick }) => {
             </div>
             
             {/* Task rows */}
-            {tasksWithDates.map((task) => (
+            {(tasksWithDates || []).map((task) => (
               <div
                 key={task.id}
                 className="flex border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer"
@@ -637,7 +637,7 @@ const GanttView = ({ tasks, project, consultants, onTaskClick }) => {
                 <div className="w-[300px] flex-shrink-0 px-4 py-3 border-r border-zinc-200">
                   <div className="font-medium text-sm text-zinc-950 truncate">{task.title}</div>
                   <div className="text-xs text-zinc-500">
-                    {consultants.find(c => c.id === task.assigned_to)?.full_name || 'Unassigned'}
+                    {(consultants || []).find(c => c.id === task.assigned_to)?.full_name || 'Unassigned'}
                   </div>
                 </div>
                 <div className="relative flex-1 py-2" style={{ width: totalDays * dayWidth }}>
@@ -668,7 +668,7 @@ const GanttView = ({ tasks, project, consultants, onTaskClick }) => {
                 <div className="px-4 py-2 bg-zinc-100 text-xs font-medium uppercase tracking-wide text-zinc-500 border-b border-zinc-200">
                   Tasks without dates ({tasksWithoutDates.length})
                 </div>
-                {tasksWithoutDates.map((task) => (
+                {(tasksWithoutDates || []).map((task) => (
                   <div
                     key={task.id}
                     className="flex border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer"
@@ -677,7 +677,7 @@ const GanttView = ({ tasks, project, consultants, onTaskClick }) => {
                     <div className="w-[300px] flex-shrink-0 px-4 py-3 border-r border-zinc-200">
                       <div className="font-medium text-sm text-zinc-950 truncate">{task.title}</div>
                       <div className="text-xs text-zinc-500">
-                        {consultants.find(c => c.id === task.assigned_to)?.full_name || 'Unassigned'}
+                        {(consultants || []).find(c => c.id === task.assigned_to)?.full_name || 'Unassigned'}
                       </div>
                     </div>
                     <div className="flex-1 px-4 py-3 text-xs text-zinc-400">

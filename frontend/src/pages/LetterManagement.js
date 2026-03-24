@@ -301,7 +301,7 @@ const LetterManagement = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {offerLetters.map((letter) => (
+              {(offerLetters || []).map((letter) => (
                 <Card key={letter.id} className="hover:border-orange-200 transition-colors">
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
@@ -375,7 +375,7 @@ const LetterManagement = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {appointmentLetters.map((letter) => (
+              {(appointmentLetters || []).map((letter) => (
                 <Card key={letter.id} className="hover:border-orange-200 transition-colors">
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
@@ -409,7 +409,7 @@ const LetterManagement = () => {
         {/* Templates Tab */}
         <TabsContent value="templates" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {templates.map((template) => (
+            {(templates || []).map((template) => (
               <Card key={template.id} className="hover:border-orange-200 transition-colors">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
@@ -574,7 +574,7 @@ const LetterManagement = () => {
                     <SelectValue placeholder="Select candidate" />
                   </SelectTrigger>
                   <SelectContent>
-                    {candidates.map(c => (
+                    {(candidates || []).map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.first_name} {c.last_name} - {c.email}
                       </SelectItem>
@@ -592,7 +592,7 @@ const LetterManagement = () => {
                     <SelectValue placeholder="Select template" />
                   </SelectTrigger>
                   <SelectContent>
-                    {templates.filter(t => t.template_type === 'offer_letter').map(t => (
+                    {(templates || []).filter(t => t.template_type === 'offer_letter').map(t => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.name} {t.is_default && '(Default)'}
                       </SelectItem>
@@ -676,7 +676,7 @@ const LetterManagement = () => {
             {templateHistory.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">No history available</p>
             ) : (
-              templateHistory.map((entry, idx) => (
+              (templateHistory || []).map((entry, idx) => (
                 <div key={idx} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline">v{entry.version}</Badge>

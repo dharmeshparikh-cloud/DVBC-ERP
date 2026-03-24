@@ -78,17 +78,17 @@ const SalesSOWList = () => {
   // Get lead info for a SOW
   const getLeadInfo = (sow) => {
     if (!Array.isArray(pricingPlans) || !Array.isArray(leads)) return null;
-    const plan = pricingPlans.find(p => p.id === sow.pricing_plan_id);
+    const plan = (pricingPlans || []).find(p => p.id === sow.pricing_plan_id);
     if (plan?.lead_id) {
-      return leads.find(l => l.id === plan.lead_id);
+      return (leads || []).find(l => l.id === plan.lead_id);
     }
-    return leads.find(l => l.id === sow.lead_id);
+    return (leads || []).find(l => l.id === sow.lead_id);
   };
 
   // Get pricing plan for a SOW
   const getPlanInfo = (sow) => {
     if (!Array.isArray(pricingPlans)) return null;
-    return pricingPlans.find(p => p.id === sow.pricing_plan_id);
+    return (pricingPlans || []).find(p => p.id === sow.pricing_plan_id);
   };
 
   // Determine SOW status
@@ -99,7 +99,7 @@ const SalesSOWList = () => {
   };
 
   // Filter SOWs
-  const filteredSOWs = sowList.filter(sow => {
+  const filteredSOWs = (sowList || []).filter(sow => {
     const lead = getLeadInfo(sow);
     const plan = getPlanInfo(sow);
     const status = getSOWStatus(sow);
@@ -121,9 +121,9 @@ const SalesSOWList = () => {
   // Stats
   const stats = {
     total: sowList.length,
-    draft: sowList.filter(s => getSOWStatus(s) === 'draft').length,
-    handedOver: sowList.filter(s => getSOWStatus(s) === 'handed_over').length,
-    inProgress: sowList.filter(s => getSOWStatus(s) === 'in_progress').length,
+    draft: (sowList || []).filter(s => getSOWStatus(s) === 'draft').length,
+    handedOver: (sowList || []).filter(s => getSOWStatus(s) === 'handed_over').length,
+    inProgress: (sowList || []).filter(s => getSOWStatus(s) === 'in_progress').length,
   };
 
   const handleCompleteHandover = async (sowId) => {
@@ -224,7 +224,7 @@ const SalesSOWList = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {filteredSOWs.map(sow => {
+                {(filteredSOWs || []).map(sow => {
                   const lead = getLeadInfo(sow);
                   const status = getSOWStatus(sow);
                   const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
@@ -291,7 +291,7 @@ const SalesSOWList = () => {
         ) : (
           /* Card View */
           <div className="space-y-3">
-            {filteredSOWs.map(sow => {
+            {(filteredSOWs || []).map(sow => {
               const lead = getLeadInfo(sow);
               const plan = getPlanInfo(sow);
               const status = getSOWStatus(sow);

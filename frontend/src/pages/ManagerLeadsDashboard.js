@@ -211,7 +211,7 @@ const ManagerLeadsDashboard = () => {
   };
 
   // Filter leads
-  const filteredLeads = subordinateLeads.filter(lead => {
+  const filteredLeads = (subordinateLeads || []).filter(lead => {
     const matchesSearch = !searchQuery || 
       `${lead.first_name} ${lead.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -228,7 +228,7 @@ const ManagerLeadsDashboard = () => {
 
   // Group leads by employee
   const leadsByEmployee = {};
-  filteredLeads.forEach(lead => {
+  (filteredLeads || []).forEach(lead => {
     const empName = lead.assigned_employee_name || 'Unassigned';
     if (!leadsByEmployee[empName]) {
       leadsByEmployee[empName] = { leads: [], closed: 0, value: 0 };
@@ -455,7 +455,7 @@ const ManagerLeadsDashboard = () => {
                 <div className="space-y-4">
                   {/* Funnel Stage Cards - Clickable to filter leads */}
                   <div className="grid grid-cols-9 gap-2">
-                    {funnelStages.map((stage, index) => {
+                    {(funnelStages || []).map((stage, index) => {
                       const count = funnelData.stage_counts?.[stage.id] || 0;
                       return (
                         <div key={stage.id} className="text-center relative">
@@ -503,16 +503,16 @@ const ManagerLeadsDashboard = () => {
                           <thead>
                             <tr className="border-b border-zinc-200 dark:border-zinc-700">
                               <th className="text-left py-2 font-medium text-zinc-600 dark:text-zinc-400">Employee</th>
-                              {funnelStages.slice(0, 5).map(stage => (
+                              {(funnelStages || []).slice(0, 5).map(stage => (
                                 <th key={stage.id} className="text-center py-2 font-medium text-zinc-600 dark:text-zinc-400">{stage.name}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
-                            {funnelData.employee_breakdown.slice(0, 10).map((emp, idx) => (
+                            {(funnelData?.employee_breakdown || []).slice(0, 10).map((emp, idx) => (
                               <tr key={idx} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                                 <td className="py-2 font-medium">{emp.employee_name}</td>
-                                {funnelStages.slice(0, 5).map(stage => (
+                                {(funnelStages || []).slice(0, 5).map(stage => (
                                   <td key={stage.id} className="py-2 text-center">
                                     <span 
                                       className={`px-2 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 ${
@@ -602,7 +602,7 @@ const ManagerLeadsDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {targetVsAchievement.employee_stats.filter(e => e.employee_name.trim()).map((emp, idx) => (
+                  {(targetVsAchievement?.employee_stats || []).filter(e => e.employee_name.trim()).map((emp, idx) => (
                     <tr key={idx} className="border-b border-zinc-100 hover:bg-zinc-50">
                       <td className="py-2 font-medium">{emp.employee_name}</td>
                       <td className="py-2 text-center">
@@ -724,7 +724,7 @@ const ManagerLeadsDashboard = () => {
                   {momReviewData.employee_summaries?.length > 0 ? (
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-zinc-700">Team Member Details</h4>
-                      {momReviewData.employee_summaries.map((emp) => (
+                      {(momReviewData?.employee_summaries || []).map((emp) => (
                         <Collapsible
                           key={emp.employee_id}
                           open={expandedMomEmployee === emp.employee_id}
@@ -819,7 +819,7 @@ const ManagerLeadsDashboard = () => {
           className="px-3 py-2 border border-zinc-200 rounded-sm bg-white text-sm"
         >
           <option value="">All Team Members</option>
-          {subordinates.map(sub => (
+          {(subordinates || []).map(sub => (
             <option key={sub.id} value={sub.employee_id}>
               {sub.first_name} {sub.last_name}
             </option>
@@ -830,7 +830,7 @@ const ManagerLeadsDashboard = () => {
           onChange={(e) => setSelectedStatus(e.target.value)}
           className="px-3 py-2 border border-zinc-200 rounded-sm bg-white text-sm"
         >
-          {statusOptions.map(opt => (
+          {(statusOptions || []).map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
@@ -846,12 +846,12 @@ const ManagerLeadsDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(leadsByEmployee).map(([empName, data]) => (
+            {Object.entries(leadsByEmployee || {}).map(([empName, data]) => (
               <div 
                 key={empName}
                 className="p-3 bg-zinc-50 rounded-sm border border-zinc-100 cursor-pointer hover:bg-zinc-100 transition-colors"
                 onClick={() => {
-                  const emp = subordinates.find(s => `${s.first_name} ${s.last_name}` === empName);
+                  const emp = (subordinates || []).find(s => `${s.first_name} ${s.last_name}` === empName);
                   if (emp) setSelectedEmployee(emp.employee_id);
                 }}
               >
@@ -898,7 +898,7 @@ const ManagerLeadsDashboard = () => {
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map(lead => {
+                (filteredLeads || []).map(lead => {
                   const isPaused = lead.status === 'paused';
                   return (
                     <tr 

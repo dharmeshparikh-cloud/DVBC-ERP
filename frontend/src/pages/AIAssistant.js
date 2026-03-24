@@ -195,7 +195,7 @@ const AIAssistant = () => {
                 onChange={(e) => setActiveContext(e.target.value)}
                 className="bg-gray-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
-                {contextOptions.map(opt => (
+                {(contextOptions || []).map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
@@ -219,7 +219,7 @@ const AIAssistant = () => {
               <p className="text-gray-500 mb-6">Ask me anything about your ERP data</p>
               
               <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
-                {quickPrompts.map((prompt, idx) => (
+                {(quickPrompts || []).map((prompt, idx) => (
                   <button
                     key={idx}
                     onClick={() => { setQuery(prompt.text); }}
@@ -233,7 +233,7 @@ const AIAssistant = () => {
             </div>
           )}
 
-          {chatHistory.map((msg, idx) => (
+          {(chatHistory || []).map((msg, idx) => (
             <div
               key={idx}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -260,11 +260,11 @@ const AIAssistant = () => {
                   {msg.data && (
                     <div className="mt-3 p-3 bg-white/10 rounded-lg text-sm">
                       <p className="font-medium mb-2 opacity-75">Data Summary:</p>
-                      {Object.entries(msg.data).map(([key, value]) => (
+                      {Object.entries(msg.data || {}).map(([key, value]) => (
                         <div key={key} className="flex justify-between py-1 border-b border-white/10 last:border-0">
                           <span className="capitalize opacity-75">{key}:</span>
                           <span className="font-medium">
-                            {typeof value === 'object' ? Object.keys(value).length + ' items' : String(value)}
+                            {typeof value === 'object' ? Object.keys(value || {}).length + ' items' : String(value)}
                           </span>
                         </div>
                       ))}
@@ -328,7 +328,7 @@ const AIAssistant = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {quickInsights.map((insight, idx) => (
+            {(quickInsights || []).map((insight, idx) => (
               <div
                 key={idx}
                 className={`p-3 rounded-lg border-l-4 ${
@@ -376,7 +376,7 @@ const AIAssistant = () => {
             </button>
           </div>
           <div className="space-y-2">
-            {suggestions.slice(0, 5).map((suggestion, idx) => (
+            {(suggestions || []).slice(0, 5).map((suggestion, idx) => (
               <div key={idx} className="p-3 bg-gradient-to-r from-orange-50 to-pink-50 rounded-lg">
                 <p className="text-sm text-gray-700">{suggestion}</p>
               </div>

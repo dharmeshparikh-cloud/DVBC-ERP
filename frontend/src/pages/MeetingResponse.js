@@ -46,7 +46,7 @@ const MeetingResponse = () => {
 
   const removePreferredTime = (index) => {
     if (preferredTimes.length > 1) {
-      setPreferredTimes(preferredTimes.filter((_, i) => i !== index));
+      setPreferredTimes((preferredTimes || []).filter((_, i) => i !== index));
     }
   };
 
@@ -99,7 +99,7 @@ const MeetingResponse = () => {
     
     // For reschedule, validate at least one preferred time is provided
     if (selectedAction === 'reschedule') {
-      const validTimes = preferredTimes.filter(pt => pt.date && pt.time);
+      const validTimes = (preferredTimes || []).filter(pt => pt.date && pt.time);
       if (validTimes.length === 0 && !notes) {
         setError('Please provide at least one preferred date/time or a note for rescheduling.');
         return;
@@ -364,14 +364,14 @@ const MeetingResponse = () => {
               </div>
             </div>
 
-            {meeting?.agenda && meeting.agenda.length > 0 && meeting.agenda.some(a => a) && (
+            {meeting?.agenda && meeting.agenda.length > 0 && (meeting?.agenda || []).some(a => a) && (
               <div className="mt-6 p-4 bg-emerald-50 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="w-4 h-4 text-emerald-700" />
                   <span className="font-medium text-emerald-800">Agenda</span>
                 </div>
                 <ul className="list-disc list-inside text-zinc-700 space-y-1">
-                  {meeting.agenda.filter(a => a).map((item, i) => (
+                  {(meeting?.agenda || []).filter(a => a).map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
@@ -468,7 +468,7 @@ const MeetingResponse = () => {
                   </p>
                 </div>
                 
-                {preferredTimes.map((pt, index) => (
+                {(preferredTimes || []).map((pt, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
                     <span className="text-sm font-medium text-amber-700 w-6">#{index + 1}</span>
                     <div className="flex-1 grid grid-cols-2 gap-3">

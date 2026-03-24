@@ -251,7 +251,7 @@ const Expenses = () => {
   };
 
   const calculateTotal = () => {
-    return formData.line_items.reduce((sum, item) => sum + item.amount, 0);
+    return (formData?.line_items || []).reduce((sum, item) => sum + item.amount, 0);
   };
 
   const getStatusBadge = (status) => {
@@ -371,7 +371,7 @@ const Expenses = () => {
               </tr>
             </thead>
             <tbody>
-              {expenses.map(expense => (
+              {(expenses || []).map(expense => (
                 <tr key={expense.id} className="border-b border-zinc-100 hover:bg-zinc-50" data-testid={`expense-row-${expense.id}`}>
                   <td className="px-4 py-3 text-sm text-zinc-600">
                     {new Date(expense.created_at).toLocaleDateString()}
@@ -459,7 +459,7 @@ const Expenses = () => {
 
           {/* Mobile Card List */}
           <div className="md:hidden divide-y divide-zinc-100">
-            {expenses.map(expense => (
+            {(expenses || []).map(expense => (
               <div key={expense.id} className="p-4 space-y-2" data-testid={`expense-card-${expense.id}`} onClick={() => openViewDialog(expense)}>
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-zinc-900 text-sm">{expense.employee_name}</span>
@@ -545,7 +545,7 @@ const Expenses = () => {
                   <select
                     value={formData.client_id}
                     onChange={(e) => {
-                      const client = clients.find(c => c.id === e.target.value);
+                      const client = (clients || []).find(c => c.id === e.target.value);
                       setFormData({ 
                         ...formData, 
                         client_id: e.target.value,
@@ -555,7 +555,7 @@ const Expenses = () => {
                     className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
                   >
                     <option value="">Select client...</option>
-                    {clients.map(c => (
+                    {(clients || []).map(c => (
                       <option key={c.id} value={c.id}>{c.company_name}</option>
                     ))}
                   </select>
@@ -565,7 +565,7 @@ const Expenses = () => {
                   <select
                     value={formData.project_id}
                     onChange={(e) => {
-                      const project = projects.find(p => p.id === e.target.value);
+                      const project = (projects || []).find(p => p.id === e.target.value);
                       setFormData({ 
                         ...formData, 
                         project_id: e.target.value,
@@ -575,7 +575,7 @@ const Expenses = () => {
                     className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
                   >
                     <option value="">Select project...</option>
-                    {projects.map(p => (
+                    {(projects || []).map(p => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
@@ -678,7 +678,7 @@ const Expenses = () => {
               <div className="border-t border-zinc-100 pt-4">
                 <h4 className="font-medium text-zinc-950 mb-3">Expense Items</h4>
                 <div className="space-y-2">
-                  {formData.line_items.map((item, idx) => (
+                  {formData.line_(items || []).map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 rounded-sm">
                       <div className="flex items-center gap-4">
                         <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">

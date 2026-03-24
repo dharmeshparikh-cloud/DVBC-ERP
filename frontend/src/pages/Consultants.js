@@ -69,7 +69,7 @@ const Consultants = () => {
     return 'bg-emerald-500';
   };
 
-  const filteredConsultants = consultants.filter(c => 
+  const filteredConsultants = (consultants || []).filter(c => 
     c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -122,7 +122,7 @@ const Consultants = () => {
               <div>
                 <div className="text-xs text-zinc-500 uppercase tracking-wide">Available</div>
                 <div className="text-2xl font-semibold text-emerald-600">
-                  {consultants.filter(c => c.stats?.available_slots > 0).length}
+                  {(consultants || []).filter(c => c.stats?.available_slots > 0).length}
                 </div>
               </div>
               <UserCheck className="w-8 h-8 text-emerald-200" strokeWidth={1} />
@@ -135,7 +135,7 @@ const Consultants = () => {
               <div>
                 <div className="text-xs text-zinc-500 uppercase tracking-wide">At Capacity</div>
                 <div className="text-2xl font-semibold text-red-600">
-                  {consultants.filter(c => c.stats?.available_slots === 0).length}
+                  {(consultants || []).filter(c => c.stats?.available_slots === 0).length}
                 </div>
               </div>
               <AlertCircle className="w-8 h-8 text-red-200" strokeWidth={1} />
@@ -148,7 +148,7 @@ const Consultants = () => {
               <div>
                 <div className="text-xs text-zinc-500 uppercase tracking-wide">Total Project Value</div>
                 <div className="text-2xl font-semibold text-zinc-950">
-                  {formatINR(consultants.reduce((sum, c) => sum + (c.stats?.total_project_value || 0), 0), false)}
+                  {formatINR((consultants || []).reduce((sum, c) => sum + (c.stats?.total_project_value || 0), 0), false)}
                 </div>
               </div>
               <TrendingUp className="w-8 h-8 text-zinc-300" strokeWidth={1} />
@@ -191,7 +191,7 @@ const Consultants = () => {
           </div>
 
           {/* Consultant Rows */}
-          {filteredConsultants.map((consultant) => (
+          {(filteredConsultants || []).map((consultant) => (
             <Card
               key={consultant.id}
               data-testid={`consultant-card-${consultant.id}`}

@@ -257,7 +257,7 @@ const SalesDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-9 gap-1">
-              {Object.entries(myFunnelData.stage_counts).map(([stage, count], index) => (
+              {Object.entries(myFunnelData.stage_counts || {}).map(([stage, count], index) => (
                 <div key={stage} className="text-center relative">
                   <div 
                     className={`rounded-lg py-3 px-1 border cursor-pointer hover:scale-105 transition-transform ${getStageColor(stage)}`}
@@ -384,7 +384,7 @@ const SalesDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-9 gap-2">
-                {funnelData.funnel_stages.map((stage, index) => {
+                {(funnelData?.funnel_stages || []).map((stage, index) => {
                   const count = funnelData.stage_counts[stage.id] || 0;
                   const percentage = funnelData.summary.total_leads > 0 
                     ? Math.round((count / funnelData.summary.total_leads) * 100) 
@@ -446,7 +446,7 @@ const SalesDashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {funnelData.employee_breakdown.slice(0, 10).map((emp, index) => (
+                      {(funnelData?.employee_breakdown || []).slice(0, 10).map((emp, index) => (
                         <tr key={emp.employee_id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                           <td className="py-3 px-2 font-medium text-zinc-900 dark:text-zinc-100">{emp.employee_name}</td>
                           <td className="text-center py-3 px-1">{emp.stages.lead}</td>
@@ -486,7 +486,7 @@ const SalesDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-6 gap-4">
-                  {trendsData.trends.map((trend, index) => (
+                  {(trendsData?.trends || []).map((trend, index) => (
                     <div key={index} className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">{trend.period}</p>
                       <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{trend.leads_created}</p>
@@ -621,7 +621,7 @@ const SalesDashboard = () => {
                   {/* Insights */}
                   {forecastData.insights?.length > 0 && (
                     <div className="mt-3 space-y-1">
-                      {forecastData.insights.filter(Boolean).slice(0, 2).map((insight, i) => (
+                      {(forecastData?.insights || []).filter(Boolean).slice(0, 2).map((insight, i) => (
                         <p key={i} className="text-xs text-zinc-500 dark:text-zinc-400 flex items-start gap-1">
                           <span className="text-amber-500">•</span> {insight}
                         </p>

@@ -189,8 +189,8 @@ const AttendanceLeaveSettings = () => {
   };
 
   // Get employees without custom policies for the dropdown
-  const availableEmployees = allEmployees.filter(emp => 
-    !customPolicies.some(p => p.employee_id === emp.id) || 
+  const availableEmployees = (allEmployees || []).filter(emp => 
+    !(customPolicies || []).some(p => p.employee_id === emp.id) || 
     (editingPolicy && editingPolicy.employee_id === emp.id)
   );
 
@@ -198,7 +198,7 @@ const AttendanceLeaveSettings = () => {
     setAttendancePolicy(prev => ({
       ...prev,
       working_days: prev.working_days.includes(day)
-        ? prev.working_days.filter(d => d !== day)
+        ? (prev?.working_days || []).filter(d => d !== day)
         : [...prev.working_days, day]
     }));
   };
@@ -240,7 +240,7 @@ const AttendanceLeaveSettings = () => {
           <div>
             <Label className="text-zinc-800 mb-3 block">Working Days</Label>
             <div className="flex flex-wrap gap-2">
-              {allDays.map(day => (
+              {(allDays || []).map(day => (
                 <Button
                   key={day}
                   variant={attendancePolicy.working_days.includes(day) ? 'default' : 'outline'}
@@ -389,7 +389,7 @@ const AttendanceLeaveSettings = () => {
             
             {/* Role badges */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {consultingRoles.map(role => (
+              {(consultingRoles || []).map(role => (
                 <span 
                   key={role}
                   className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium flex items-center gap-1"
@@ -444,7 +444,7 @@ const AttendanceLeaveSettings = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {customPolicies.map((policy) => (
+              {(customPolicies || []).map((policy) => (
                 <div 
                   key={policy.employee_id}
                   className="p-4 bg-zinc-50 rounded-lg border border-zinc-200 hover:border-orange-300 transition-colors"
@@ -542,7 +542,7 @@ const AttendanceLeaveSettings = () => {
           <div>
             <h4 className="text-sm font-medium text-zinc-700 mb-2">Attendance Rules</h4>
             <ul className="text-sm text-zinc-600 space-y-1">
-              <li>Working Days: {attendancePolicy.working_days.map(d => d.slice(0, 3)).join(', ')}</li>
+              <li>Working Days: {(attendancePolicy?.working_days || []).map(d => d.slice(0, 3)).join(', ')}</li>
               <li>Non-Consulting: {attendancePolicy.non_consulting.check_in} - {attendancePolicy.non_consulting.check_out}</li>
               <li>Consulting: {attendancePolicy.consulting.check_in} - {attendancePolicy.consulting.check_out}</li>
               <li>Grace: {attendancePolicy.grace_days_per_month} days/month with {attendancePolicy.grace_period_minutes} min tolerance</li>
@@ -581,7 +581,7 @@ const AttendanceLeaveSettings = () => {
                     <SelectValue placeholder="Select an employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableEmployees.map(emp => (
+                    {(availableEmployees || []).map(emp => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.first_name} {emp.last_name} ({emp.employee_id})
                       </SelectItem>

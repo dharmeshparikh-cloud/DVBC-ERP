@@ -175,7 +175,7 @@ const MyExpenses = () => {
     doc.text(`Rejected: Rs. ${summary.rejected_amount?.toLocaleString('en-IN')} (${summary.rejected_count} items)`, 160, 42);
 
     // Table Data
-    const tableData = monthlyReport.expenses.map((exp, idx) => [
+    const tableData = (monthlyReport?.expenses || []).map((exp, idx) => [
       idx + 1,
       exp.lead_name || 'N/A',
       exp.company || 'N/A',
@@ -283,7 +283,7 @@ const MyExpenses = () => {
     onError: (error) => {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+        toast.error((detail || []).map(e => e.msg || 'Validation error').join(', '));
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
@@ -304,17 +304,17 @@ const MyExpenses = () => {
 
   const removeLineItem = (idx) => {
     if (formData.line_items.length > 1) {
-      setFormData({ ...formData, line_items: formData.line_items.filter((_, i) => i !== idx) });
+      setFormData({ ...formData, line_items: (formData.line_items || []).filter((_, i) => i !== idx) });
     }
   };
 
-  const totalAmount = formData.line_items.reduce((s, i) => s + (i.amount || 0), 0);
+  const totalAmount = (formData?.line_items || []).reduce((s, i) => s + (i.amount || 0), 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = {
       ...formData,
-      line_items: formData.line_items.map(li => ({
+      line_items: (formData.line_items || []).map(li => ({
         ...li, amount: parseFloat(li.amount) || 0,
         date: new Date(li.date).toISOString()
       }))
@@ -393,7 +393,7 @@ const MyExpenses = () => {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-zinc-950">Line Items</Label>
-                {formData.line_items.map((li, idx) => (
+                {(formData.line_items || []).map((li, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                     <div className="col-span-3">
                       <select value={li.category} onChange={(e) => updateLineItem(idx, 'category', e.target.value)}
@@ -444,7 +444,7 @@ const MyExpenses = () => {
                   try {
                     const payload = {
                       ...formData,
-                      line_items: formData.line_items.map(li => ({
+                      line_items: (formData.line_items || []).map(li => ({
                         ...li, amount: parseFloat(li.amount) || 0,
                         date: new Date(li.date).toISOString()
                       }))
@@ -507,17 +507,17 @@ const MyExpenses = () => {
         </Card>
       ) : (
         <div className="space-y-2">
-          {data.expenses.map(exp => (
-            <Card key={exp.id} className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors" data-testid={`expense-${exp.id}`}>
+          {(data?.expenses || []).map(exp => (
+            <Card key={exp?.id} className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors" data-testid={`expense-${exp?.id}`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                       <span className="font-medium text-sm text-zinc-950">
-                        {exp.is_office_expense ? 'Office Expense' : (exp.description || exp.client_name || exp.project_name || 'Expense')}
+                        {exp?.is_office_expense ? 'Office Expense' : (exp?.description || exp?.client_name || exp?.project_name || 'Expense')}
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-sm border ${STATUS_STYLES[exp.status] || STATUS_STYLES.draft}`}>
-                        {exp.status?.charAt(0).toUpperCase() + exp.status?.slice(1)}
+                      <span className={`text-xs px-2 py-0.5 rounded-sm border ${STATUS_STYLES[exp?.status] || STATUS_STYLES.draft}`}>
+                        {exp?.status?.charAt(0).toUpperCase() + exp?.status?.slice(1)}
                       </span>
                       {exp.expense_type === 'meeting_expense' && (
                         <span className="text-xs px-2 py-0.5 rounded-sm bg-blue-50 text-blue-600 border border-blue-200">
@@ -663,7 +663,7 @@ const MyExpenses = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {monthlyReport.expenses.map((exp, idx) => {
+                    {(monthlyReport?.expenses || []).map((exp, idx) => {
                       const TravelIcon = TRAVEL_MODE_ICONS[exp.travel_mode] || MapPin;
                       return (
                         <tr key={exp.expense_id || idx} className="hover:bg-zinc-50">
@@ -729,7 +729,7 @@ const MyExpenses = () => {
                         Total ({monthlyReport.expenses.length} expenses):
                       </td>
                       <td className="px-3 py-2 text-right text-sm">
-                        {fmt(monthlyReport.expenses.reduce((sum, e) => sum + (e.amount || 0), 0))}
+                        {fmt((monthlyReport?.expenses || []).reduce((sum, e) => sum + (e.amount || 0), 0))}
                       </td>
                       <td colSpan="2"></td>
                     </tr>

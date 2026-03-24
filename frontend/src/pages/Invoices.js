@@ -37,7 +37,7 @@ const Invoices = () => {
   });
 
   const getEmployeeName = (empId) => {
-    const emp = employees.find(e => e.id === empId);
+    const emp = (employees || []).find(e => e.id === empId);
     return emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown';
   };
 
@@ -59,7 +59,7 @@ const Invoices = () => {
   };
 
   const filteredInvoices = useMemo(() => {
-    return invoices.filter(inv => {
+    return (invoices || []).filter(inv => {
       const matchesSearch = 
         inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,13 +69,13 @@ const Invoices = () => {
     });
   }, [invoices, searchTerm, statusFilter]);
 
-  const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-  const paidAmount = filteredInvoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + (inv.amount || 0), 0);
-  const pendingAmount = filteredInvoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + (inv.amount || 0), 0);
+  const totalAmount = (filteredInvoices || []).reduce((sum, inv) => sum + (inv.amount || 0), 0);
+  const paidAmount = (filteredInvoices || []).filter(i => i.status === 'paid').reduce((sum, inv) => sum + (inv.amount || 0), 0);
+  const pendingAmount = (filteredInvoices || []).filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
   const downloadCSV = () => {
     const headers = ['Invoice #', 'Client', 'Project', 'Amount', 'Status', 'Date', 'Sales Employee', 'Due Date'];
-    const rows = filteredInvoices.map(inv => [
+    const rows = (filteredInvoices || []).map(inv => [
       inv.invoice_number || '',
       inv.client_name || '',
       inv.project_name || '',
@@ -86,7 +86,7 @@ const Invoices = () => {
       inv.due_date?.slice(0, 10) || ''
     ]);
 
-    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => (r || []).map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -224,7 +224,7 @@ const Invoices = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredInvoices.map(inv => (
+                  {(filteredInvoices || []).map(inv => (
                     <tr key={inv.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                       <td className="p-3 font-mono text-zinc-800">{inv.invoice_number || '-'}</td>
                       <td className="p-3 text-zinc-800 font-medium">{inv.client_name || '-'}</td>

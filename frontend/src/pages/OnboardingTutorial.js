@@ -225,7 +225,7 @@ const OnboardingTutorial = () => {
 
       {/* Quick Links */}
       <div className="grid grid-cols-5 gap-4">
-        {quickLinks.map((link) => {
+        {(quickLinks || []).map((link) => {
           const Icon = link.icon;
           return (
             <a
@@ -246,10 +246,10 @@ const OnboardingTutorial = () => {
 
       {/* Tutorial Cards */}
       <div className="space-y-4">
-        {tutorials.map((tutorial) => {
+        {(tutorials || []).map((tutorial) => {
           const Icon = tutorial.icon;
           const isExpanded = expandedTutorial === tutorial.id;
-          const completedCount = tutorial.steps.filter(s => completedSteps.includes(s.id)).length;
+          const completedCount = (tutorial?.steps || []).filter(s => completedSteps.includes(s.id)).length;
           const progress = (completedCount / tutorial.steps.length) * 100;
 
           return (
@@ -294,7 +294,7 @@ const OnboardingTutorial = () => {
               {isExpanded && (
                 <CardContent className="border-t border-zinc-100 dark:border-zinc-800 pt-6">
                   <div className="space-y-4">
-                    {tutorial.steps.map((step, index) => {
+                    {(tutorial?.steps || []).map((step, index) => {
                       const isComplete = completedSteps.includes(step.id);
                       return (
                         <div 
@@ -330,7 +330,7 @@ const OnboardingTutorial = () => {
 
                               {step.fields && (
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                  {step.fields.map(field => (
+                                  {(step?.fields || []).map(field => (
                                     <Badge key={field} variant="outline" className="text-xs">
                                       {field}
                                     </Badge>
@@ -340,7 +340,7 @@ const OnboardingTutorial = () => {
 
                               {step.roles && (
                                 <div className="mt-3 grid grid-cols-2 gap-2">
-                                  {step.roles.map(role => (
+                                  {(step?.roles || []).map(role => (
                                     <div key={role.name} className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                       <p className="font-medium text-sm text-blue-700 dark:text-blue-400">{role.name}</p>
                                       <p className="text-xs text-blue-600 dark:text-blue-500">{role.access}</p>

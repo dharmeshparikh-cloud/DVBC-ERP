@@ -98,7 +98,7 @@ const FollowUps = () => {
     queryFn: async () => {
       const res = await axios.get(`${API}/users`);
       const users = Array.isArray(res.data) ? res.data : res.data?.items || [];
-      return users.filter(u => ['executive', 'sales_executive', 'sales_manager'].includes(u.role));
+      return (users || []).filter(u => ['executive', 'sales_executive', 'sales_manager'].includes(u.role));
     },
     enabled: isManager,
   });
@@ -203,17 +203,17 @@ const FollowUps = () => {
   };
 
   // Stats
-  const overdueCount = followUps.filter(f => {
+  const overdueCount = (followUps || []).filter(f => {
     const due = new Date(f.due_date);
     return due < new Date(new Date().setHours(0, 0, 0, 0)) && f.status === 'open';
   }).length;
-  const openCount = followUps.filter(f => f.status === 'open').length;
+  const openCount = (followUps || []).filter(f => f.status === 'open').length;
   const escalationCount = escalations?.total || 0;
 
   // Per-stage breakdown
   const stageCounts = useMemo(() => {
     const counts = {};
-    followUps.forEach(f => {
+    (followUps || []).forEach(f => {
       const type = f.entity_type || 'unknown';
       counts[type] = (counts[type] || 0) + 1;
     });
@@ -225,7 +225,7 @@ const FollowUps = () => {
     let result = followUps;
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
-      result = result.filter(f =>
+      result = (result || []).filter(f =>
         f.client_name?.toLowerCase().includes(q) ||
         f.notes?.toLowerCase().includes(q) ||
         f.last_follow_up_summary?.toLowerCase().includes(q) ||
@@ -338,12 +338,12 @@ const FollowUps = () => {
       </div>
 
       {/* Stage Breakdown */}
-      {Object.keys(stageCounts).length > 0 && (
+      {Object.keys(stageCounts || {}).length > 0 && (
         <Card className={`shadow-none rounded-sm ${dk ? 'bg-[#1A1A1C] border-[#2A2A2E]' : 'bg-white border-zinc-200'}`} data-testid="stage-breakdown-card">
           <CardContent className="py-4">
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">By Funnel Stage</p>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(ENTITY_LABELS).map(([key, label]) => {
+              {Object.entries(ENTITY_LABELS || {}).map(([key, label]) => {
                 const count = stageCounts[key] || 0;
                 if (count === 0) return null;
                 return (
@@ -416,7 +416,7 @@ const FollowUps = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Stages</SelectItem>
-            {Object.entries(ENTITY_LABELS).map(([k, v]) => (
+            {Object.entries(ENTITY_LABELS || {}).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v}</SelectItem>
             ))}
           </SelectContent>
@@ -441,7 +441,7 @@ const FollowUps = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredFollowUps.map(fu => {
+              {(filteredFollowUps || []).map(fu => {
                 const isOverdue = new Date(fu.due_date) < new Date(new Date().setHours(0, 0, 0, 0)) && fu.status === 'open';
                 return (
                   <div
@@ -666,7 +666,7 @@ const FollowUps = () => {
               <Select value={reassignUserId} onValueChange={setReassignUserId}>
                 <SelectTrigger data-testid="reassign-user-select"><SelectValue placeholder="Select sales person" /></SelectTrigger>
                 <SelectContent>
-                  {salesUsers.filter(u => u.id !== selectedFollowUp?.assigned_to).map(u => (
+                  {(salesUsers || []).filter(u => u.id !== selectedFollowUp?.assigned_to).map(u => (
                     <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.role})</SelectItem>
                   ))}
                 </SelectContent>
@@ -703,7 +703,7 @@ const FollowUps = () => {
               <Select value={createForm.entity_type} onValueChange={(v) => setCreateForm(p => ({ ...p, entity_type: v }))}>
                 <SelectTrigger data-testid="create-entity-type"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(ENTITY_LABELS).map(([k, v]) => (
+                  {Object.entries(ENTITY_LABELS || {}).map(([k, v]) => (
                     <SelectItem key={k} value={k}>{v}</SelectItem>
                   ))}
                 </SelectContent>
@@ -713,12 +713,12 @@ const FollowUps = () => {
               <div className="space-y-1">
                 <Label className="text-sm">Select Lead</Label>
                 <Select value={createForm.entity_id} onValueChange={(v) => {
-                  const lead = leads.find(l => l.id === v);
+                  const lead = (leads || []).find(l => l.id === v);
                   setCreateForm(p => ({ ...p, entity_id: v, lead_id: v, client_name: lead?.company || `${lead?.first_name} ${lead?.last_name}` }));
                 }}>
                   <SelectTrigger data-testid="create-lead-select"><SelectValue placeholder="Choose a lead" /></SelectTrigger>
                   <SelectContent>
-                    {leads.map(l => (
+                    {(leads || []).map(l => (
                       <SelectItem key={l.id} value={l.id}>{l.company || `${l.first_name} ${l.last_name}`}</SelectItem>
                     ))}
                   </SelectContent>

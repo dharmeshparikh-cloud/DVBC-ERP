@@ -80,7 +80,7 @@ const SalesFunnelProgress = ({
 
         {/* Steps */}
         <div className="relative flex justify-between">
-          {steps.map((step, index) => {
+          {(steps || []).map((step, index) => {
             const status = getStepStatus(step, index);
             
             return (

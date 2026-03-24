@@ -211,7 +211,7 @@ const SubmissionReview = () => {
     queryFn: async () => {
       const response = await axios.get(`${API}/employees/all`, authHeaders);
       const employees = response.data?.items || response.data || [];
-      return Array.isArray(employees) ? employees.filter(e => 
+      return Array.isArray(employees) ? (employees || []).filter(e => 
         ['manager', 'hr_manager', 'project_manager', 'principal_consultant', 'senior_consultant', 'admin'].includes(e.role)
       ) : [];
     },
@@ -747,7 +747,7 @@ const SubmissionReview = () => {
         </div>
         <div className="flex items-center gap-3">
           {/* Send Reminder button for invited and draft status */}
-          {canApprove && ['invited', 'draft'].includes(submission.status) && (
+          {canApprove && submission?.status && ['invited', 'draft'].includes(submission.status) && (
             <Button 
               variant="outline" 
               onClick={handleSendReminder} 
@@ -891,7 +891,7 @@ const SubmissionReview = () => {
             <CardContent>
               {submission.education?.length > 0 ? (
                 <div className="space-y-3">
-                  {submission.education.map((edu, i) => (
+                  {(submission?.education || []).map((edu, i) => (
                     <div key={i} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
                       <div>
                         <p className="font-medium">{edu.degree}</p>
@@ -921,7 +921,7 @@ const SubmissionReview = () => {
             <CardContent>
               {submission.employment_history?.length > 0 ? (
                 <div className="space-y-3">
-                  {submission.employment_history.map((emp, i) => (
+                  {(submission?.employment_history || []).map((emp, i) => (
                     <div key={i} className="p-3 bg-zinc-50 rounded-lg">
                       <div className="flex items-center justify-between">
                         <p className="font-medium">{emp.designation}</p>
@@ -1105,7 +1105,7 @@ const SubmissionReview = () => {
             <CardContent>
               {submission.documents?.length > 0 ? (
                 <div className="space-y-3">
-                  {submission.documents.map(doc => (
+                  {(submission?.documents || []).map(doc => (
                     <div key={doc.id} className={`flex items-center justify-between p-3 rounded-lg border ${
                       doc.verification_status === 'approved' 
                         ? 'bg-emerald-50 border-emerald-200' 
@@ -1238,7 +1238,7 @@ const SubmissionReview = () => {
                 <Select
                   value={hrAssignment.reporting_manager_id}
                   onValueChange={(v) => {
-                    const mgr = managers.find(m => m.id === v);
+                    const mgr = (managers || []).find(m => m.id === v);
                     setHrAssignment(prev => ({
                       ...prev,
                       reporting_manager_id: v,
@@ -1251,7 +1251,7 @@ const SubmissionReview = () => {
                     <SelectValue placeholder="Select manager" />
                   </SelectTrigger>
                   <SelectContent>
-                    {managers.map(m => (
+                    {(managers || []).map(m => (
                       <SelectItem key={m.id} value={m.id}>
                         {m.full_name || `${m.first_name} ${m.last_name}`}
                       </SelectItem>
@@ -1445,7 +1445,7 @@ const SubmissionReview = () => {
                     <AlertDescription className="text-amber-800 text-xs">
                       <strong>Cannot complete yet:</strong>
                       <ul className="list-disc ml-4 mt-1">
-                        {readinessErrors.map((e, i) => (
+                        {(readinessErrors || []).map((e, i) => (
                           <li key={i}>{e}</li>
                         ))}
                       </ul>
@@ -1491,7 +1491,7 @@ const SubmissionReview = () => {
           )}
 
           {/* Status message for Draft/In Progress - candidate hasn't submitted yet */}
-          {['draft', 'in_progress'].includes(submission.status) && (
+          {submission?.status && ['draft', 'in_progress'].includes(submission.status) && (
             <Card className="border-amber-200 bg-amber-50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base text-amber-800 flex items-center gap-2">

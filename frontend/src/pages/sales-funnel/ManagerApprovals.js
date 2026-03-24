@@ -52,7 +52,7 @@ const ManagerApprovals = () => {
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+        toast.error((detail || []).map(e => e.msg || 'Validation error').join(', '));
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
@@ -82,7 +82,7 @@ const ManagerApprovals = () => {
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+        toast.error((detail || []).map(e => e.msg || 'Validation error').join(', '));
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
@@ -92,7 +92,7 @@ const ManagerApprovals = () => {
   };
 
   const getLeadInfo = (leadId) => {
-    const lead = leads.find(l => l.id === leadId);
+    const lead = (leads || []).find(l => l.id === leadId);
     return lead ? {
       name: `${lead.first_name} ${lead.last_name}`,
       company: lead.company,
@@ -150,7 +150,7 @@ const ManagerApprovals = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {pendingApprovals.map((item) => {
+          {(pendingApprovals || []).map((item) => {
             const leadInfo = getLeadInfo(item.agreement.lead_id);
             return (
               <Card

@@ -124,7 +124,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
     const matchedPages = ERP_PAGES.filter(page => 
       page?.name?.toLowerCase?.()?.includes?.(searchQuery) ||
       page?.category?.toLowerCase?.()?.includes?.(searchQuery) ||
-      (Array.isArray(page?.keywords) && page.keywords.some(k => k?.includes?.(searchQuery)))
+      (Array.isArray(page?.keywords) && (page?.keywords || []).some(k => k?.includes?.(searchQuery)))
     );
 
     // Search employees - use optional chaining for safety
@@ -138,12 +138,12 @@ const GlobalSearch = ({ isOpen, onClose }) => {
     // Build results
     if (matchedPages.length > 0) {
       matchedResults.push({ type: 'section', label: 'Pages & Features' });
-      matchedResults.push(...matchedPages.slice(0, 6).map(p => ({ ...p, type: 'page' })));
+      matchedResults.push(...(matchedPages || []).slice(0, 6).map(p => ({ ...p, type: 'page' })));
     }
 
     if (matchedEmployees.length > 0) {
       matchedResults.push({ type: 'section', label: 'Employees' });
-      matchedResults.push(...matchedEmployees.map(emp => ({
+      matchedResults.push(...(matchedEmployees || []).map(emp => ({
         type: 'employee',
         name: `${emp.first_name} ${emp.last_name}`,
         employee_id: emp.employee_id,
@@ -159,7 +159,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e) => {
-    const selectableResults = results.filter(r => r.type !== 'section');
+    const selectableResults = (results || []).filter(r => r.type !== 'section');
     
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -230,7 +230,7 @@ const GlobalSearch = ({ isOpen, onClose }) => {
             </div>
           ) : (
             <div className="py-2">
-              {results.map((item, index) => {
+              {(results || []).map((item, index) => {
                 if (item.type === 'section') {
                   return (
                     <div key={index} className="px-4 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">

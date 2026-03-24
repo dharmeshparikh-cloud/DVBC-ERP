@@ -152,7 +152,7 @@ const ProjectPaymentDetails = () => {
 
   // Check if installment has been paid
   const getInstallmentPayment = (installmentNumber) => {
-    return installmentPayments.find(p => p.installment_number === installmentNumber);
+    return (installmentPayments || []).find(p => p.installment_number === installmentNumber);
   };
 
   if (loading) {
@@ -327,7 +327,7 @@ const ProjectPaymentDetails = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {paymentData.payment_schedule.map((item, idx) => {
+                    {(paymentData?.payment_schedule || []).map((item, idx) => {
                       const eligibility = reminderEligibility[item.installment_number] || {};
                       const recordedPayment = getInstallmentPayment(item.installment_number);
                       const isReminderEnabled = eligibility.eligible && !recordedPayment;
@@ -447,7 +447,7 @@ const ProjectPaymentDetails = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {paymentData.consultant_breakdown.map((consultant, idx) => (
+                {(paymentData?.consultant_breakdown || []).map((consultant, idx) => (
                   <div key={idx} className="p-4 border border-zinc-200 rounded-sm" data-testid={`consultant-card-${idx}`}>
                     <div className="flex items-start justify-between">
                       <div>

@@ -164,7 +164,7 @@ const ModernSidebar = ({
     if (workspaceItems?.length) {
       items.push({ type: 'section', key: 'workspace', label: 'My Workspace' });
       if (expandedSections.workspace) {
-        workspaceItems.forEach(item => {
+        (workspaceItems || []).forEach(item => {
           items.push({ type: 'link', ...item, section: 'workspace' });
         });
       }
@@ -174,7 +174,7 @@ const ModernSidebar = ({
     if (showHR && hrItems?.length) {
       items.push({ type: 'section', key: 'hr', label: 'HR' });
       if (expandedSections.hr) {
-        hrItems.forEach(item => {
+        (hrItems || []).forEach(item => {
           items.push({ type: 'link', ...item, section: 'hr' });
         });
       }
@@ -184,7 +184,7 @@ const ModernSidebar = ({
     if (showSales && salesItems?.length) {
       items.push({ type: 'section', key: 'sales', label: isGuidedSalesMode ? 'My Sales' : 'Sales' });
       if (expandedSections.sales) {
-        salesItems.forEach(item => {
+        (salesItems || []).forEach(item => {
           items.push({ type: 'link', ...item, section: 'sales' });
         });
       }
@@ -194,7 +194,7 @@ const ModernSidebar = ({
     if (showConsulting && consultingItems?.length) {
       items.push({ type: 'section', key: 'consulting', label: 'Consulting' });
       if (expandedSections.consulting) {
-        consultingItems.forEach(item => {
+        (consultingItems || []).forEach(item => {
           items.push({ type: 'link', ...item, section: 'consulting' });
         });
       }
@@ -204,7 +204,7 @@ const ModernSidebar = ({
     if (showAdmin && adminItems?.length) {
       items.push({ type: 'section', key: 'admin', label: 'Admin' });
       if (expandedSections.admin) {
-        adminItems.forEach(item => {
+        (adminItems || []).forEach(item => {
           items.push({ type: 'link', ...item, section: 'admin' });
         });
       }
@@ -313,7 +313,7 @@ const ModernSidebar = ({
             const letter = e.key.toLowerCase();
             const currentIndex = focusedIndex;
             const searchItems = navItems.slice(currentIndex + 1).concat(navItems.slice(0, currentIndex + 1));
-            const foundIndex = searchItems.findIndex(item => 
+            const foundIndex = (searchItems || []).findIndex(item => 
               item.name?.toLowerCase().startsWith(letter) || item.label?.toLowerCase().startsWith(letter)
             );
             if (foundIndex !== -1) {
@@ -708,7 +708,7 @@ const ModernSidebar = ({
           onScroll={handleIconScroll}
           className="flex-1 py-4 px-2.5 space-y-2 overflow-y-auto scrollbar-thin"
         >
-          {menuSections.filter(s => s.show).map(section => (
+          {(menuSections || []).filter(s => s.show).map(section => (
             <div key={section.key} className="relative">
               <IconBarItem section={section} />
               <HoverPopup section={section} />
@@ -943,7 +943,7 @@ const ModernSidebar = ({
             </Link>
 
             {/* Sections */}
-            {menuSections.filter(s => s.show && !s.single).map(section => (
+            {(menuSections || []).filter(s => s.show && !s.single).map(section => (
               <ExpandedSection key={section.key} section={section} />
             ))}
           </div>

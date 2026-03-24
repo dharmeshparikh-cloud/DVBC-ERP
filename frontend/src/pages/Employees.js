@@ -136,7 +136,7 @@ const Employees = () => {
     const section = params.get('section');
     
     if (editId && employees.length > 0) {
-      const emp = employees.find(e => e.id === editId || e.employee_id === editId);
+      const emp = (employees || []).find(e => e.id === editId || e.employee_id === editId);
       if (emp) {
         setSelectedEmployee(emp);
         setEditDialog(true);
@@ -264,7 +264,7 @@ const Employees = () => {
     setViewDialog(true);
   };
 
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = (employees || []).filter(emp => {
     const matchesSearch = !searchTerm || 
       `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -348,7 +348,7 @@ const Employees = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase text-zinc-500">Departments</p>
-                  <p className="text-2xl font-semibold text-zinc-950">{Object.keys(stats.by_department).length}</p>
+                  <p className="text-2xl font-semibold text-zinc-950">{Object.keys(stats.by_department || {}).length}</p>
                 </div>
                 <Building2 className="w-8 h-8 text-zinc-300" />
               </div>
@@ -415,7 +415,7 @@ const Employees = () => {
                 data-testid="filter-department"
               >
                 <option value="">All Departments</option>
-                {departments.map(dept => (
+                {(departments || []).map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>
@@ -460,7 +460,7 @@ const Employees = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredEmployees.map(emp => (
+                    {(filteredEmployees || []).map(emp => (
                       <tr key={emp.id} className="border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer" onClick={() => openViewDialog(emp)} data-testid={`employee-row-${emp.id}`}>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
@@ -579,7 +579,7 @@ const Employees = () => {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredEmployees.map(emp => (
+                {(filteredEmployees || []).map(emp => (
                   <Card 
                     key={emp.id} 
                     className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
@@ -688,7 +688,7 @@ const Employees = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                {orgChart.map(node => (
+                {(orgChart || []).map(node => (
                   <div key={node.id} className="p-3 border border-zinc-200 rounded-sm">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center text-sm font-medium text-zinc-600">
@@ -722,7 +722,7 @@ const Employees = () => {
           <EmployeeForm 
             formData={formData} 
             setFormData={setFormData} 
-            employees={employees.filter(e => e.id !== selectedEmployee?.id)}
+            employees={(employees || []).filter(e => e.id !== selectedEmployee?.id)}
             onSubmit={handleUpdateEmployee}
             onCancel={() => setEditDialog(false)}
             submitLabel="Update Employee"
@@ -869,7 +869,7 @@ const Employees = () => {
                 <div className="border-t border-zinc-100 pt-4">
                   <h4 className="font-medium text-zinc-950 mb-3">Documents</h4>
                   <div className="space-y-2">
-                    {selectedEmployee.documents.map(doc => (
+                    {(selectedEmployee?.documents || []).map(doc => (
                       <div key={doc.id} className="flex items-center justify-between p-2 bg-zinc-50 rounded-sm">
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-zinc-400" />
@@ -900,7 +900,7 @@ const Employees = () => {
               Select a user account to give <strong>{selectedEmployee?.first_name} {selectedEmployee?.last_name}</strong> system access.
             </p>
             <div className="max-h-64 overflow-y-auto space-y-2">
-              {usersWithRoles.filter(u => !employees.some(e => e.user_id === u.id)).map(u => (
+              {(usersWithRoles || []).filter(u => !(employees || []).some(e => e.user_id === u.id)).map(u => (
                 <div 
                   key={u.id}
                   onClick={() => handleLinkUser(u.id)}
@@ -914,7 +914,7 @@ const Employees = () => {
                 </div>
               ))}
             </div>
-            {usersWithRoles.filter(u => !employees.some(e => e.user_id === u.id)).length === 0 && (
+            {(usersWithRoles || []).filter(u => !(employees || []).some(e => e.user_id === u.id)).length === 0 && (
               <p className="text-center py-4 text-zinc-400">All users are already linked to employees.</p>
             )}
           </div>
@@ -1150,7 +1150,7 @@ const EmployeeForm = ({ formData, setFormData, employees, onSubmit, onCancel, su
               title={isProtectedEmployee ? 'Use Hierarchy Change workflow to change reporting manager' : ''}
             >
               <option value="">No reporting manager</option>
-              {employees.map(emp => (
+              {(employees || []).map(emp => (
                 <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.designation || emp.employee_id})</option>
               ))}
             </select>

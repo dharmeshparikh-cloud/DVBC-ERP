@@ -130,7 +130,7 @@ const MobileAppDownload = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {features.map((feature, idx) => (
+            {(features || []).map((feature, idx) => (
               <div key={idx} className="text-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
                 <feature.icon className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
                 <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{feature.title}</h4>

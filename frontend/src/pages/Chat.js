@@ -53,7 +53,7 @@ const Chat = () => {
       enabled: showNewChat || showNewGroup
     }
   );
-  const users = usersData.filter(u => u.id !== currentUser?.id);
+  const users = (usersData || []).filter(u => u.id !== currentUser?.id);
 
   // WebSocket connection
   const connectWebSocket = useCallback(() => {
@@ -110,7 +110,7 @@ const Chat = () => {
       
       if (data.type === 'read') {
         // Update read status for message
-        setMessages(prev => prev.map(msg => 
+        setMessages(prev => (prev || []).map(msg => 
           msg.id === data.message_id 
             ? { ...msg, read_by: [...(msg.read_by || []), data.user_id] }
             : msg
@@ -244,7 +244,7 @@ const Chat = () => {
       return axios.post(`${API_URL}/api/chat/conversations`, {
         type: 'group',
         name: groupName,
-        participant_ids: [currentUser.id, ...selectedUsers.map(u => u.id)]
+        participant_ids: [currentUser.id, ...(selectedUsers || []).map(u => u.id)]
       });
     },
     onSuccess: (response) => {
@@ -396,7 +396,7 @@ const Chat = () => {
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
-          {conversations.map((conv) => (
+          {(conversations || []).map((conv) => (
             <div
               key={conv.id}
               onClick={() => setSelectedConversation(conv)}
@@ -459,7 +459,7 @@ const Chat = () => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((msg) => {
+              {(messages || []).map((msg) => {
                 const isOwn = msg.sender_id === currentUser?.id;
                 return (
                   <div
@@ -490,7 +490,7 @@ const Chat = () => {
                             </div>
                             {msg.erp_record.data && (
                               <div className="text-sm space-y-1">
-                                {Object.entries(msg.erp_record.data).slice(0, 3).map(([key, value]) => (
+                                {Object.entries(msg.erp_record.data || {}).slice(0, 3).map(([key, value]) => (
                                   <div key={key} className="flex justify-between">
                                     <span className="opacity-75 capitalize">{key.replace('_', ' ')}:</span>
                                     <span>{String(value)}</span>
@@ -504,7 +504,7 @@ const Chat = () => {
                         {/* Action Buttons */}
                         {msg.action_buttons && !msg.action_taken && (
                           <div className="flex gap-2 mt-3">
-                            {msg.action_buttons.map((btn, idx) => (
+                            {(msg?.action_buttons || []).map((btn, idx) => (
                               <button
                                 key={idx}
                                 onClick={() => executeAction(msg.id, btn.action)}
@@ -618,7 +618,7 @@ const Chat = () => {
               />
             </div>
             <div className="max-h-64 overflow-y-auto space-y-2">
-              {users.map((user) => (
+              {(users || []).map((user) => (
                 <div
                   key={user.id}
                   onClick={() => startDMConversation(user)}
@@ -661,12 +661,12 @@ const Chat = () => {
 
             {selectedUsers.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
-                {selectedUsers.map((user) => (
+                {(selectedUsers || []).map((user) => (
                   <span key={user.id} className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">
                     {user.full_name}
                     <X 
                       className="w-4 h-4 cursor-pointer" 
-                      onClick={() => setSelectedUsers(selectedUsers.filter(u => u.id !== user.id))}
+                      onClick={() => setSelectedUsers((selectedUsers || []).filter(u => u.id !== user.id))}
                     />
                   </span>
                 ))}
@@ -685,7 +685,7 @@ const Chat = () => {
             </div>
 
             <div className="max-h-48 overflow-y-auto space-y-2 mb-4">
-              {users.filter(u => !selectedUsers.find(s => s.id === u.id)).map((user) => (
+              {(users || []).filter(u => !(selectedUsers || []).find(s => s.id === u.id)).map((user) => (
                 <div
                   key={user.id}
                   onClick={() => setSelectedUsers([...selectedUsers, user])}

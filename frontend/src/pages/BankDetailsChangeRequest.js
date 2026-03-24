@@ -326,7 +326,7 @@ const BankDetailsChangeRequest = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {pendingRequests.map((req, idx) => (
+              {(pendingRequests || []).map((req, idx) => (
                 <div 
                   key={idx}
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800/50' : 'border-zinc-200 bg-zinc-50'}`}

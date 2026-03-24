@@ -95,7 +95,7 @@ const AssignTeam = () => {
     }
 
     // Check if already assigned
-    if (assignedTeam.find(t => t.user_id === selectedConsultant.user_id)) {
+    if ((assignedTeam || []).find(t => t.user_id === selectedConsultant.user_id)) {
       toast.error('This consultant is already assigned');
       return;
     }
@@ -117,7 +117,7 @@ const AssignTeam = () => {
   };
 
   const handleRemoveConsultant = (userId) => {
-    setAssignedTeam(assignedTeam.filter(t => t.user_id !== userId));
+    setAssignedTeam((assignedTeam || []).filter(t => t.user_id !== userId));
     toast.success('Consultant removed from team');
   };
 
@@ -148,7 +148,7 @@ const AssignTeam = () => {
   };
 
   // Filter consultants for search
-  const filteredConsultants = consultants.filter(c => {
+  const filteredConsultants = (consultants || []).filter(c => {
     const searchLower = searchQuery.toLowerCase();
     const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
     return fullName.includes(searchLower) || c.email?.toLowerCase().includes(searchLower);
@@ -280,7 +280,7 @@ const AssignTeam = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {assignedTeam.map((member, index) => (
+                {(assignedTeam || []).map((member, index) => (
                   <div 
                     key={member.user_id || index}
                     className="flex items-center justify-between p-3 bg-zinc-50 rounded-sm"
@@ -371,9 +371,9 @@ const AssignTeam = () => {
 
             {/* Consultant List */}
             <div className="max-h-60 overflow-y-auto space-y-2">
-              {filteredConsultants.map(consultant => {
+              {(filteredConsultants || []).map(consultant => {
                 const isSelected = selectedConsultant?.user_id === consultant.user_id;
-                const isAssigned = assignedTeam.find(t => t.user_id === consultant.user_id);
+                const isAssigned = (assignedTeam || []).find(t => t.user_id === consultant.user_id);
                 
                 return (
                   <button

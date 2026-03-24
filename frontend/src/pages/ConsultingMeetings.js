@@ -157,7 +157,7 @@ const ConsultingMeetings = () => {
     if (user.role && ['admin', 'principal_consultant'].includes(user.role)) return true;
     // Check if user is in project team
     const projectTeam = meeting.project_team || [];
-    return projectTeam.some(t => t.user_id === user.id || t.employee_id === user.employee_id);
+    return (projectTeam || []).some(t => t.user_id === user.id || t.employee_id === user.employee_id);
   };
 
   // Check if meeting is offline (can claim travel)
@@ -256,12 +256,12 @@ const ConsultingMeetings = () => {
     
     // Filter by project
     if (filters.project_id !== 'all') {
-      result = result.filter(m => m.project_id === filters.project_id);
+      result = (result || []).filter(m => m.project_id === filters.project_id);
     }
     
     // Filter by client
     if (filters.client_id !== 'all') {
-      result = result.filter(m => m.client_id === filters.client_id);
+      result = (result || []).filter(m => m.client_id === filters.client_id);
     }
     
     // Filter by month
@@ -269,7 +269,7 @@ const ConsultingMeetings = () => {
       const [year, month] = filters.month.split('-').map(Number);
       const monthStart = startOfMonth(new Date(year, month - 1));
       const monthEnd = endOfMonth(new Date(year, month - 1));
-      result = result.filter(m => {
+      result = (result || []).filter(m => {
         try {
           const meetingDate = parseISO(m.meeting_date);
           return isWithinInterval(meetingDate, { start: monthStart, end: monthEnd });
@@ -282,11 +282,11 @@ const ConsultingMeetings = () => {
     // Filter by status
     if (filters.status !== 'all') {
       if (filters.status === 'pending') {
-        result = result.filter(m => !m.is_delivered);
+        result = (result || []).filter(m => !m.is_delivered);
       } else if (filters.status === 'delivered') {
-        result = result.filter(m => m.is_delivered);
+        result = (result || []).filter(m => m.is_delivered);
       } else if (filters.status === 'with_mom') {
-        result = result.filter(m => m.mom_generated);
+        result = (result || []).filter(m => m.mom_generated);
       }
     }
 
@@ -294,7 +294,7 @@ const ConsultingMeetings = () => {
     if (filters.date_from) {
       const fromDate = new Date(filters.date_from);
       fromDate.setHours(0, 0, 0, 0);
-      result = result.filter(m => {
+      result = (result || []).filter(m => {
         try {
           const meetingDate = new Date(m.meeting_date);
           return meetingDate >= fromDate;
@@ -306,7 +306,7 @@ const ConsultingMeetings = () => {
     if (filters.date_to) {
       const toDate = new Date(filters.date_to);
       toDate.setHours(23, 59, 59, 999);
-      result = result.filter(m => {
+      result = (result || []).filter(m => {
         try {
           const meetingDate = new Date(m.meeting_date);
           return meetingDate <= toDate;
@@ -325,9 +325,9 @@ const ConsultingMeetings = () => {
   // Get unique clients from meetings
   const uniqueClients = useMemo(() => {
     const clientMap = new Map();
-    meetings.forEach(m => {
+    (meetings || []).forEach(m => {
       if (m.client_id) {
-        const client = clients.find(c => c.id === m.client_id);
+        const client = (clients || []).find(c => c.id === m.client_id);
         if (client) {
           clientMap.set(m.client_id, client.company_name || client.name || 'Unknown');
         }
@@ -339,9 +339,9 @@ const ConsultingMeetings = () => {
   // Get unique projects from meetings with date range
   const uniqueProjects = useMemo(() => {
     const projectMap = new Map();
-    meetings.forEach(m => {
+    (meetings || []).forEach(m => {
       if (m.project_id) {
-        const project = projects.find(p => p.id === m.project_id);
+        const project = (projects || []).find(p => p.id === m.project_id);
         if (project && !projectMap.has(m.project_id)) {
           projectMap.set(m.project_id, {
             id: m.project_id,
@@ -361,7 +361,7 @@ const ConsultingMeetings = () => {
     if (projectId === 'all') {
       setFilters(f => ({ ...f, project_id: 'all', date_from: '', date_to: '' }));
     } else {
-      const project = uniqueProjects.find(p => p.id === projectId);
+      const project = (uniqueProjects || []).find(p => p.id === projectId);
       if (project) {
         const dateFrom = project.start_date ? format(new Date(project.start_date), 'yyyy-MM-dd') : '';
         const dateTo = project.end_date ? format(new Date(project.end_date), 'yyyy-MM-dd') : '';
@@ -373,7 +373,7 @@ const ConsultingMeetings = () => {
   // Get unique months from meetings
   const uniqueMonths = useMemo(() => {
     const monthSet = new Set();
-    meetings.forEach(m => {
+    (meetings || []).forEach(m => {
       try {
         const date = parseISO(m.meeting_date);
         monthSet.add(format(date, 'yyyy-MM'));
@@ -393,14 +393,14 @@ const ConsultingMeetings = () => {
     setUploadingAttachment(true);
     try {
       const formData = new FormData();
-      files.forEach(f => formData.append('files', f));
+      (files || []).forEach(f => formData.append('files', f));
       
       const res = await axios.post(`${API}/upload/meeting-attachments`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       const uploadedFiles = res.data?.files || res.data || [];
-      setMomAttachments(prev => [...prev, ...uploadedFiles.map(f => ({
+      setMomAttachments(prev => [...prev, ...(uploadedFiles || []).map(f => ({
         name: f.filename || f.name,
         url: f.url || f.path,
         size: f.size
@@ -408,7 +408,7 @@ const ConsultingMeetings = () => {
       toast.success(`${files.length} file(s) uploaded`);
     } catch (error) {
       // If upload endpoint doesn't exist, store locally for now
-      const localFiles = files.map(f => ({
+      const localFiles = (files || []).map(f => ({
         name: f.name,
         size: f.size,
         type: f.type,
@@ -422,7 +422,7 @@ const ConsultingMeetings = () => {
   };
 
   const removeAttachment = (index) => {
-    setMomAttachments(prev => prev.filter((_, i) => i !== index));
+    setMomAttachments(prev => (prev || []).filter((_, i) => i !== index));
   };
 
   // Mutation: Create Meeting
@@ -432,7 +432,7 @@ const ConsultingMeetings = () => {
         ...data, type: 'consulting',
         meeting_date: new Date(data.meeting_date).toISOString(),
         duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
-        agenda: data.agenda.filter(a => a.trim())
+        agenda: (data?.agenda || []).filter(a => a.trim())
       });
     },
     onSuccess: () => {
@@ -462,8 +462,8 @@ const ConsultingMeetings = () => {
     }
     
     // Generate title from Client + Purpose
-    const project = projects.find(p => p.id === formData.project_id);
-    const meetingType = meetingTypes.find(mt => mt.code === formData.meeting_type_code);
+    const project = (projects || []).find(p => p.id === formData.project_id);
+    const meetingType = (meetingTypes || []).find(mt => mt.code === formData.meeting_type_code);
     const generatedTitle = `${project?.client_name || 'Client'} - ${meetingType?.name || 'Meeting'}`;
     
     // Combine date and start_time for meeting_date
@@ -494,7 +494,7 @@ const ConsultingMeetings = () => {
     
     // Get companion names for audit
     const companionNames = (formData.travel_companions || [])
-      .map(id => users.find(u => u.id === id)?.full_name)
+      .map(id => (users || []).find(u => u.id === id)?.full_name)
       .filter(Boolean);
     
     const submitData = {
@@ -543,12 +543,12 @@ const ConsultingMeetings = () => {
     const projectMeetings = meetings
       .filter(m => m.project_id === meeting.project_id)
       .sort((a, b) => new Date(a.meeting_date) - new Date(b.meeting_date));
-    return projectMeetings.findIndex(m => m.id === meeting.id) + 1;
+    return (projectMeetings || []).findIndex(m => m.id === meeting.id) + 1;
   };
 
   // Get project stats
   const getProjectStats = (meeting) => {
-    const project = projects.find(p => p.id === meeting.project_id);
+    const project = (projects || []).find(p => p.id === meeting.project_id);
     if (!project) return { committed: 0, delivered: 0, pending: 0 };
     const committed = project.total_meetings_committed || 0;
     const delivered = project.total_meetings_delivered || 0;
@@ -635,9 +635,9 @@ const ConsultingMeetings = () => {
       
       await axios.patch(`${API}/meetings/${selectedMeeting.id}/mom`, {
         ...momData,
-        agenda: momData.agenda.filter(a => a.trim()),
-        discussion_points: momData.discussion_points.filter(d => d.trim()),
-        decisions_made: momData.decisions_made.filter(d => d.trim()),
+        agenda: (momData?.agenda || []).filter(a => a.trim()),
+        discussion_points: (momData?.discussion_points || []).filter(d => d.trim()),
+        decisions_made: (momData?.decisions_made || []).filter(d => d.trim()),
         next_meeting_date: momData.next_meeting_date ? new Date(momData.next_meeting_date).toISOString() : null,
         mom_attachments: momAttachments,
         sow_scope_ids: selectedScopeIds,
@@ -670,7 +670,7 @@ const ConsultingMeetings = () => {
   const handleUpdateActionItemStatus = async (actionItemId, status) => {
     try {
       await axios.patch(`${API}/meetings/${selectedMeeting.id}/action-items/${actionItemId}?status=${status}`);
-      setMomData(prev => ({ ...prev, action_items: prev.action_items.map(i => i.id === actionItemId ? { ...i, status } : i) }));
+      setMomData(prev => ({ ...prev, action_items: prev.action_(items || []).map(i => i.id === actionItemId ? { ...i, status } : i) }));
       toast.success('Status updated');
       queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
     } catch { toast.error('Failed to update'); }
@@ -753,7 +753,7 @@ const ConsultingMeetings = () => {
     online: 'bg-blue-50 text-blue-700', offline: 'bg-purple-50 text-purple-700', tele_call: 'bg-emerald-50 text-emerald-700'
   }[mode] || 'bg-blue-50 text-blue-700');
 
-  const activeTracking = tracking.filter(t => t.status === 'active' && t.committed > 0);
+  const activeTracking = (tracking || []).filter(t => t.status === 'active' && t.committed > 0);
 
   return (
     <div data-testid="consulting-meetings-page">
@@ -937,19 +937,19 @@ const ConsultingMeetings = () => {
                     <Label className="text-sm font-medium text-zinc-950">Project *</Label>
                     <select value={formData.project_id}
                       onChange={(e) => {
-                        const p = projects.find(pr => pr.id === e.target.value);
+                        const p = (projects || []).find(pr => pr.id === e.target.value);
                         setFormData({ ...formData, project_id: e.target.value, client_id: p?.client_id || '', sow_id: '' });
                       }}
                       required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="consulting-meeting-project">
                       <option value="">Select project</option>
-                      {projects.map(p => <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>)}
+                      {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Client</Label>
                     <div className="h-10 px-3 py-2 rounded-sm border border-zinc-200 bg-zinc-50 text-sm text-zinc-700">
                       {formData.project_id 
-                        ? (projects.find(p => p.id === formData.project_id)?.client_name || 'Select project first')
+                        ? ((projects || []).find(p => p.id === formData.project_id)?.client_name || 'Select project first')
                         : 'Auto-filled from project'}
                     </div>
                   </div>
@@ -974,11 +974,11 @@ const ConsultingMeetings = () => {
                     className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" 
                     data-testid="consulting-meeting-sow">
                     <option value="">Select SOW *</option>
-                    {sows.filter(s => !formData.project_id || s.project_id === formData.project_id).map(s => (
+                    {(sows || []).filter(s => !formData.project_id || s.project_id === formData.project_id).map(s => (
                       <option key={s.id} value={s.id}>{s.title || s.client_name || `SOW-${s.id?.slice(0,8)}`}</option>
                     ))}
                   </select>
-                  {formData.project_id && sows.filter(s => s.project_id === formData.project_id).length === 0 && (
+                  {formData.project_id && (sows || []).filter(s => s.project_id === formData.project_id).length === 0 && (
                     <p className="text-xs text-amber-600">No SOW found for this project. Please create SOW first or click Refresh.</p>
                   )}
                 </div>
@@ -992,7 +992,7 @@ const ConsultingMeetings = () => {
                     className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
                     data-testid="meeting-type-select">
                     <option value="">Select Purpose...</option>
-                    {meetingTypes.map(mt => (
+                    {(meetingTypes || []).map(mt => (
                       <option key={mt.code} value={mt.code}>{mt.name}</option>
                     ))}
                   </select>
@@ -1125,7 +1125,7 @@ const ConsultingMeetings = () => {
                           setFormData({ ...formData, travel_companions: selected });
                         }}
                         className="w-full h-20 px-3 py-2 rounded-sm border border-blue-200 bg-white text-sm">
-                        {users.filter(u => u.id !== user?.id && (u.department === 'Consulting' || u.department === 'Delivery')).map(u => (
+                        {(users || []).filter(u => u.id !== user?.id && (u.department === 'Consulting' || u.department === 'Delivery')).map(u => (
                           <option key={u.id} value={u.id}>{u.full_name}</option>
                         ))}
                       </select>
@@ -1203,7 +1203,7 @@ const ConsultingMeetings = () => {
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-zinc-950">Agenda Items</Label>
-                  {formData.agenda.map((item, idx) => (
+                  {(formData?.agenda || []).map((item, idx) => (
                     <div key={idx} className="flex gap-2">
                       <Input value={item} onChange={(e) => updateArrayItem('agenda', idx, e.target.value, setFormData, formData)}
                         placeholder={`Agenda item ${idx + 1}`} className="rounded-sm border-zinc-200" />
@@ -1219,10 +1219,10 @@ const ConsultingMeetings = () => {
                   <select multiple value={formData.attendees}
                     onChange={(e) => {
                       const sel = Array.from(e.target.selectedOptions, o => o.value);
-                      setFormData({ ...formData, attendees: sel, attendee_names: sel.map(id => users.find(u => u.id === id)?.full_name || '') });
+                      setFormData({ ...formData, attendees: sel, attendee_names: (sel || []).map(id => (users || []).find(u => u.id === id)?.full_name || '') });
                     }}
                     className="w-full h-24 px-3 py-2 rounded-sm border border-zinc-200 bg-transparent text-sm">
-                    {users.map(u => <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>)}
+                    {(users || []).map(u => <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>)}
                   </select>
                   <p className="text-xs text-zinc-400">Hold Ctrl/Cmd to select multiple</p>
                 </div>
@@ -1263,7 +1263,7 @@ const ConsultingMeetings = () => {
               <CardContent className="p-4">
                 <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Total Committed</div>
                 <div className="text-2xl font-semibold text-zinc-950" data-testid="tracking-total-committed">
-                  {tracking.reduce((sum, t) => sum + t.committed, 0)}
+                  {(tracking || []).reduce((sum, t) => sum + t.committed, 0)}
                 </div>
               </CardContent>
             </Card>
@@ -1271,7 +1271,7 @@ const ConsultingMeetings = () => {
               <CardContent className="p-4">
                 <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Total Delivered</div>
                 <div className="text-2xl font-semibold text-emerald-700" data-testid="tracking-total-delivered">
-                  {tracking.reduce((sum, t) => sum + t.actual_meetings, 0)}
+                  {(tracking || []).reduce((sum, t) => sum + t.actual_meetings, 0)}
                 </div>
               </CardContent>
             </Card>
@@ -1305,7 +1305,7 @@ const ConsultingMeetings = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeTracking.map(t => (
+                  {(activeTracking || []).map(t => (
                     <tr key={t.project_id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`tracking-row-${t.project_id}`}>
                       <td className="px-4 py-3 font-medium text-zinc-950">{t.project_name}</td>
                       <td className="px-4 py-3 text-zinc-600">{t.client_name}</td>
@@ -1352,7 +1352,7 @@ const ConsultingMeetings = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Projects</SelectItem>
-                      {uniqueProjects.map(p => (
+                      {(uniqueProjects || []).map(p => (
                         <SelectItem key={p.id} value={p.id}>
                           <div className="flex flex-col">
                             <span>{p.name}</span>
@@ -1373,7 +1373,7 @@ const ConsultingMeetings = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Companies</SelectItem>
-                      {uniqueClients.map(c => (
+                      {(uniqueClients || []).map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1454,12 +1454,12 @@ const ConsultingMeetings = () => {
                   <span className="text-xs text-zinc-500">Showing {filteredMeetings.length} of {meetings.length} meetings</span>
                   {filters.project_id !== 'all' && (
                     <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700">
-                      Project: {uniqueProjects.find(p => p.id === filters.project_id)?.name}
+                      Project: {(uniqueProjects || []).find(p => p.id === filters.project_id)?.name}
                     </Badge>
                   )}
                   {filters.client_id !== 'all' && (
                     <Badge variant="secondary" className="text-xs">
-                      Company: {uniqueClients.find(c => c.id === filters.client_id)?.name}
+                      Company: {(uniqueClients || []).find(c => c.id === filters.client_id)?.name}
                     </Badge>
                   )}
                   {filters.status !== 'all' && (
@@ -1506,7 +1506,7 @@ const ConsultingMeetings = () => {
                         <div className="text-xs uppercase tracking-wide text-emerald-600 mb-1">MOM Submitted</div>
                         <HelpCircle className="w-3 h-3 text-emerald-400" />
                       </div>
-                      <div className="text-2xl font-semibold text-emerald-700">{filteredMeetings.filter(m => m.mom_generated).length}</div>
+                      <div className="text-2xl font-semibold text-emerald-700">{(filteredMeetings || []).filter(m => m.mom_generated).length}</div>
                     </CardContent>
                   </Card>
                 </TooltipTrigger>
@@ -1524,7 +1524,7 @@ const ConsultingMeetings = () => {
                         <div className="text-xs uppercase tracking-wide text-blue-600 mb-1">Sent to Client</div>
                         <Mail className="w-3 h-3 text-blue-400" />
                       </div>
-                      <div className="text-2xl font-semibold text-blue-700">{filteredMeetings.filter(m => m.mom_sent_to_client).length}</div>
+                      <div className="text-2xl font-semibold text-blue-700">{(filteredMeetings || []).filter(m => m.mom_sent_to_client).length}</div>
                     </CardContent>
                   </Card>
                 </TooltipTrigger>
@@ -1543,7 +1543,7 @@ const ConsultingMeetings = () => {
                         <Target className="w-3 h-3 text-amber-400" />
                       </div>
                       <div className="text-2xl font-semibold text-amber-700">
-                        {filteredMeetings.reduce((sum, m) => sum + (m.action_items?.filter(a => a.status !== 'completed').length || 0), 0)}
+                        {(filteredMeetings || []).reduce((sum, m) => sum + (m.action_items?.filter(a => a.status !== 'completed').length || 0), 0)}
                       </div>
                     </CardContent>
                   </Card>
@@ -1592,9 +1592,9 @@ const ConsultingMeetings = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMeetings.map((meeting, idx) => {
-                    const project = projects.find(p => p.id === meeting.project_id);
-                    const client = clients.find(c => c.id === meeting.client_id);
+                  {(filteredMeetings || []).map((meeting, idx) => {
+                    const project = (projects || []).find(p => p.id === meeting.project_id);
+                    const client = (clients || []).find(c => c.id === meeting.client_id);
                     // Company name (client is the company)
                     const companyName = meeting.client_name || client?.company_name || client?.name || '-';
                     const projectName = meeting.project_name || project?.name || '-';
@@ -1694,9 +1694,9 @@ const ConsultingMeetings = () => {
           ) : (
             /* Card View */
             <div className="space-y-3">
-              {filteredMeetings.map((meeting) => {
-                const project = projects.find(p => p.id === meeting.project_id);
-                const client = clients.find(c => c.id === meeting.client_id);
+              {(filteredMeetings || []).map((meeting) => {
+                const project = (projects || []).find(p => p.id === meeting.project_id);
+                const client = (clients || []).find(c => c.id === meeting.client_id);
                 const clientName = meeting.client_name || client?.company_name || client?.name || '';
                 const projectName = meeting.project_name || project?.name || '';
                 const isExpanded = expandedMeetings[meeting.id];
@@ -1752,11 +1752,11 @@ const ConsultingMeetings = () => {
                           </div>
                           {isExpanded && (
                             <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
-                              {meeting.agenda?.length > 0 && meeting.agenda.some(a => a) && (
+                              {meeting.agenda?.length > 0 && (meeting?.agenda || []).some(a => a) && (
                                 <div>
                                   <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Agenda</div>
                                   <ul className="list-disc list-inside text-sm text-zinc-600">
-                                    {meeting.agenda.filter(a => a).map((item, idx) => <li key={idx}>{item}</li>)}
+                                    {(meeting?.agenda || []).filter(a => a).map((item, idx) => <li key={idx}>{item}</li>)}
                                   </ul>
                                 </div>
                               )}
@@ -1770,7 +1770,7 @@ const ConsultingMeetings = () => {
                                 <div>
                                   <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Action Items</div>
                                   <div className="space-y-2">
-                                    {meeting.action_items.map(item => (
+                                    {meeting.action_(items || []).map(item => (
                                       <div key={item.id} className={`flex items-center justify-between p-2 rounded-sm border ${item.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-200'}`}>
                                         <div className="flex items-center gap-2">
                                           {item.status === 'completed' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4 text-zinc-400" />}
@@ -1883,8 +1883,8 @@ const ConsultingMeetings = () => {
                     {/* Selected Scopes Tags */}
                     {selectedScopeIds.length > 0 && (
                       <div className="flex flex-wrap gap-2 p-2 bg-white border border-indigo-200 rounded-sm">
-                        {selectedScopeIds.map(scopeId => {
-                          const scope = availableScopes.find(s => s.id === scopeId);
+                        {(selectedScopeIds || []).map(scopeId => {
+                          const scope = (availableScopes || []).find(s => s.id === scopeId);
                           const wasAlreadyLinked = (selectedMeeting?.sow_scope_ids || []).includes(scopeId);
                           if (!scope) return null;
                           return (
@@ -1898,7 +1898,7 @@ const ConsultingMeetings = () => {
                               {!wasAlreadyLinked && (
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedScopeIds(prev => prev.filter(id => id !== scopeId))}
+                                  onClick={() => setSelectedScopeIds(prev => (prev || []).filter(id => id !== scopeId))}
                                   className="ml-1 hover:text-red-600"
                                 >
                                   <X className="w-3 h-3" />
@@ -1949,7 +1949,7 @@ const ConsultingMeetings = () => {
                     <div className="max-h-48 overflow-y-auto border border-indigo-200 rounded-sm bg-white">
                       {(() => {
                         // Filter scopes based on search and status
-                        const filteredScopes = availableScopes.filter(scope => {
+                        const filteredScopes = (availableScopes || []).filter(scope => {
                           const matchesSearch = !scopeSearchQuery || 
                             scope.name.toLowerCase().includes(scopeSearchQuery.toLowerCase()) ||
                             (scope.description || '').toLowerCase().includes(scopeSearchQuery.toLowerCase());
@@ -1966,8 +1966,8 @@ const ConsultingMeetings = () => {
                         }
 
                         // Group by committed vs additional
-                        const committedScopes = filteredScopes.filter(s => !s.is_additional);
-                        const additionalScopes = filteredScopes.filter(s => s.is_additional);
+                        const committedScopes = (filteredScopes || []).filter(s => !s.is_additional);
+                        const additionalScopes = (filteredScopes || []).filter(s => s.is_additional);
 
                         return (
                           <div className="divide-y divide-zinc-100">
@@ -1979,7 +1979,7 @@ const ConsultingMeetings = () => {
                                     Committed Scopes ({committedScopes.length})
                                   </span>
                                 </div>
-                                {committedScopes.map(scope => {
+                                {(committedScopes || []).map(scope => {
                                   const isSelected = (selectedScopeIds || []).includes(scope.id);
                                   const wasAlreadyLinked = (selectedMeeting?.sow_scope_ids || []).includes(scope.id);
                                   return (
@@ -1994,7 +1994,7 @@ const ConsultingMeetings = () => {
                                           if (checked) {
                                             setSelectedScopeIds(prev => [...prev, scope.id]);
                                           } else if (!wasAlreadyLinked) {
-                                            setSelectedScopeIds(prev => prev.filter(id => id !== scope.id));
+                                            setSelectedScopeIds(prev => (prev || []).filter(id => id !== scope.id));
                                           }
                                         }}
                                       />
@@ -2028,7 +2028,7 @@ const ConsultingMeetings = () => {
                                     Additional Scopes ({additionalScopes.length})
                                   </span>
                                 </div>
-                                {additionalScopes.map(scope => {
+                                {(additionalScopes || []).map(scope => {
                                   const isSelected = (selectedScopeIds || []).includes(scope.id);
                                   const wasAlreadyLinked = (selectedMeeting?.sow_scope_ids || []).includes(scope.id);
                                   return (
@@ -2043,7 +2043,7 @@ const ConsultingMeetings = () => {
                                           if (checked) {
                                             setSelectedScopeIds(prev => [...prev, scope.id]);
                                           } else if (!wasAlreadyLinked) {
-                                            setSelectedScopeIds(prev => prev.filter(id => id !== scope.id));
+                                            setSelectedScopeIds(prev => (prev || []).filter(id => id !== scope.id));
                                           }
                                         }}
                                       />
@@ -2089,13 +2089,13 @@ const ConsultingMeetings = () => {
                           className="text-xs h-7"
                           onClick={() => {
                             // Select all visible (filtered) scopes that aren't already linked
-                            const filteredScopes = availableScopes.filter(scope => {
+                            const filteredScopes = (availableScopes || []).filter(scope => {
                               const matchesSearch = !scopeSearchQuery || 
                                 scope.name.toLowerCase().includes(scopeSearchQuery.toLowerCase());
                               const matchesStatus = scopeStatusFilter === 'all' || scope.status === scopeStatusFilter;
                               return matchesSearch && matchesStatus;
                             });
-                            const newIds = filteredScopes.map(s => s.id).filter(id => !(selectedScopeIds || []).includes(id));
+                            const newIds = (filteredScopes || []).map(s => s.id).filter(id => !(selectedScopeIds || []).includes(id));
                             setSelectedScopeIds(prev => [...prev, ...newIds]);
                           }}
                         >
@@ -2135,7 +2135,7 @@ const ConsultingMeetings = () => {
 
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Agenda</Label>
-              {momData.agenda.map((item, idx) => (
+              {(momData?.agenda || []).map((item, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Input value={item} onChange={(e) => updateArrayItem('agenda', idx, e.target.value, setMomData, momData)}
                     placeholder={`Agenda ${idx + 1}`} className="rounded-sm border-zinc-200" />
@@ -2148,7 +2148,7 @@ const ConsultingMeetings = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Discussion Points</Label>
-              {momData.discussion_points.map((item, idx) => (
+              {(momData?.discussion_points || []).map((item, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Input value={item} onChange={(e) => updateArrayItem('discussion_points', idx, e.target.value, setMomData, momData)}
                     placeholder={`Point ${idx + 1}`} className="rounded-sm border-zinc-200" />
@@ -2161,7 +2161,7 @@ const ConsultingMeetings = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Decisions Made</Label>
-              {momData.decisions_made.map((item, idx) => (
+              {(momData?.decisions_made || []).map((item, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Input value={item} onChange={(e) => updateArrayItem('decisions_made', idx, e.target.value, setMomData, momData)}
                     placeholder={`Decision ${idx + 1}`} className="rounded-sm border-zinc-200" />
@@ -2178,7 +2178,7 @@ const ConsultingMeetings = () => {
               <Label className="text-sm font-medium text-zinc-950">Action Items</Label>
               {momData.action_items.length > 0 && (
                 <div className="space-y-2">
-                  {momData.action_items.map(item => (
+                  {momData.action_(items || []).map(item => (
                     <div key={item.id} className={`flex items-center justify-between p-3 rounded-sm border ${item.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-200'}`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -2210,7 +2210,7 @@ const ConsultingMeetings = () => {
                     <select value={newActionItem.assigned_to_id} onChange={(e) => setNewActionItem({ ...newActionItem, assigned_to_id: e.target.value })}
                       className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm" data-testid="action-item-assignee">
                       <option value="">Assign to...</option>
-                      {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                      {(users || []).map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                     </select>
                     <Input type="date" value={newActionItem.due_date} onChange={(e) => setNewActionItem({ ...newActionItem, due_date: e.target.value })}
                       className="rounded-sm border-zinc-200" data-testid="action-item-due-date" />
@@ -2248,7 +2248,7 @@ const ConsultingMeetings = () => {
               {/* Uploaded files list */}
               {momAttachments.length > 0 && (
                 <div className="space-y-2">
-                  {momAttachments.map((file, idx) => (
+                  {(momAttachments || []).map((file, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2 bg-zinc-50 rounded-sm border border-zinc-200">
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-zinc-500" />

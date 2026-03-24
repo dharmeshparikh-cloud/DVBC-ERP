@@ -48,7 +48,7 @@ export const reducer = (state, action) => {
     case "UPDATE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.map((t) =>
+        toasts: (state?.toasts || []).map((t) =>
           t.id === action.toast.id ? { ...t, ...action.toast } : t),
       };
 
@@ -60,14 +60,14 @@ export const reducer = (state, action) => {
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
-        state.toasts.forEach((toast) => {
+        (state?.toasts || []).forEach((toast) => {
           addToRemoveQueue(toast.id)
         })
       }
 
       return {
         ...state,
-        toasts: state.toasts.map((t) =>
+        toasts: (state?.toasts || []).map((t) =>
           t.id === toastId || toastId === undefined
             ? {
                 ...t,
@@ -85,7 +85,7 @@ export const reducer = (state, action) => {
       }
       return {
         ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+        toasts: (state?.toasts || []).filter((t) => t.id !== action.toastId),
       };
   }
 }
@@ -96,7 +96,7 @@ let memoryState = { toasts: [] }
 
 function dispatch(action) {
   memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => {
+  (listeners || []).forEach((listener) => {
     listener(memoryState)
   })
 }

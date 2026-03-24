@@ -268,7 +268,7 @@ const StyleTabbedDark = () => {
                           outerRadius={80}
                           dataKey="value"
                         >
-                          {projectStatus.map((entry, index) => (
+                          {(projectStatus || []).map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
@@ -276,7 +276,7 @@ const StyleTabbedDark = () => {
                       </RechartsPie>
                     </ResponsiveContainer>
                     <div className="space-y-3 flex-1">
-                      {projectStatus.map((status, i) => (
+                      {(projectStatus || []).map((status, i) => (
                         <div key={i} className="flex items-center justify-between p-2 bg-zinc-800/30 rounded">
                           <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }}></div>
@@ -454,7 +454,7 @@ const StyleConsolidatedLight = () => {
                       outerRadius={70}
                       dataKey="value"
                     >
-                      {projectStatus.map((entry, index) => (
+                      {(projectStatus || []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -462,7 +462,7 @@ const StyleConsolidatedLight = () => {
                   </RechartsPie>
                 </ResponsiveContainer>
                 <div className="flex justify-center gap-4 mt-2">
-                  {projectStatus.map((s, i) => (
+                  {(projectStatus || []).map((s, i) => (
                     <div key={i} className="flex items-center gap-1 text-xs">
                       <div className="w-2 h-2 rounded-full" style={{ background: s.color }}></div>
                       <span className="text-slate-500">{s.name}</span>
@@ -636,14 +636,14 @@ const StyleBentoModern = () => {
                       outerRadius={55}
                       dataKey="value"
                     >
-                      {projectStatus.map((entry, index) => (
+                      {(projectStatus || []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                   </RechartsPie>
                 </ResponsiveContainer>
                 <div className="space-y-2 flex-1">
-                  {projectStatus.map((s, i) => (
+                  {(projectStatus || []).map((s, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded" style={{ background: s.color }}></div>
@@ -760,7 +760,7 @@ const AdminDashboardMockups = () => {
     <div className="min-h-screen bg-zinc-900">
       {/* Style Selector */}
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-zinc-800 rounded-full px-2 py-1 flex gap-1 shadow-2xl border border-zinc-700">
-        {styles.map((style) => (
+        {(styles || []).map((style) => (
           <button
             key={style.id}
             onClick={() => setActiveStyle(style.id)}

@@ -52,7 +52,7 @@ function TreeNode(props) {
           </div>
         </div>
       </div>
-      {expanded && hasChildren && node.children.map(function(child) {
+      {expanded && hasChildren && (node?.children || []).map(function(child) {
         return <TreeNode key={child.id} node={child} level={level + 1} />;
       })}
     </div>
@@ -157,7 +157,7 @@ function OrgChart() {
       ) : (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="p-6">
-            {hierarchy.map(function(node) {
+            {(hierarchy || []).map(function(node) {
               return <TreeNode key={node.id} node={node} level={0} />;
             })}
           </CardContent>

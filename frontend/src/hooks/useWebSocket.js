@@ -323,7 +323,7 @@ export const useRealtimeUpdates = (options = {}) => {
       topics = [topics];
     }
     
-    setSubscriptions(prev => prev.filter(t => !topics.includes(t)));
+    setSubscriptions(prev => (prev || []).filter(t => !topics.includes(t)));
     
     if (wsRef.current?.readyState === WS_STATES.OPEN) {
       wsRef.current.send(JSON.stringify({

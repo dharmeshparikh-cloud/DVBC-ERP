@@ -40,7 +40,7 @@ const ConsultingSOWList = () => {
       
       // Filter to only show handed-over SOWs for consulting
       const sowData = Array.isArray(sowRes.data) ? sowRes.data : [];
-      const handedOverSOWs = sowData.filter(sow => sow.sales_handover_complete);
+      const handedOverSOWs = (sowData || []).filter(sow => sow.sales_handover_complete);
       const leadsData = Array.isArray(leadsRes.data) ? leadsRes.data : [];
       return {
         sowList: handedOverSOWs,
@@ -55,7 +55,7 @@ const ConsultingSOWList = () => {
 
   // Get lead info for a SOW
   const getLeadInfo = (sow) => {
-    return leads.find(l => l.id === sow.lead_id);
+    return (leads || []).find(l => l.id === sow.lead_id);
   };
 
   // Calculate project status and progress
@@ -63,7 +63,7 @@ const ConsultingSOWList = () => {
     if (!sow.consulting_kickoff_complete) return 'pending_kickoff';
     
     const scopes = sow.scopes || [];
-    const completed = scopes.filter(s => s.status === 'completed' || s.status === 'not_applicable').length;
+    const completed = (scopes || []).filter(s => s.status === 'completed' || s.status === 'not_applicable').length;
     const total = scopes.length;
     
     if (total > 0 && completed === total) return 'completed';
@@ -75,7 +75,7 @@ const ConsultingSOWList = () => {
     const scopes = sow.scopes || [];
     if (scopes.length === 0) return 0;
     
-    const totalProgress = scopes.reduce((sum, s) => sum + (s.progress_percentage || 0), 0);
+    const totalProgress = (scopes || []).reduce((sum, s) => sum + (s.progress_percentage || 0), 0);
     return Math.round(totalProgress / scopes.length);
   };
 
@@ -84,15 +84,15 @@ const ConsultingSOWList = () => {
     const scopes = sow.scopes || [];
     return {
       total: scopes.length,
-      notStarted: scopes.filter(s => s.status === 'not_started').length,
-      inProgress: scopes.filter(s => s.status === 'in_progress').length,
-      completed: scopes.filter(s => s.status === 'completed').length,
-      na: scopes.filter(s => s.status === 'not_applicable').length,
+      notStarted: (scopes || []).filter(s => s.status === 'not_started').length,
+      inProgress: (scopes || []).filter(s => s.status === 'in_progress').length,
+      completed: (scopes || []).filter(s => s.status === 'completed').length,
+      na: (scopes || []).filter(s => s.status === 'not_applicable').length,
     };
   };
 
   // Filter SOWs
-  const filteredSOWs = sowList.filter(sow => {
+  const filteredSOWs = (sowList || []).filter(sow => {
     const lead = getLeadInfo(sow);
     const status = getProjectStatus(sow);
     
@@ -112,9 +112,9 @@ const ConsultingSOWList = () => {
   // Stats
   const stats = {
     total: sowList.length,
-    pendingKickoff: sowList.filter(s => getProjectStatus(s) === 'pending_kickoff').length,
-    active: sowList.filter(s => getProjectStatus(s) === 'active').length,
-    completed: sowList.filter(s => getProjectStatus(s) === 'completed').length,
+    pendingKickoff: (sowList || []).filter(s => getProjectStatus(s) === 'pending_kickoff').length,
+    active: (sowList || []).filter(s => getProjectStatus(s) === 'active').length,
+    completed: (sowList || []).filter(s => getProjectStatus(s) === 'completed').length,
   };
 
   if (loading) {
@@ -189,7 +189,7 @@ const ConsultingSOWList = () => {
       {/* Project List */}
       {filteredSOWs.length > 0 ? (
         <div className="space-y-3">
-          {filteredSOWs.map(sow => {
+          {(filteredSOWs || []).map(sow => {
             const lead = getLeadInfo(sow);
             const status = getProjectStatus(sow);
             const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.pending_kickoff;

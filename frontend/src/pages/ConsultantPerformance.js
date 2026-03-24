@@ -95,11 +95,11 @@ function ConsultantPerformance() {
   // Mutation: Create Config
   const createConfigMutation = useMutation({
     mutationFn: async (data) => {
-      const project = projects.find(p => p.id === data.project_id);
+      const project = (projects || []).find(p => p.id === data.project_id);
       await axios.post(`${API}/performance-metrics`, {
         project_id: data.project_id,
         project_name: project ? project.name : '',
-        metrics: data.metrics.filter(m => m.name)
+        metrics: (data?.metrics || []).filter(m => m.name)
       });
     },
     onSuccess: () => {
@@ -159,10 +159,10 @@ function ConsultantPerformance() {
   }
 
   function loadMetricsForScoring(projectId) {
-    var config = configs.find(function(c) { return c.project_id === projectId && c.status === 'approved'; });
+    var config = (configs || []).find(function(c) { return c.project_id === projectId && c.status === 'approved'; });
     if (config) {
       setScoreForm(function(prev) {
-        return { ...prev, project_id: projectId, scores: config.metrics.map(function(m) { return { metric_id: m.id, metric_name: m.name, score: 0, comments: '' }; }) };
+        return { ...prev, project_id: projectId, scores: (config?.metrics || []).map(function(m) { return { metric_id: m.id, metric_name: m.name, score: 0, comments: '' }; }) };
       });
     } else {
       toast.error('No approved metrics for this project');
@@ -191,11 +191,11 @@ function ConsultantPerformance() {
 
   function removeMetric(idx) {
     if (configForm.metrics.length > 1) {
-      setConfigForm({ ...configForm, metrics: configForm.metrics.filter(function(_, i) { return i !== idx; }) });
+      setConfigForm({ ...configForm, metrics: (configForm?.metrics || []).filter(function(_, i) { return i !== idx; }) });
     }
   }
 
-  var filteredScores = selectedProject ? scores.filter(function(s) { return s.project_id === selectedProject; }) : scores;
+  var filteredScores = selectedProject ? (scores || []).filter(function(s) { return s.project_id === selectedProject; }) : scores;
 
   return (
     <div data-testid="consultant-performance-page">
@@ -221,12 +221,12 @@ function ConsultantPerformance() {
                     <select value={configForm.project_id} onChange={function(e) { setConfigForm({ ...configForm, project_id: e.target.value }); }}
                       required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="config-project">
                       <option value="">Select project</option>
-                      {projects.map(function(p) { return <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>; })}
+                      {(projects || []).map(function(p) { return <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>; })}
                     </select>
                   </div>
                   <div className="space-y-3">
                     <Label className="text-sm font-medium text-zinc-950">Metrics (Total weight should = 100)</Label>
-                    {configForm.metrics.map(function(m, i) {
+                    {(configForm?.metrics || []).map(function(m, i) {
                       return (
                         <div key={i} className="grid grid-cols-12 gap-2 items-end">
                           <Input value={m.name} onChange={function(e) { updateMetric(i, 'name', e.target.value); }}
@@ -243,7 +243,7 @@ function ConsultantPerformance() {
                     })}
                     <div className="flex items-center justify-between">
                       <Button type="button" variant="outline" size="sm" className="rounded-sm text-xs" onClick={addMetric}><Plus className="w-3 h-3 mr-1" /> Add Metric</Button>
-                      <span className="text-xs text-zinc-500">Total: {configForm.metrics.reduce(function(s, m) { return s + (m.weight || 0); }, 0)}%</span>
+                      <span className="text-xs text-zinc-500">Total: {(configForm?.metrics || []).reduce(function(s, m) { return s + (m.weight || 0); }, 0)}%</span>
                     </div>
                   </div>
                   <Button type="submit" data-testid="save-config" className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">Save (Pending Admin Approval)</Button>
@@ -268,7 +268,7 @@ function ConsultantPerformance() {
                       <select value={scoreForm.project_id} onChange={function(e) { loadMetricsForScoring(e.target.value); }}
                         required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="score-project">
                         <option value="">Select</option>
-                        {projects.map(function(p) { return <option key={p.id} value={p.id}>{p.name}</option>; })}
+                        {(projects || []).map(function(p) { return <option key={p.id} value={p.id}>{p.name}</option>; })}
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -276,7 +276,7 @@ function ConsultantPerformance() {
                       <select value={scoreForm.consultant_id} onChange={function(e) { setScoreForm({ ...scoreForm, consultant_id: e.target.value }); }}
                         required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="score-consultant">
                         <option value="">Select</option>
-                        {consultants.map(function(u) { return <option key={u.id} value={u.id}>{u.full_name}</option>; })}
+                        {(consultants || []).map(function(u) { return <option key={u.id} value={u.id}>{u.full_name}</option>; })}
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -287,7 +287,7 @@ function ConsultantPerformance() {
                   </div>
                   {scoreForm.scores.length > 0 ? (
                     <div className="space-y-3">
-                      {scoreForm.scores.map(function(s, i) {
+                      {(scoreForm?.scores || []).map(function(s, i) {
                         return (
                           <div key={i} className="border border-zinc-200 rounded-sm p-3">
                             <div className="flex items-center justify-between mb-2">
@@ -335,7 +335,7 @@ function ConsultantPerformance() {
           </CardContent></Card>
         ) : (
           <div className="space-y-3">
-            {configs.map(function(cfg) {
+            {(configs || []).map(function(cfg) {
               return (
                 <Card key={cfg.id} className="border-zinc-200 shadow-none rounded-sm" data-testid={'config-' + cfg.id}>
                   <CardContent className="p-4">
@@ -380,7 +380,7 @@ function ConsultantPerformance() {
             <select value={selectedProject} onChange={function(e) { setSelectedProject(e.target.value); }}
               className="h-9 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="filter-project">
               <option value="">All Projects</option>
-              {projects.map(function(p) { return <option key={p.id} value={p.id}>{p.name}</option>; })}
+              {(projects || []).map(function(p) { return <option key={p.id} value={p.id}>{p.name}</option>; })}
             </select>
           </div>
           {filteredScores.length === 0 ? (
@@ -400,7 +400,7 @@ function ConsultantPerformance() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredScores.map(function(s) {
+                  {(filteredScores || []).map(function(s) {
                     var scoreColor = s.overall_score >= 80 ? 'text-emerald-700 bg-emerald-50' : s.overall_score >= 60 ? 'text-yellow-700 bg-yellow-50' : 'text-red-700 bg-red-50';
                     return (
                       <tr key={s.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={'score-row-' + s.id}>
@@ -431,7 +431,7 @@ function ConsultantPerformance() {
           </CardContent></Card>
         ) : (
           <div className="grid grid-cols-3 gap-4">
-            {summary.map(function(s) {
+            {(summary || []).map(function(s) {
               var avgColor = s.avg_score >= 80 ? 'text-emerald-700' : s.avg_score >= 60 ? 'text-yellow-700' : 'text-red-600';
               return (
                 <Card key={s.consultant_id} className="border-zinc-200 shadow-none rounded-sm" data-testid={'summary-' + s.consultant_id}>

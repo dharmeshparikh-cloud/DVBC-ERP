@@ -72,18 +72,18 @@ const CTCDesigner = () => {
     queryFn: async () => {
       const res = await axios.get(`${API}/employees/all`);
       const empData = Array.isArray(res.data) ? res.data : [];
-      return empData.filter(e => e.is_active !== false);
+      return (empData || []).filter(e => e.is_active !== false);
     },
     staleTime: 5 * 60 * 1000,
     onError: () => toast.error('Failed to load employees')
   });
 
   // Filter employees based on active tab
-  const newCTCEmployees = allEmployeesData.filter(e => 
+  const newCTCEmployees = (allEmployeesData || []).filter(e => 
     e.onboarding_complete === true && (!e.current_ctc || e.current_ctc === 0)
   );
   
-  const revisionEmployees = allEmployeesData.filter(e => 
+  const revisionEmployees = (allEmployeesData || []).filter(e => 
     e.onboarding_complete === true && e.current_ctc && e.current_ctc > 0
   );
 
@@ -99,7 +99,7 @@ const CTCDesigner = () => {
     },
     staleTime: 10 * 60 * 1000,
     onSuccess: (components) => {
-      const config = components.map(c => ({
+      const config = (components || []).map(c => ({
         ...c,
         enabled: c.enabled_by_default !== false,
         value: c.default_value
@@ -142,7 +142,7 @@ const CTCDesigner = () => {
       setActiveTab('new');
       // Pre-select the employee after data loads
       const preSelectEmployee = () => {
-        const emp = allEmployeesData.find(e => e.id === employeeId || e.employee_id === employeeId);
+        const emp = (allEmployeesData || []).find(e => e.id === employeeId || e.employee_id === employeeId);
         if (emp) {
           setSelectedEmployee(emp);
         }
@@ -155,7 +155,7 @@ const CTCDesigner = () => {
     
     // Initialize component config if componentMaster is ready
     if (componentMaster.length > 0 && componentConfig.length === 0) {
-      const config = componentMaster.map(c => ({
+      const config = (componentMaster || []).map(c => ({
         ...c,
         enabled: c.enabled_by_default !== false,
         value: c.default_value
@@ -205,18 +205,18 @@ const CTCDesigner = () => {
   };
 
   const toggleComponent = (key) => {
-    const comp = componentConfig.find(c => c.key === key);
+    const comp = (componentConfig || []).find(c => c.key === key);
     if (comp?.is_mandatory) {
       toast.error(`${comp.name} is mandatory and cannot be disabled`);
       return;
     }
-    setComponentConfig(prev => prev.map(c => 
+    setComponentConfig(prev => (prev || []).map(c => 
       c.key === key ? { ...c, enabled: !c.enabled } : c
     ));
   };
 
   const updateComponentValue = (key, value) => {
-    setComponentConfig(prev => prev.map(c => 
+    setComponentConfig(prev => (prev || []).map(c => 
       c.key === key ? { ...c, value: parseFloat(value) || 0 } : c
     ));
   };
@@ -255,7 +255,7 @@ const CTCDesigner = () => {
       setRemarks('');
       setPreview(null);
       // Reset component config
-      const config = componentMaster.map(c => ({
+      const config = (componentMaster || []).map(c => ({
         ...c,
         enabled: c.enabled_by_default !== false,
         value: c.default_value
@@ -509,7 +509,7 @@ const CTCDesigner = () => {
               <select
                 value={selectedEmployee?.id || ''}
                 onChange={(e) => {
-                  const emp = employees.find(emp => emp.id === e.target.value);
+                  const emp = (employees || []).find(emp => emp.id === e.target.value);
                   setSelectedEmployee(emp);
                   if (emp?.annual_ctc) {
                     setAnnualCTC(String(Math.round(emp.annual_ctc)));
@@ -523,7 +523,7 @@ const CTCDesigner = () => {
                 data-testid="ctc-employee-select"
               >
                 <option value="">-- Select Employee --</option>
-                {employees.map(emp => (
+                {(employees || []).map(emp => (
                   <option key={emp.id} value={emp.id}>
                     {emp.employee_id} - {emp.first_name} {emp.last_name} ({emp.department})
                   </option>
@@ -641,7 +641,7 @@ const CTCDesigner = () => {
 
               {!showComponentSettings && (
                 <div className="flex flex-wrap gap-1.5">
-                  {componentConfig.filter(c => c.enabled).map(comp => (
+                  {(componentConfig || []).filter(c => c.enabled).map(comp => (
                     <span 
                       key={comp.key}
                       className={`text-[10px] px-2 py-0.5 rounded-full ${
@@ -791,7 +791,7 @@ const CTCDesigner = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.values(preview.components).filter(c => c.enabled !== false).map((comp) => {
+                      {Object.values(preview.components || {}).filter(c => c.enabled !== false).map((comp) => {
                         const Icon = componentIcons[comp.key] || IndianRupee;
                         return (
                           <tr key={comp.key} className={`border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`}>
@@ -850,7 +850,7 @@ const CTCDesigner = () => {
             Pending CTC Approvals ({pendingApprovals.length})
           </h2>
           <div className="space-y-3">
-            {pendingApprovals.map(approval => (
+            {(pendingApprovals || []).map(approval => (
               <div
                 key={approval.id}
                 className={`p-4 rounded-lg border cursor-pointer hover:border-emerald-500 transition-colors ${

@@ -248,7 +248,7 @@ const ConsultingEffortsSummary = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Projects</SelectItem>
-                {projects.map(p => (
+                {(projects || []).map(p => (
                   <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -260,7 +260,7 @@ const ConsultingEffortsSummary = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Consultants</SelectItem>
-                {consultants.map(c => (
+                {(consultants || []).map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
                 ))}
               </SelectContent>
@@ -272,7 +272,7 @@ const ConsultingEffortsSummary = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Companies</SelectItem>
-                {clients.map(c => (
+                {(clients || []).map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.company_name || c.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -631,7 +631,7 @@ const ConsultingEffortsSummary = () => {
                         dataKey="value"
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       >
-                        {paymentPieData.map((entry, index) => (
+                        {(paymentPieData || []).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>

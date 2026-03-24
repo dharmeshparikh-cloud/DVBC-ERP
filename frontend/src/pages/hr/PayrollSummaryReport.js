@@ -87,7 +87,7 @@ const PayrollSummaryReport = () => {
     rows.push(['', '', '', '']);
     rows.push(['DEPARTMENT BREAKDOWN', '', '', '']);
     if (report.department_breakdown) {
-      Object.entries(report.department_breakdown).forEach(([dept, data]) => {
+      Object.entries(report.department_breakdown || {}).forEach(([dept, data]) => {
         rows.push([`${dept} - Employees`, data.employee_count, '', '']);
         rows.push([`${dept} - Total Salary`, data.total_salary, '', '']);
       });
@@ -98,7 +98,7 @@ const PayrollSummaryReport = () => {
     rows.push(['EMPLOYEE DETAILS', '', '', '']);
     rows.push(['Employee', 'Gross Salary', 'Deductions', 'Net Salary', 'Present Days', 'Leave Days', 'LOP']);
     if (report.employee_details) {
-      report.employee_details.forEach(emp => {
+      (report?.employee_details || []).forEach(emp => {
         rows.push([
           emp.name,
           emp.gross_salary,
@@ -111,7 +111,7 @@ const PayrollSummaryReport = () => {
       });
     }
 
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csvContent = [headers.join(','), ...(rows || []).map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -315,7 +315,7 @@ const PayrollSummaryReport = () => {
           </div>
 
           {/* Department Breakdown */}
-          {report.department_breakdown && Object.keys(report.department_breakdown).length > 0 && (
+          {report.department_breakdown && Object.keys(report.department_breakdown || {}).length > 0 && (
             <Card className="bg-white border-zinc-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -325,7 +325,7 @@ const PayrollSummaryReport = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {Object.entries(report.department_breakdown).map(([dept, data]) => (
+                  {Object.entries(report.department_breakdown || {}).map(([dept, data]) => (
                     <div key={dept} className="bg-zinc-50 p-4 rounded-lg">
                       <p className="text-sm text-zinc-600">{dept || 'Unassigned'}</p>
                       <p className="text-xl font-bold text-zinc-900">{formatCurrency(data.total_salary)}</p>
@@ -364,7 +364,7 @@ const PayrollSummaryReport = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {report.employee_details.map((emp, idx) => (
+                      {(report?.employee_details || []).map((emp, idx) => (
                         <tr key={idx} className="border-b border-zinc-200 hover:bg-zinc-50/50">
                           <td className="p-3">
                             <p className="text-zinc-800 font-medium">{emp.name}</p>
@@ -466,7 +466,7 @@ const PayrollSummaryReport = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {generatedReports.slice(0, 5).map((rpt, idx) => (
+              {(generatedReports || []).slice(0, 5).map((rpt, idx) => (
                 <div key={idx} className="flex justify-between items-center p-3 bg-zinc-50 rounded-lg">
                   <div>
                     <p className="text-zinc-800 font-medium">{rpt.month}</p>

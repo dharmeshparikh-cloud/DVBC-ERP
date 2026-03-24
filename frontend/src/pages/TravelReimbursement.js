@@ -100,7 +100,7 @@ const TravelReimbursement = () => {
     convertMutation.mutate(claimId);
   };
 
-  const filteredClaims = claims.filter(claim => {
+  const filteredClaims = (claims || []).filter(claim => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -262,7 +262,7 @@ const TravelReimbursement = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-700">
-                {filteredClaims.map((claim) => (
+                {(filteredClaims || []).map((claim) => (
                   <tr key={claim.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">

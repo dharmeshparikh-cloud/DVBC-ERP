@@ -364,7 +364,7 @@ const CEOReportDashboard = () => {
             <p className="text-xs text-zinc-400">No reports sent yet</p>
           ) : (
             <div className="space-y-1.5">
-              {logs.slice(0, 10).map((log, i) => (
+              {(logs || []).slice(0, 10).map((log, i) => (
                 <div key={i} className="flex items-center justify-between p-2 bg-zinc-50 rounded text-xs" data-testid={`delivery-log-${i}`}>
                   <div className="flex items-center gap-2">
                     {log.delivery_status === 'sent' ? (
@@ -433,7 +433,7 @@ const PeriodTable = ({ rows }) => (
         <th className="text-center px-3 py-2 font-medium text-zinc-500 uppercase tracking-wide">YTD</th>
       </tr></thead>
       <tbody>
-        {rows.map((r, i) => (
+        {(rows || []).map((r, i) => (
           <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-zinc-50'}>
             <td className="px-3 py-2 text-zinc-700">{r.label}</td>
             <td className="px-3 py-2 text-center font-semibold text-zinc-900 tabular-nums">{r.mtd ?? 0}</td>

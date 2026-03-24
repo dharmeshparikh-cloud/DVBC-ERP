@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://attendance-engine-3.preview.emergentagent.com",
+      "value": "https://ssot-payroll-hub.preview.emergentagent.com",
       "type": "string"
     },
     {

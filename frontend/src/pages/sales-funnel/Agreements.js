@@ -173,9 +173,9 @@ const Agreements = () => {
   // Auto-open dialog when coming from Proforma Invoice flow
   useEffect(() => {
     if (!loading && quotationId && !autoOpenHandled && quotations.length > 0) {
-      const quotation = quotations.find(q => q.id === quotationId);
+      const quotation = (quotations || []).find(q => q.id === quotationId);
       if (quotation) {
-        const plan = pricingPlans.find(p => p.id === quotation.pricing_plan_id);
+        const plan = (pricingPlans || []).find(p => p.id === quotation.pricing_plan_id);
         if (plan) {
           autoPopulateFromPlan(plan, quotation);
           setDialogOpen(true);
@@ -190,7 +190,7 @@ const Agreements = () => {
     const teamData = plan.team_deployment?.length > 0 ? plan.team_deployment : plan.consultants;
     
     if (teamData && teamData.length > 0) {
-      const convertedTeam = teamData.map((member, idx) => ({
+      const convertedTeam = (teamData || []).map((member, idx) => ({
         id: Date.now() + idx,
         role: member.role || member.consultant_type || '',
         meeting_type: member.meeting_type || '',
@@ -216,9 +216,9 @@ const Agreements = () => {
 
   // Handle quotation selection change
   const handleQuotationSelect = (quotationId) => {
-    const quotation = quotations.find(q => q.id === quotationId);
+    const quotation = (quotations || []).find(q => q.id === quotationId);
     if (quotation) {
-      const plan = pricingPlans.find(p => p.id === quotation.pricing_plan_id);
+      const plan = (pricingPlans || []).find(p => p.id === quotation.pricing_plan_id);
       if (plan) {
         autoPopulateFromPlan(plan, quotation);
       }
@@ -257,13 +257,13 @@ const Agreements = () => {
   const removeTeamMember = (index) => {
     setFormData(prev => ({
       ...prev,
-      team_deployment: prev.team_deployment.filter((_, i) => i !== index)
+      team_deployment: (prev?.team_deployment || []).filter((_, i) => i !== index)
     }));
   };
 
   // Recalculate committed meetings for all team members when tenure changes
   const handleTenureChange = (newTenure) => {
-    const updatedTeamDeployment = formData.team_deployment.map(member => ({
+    const updatedTeamDeployment = (formData?.team_deployment || []).map(member => ({
       ...member,
       committed_meetings: calculateCommittedMeetings(member.frequency, newTenure)
     }));
@@ -276,8 +276,8 @@ const Agreements = () => {
 
   // Calculate total cost for team deployment
   const calculateTeamTotals = () => {
-    const totalMeetings = formData.team_deployment.reduce((sum, m) => sum + (m.committed_meetings || 0), 0);
-    const totalCost = formData.team_deployment.reduce((sum, m) => sum + ((m.committed_meetings || 0) * (m.base_rate_per_meeting || 12500)), 0);
+    const totalMeetings = (formData?.team_deployment || []).reduce((sum, m) => sum + (m.committed_meetings || 0), 0);
+    const totalCost = (formData?.team_deployment || []).reduce((sum, m) => sum + ((m.committed_meetings || 0) * (m.base_rate_per_meeting || 12500)), 0);
     return { totalMeetings, totalCost };
   };
 
@@ -304,7 +304,7 @@ const Agreements = () => {
       const detail = error.response?.data?.detail;
       // Handle Pydantic validation errors (array format)
       if (Array.isArray(detail)) {
-        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        const msg = (detail || []).map(e => e.msg || e.message || 'Validation error').join(', ');
         toast.error(msg);
       } else if (typeof detail === 'string') {
         toast.error(detail);
@@ -331,7 +331,7 @@ const Agreements = () => {
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        const msg = (detail || []).map(e => e.msg || e.message || 'Validation error').join(', ');
         toast.error(msg);
       } else if (typeof detail === 'string') {
         toast.error(detail);
@@ -393,12 +393,12 @@ const Agreements = () => {
   };
 
   const getLeadName = (leadId) => {
-    const lead = leads.find(l => l.id === leadId);
+    const lead = (leads || []).find(l => l.id === leadId);
     return lead ? `${lead.first_name} ${lead.last_name} - ${lead.company}` : 'Unknown Lead';
   };
 
   const getLeadEmail = (leadId) => {
-    const lead = leads.find(l => l.id === leadId);
+    const lead = (leads || []).find(l => l.id === leadId);
     return lead?.email || '';
   };
 
@@ -495,7 +495,7 @@ const Agreements = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {agreements.map((agreement) => {
+              {(agreements || []).map((agreement) => {
                 const statusInfo = getStatusBadge(agreement.status);
                 const StatusIcon = statusInfo.icon;
                 return (
@@ -553,7 +553,7 @@ const Agreements = () => {
       ) : (
         /* Card View */
         <div className="space-y-4">
-          {agreements.map((agreement) => {
+          {(agreements || []).map((agreement) => {
             const statusInfo = getStatusBadge(agreement.status);
             const StatusIcon = statusInfo.icon;
             return (
@@ -611,7 +611,7 @@ const Agreements = () => {
                         Team Deployment ({agreement.team_deployment.length} members)
                       </div>
                       <div className="space-y-1">
-                        {agreement.team_deployment.slice(0, 3).map((member, idx) => (
+                        {(agreement?.team_deployment || []).slice(0, 3).map((member, idx) => (
                           <div key={idx} className="text-sm text-zinc-700">
                             {member.role}: {member.meeting_type} - {member.frequency}
                           </div>
@@ -764,7 +764,7 @@ const Agreements = () => {
                 data-testid="quotation-select"
               >
                 <option value="">{formData.lead_id ? 'Select a quotation' : 'Select a lead first'}</option>
-                {quotations.filter(q => !formData.lead_id || q.lead_id === formData.lead_id).map(q => (
+                {(quotations || []).filter(q => !formData.lead_id || q.lead_id === formData.lead_id).map(q => (
                   <option key={q.id} value={q.id}>
                     {q.quotation_number} - {formatINR(q.grand_total)}
                   </option>
@@ -870,7 +870,7 @@ const Agreements = () => {
                     <div className="text-center">Committed Meetings</div>
                     {user?.role === 'admin' && <div className="text-right">Rate/Meeting</div>}
                   </div>
-                  {formData.team_deployment.map((member, index) => (
+                  {(formData?.team_deployment || []).map((member, index) => (
                     <div key={member.id || index} className={`grid ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-4'} gap-2 items-center p-2 bg-zinc-50 border border-zinc-100 rounded-sm text-sm`} data-testid={`team-member-${index}`}>
                       <div className="font-medium truncate" title={member.role}>{member.role}</div>
                       <div className="truncate" title={member.meeting_type}>{member.meeting_type}</div>
@@ -948,7 +948,7 @@ const Agreements = () => {
                 className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
               >
                 <option value="">Use default template</option>
-                {emailTemplates.map(t => (
+                {(emailTemplates || []).map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
