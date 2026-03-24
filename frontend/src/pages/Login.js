@@ -10,7 +10,7 @@ import {
   IdCard, Lock, Eye, EyeOff, ArrowRight, 
   LayoutDashboard, Users, Briefcase, BarChart3, 
   Receipt, Shield, Zap, Clock, FileCheck, 
-  Bell, GitBranch, Layers
+  Bell, GitBranch, Layers, UserCircle
 } from 'lucide-react';
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png";
@@ -114,6 +114,19 @@ const Login = () => {
     { icon: GitBranch, text: 'Workflow Automation' },
     { icon: Layers, text: 'Multi-level Approvals' },
   ];
+
+  const DEMO_ACCOUNTS = [
+    { id: 'EMP001', password: 'admin123', role: 'Admin', color: 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' },
+    { id: 'EMP002', password: 'hr123', role: 'HR Manager', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
+    { id: 'EMP003', password: 'sales123', role: 'Sales Executive', color: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' },
+    { id: 'EMP004', password: 'consultant123', role: 'Consultant', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+    { id: 'EMP005', password: 'employee123', role: 'Employee', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
+  ];
+
+  const handleQuickLogin = (account) => {
+    setEmployeeId(account.id);
+    setPassword(account.password);
+  };
 
   return (
     <div className="min-h-screen flex" data-testid="main-login-page">
@@ -292,6 +305,30 @@ const Login = () => {
               )}
             </Button>
           </form>
+
+          {/* Quick Login - Demo Accounts */}
+          <div className="mt-6" data-testid="quick-login-section">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-px flex-1 bg-neutral-200" />
+              <span className="text-xs text-neutral-400 font-medium uppercase tracking-wider">Quick Access</span>
+              <div className="h-px flex-1 bg-neutral-200" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {DEMO_ACCOUNTS.map((account) => (
+                <button
+                  key={account.id}
+                  type="button"
+                  onClick={() => handleQuickLogin(account)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all duration-200 ${account.color}`}
+                  data-testid={`quick-login-${account.id.toLowerCase()}`}
+                >
+                  <UserCircle className="w-3.5 h-3.5" />
+                  {account.role}
+                  <span className="opacity-60">({account.id})</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Footer */}
           <div className="mt-12 pt-8 border-t border-neutral-200">
