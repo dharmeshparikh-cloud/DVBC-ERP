@@ -834,6 +834,9 @@ async def apply_attendance_penalties(data: dict, current_user: User = Depends(ge
     """
     HR approves and applies attendance penalties to payroll.
     Adds Rs.100 penalty per violation day beyond 3 grace days.
+    
+    Idempotent: If a penalty already exists for this employee/month, 
+    it will be updated rather than creating a duplicate.
     """
     db = get_db()
     
@@ -850,6 +853,7 @@ async def apply_attendance_penalties(data: dict, current_user: User = Depends(ge
     
     now = datetime.now(timezone.utc).isoformat()
     applied_count = 0
+    updated_count = 0
     
     for p in employee_penalties:
         emp_id = p.get("employee_id")
@@ -859,37 +863,57 @@ async def apply_attendance_penalties(data: dict, current_user: User = Depends(ge
         if penalty_amount <= 0:
             continue
         
-        # Update payroll inputs with penalty
+        # Update payroll inputs with penalty (using $set to avoid accumulating)
         await db.payroll_inputs.update_one(
             {"employee_id": emp_id, "month": month},
-            {"$inc": {"penalty": penalty_amount},
-             "$set": {
-                 "attendance_penalty_applied": True,
-                 "attendance_penalty_days": penalty_days,
-                 "attendance_penalty_approved_by": current_user.id,
-                 "attendance_penalty_approved_at": now
-             }},
+            {"$set": {
+                "penalty": penalty_amount,  # Replace, not accumulate
+                "attendance_penalty_applied": True,
+                "attendance_penalty_days": penalty_days,
+                "attendance_penalty_approved_by": current_user.id,
+                "attendance_penalty_approved_at": now
+            }},
             upsert=True
         )
         
-        # Create penalty record for audit
-        await db.attendance_penalties.insert_one({
-            "id": str(uuid.uuid4()),
+        # Check if penalty already exists for this employee/month (idempotency)
+        existing_penalty = await db.attendance_penalties.find_one({
             "employee_id": emp_id,
-            "month": month,
-            "penalty_days": penalty_days,
-            "penalty_amount": penalty_amount,
-            "approved_by": current_user.id,
-            "approved_by_name": current_user.full_name,
-            "created_at": now
+            "month": month
         })
         
-        applied_count += 1
+        if existing_penalty:
+            # Update existing penalty instead of creating duplicate
+            await db.attendance_penalties.update_one(
+                {"employee_id": emp_id, "month": month},
+                {"$set": {
+                    "penalty_days": penalty_days,
+                    "penalty_amount": penalty_amount,
+                    "approved_by": current_user.id,
+                    "approved_by_name": current_user.full_name,
+                    "updated_at": now
+                }}
+            )
+            updated_count += 1
+        else:
+            # Create new penalty record
+            await db.attendance_penalties.insert_one({
+                "id": str(uuid.uuid4()),
+                "employee_id": emp_id,
+                "month": month,
+                "penalty_days": penalty_days,
+                "penalty_amount": penalty_amount,
+                "approved_by": current_user.id,
+                "approved_by_name": current_user.full_name,
+                "created_at": now
+            })
+            applied_count += 1
     
     return {
-        "message": f"Applied penalties for {applied_count} employees",
+        "message": f"Applied penalties for {applied_count} employees, updated {updated_count} existing",
         "month": month,
-        "applied_count": applied_count
+        "applied_count": applied_count,
+        "updated_count": updated_count
     }
 
 

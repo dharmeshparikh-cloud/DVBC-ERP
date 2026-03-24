@@ -2,7 +2,21 @@
 
 ## Latest Updates - March 23, 2026
 
-### Attendance Policy Configuration UI (P0 COMPLETE) ✅ [NEW]
+### E2E Penalty Flow Verification (P0 COMPLETE) ✅ [NEW]
+**Complete attendance-to-payroll penalty pipeline verified:**
+- **Step 1**: Create attendance with late arrivals (check-in after 10:30 grace period)
+- **Step 2**: Auto-validate detects violations, calculates pending penalties
+- **Step 3**: HR approves and applies penalties via `/apply-penalties`
+- **Step 4**: Penalties stored in `attendance_penalties` collection
+- **Step 5**: Payroll engine fetches penalties with source tracking
+- **Step 6**: Payroll simulation shows "Attendance Penalty (Late Arrival)" with:
+  - Source: `attendance_penalties`
+  - Rule: AT012
+  - Details: "X days beyond grace limit (approved by HR Manager)"
+
+**Bug Fixed:** Added idempotency check to `/apply-penalties` to prevent duplicate penalty records
+
+### Attendance Policy Configuration UI (P0 COMPLETE) ✅
 **Configurable Attendance Settings via Business Rules UI:**
 - **Working Days Schedule**: Toggleable weekday buttons (Mon-Sun) with visual selection
 - **Core Hours**: Start/End time dropdowns (defaulting to 10:00-19:00)
