@@ -149,7 +149,7 @@ const AllProjects = () => {
       (project.client_name || '').toLowerCase().includes(searchLower) ||
       (project.id || '').toLowerCase().includes(searchLower)
     );
-  });
+  }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
   const needsAssignmentCount = (projects || []).filter(p => !p.has_consultants).length;
 

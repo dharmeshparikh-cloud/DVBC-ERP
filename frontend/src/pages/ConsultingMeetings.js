@@ -17,6 +17,7 @@ import PageHeader from '../components/ui/page-header';
 import { useSOWsByProject, useNormalizedProjects, useNormalizedMeetingTypes, normalizeProject } from '../hooks/useSOWsByProject';
 import { GovernedDropdown, GovernedReadOnlyField } from '../components/GovernedDropdown';
 import MeetingLocationPicker from '../components/MeetingLocationPicker';
+import MyDayBar from '../components/MyDayBar';
 import {
   Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle,
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
@@ -839,6 +840,9 @@ const ConsultingMeetings = () => {
           </div>
         }
       />
+
+      {/* My Day Smart Bar - Consultant's Daily Workflow Tracker */}
+      <MyDayBar />
 
       {/* Help Guide Dialog */}
       <Dialog open={showHelpGuide} onOpenChange={setShowHelpGuide}>

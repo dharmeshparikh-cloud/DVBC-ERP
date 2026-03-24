@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../components/ui/dialog';
+import { sortByLatest } from '../utils/sortUtils';
 
 const NOTIFICATION_CONFIG = {
   // Actionable notifications - require approve/reject
@@ -272,14 +273,14 @@ const Notifications = () => {
     });
   };
 
-  const filteredNotifications = (notifications || []).filter(n => {
+  const filteredNotifications = sortByLatest((notifications || []).filter(n => {
     if (filter === 'unread') return !n.is_read;
     if (filter === 'actionable') {
       const config = NOTIFICATION_CONFIG[n.type] || NOTIFICATION_CONFIG.default;
       return config.actionable && n.status !== 'actioned';
     }
     return true;
-  });
+  }), 'created_at');
 
   const actionableCount = (notifications || []).filter(n => {
     const config = NOTIFICATION_CONFIG[n.type] || NOTIFICATION_CONFIG.default;

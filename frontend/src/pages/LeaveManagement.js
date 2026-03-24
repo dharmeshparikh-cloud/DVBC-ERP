@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../components/ui/page-header';
 import { isHR as checkIsHR } from '../utils/roles';
+import { sortByLatest } from '../utils/sortUtils';
 
 const STATUS_STYLES = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -122,7 +123,7 @@ const LeaveManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {(displayRequests || []).filter(req => req.id).map(req => (
+              {sortByLatest(displayRequests || [], 'created_at').filter(req => req.id).map(req => (
                 <tr key={req.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`leave-row-${req.id}`}>
                   {activeTab === 'all' && <td className="px-4 py-3 font-medium text-zinc-950">{req.employee_name}</td>}
                   <td className="px-4 py-3 text-zinc-700">{req.leave_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>

@@ -279,7 +279,7 @@ export default function PenaltyManagement() {
   const filteredPenalties = getAllPenalties().filter(p => {
     if (filterCategory === 'all') return true;
     return p._category === filterCategory;
-  });
+  }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
   return (
     <div className="space-y-6" data-testid="penalty-management">

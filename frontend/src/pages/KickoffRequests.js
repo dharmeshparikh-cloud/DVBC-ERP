@@ -24,6 +24,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import FollowUpActionButton from '../components/FollowUpActionButton';
 import PageHeader from '../components/ui/page-header';
+import { sortByLatest } from '../utils/sortUtils';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -371,9 +372,9 @@ const KickoffRequests = () => {
     );
   }
 
-  const pendingRequests = (requests || []).filter(r => r.status === 'pending');
-  const returnedRequests = (requests || []).filter(r => r.status === 'returned');
-  const processedRequests = (requests || []).filter(r => !['pending', 'returned'].includes(r.status));
+  const pendingRequests = (requests || []).filter(r => r.status === 'pending').sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const returnedRequests = (requests || []).filter(r => r.status === 'returned').sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const processedRequests = (requests || []).filter(r => !['pending', 'returned'].includes(r.status)).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   
   // Check if user has any eligible agreements for kickoff
   const eligibleAgreements = (agreements || []).filter(a => a.status === 'approved');

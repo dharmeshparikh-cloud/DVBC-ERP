@@ -17,6 +17,7 @@ import PageHeader from '../components/ui/page-header';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { sortByLatest } from '../utils/sortUtils';
 
 const CATEGORIES = ['Travel', 'Local Conveyance', 'Food', 'Accommodation', 'Office Supplies', 'Communication', 'Client Entertainment', 'Other'];
 
@@ -507,7 +508,7 @@ const MyExpenses = () => {
         </Card>
       ) : (
         <div className="space-y-2">
-          {(data?.expenses || []).map(exp => (
+          {sortByLatest(data?.expenses || [], 'created_at').map(exp => (
             <Card key={exp?.id} className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors" data-testid={`expense-${exp?.id}`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">

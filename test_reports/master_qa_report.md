@@ -1,7 +1,7 @@
 # 🧪 MASTER QA TEST REPORT: Consulting Workflow
 **Date:** March 18-19, 2026  
 **Tester:** Automated E2E Testing  
-**App URL:** https://zero-crash-erp.preview.emergentagent.com
+**App URL:** https://consultant-workflow.preview.emergentagent.com
 **Status:** ✅ ALL CRITICAL ISSUES FIXED
 
 ---

@@ -371,7 +371,7 @@ const Expenses = () => {
               </tr>
             </thead>
             <tbody>
-              {(expenses || []).map(expense => (
+              {(expenses || []).slice().sort((a, b) => new Date(b.created_at || b.expense_date || 0) - new Date(a.created_at || a.expense_date || 0)).map(expense => (
                 <tr key={expense.id} className="border-b border-zinc-100 hover:bg-zinc-50" data-testid={`expense-row-${expense.id}`}>
                   <td className="px-4 py-3 text-sm text-zinc-600">
                     {new Date(expense.created_at).toLocaleDateString()}

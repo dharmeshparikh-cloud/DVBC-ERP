@@ -608,7 +608,7 @@ const Leads = () => {
       });
     }
     
-    return result;
+    return result.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [leads, searchQuery, timelineFilter]);
 
   // Permission-based edit rights: Managers can only view (level-based, not role-based)

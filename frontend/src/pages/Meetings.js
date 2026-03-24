@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import FollowUpActionButton from '../components/FollowUpActionButton';
 import PageHeader from '../components/ui/page-header';
+import { sortByFields } from '../utils/sortUtils';
 
 const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low', color: 'bg-zinc-100 text-zinc-700' },
@@ -578,7 +579,7 @@ const Meetings = () => {
         </Card>
       ) : (
         <div className="space-y-3">
-          {(meetings || []).map((meeting) => {
+          {sortByFields(meetings || [], ['meeting_date', 'created_at']).map((meeting) => {
             const project = (projects || []).find((p) => p.id === meeting.project_id);
             const isExpanded = expandedMeetings[meeting.id];
             const actionItemsCount = meeting.action_items?.length || 0;

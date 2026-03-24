@@ -15,6 +15,7 @@ import DraftSelector from '../components/DraftSelector';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../components/ui/page-header';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
+import { sortByLatest } from '../utils/sortUtils';
 
 const LEAVE_TYPES = [
   { value: 'casual_leave', label: 'Casual Leave', key: 'casual' },
@@ -316,7 +317,7 @@ const MyLeaves = () => {
               </tr>
             </thead>
             <tbody>
-              {(requests || []).filter(req => req.id).map(req => (
+              {sortByLatest(requests || [], 'created_at').filter(req => req.id).map(req => (
                 <tr key={req.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`leave-req-${req.id}`}>
                   <td className="px-4 py-3 text-zinc-700">{req.leave_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
                   <td className="px-4 py-3 text-zinc-700">{req.start_date ? (isNaN(new Date(req.start_date).getTime()) ? req.start_date : format(new Date(req.start_date), 'MMM dd, yyyy')) : '-'}</td>

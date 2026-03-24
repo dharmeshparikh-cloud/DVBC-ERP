@@ -68,6 +68,7 @@ import {
   useBulkApprovalAction
 } from '../hooks/useApprovals';
 import { isAdmin as checkIsAdmin, isHR as checkIsHR, isManager as checkIsManager, isSeniorConsultant as checkIsSC, isPrincipalConsultant as checkIsPC } from '../utils/roles';
+import { sortByLatest } from '../utils/sortUtils';
 
 const APPROVAL_TYPE_LABELS = {
   sow_item: 'SOW Item',
@@ -1489,7 +1490,7 @@ const ApprovalsCenter = () => {
               </CardContent>
             </Card>
           ) : (
-            (pendingApprovals || []).map(approval => (
+            sortByLatest(pendingApprovals || [], 'created_at').map(approval => (
               <Card 
                 key={approval.id} 
                 className={`shadow-none rounded-lg transition-all ${

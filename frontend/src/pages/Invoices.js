@@ -12,6 +12,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '../components/ui/page-header';
 import axios from 'axios';
+import { sortByLatest } from '../utils/sortUtils';
 
 const Invoices = () => {
   const { user } = useContext(AuthContext);
@@ -22,7 +23,7 @@ const Invoices = () => {
   const { data: invoices = [], isLoading: loading, refetch: refetchInvoices } = useQuery({
     queryKey: ['invoices'],
     queryFn: async () => {
-      const res = await axios.get(`${API}/invoices`);
+      const res = await axios.get(`${API}/project-pnl/invoices`);
       return Array.isArray(res.data) ? res.data : res.data.invoices || [];
     }
   });
@@ -59,14 +60,14 @@ const Invoices = () => {
   };
 
   const filteredInvoices = useMemo(() => {
-    return (invoices || []).filter(inv => {
+    return sortByLatest((invoices || []).filter(inv => {
       const matchesSearch = 
         inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.project_name?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
       return matchesSearch && matchesStatus;
-    });
+    }), 'created_at');
   }, [invoices, searchTerm, statusFilter]);
 
   const totalAmount = (filteredInvoices || []).reduce((sum, inv) => sum + (inv.amount || 0), 0);

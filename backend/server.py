@@ -719,6 +719,10 @@ async def upload_meeting_attachments_alias(
 from routers import follow_ups as follow_ups_router
 api_router.include_router(follow_ups_router.router)
 
+# My Day - Daily workflow aggregation
+from routers import my_day as my_day_router
+api_router.include_router(my_day_router.router)
+
 # WebSocket for real-time updates (under /api prefix for proper routing through ingress)
 from routers import websocket_router
 api_router.include_router(websocket_router.router)

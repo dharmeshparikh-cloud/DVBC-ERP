@@ -376,7 +376,7 @@ const Clients = () => {
       client.industry?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesIndustry = !filterIndustry || client.industry === filterIndustry;
     return matchesSearch && matchesIndustry;
-  });
+  }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
   const getTotalRevenue = (client) => {
     if (!client.revenue_history || client.revenue_history.length === 0) return 0;

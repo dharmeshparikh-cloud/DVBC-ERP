@@ -297,7 +297,7 @@ const Employees = () => {
     }
     
     return matchesSearch && matchesDept && matchesJoinDate;
-  });
+  }).sort((a, b) => new Date(b.joining_date || b.created_at || 0) - new Date(a.joining_date || a.created_at || 0));
 
   if (loading) {
     return <div className="flex items-center justify-center h-96"><div className="text-zinc-500">Loading...</div></div>;
