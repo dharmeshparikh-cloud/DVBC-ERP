@@ -2,7 +2,25 @@
 
 ## Latest Updates - March 24, 2026
 
-### ZERO-CRASH HARDENING - Complete System-Wide Safety (P0 COMPLETE) ✅ [NEW - March 24]
+### Penalty Management UI (P1 COMPLETE) ✅ [NEW - March 24]
+**Dedicated page at `/penalty-management` for HR to manage all 21 violation types:**
+- **Apply Penalty tab**: Employee search, 5 category dropdowns (Attendance, Leave, Travel, Expense, General), 21 violation types with default amounts, custom amount/description, payroll deduction toggle
+- **Review tab**: Monthly penalties table with category filter, revoke capability, category breakdown cards
+- **Auto-Detect tab**: One-click violation detection, review & apply/dismiss individual violations
+- **Summary cards**: Total penalties, total amount (INR), employees affected, active categories
+- **Navigation**: Added under HR Payroll section in sidebar
+
+### Onboarding Pro-rata (P1 COMPLETE) ✅ [NEW - March 24]
+**Auto-calculate mid-month joiner salaries integrated into payroll:**
+- **Backend**: Pro-rata auto-applied during `run_payroll_calculation()` - detects employees whose `date_of_joining` falls within the payroll month (not on 1st)
+- **Formula**: (Full Gross / Days in month) x Days worked
+- **API**: `GET /api/payroll/engine/pro-rata/check/{month}` - lists mid-month joiners with calculations
+- **UI**: Pro-rata tab in Payroll Engine with "Check Pro-rata" button, employee table showing full gross vs pro-rata gross vs difference
+- Pro-rata info (`prorata_info`) included in each employee's payroll calculation output
+
+**Testing:** 12/12 backend API tests passed, 100% frontend pass rate (iteration_206)
+
+### ZERO-CRASH HARDENING - Complete System-Wide Safety (P0 COMPLETE) ✅ [March 24]
 **Comprehensive frontend hardening applied across 184 files with 1,294 safety fixes:**
 
 **Safety Fixes Applied:**
