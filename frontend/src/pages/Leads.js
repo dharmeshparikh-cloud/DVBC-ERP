@@ -16,6 +16,8 @@ import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { useQueryClient } from '@tanstack/react-query';
+import { GovernedDropdown } from '../components/GovernedDropdown';
+import { useIndustryOptions, useLeadSources, useLeadStatusOptions } from '../hooks/useSOWsByProject';
 import {
   useLeads as useLeadsQuery,
   useBulkLeadProgress,
@@ -268,13 +270,15 @@ const Leads = () => {
     address: '',
   });
 
-  // Industry options
-  const industryOptions = [
-    'Manufacturing', 'IT/Software', 'Healthcare', 'Finance/Banking',
-    'Retail', 'Education', 'Real Estate', 'Consulting', 'Logistics',
-    'Hospitality', 'Agriculture', 'Energy', 'Telecom', 'Automotive',
-    'Pharma', 'FMCG', 'Construction', 'Media', 'Government', 'Other'
-  ];
+  // Use governed hooks for industry options
+  const { data: industryOptionsData } = useIndustryOptions();
+  const industryOptions = useMemo(() => 
+    (industryOptionsData || []).map(i => typeof i === 'string' ? i : i.name),
+    [industryOptionsData]
+  );
+  
+  // Lead status options from hook
+  const { data: leadStatusOptionsData } = useLeadStatusOptions();
 
   // Register form data getter for save-on-leave
   const formDataRef = useRef(formData);
@@ -787,18 +791,18 @@ const Leads = () => {
                       <Label htmlFor="industry" className="text-sm font-medium text-zinc-950">
                         Industry
                       </Label>
-                      <select
-                        id="industry"
-                        data-testid="lead-industry"
+                      <GovernedDropdown
                         value={formData.industry}
-                        onChange={(e) => updateFormData('industry', e.target.value)}
-                        className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-                      >
-                        <option value="">Select Industry</option>
-                        {(industryOptions || []).map(ind => (
-                          <option key={ind} value={ind}>{ind}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => updateFormData('industry', val)}
+                        options={(industryOptionsData || []).map(i => ({
+                          id: typeof i === 'string' ? i : i.id,
+                          name: typeof i === 'string' ? i : i.name
+                        }))}
+                        placeholder="Select Industry"
+                        data-testid="lead-industry"
+                        valueKey="id"
+                        labelKey="name"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="website" className="text-sm font-medium text-zinc-950">
@@ -1078,18 +1082,16 @@ const Leads = () => {
         {/* Status Filter Dropdown */}
         <div className="flex items-center gap-3">
           <Label className="text-xs text-zinc-500 whitespace-nowrap">Stage:</Label>
-          <select
+          <GovernedDropdown
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
+            onChange={setSelectedStatus}
+            options={leadStatusOptions.map(o => ({ id: o.value, name: o.label + (o.value === '' && filteredLeads ? ` (${leads.length})` : '') }))}
+            placeholder="Select Stage"
             data-testid="lead-status-filter"
-            className="px-3 py-1.5 text-sm border border-zinc-200 rounded-sm bg-white focus:outline-none focus:ring-1 focus:ring-zinc-400 min-w-[160px]"
-          >
-            {(leadStatusOptions || []).map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label} {option.value === '' && filteredLeads ? `(${leads.length})` : ''}
-              </option>
-            ))}
-          </select>
+            valueKey="id"
+            labelKey="name"
+            className="min-w-[160px]"
+          />
           {selectedStatus && (
             <button
               onClick={() => setSelectedStatus('')}

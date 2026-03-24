@@ -18,8 +18,13 @@ import MyWorkspaceNav from '../components/MyWorkspaceNav';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { sortByLatest } from '../utils/sortUtils';
+import { GovernedDropdown } from '../components/GovernedDropdown';
+import { useExpenseCategories, useNormalizedProjects } from '../hooks/useSOWsByProject';
 
 const CATEGORIES = ['Travel', 'Local Conveyance', 'Food', 'Accommodation', 'Office Supplies', 'Communication', 'Client Entertainment', 'Other'];
+
+// Category options for GovernedDropdown
+const CATEGORY_OPTIONS = CATEGORIES.map(c => ({ id: c, name: c }));
 
 const STATUS_STYLES = {
   draft: 'bg-zinc-100 text-zinc-600 border-zinc-200',
@@ -397,10 +402,15 @@ const MyExpenses = () => {
                 {(formData.line_items || []).map((li, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                     <div className="col-span-3">
-                      <select value={li.category} onChange={(e) => updateLineItem(idx, 'category', e.target.value)}
-                        className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-transparent text-xs">
-                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                      <GovernedDropdown
+                        value={li.category}
+                        onChange={(val) => updateLineItem(idx, 'category', val)}
+                        options={CATEGORY_OPTIONS}
+                        placeholder="Select Category"
+                        data-testid={`expense-category-${idx}`}
+                        valueKey="id"
+                        labelKey="name"
+                      />
                     </div>
                     <div className="col-span-4">
                       <Input value={li.description} onChange={(e) => updateLineItem(idx, 'description', e.target.value)}

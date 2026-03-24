@@ -22,6 +22,7 @@ import {
 } from '../hooks/usePayroll';
 import { PayrollApprovalPanel, ExcelUploadPanel, BankSchemaPanel } from '../components/payroll';
 import { isHRAdmin } from '../utils/roles';
+import { GovernedDropdown } from '../components/GovernedDropdown';
 
 const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 
@@ -287,11 +288,22 @@ const Payroll = () => {
                   <div><Label>Month</Label><Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="rounded-sm border-zinc-200" /></div>
                   <div>
                     <Label>Employee</Label>
-                    <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)} className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm" data-testid="payroll-emp-select">
-                      <option value="">Select...</option>
-                      <option value="all">All Employees (Bulk)</option>
-                      {(employees || []).map(e => (<option key={e.id} value={e.id}>{e.employee_id} - {e.first_name} {e.last_name} ({fmt(e.salary)})</option>))}
-                    </select>
+                    <GovernedDropdown
+                      value={selectedEmployee}
+                      onChange={setSelectedEmployee}
+                      options={[
+                        { id: '', name: 'Select...' },
+                        { id: 'all', name: 'All Employees (Bulk)' },
+                        ...(employees || []).map(e => ({ 
+                          id: e.id, 
+                          name: `${e.employee_id} - ${e.first_name} ${e.last_name} (${fmt(e.salary)})` 
+                        }))
+                      ]}
+                      placeholder="Select Employee"
+                      data-testid="payroll-emp-select"
+                      valueKey="id"
+                      labelKey="name"
+                    />
                   </div>
                   <Button onClick={handleGenerate} disabled={!selectedEmployee} className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm" data-testid="confirm-generate">Generate</Button>
                 </div>
@@ -351,18 +363,33 @@ const Payroll = () => {
                   <div className="space-y-3">
                     <div>
                       <Label className="text-xs">Type</Label>
-                      <select value={newComp.type} onChange={e => setNewComp({ ...newComp, type: e.target.value })} className="w-full h-9 px-3 rounded-sm border border-zinc-200 bg-white text-sm" data-testid="comp-type-select">
-                        <option value="earnings">Earning</option>
-                        <option value="deductions">Deduction</option>
-                      </select>
+                      <GovernedDropdown
+                        value={newComp.type}
+                        onChange={(val) => setNewComp({ ...newComp, type: val })}
+                        options={[
+                          { id: 'earnings', name: 'Earning' },
+                          { id: 'deductions', name: 'Deduction' }
+                        ]}
+                        placeholder="Select Type"
+                        data-testid="comp-type-select"
+                        valueKey="id"
+                        labelKey="name"
+                      />
                     </div>
                     <div><Label className="text-xs">Name</Label><Input value={newComp.name} onChange={e => setNewComp({ ...newComp, name: e.target.value })} placeholder="e.g. Bonus" className="h-9" data-testid="comp-name-input" /></div>
                     <div>
                       <Label className="text-xs">Calculation</Label>
-                      <select value={newComp.calcType} onChange={e => setNewComp({ ...newComp, calcType: e.target.value })} className="w-full h-9 px-3 rounded-sm border border-zinc-200 bg-white text-sm">
-                        <option value="fixed">Fixed Amount (₹)</option>
-                        <option value="percentage">% of CTC</option>
-                      </select>
+                      <GovernedDropdown
+                        value={newComp.calcType}
+                        onChange={(val) => setNewComp({ ...newComp, calcType: val })}
+                        options={[
+                          { id: 'fixed', name: 'Fixed Amount (₹)' },
+                          { id: 'percentage', name: '% of CTC' }
+                        ]}
+                        placeholder="Select Calculation"
+                        valueKey="id"
+                        labelKey="name"
+                      />
                     </div>
                     <div><Label className="text-xs">{newComp.calcType === 'percentage' ? 'Percentage' : 'Amount (₹)'}</Label><Input type="number" value={newComp.value} onChange={e => setNewComp({ ...newComp, value: e.target.value })} className="h-9" data-testid="comp-value-input" /></div>
                     <Button onClick={addComponent} className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm h-9" data-testid="save-component-btn">Add Component</Button>

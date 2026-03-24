@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../components/ui/page-header';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 import { sortByLatest } from '../utils/sortUtils';
+import { GovernedDropdown } from '../components/GovernedDropdown';
 
 const LEAVE_TYPES = [
   { value: 'casual_leave', label: 'Casual Leave', key: 'casual' },
@@ -199,13 +200,21 @@ const MyLeaves = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-zinc-950">Leave Type</Label>
-                <select value={formData.leave_type} onChange={(e) => setFormData({ ...formData, leave_type: e.target.value })}
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="leave-type">
-                  {LEAVE_TYPES.map(t => {
+                <GovernedDropdown
+                  value={formData.leave_type}
+                  onChange={(val) => setFormData({ ...formData, leave_type: val })}
+                  options={LEAVE_TYPES.map(t => {
                     const b = balance?.[t.key];
-                    return <option key={t.value} value={t.value}>{t.label} {b ? `(${b.available} available)` : ''}</option>;
+                    return { 
+                      id: t.value, 
+                      name: `${t.label}${b ? ` (${b.available} available)` : ''}` 
+                    };
                   })}
-                </select>
+                  placeholder="Select Leave Type"
+                  data-testid="leave-type"
+                  valueKey="id"
+                  labelKey="name"
+                />
               </div>
               
               {/* Half Day Option */}
@@ -222,15 +231,19 @@ const MyLeaves = () => {
                 </label>
                 
                 {formData.is_half_day && (
-                  <select
+                  <GovernedDropdown
                     value={formData.half_day_type}
-                    onChange={(e) => setFormData({ ...formData, half_day_type: e.target.value })}
-                    className="h-8 px-2 rounded-sm border border-zinc-200 text-sm"
+                    onChange={(val) => setFormData({ ...formData, half_day_type: val })}
+                    options={[
+                      { id: 'first_half', name: 'First Half (Morning)' },
+                      { id: 'second_half', name: 'Second Half (Afternoon)' }
+                    ]}
+                    placeholder="Select Half"
                     data-testid="half-day-type"
-                  >
-                    <option value="first_half">First Half (Morning)</option>
-                    <option value="second_half">Second Half (Afternoon)</option>
-                  </select>
+                    valueKey="id"
+                    labelKey="name"
+                    className="h-8"
+                  />
                 )}
               </div>
               
