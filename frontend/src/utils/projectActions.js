@@ -132,7 +132,7 @@ export const isActionAllowed = (status, action) => {
   }
   
   // Check if action is in allowed list
-  return permissions.allowed.includes(action);
+  return Array.isArray(permissions.allowed) && permissions.allowed.includes(action);
 };
 
 /**

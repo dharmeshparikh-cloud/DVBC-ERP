@@ -31,15 +31,21 @@ const getUserDomain = (user) => {
   const role = user.role?.toLowerCase() || '';
   const department = user.department?.toLowerCase() || '';
   
-  // Check department first
-  if (department.includes('hr') || department.includes('human')) return 'hr';
-  if (department.includes('sales') || department.includes('business development')) return 'sales';
-  if (department.includes('consulting') || department.includes('delivery')) return 'consulting';
+  // Check department first - add check for non-empty string
+  if (department && department.includes('hr')) return 'hr';
+  if (department && department.includes('human')) return 'hr';
+  if (department && department.includes('sales')) return 'sales';
+  if (department && department.includes('business development')) return 'sales';
+  if (department && department.includes('consulting')) return 'consulting';
+  if (department && department.includes('delivery')) return 'consulting';
   
-  // Check role if department not set
-  if (role.includes('hr') || role === 'hr_manager' || role === 'hr_executive') return 'hr';
+  // Check role if department not set - add check for non-empty string
+  if (role && role.includes('hr')) return 'hr';
+  if (role === 'hr_manager' || role === 'hr_executive') return 'hr';
   if (role === 'executive' || role === 'sales_manager') return 'sales';
-  if (role === 'consultant' || role.includes('consultant') || role === 'project_manager') return 'consulting';
+  if (role === 'consultant') return 'consulting';
+  if (role && role.includes('consultant')) return 'consulting';
+  if (role === 'project_manager') return 'consulting';
   if (role === 'admin') return 'admin';
   if (role === 'manager') return 'general';
   

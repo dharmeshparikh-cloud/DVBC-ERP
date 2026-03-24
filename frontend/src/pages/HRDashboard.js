@@ -52,10 +52,10 @@ const HRDashboard = () => {
 
   // Calculate onboarding pipeline counts
   const pipelineCounts = {
-    invited: onboardingSubmissions.filter(s => s.status === 'invited').length,
-    draft: onboardingSubmissions.filter(s => s.status === 'draft').length,
-    submitted: onboardingSubmissions.filter(s => ['submitted', 'revision_requested'].includes(s.status)).length,
-    approved: onboardingSubmissions.filter(s => s.status === 'approved').length,
+    invited: (onboardingSubmissions || []).filter(s => s?.status === 'invited').length,
+    draft: (onboardingSubmissions || []).filter(s => s?.status === 'draft').length,
+    submitted: (onboardingSubmissions || []).filter(s => s?.status && ['submitted', 'revision_requested'].includes(s.status)).length,
+    approved: (onboardingSubmissions || []).filter(s => s?.status === 'approved').length,
   };
   const totalPending = pipelineCounts.invited + pipelineCounts.draft + pipelineCounts.submitted + pipelineCounts.approved;
 

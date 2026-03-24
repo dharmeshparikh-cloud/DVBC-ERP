@@ -296,7 +296,7 @@ const ExitManagement = () => {
   };
   
   const canManageClearance = (request) => {
-    return canManage && ['hr_approved', 'initiated'].includes(request.status);
+    return canManage && request?.status && ['hr_approved', 'initiated'].includes(request.status);
   };
   
   const canCalculateSettlement = (request) => {
@@ -358,9 +358,9 @@ const ExitManagement = () => {
   };
   
   // Stats
-  const pendingCount = requests.filter(r => r.status === 'pending').length;
-  const inProgressCount = requests.filter(r => ['admin_approved', 'hr_approved', 'clearance_complete', 'settlement_calculated'].includes(r.status)).length;
-  const completedCount = requests.filter(r => r.status === 'completed').length;
+  const pendingCount = (requests || []).filter(r => r?.status === 'pending').length;
+  const inProgressCount = (requests || []).filter(r => r?.status && ['admin_approved', 'hr_approved', 'clearance_complete', 'settlement_calculated'].includes(r.status)).length;
+  const completedCount = (requests || []).filter(r => r?.status === 'completed').length;
   
   if (isLoading) {
     return (

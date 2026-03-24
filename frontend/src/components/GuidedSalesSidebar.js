@@ -75,7 +75,7 @@ const GuidedSalesSidebar = ({
     // For monitoring/control modes, filter based on role
     return FULL_SALES_ITEMS.filter(item => {
       // Manager-only items
-      if (item.managerOnly && !['admin', 'manager', 'sr_manager', 'sales_manager', 'principal_consultant'].includes(userRole)) {
+      if (item.managerOnly && (!userRole || !['admin', 'manager', 'sr_manager', 'sales_manager', 'principal_consultant'].includes(userRole))) {
         return false;
       }
       return true;

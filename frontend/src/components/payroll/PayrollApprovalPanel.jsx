@@ -145,8 +145,8 @@ const PayrollApprovalPanel = ({ month, userRole, onRefresh }) => {
   });
 
   const currentRun = payrollRuns.find(r => r.month === month);
-  const canCreate = !currentRun && ['admin', 'hr_manager'].includes(userRole);
-  const canSubmit = currentRun?.status === 'draft' && ['admin', 'hr_manager'].includes(userRole);
+  const canCreate = !currentRun && userRole && ['admin', 'hr_manager'].includes(userRole);
+  const canSubmit = currentRun?.status === 'draft' && userRole && ['admin', 'hr_manager'].includes(userRole);
   const canApprove = (
     (currentRun?.status === 'submitted' && userRole && ['admin', 'hr_manager'].includes(userRole)) ||
     (currentRun?.status === 'hr_approved' && userRole && ['admin', 'finance_manager'].includes(userRole)) ||

@@ -162,7 +162,7 @@ export const StageGuardProvider = ({ children }) => {
     if (roleConfig.canSkipStages) return true;
     
     // Check if target stage is visible for this role
-    if (!roleConfig.visibleStages.includes(targetStage)) return false;
+    if (!roleConfig.visibleStages || !Array.isArray(roleConfig.visibleStages) || !roleConfig.visibleStages.includes(targetStage)) return false;
     
     const currentIdx = STAGE_ORDER.indexOf(currentStage);
     const targetIdx = STAGE_ORDER.indexOf(targetStage);

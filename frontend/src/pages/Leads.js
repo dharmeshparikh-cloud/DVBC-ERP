@@ -587,7 +587,7 @@ const Leads = () => {
         lead.company?.toLowerCase().includes(query) ||
         lead.email?.toLowerCase().includes(query) ||
         lead.phone?.includes(query) ||
-        `${lead.first_name} ${lead.last_name}`.toLowerCase().includes(query)
+        `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase().includes(query)
       );
     }
     

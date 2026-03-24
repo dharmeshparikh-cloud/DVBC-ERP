@@ -154,7 +154,7 @@ const ConsultingMeetings = () => {
   const canRecordMOM = (meeting) => {
     if (!meeting || !user) return false;
     // Admin and Principal Consultant can always record
-    if (['admin', 'principal_consultant'].includes(user.role)) return true;
+    if (user.role && ['admin', 'principal_consultant'].includes(user.role)) return true;
     // Check if user is in project team
     const projectTeam = meeting.project_team || [];
     return projectTeam.some(t => t.user_id === user.id || t.employee_id === user.employee_id);
