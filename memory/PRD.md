@@ -2,6 +2,17 @@
 
 ## Latest Updates - March 24, 2026
 
+### Consulting Meeting Travel Expense (COMPLETE) [March 24, Session 2]
+
+**Replicated Sales Meeting travel feature in Consulting Meeting scheduling:**
+- Full `MeetingLocationPicker` with Google Maps Places autocomplete, Via Locations, Calculate Distance
+- Mode of Travel pill buttons: Car ₹7/km, Bike ₹3/km, Transit (manual amount), Accompanied (no expense)
+- Round Trip checkbox (auto-doubles distance)
+- Backend auto-creates expense record on submit: `status=pending`, linked to `meeting_id` + `payroll_month`
+- Expense calc: Car = totalKm × ₹7, Bike = totalKm × ₹3, Transit = manual, Accompanied = ₹0
+- `MeetingCreate` model extended: `travel_details`, `travel_companions`, `is_conveyance_claimable`, `scheduled_by`
+- Used `useCallback` for stable onChange handler (prevents MeetingLocationPicker infinite re-render loop)
+
 ### Consultant Meeting Flow Fix (COMPLETE) [March 24, Session 2]
 
 **Root Causes Found & Fixed:**
