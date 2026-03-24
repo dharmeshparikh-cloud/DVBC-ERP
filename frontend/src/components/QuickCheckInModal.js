@@ -63,10 +63,10 @@ const QuickCheckInModal = ({ isOpen, onClose, user }) => {
       const dept = attRes.data?.employee?.department?.toLowerCase() || '';
       const role = user?.role?.toLowerCase() || '';
       setCanDoOnsite(
-        dept.includes('consulting') || 
-        dept.includes('delivery') || 
-        dept.includes('sales') ||
-        ['admin', 'executive', 'sales_manager', 'manager'].includes(role)
+        (dept && dept.includes('consulting')) || 
+        (dept && dept.includes('delivery')) || 
+        (dept && dept.includes('sales')) ||
+        (role && ['admin', 'executive', 'sales_manager', 'manager'].includes(role))
       );
     } catch (error) {
       console.error('Failed to fetch status');

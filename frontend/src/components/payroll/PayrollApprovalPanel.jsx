@@ -148,13 +148,13 @@ const PayrollApprovalPanel = ({ month, userRole, onRefresh }) => {
   const canCreate = !currentRun && ['admin', 'hr_manager'].includes(userRole);
   const canSubmit = currentRun?.status === 'draft' && ['admin', 'hr_manager'].includes(userRole);
   const canApprove = (
-    (currentRun?.status === 'submitted' && ['admin', 'hr_manager'].includes(userRole)) ||
-    (currentRun?.status === 'hr_approved' && ['admin', 'finance_manager'].includes(userRole)) ||
+    (currentRun?.status === 'submitted' && userRole && ['admin', 'hr_manager'].includes(userRole)) ||
+    (currentRun?.status === 'hr_approved' && userRole && ['admin', 'finance_manager'].includes(userRole)) ||
     (currentRun?.status === 'finance_approved' && userRole === 'admin')
   );
-  const canReject = currentRun && !['draft', 'rejected', 'disbursed'].includes(currentRun.status) && 
-    ['admin', 'hr_manager', 'finance_manager'].includes(userRole);
-  const canResubmit = currentRun?.status === 'rejected' && ['admin', 'hr_manager'].includes(userRole);
+  const canReject = currentRun && !['draft', 'rejected', 'disbursed'].includes(currentRun.status || '') && 
+    userRole && ['admin', 'hr_manager', 'finance_manager'].includes(userRole);
+  const canResubmit = currentRun?.status === 'rejected' && userRole && ['admin', 'hr_manager'].includes(userRole);
   const canUnlock = lockStatus?.is_locked && userRole === 'admin' && currentRun?.status !== 'disbursed';
 
   const handleReject = () => {

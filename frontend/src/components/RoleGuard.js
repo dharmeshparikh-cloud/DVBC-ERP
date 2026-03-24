@@ -17,11 +17,11 @@ const RoleGuard = ({ allowedRoles = [], allowedDepts = [], children }) => {
   // Admin always has access
   if (role === 'admin') return children;
 
-  // Check role match
-  if (allowedRoles.length > 0 && allowedRoles.includes(role)) return children;
+  // Check role match - ensure allowedRoles is an array
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && role && allowedRoles.includes(role)) return children;
 
-  // Check department match
-  if (allowedDepts.length > 0 && allowedDepts.some(d => dept.includes(d.toLowerCase()))) return children;
+  // Check department match - ensure allowedDepts is an array
+  if (Array.isArray(allowedDepts) && allowedDepts.length > 0 && dept && allowedDepts.some(d => dept.includes(d?.toLowerCase?.() || ''))) return children;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4" data-testid="access-denied">

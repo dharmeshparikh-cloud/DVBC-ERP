@@ -31,6 +31,13 @@ const SALES_ROLES_FALLBACK = ['admin', 'sales_manager', 'sales_executive', 'exec
 const CONSULTING_ROLES_FALLBACK = ['admin', 'consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager'];
 const ADMIN_ROLES_FALLBACK = ['admin'];
 
+// Safe includes helper to prevent "Cannot read properties of undefined" errors
+const safeRoleCheck = (roles, userRole) => {
+  if (!roles || !Array.isArray(roles)) return false;
+  if (!userRole) return false;
+  return roles.includes(userRole);
+};
+
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
   const { theme, toggleTheme } = useTheme();
@@ -49,26 +56,26 @@ const Layout = () => {
   
   // Subscribe to relevant topics based on role
   useEffect(() => {
-    if (wsConnected) {
+    if (wsConnected && role) {
       const topics = ['dashboard', 'notifications'];
       
       // HR roles subscribe to HR updates
-      if (['admin', 'hr_manager', 'hr_executive'].includes(role)) {
+      if (safeRoleCheck(['admin', 'hr_manager', 'hr_executive'], role)) {
         topics.push('employees', 'onboarding', 'leaves', 'attendance', 'payroll');
       }
       
       // Sales roles subscribe to sales updates
-      if (['admin', 'sales_manager', 'sales_executive'].includes(role)) {
+      if (safeRoleCheck(['admin', 'sales_manager', 'sales_executive'], role)) {
         topics.push('leads', 'agreements', 'kickoffs');
       }
       
       // Consulting roles subscribe to project updates
-      if (['admin', 'consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant'].includes(role)) {
+      if (safeRoleCheck(['admin', 'consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant'], role)) {
         topics.push('projects', 'tasks');
       }
       
       // Everyone subscribes to approvals if they can approve
-      if (['admin', 'hr_manager', 'sales_manager'].includes(role)) {
+      if (safeRoleCheck(['admin', 'hr_manager', 'sales_manager'], role)) {
         topics.push('approvals');
       }
       
@@ -134,12 +141,12 @@ const Layout = () => {
   
   // SIDEBAR VISIBILITY: Use centralized permissions API (PRIMARY), fallback to role-based
   // This ensures HR Manager doesn't see Sales section, Sales Executive doesn't see HR section, etc.
-  const showHR = sidebarVisibility?.hr_section ?? (hasDepartment('HR') || HR_ROLES_FALLBACK.includes(role));
-  const showSales = sidebarVisibility?.sales_section ?? (hasDepartment('Sales') || SALES_ROLES_FALLBACK.includes(role));
+  const showHR = sidebarVisibility?.hr_section ?? (hasDepartment('HR') || safeRoleCheck(HR_ROLES_FALLBACK, role));
+  const showSales = sidebarVisibility?.sales_section ?? (hasDepartment('Sales') || safeRoleCheck(SALES_ROLES_FALLBACK, role));
   // Admin always sees Consulting section
-  const showConsulting = role === 'admin' || (sidebarVisibility?.consulting_section ?? (hasDepartment('Consulting') || hasDepartment('Delivery') || hasDepartment('Operations') || CONSULTING_ROLES_FALLBACK.includes(role) || role === 'manager'));
+  const showConsulting = role === 'admin' || (sidebarVisibility?.consulting_section ?? (hasDepartment('Consulting') || hasDepartment('Delivery') || hasDepartment('Operations') || safeRoleCheck(CONSULTING_ROLES_FALLBACK, role) || role === 'manager'));
   const showFinance = hasDepartment('Finance');
-  const showAdmin = sidebarVisibility?.admin_section ?? (hasDepartment('Admin') || ADMIN_ROLES_FALLBACK.includes(role));
+  const showAdmin = sidebarVisibility?.admin_section ?? (hasDepartment('Admin') || safeRoleCheck(ADMIN_ROLES_FALLBACK, role));
   const isConsultant = role === 'consultant';
   
   // Permission checks for specific features - now using has_reportees
@@ -348,20 +355,20 @@ const Layout = () => {
     if (item.isHeader) {
       // Show header if user has access to at least one item in that section
       if (item.requiresHRorAdmin) {
-        return role === 'admin' || role === 'hr_manager' || HR_ROLES_FALLBACK.includes(role);
+        return role === 'admin' || role === 'hr_manager' || safeRoleCheck(HR_ROLES_FALLBACK, role);
       }
       if (item.requiresApproval) {
-        return canApproveRequests() || HR_ROLES_FALLBACK.includes(role);
+        return canApproveRequests() || safeRoleCheck(HR_ROLES_FALLBACK, role);
       }
       return true;
     }
     
     // Password Management only for Admin or HR Managers
     if (item.requiresHRorAdmin) {
-      return role === 'admin' || role === 'hr_manager' || HR_ROLES_FALLBACK.includes(role);
+      return role === 'admin' || role === 'hr_manager' || safeRoleCheck(HR_ROLES_FALLBACK, role);
     }
     // Always show basic HR items for HR roles
-    if (HR_ROLES_FALLBACK.includes(role)) return true;
+    if (safeRoleCheck(HR_ROLES_FALLBACK, role)) return true;
     // For non-HR roles, check level permissions
     if (item.requiresTeamView && !canViewTeamData()) return false;
     if (item.requiresApproval && !canApproveRequests()) return false;
@@ -437,7 +444,7 @@ const Layout = () => {
   ];
 
   // Roles that can view Employee Scorecard
-  const canViewScorecard = ['admin', 'hr_manager', 'hr_executive', 'manager'].includes(role);
+  const canViewScorecard = safeRoleCheck(['admin', 'hr_manager', 'hr_executive', 'manager'], role);
   
   const workspaceItems = [
     { name: 'My Attendance', href: '/my-attendance', icon: CalendarDays },

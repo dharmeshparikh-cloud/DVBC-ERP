@@ -66,6 +66,19 @@ class ErrorBoundary extends React.Component {
       return 'Display Error: The application tried to render an invalid data type. This is usually caused by API response handling issues.';
     }
     
+    // Handle "Cannot read properties of undefined" error
+    if (error.message?.includes('Cannot read properties of undefined') || 
+        error.message?.includes('Cannot read property') ||
+        error.message?.includes('is undefined') ||
+        error.message?.includes('is null')) {
+      return 'Data Loading Error: Some data was not available when the page tried to display it. This usually resolves by refreshing the page.';
+    }
+    
+    // Handle network errors
+    if (error.message?.includes('Network Error') || error.message?.includes('fetch')) {
+      return 'Network Error: Unable to connect to the server. Please check your internet connection and try again.';
+    }
+    
     if (typeof error === 'string') return error;
     if (error.message) return error.message;
     

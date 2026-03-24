@@ -117,22 +117,22 @@ const GlobalSearch = ({ isOpen, onClose }) => {
       return;
     }
 
-    const searchQuery = query.toLowerCase();
+    const searchQuery = (query || '').toLowerCase();
     const matchedResults = [];
 
-    // Search pages
+    // Search pages - use optional chaining for safety
     const matchedPages = ERP_PAGES.filter(page => 
-      page.name.toLowerCase().includes(searchQuery) ||
-      page.category.toLowerCase().includes(searchQuery) ||
-      page.keywords.some(k => k.includes(searchQuery))
+      page?.name?.toLowerCase?.()?.includes?.(searchQuery) ||
+      page?.category?.toLowerCase?.()?.includes?.(searchQuery) ||
+      (Array.isArray(page?.keywords) && page.keywords.some(k => k?.includes?.(searchQuery)))
     );
 
-    // Search employees
-    const matchedEmployees = employees.filter(emp =>
-      `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchQuery) ||
-      emp.employee_id?.toLowerCase().includes(searchQuery) ||
-      emp.email?.toLowerCase().includes(searchQuery) ||
-      emp.department?.toLowerCase().includes(searchQuery)
+    // Search employees - use optional chaining for safety
+    const matchedEmployees = (employees || []).filter(emp =>
+      `${emp?.first_name || ''} ${emp?.last_name || ''}`.toLowerCase().includes(searchQuery) ||
+      emp?.employee_id?.toLowerCase?.()?.includes?.(searchQuery) ||
+      emp?.email?.toLowerCase?.()?.includes?.(searchQuery) ||
+      emp?.department?.toLowerCase?.()?.includes?.(searchQuery)
     ).slice(0, 5);
 
     // Build results

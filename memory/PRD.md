@@ -2,7 +2,32 @@
 
 ## Latest Updates - March 24, 2026
 
-### Unified Penalty System - ALL 21 Violation Types (P0 COMPLETE) ✅ [NEW]
+### Defensive Coding - Prevent "Cannot read properties of undefined" (P0 COMPLETE) ✅ [NEW]
+**Fixed runtime errors across the entire frontend:**
+- Created `safeUtils.js` utility with safe `.includes()` wrappers
+- Fixed Layout.js - all role checks now use `safeRoleCheck()` function
+- Fixed GlobalSearch.js - optional chaining for search filters
+- Fixed RoleGuard.js - added null checks for role/department matching
+- Fixed QuickCheckInModal.js - safe department checks
+- Fixed PayrollApprovalPanel.jsx - safe status and role checks
+- Fixed OnboardingHub.js - safe status filtering
+- Enhanced ErrorBoundary.js - user-friendly messages for common errors
+
+**Prevention Pattern Applied:**
+```javascript
+// Before (unsafe):
+['admin', 'hr_manager'].includes(role)
+
+// After (safe):
+const safeRoleCheck = (roles, userRole) => {
+  if (!roles || !Array.isArray(roles)) return false;
+  if (!userRole) return false;
+  return roles.includes(userRole);
+};
+safeRoleCheck(['admin', 'hr_manager'], role)
+```
+
+### Unified Penalty System - ALL 21 Violation Types (P0 COMPLETE) ✅
 **Complete penalty management across all business rule categories:**
 
 | Category | Violations | Sample Penalties |

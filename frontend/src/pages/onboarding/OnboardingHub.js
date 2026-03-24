@@ -171,19 +171,19 @@ const OnboardingHub = () => {
 
     switch (tab) {
       case 'pending':
-        return filtered.filter(s => ['submitted', 'revision_requested'].includes(s.status));
+        return filtered.filter(s => s?.status && ['submitted', 'revision_requested'].includes(s.status));
       case 'inprogress':
-        return filtered.filter(s => ['invited', 'draft'].includes(s.status));
+        return filtered.filter(s => s?.status && ['invited', 'draft'].includes(s.status));
       case 'completed':
-        return filtered.filter(s => ['completed', 'rejected'].includes(s.status));
+        return filtered.filter(s => s?.status && ['completed', 'rejected'].includes(s.status));
       default:
         return filtered;
     }
   };
 
-  const pendingCount = submissions.filter(s => ['submitted', 'revision_requested'].includes(s.status)).length;
-  const inProgressCount = submissions.filter(s => ['invited', 'draft'].includes(s.status)).length;
-  const completedCount = submissions.filter(s => ['completed', 'rejected'].includes(s.status)).length;
+  const pendingCount = (submissions || []).filter(s => s?.status && ['submitted', 'revision_requested'].includes(s.status)).length;
+  const inProgressCount = (submissions || []).filter(s => s?.status && ['invited', 'draft'].includes(s.status)).length;
+  const completedCount = (submissions || []).filter(s => s?.status && ['completed', 'rejected'].includes(s.status)).length;
 
   // Show loading if no user yet or initial data loading
   if (!user) {
