@@ -151,7 +151,7 @@ const ConsultantExpenses = () => {
 
   const removeLineItem = (idx) => {
     if (formData.line_items.length > 1) {
-      setFormData({ ...formData, line_items: formData.line_(items || []).filter((_, i) => i !== idx) });
+      setFormData({ ...formData, line_items: (formData?.line_items || []).filter((_, i) => i !== idx) });
     }
   };
 
@@ -175,7 +175,7 @@ const ConsultantExpenses = () => {
       notes: formData.notes,
       expense_date: formData.expense_date,
       is_office_expense: false,
-      line_items: formData.line_(items || []).map(li => ({
+      line_items: (formData?.line_items || []).map(li => ({
         ...li,
         amount: parseFloat(li.amount) || 0,
         date: new Date(li.date).toISOString()
@@ -446,7 +446,7 @@ const ConsultantExpenses = () => {
             {/* Line Items */}
             <div className="space-y-2">
               <Label>Expense Items</Label>
-              {formData.line_(items || []).map((li, idx) => (
+              {(formData?.line_items || []).map((li, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-3">
                     <Select value={li.category} onValueChange={(v) => updateLineItem(idx, 'category', v)}>

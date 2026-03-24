@@ -678,7 +678,7 @@ const Expenses = () => {
               <div className="border-t border-zinc-100 pt-4">
                 <h4 className="font-medium text-zinc-950 mb-3">Expense Items</h4>
                 <div className="space-y-2">
-                  {formData.line_(items || []).map((item, idx) => (
+                  {(formData?.line_items || []).map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 rounded-sm">
                       <div className="flex items-center gap-4">
                         <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">

@@ -395,7 +395,7 @@ const MeetingRecord = () => {
         decisions_made: (momData?.decisions_made || []).filter(d => d.trim()),
         client_expectations: (momData?.client_expectations || []).filter(c => c.trim()),
         key_commitments: (momData?.key_commitments || []).filter(k => k.trim()),
-        action_items: momData.action_(items || []).filter(a => a.trim()),
+        action_items: (momData?.action_items || []).filter(a => a.trim()),
         next_steps: momData.next_steps,
         // Travel data for offline meetings
         ...(formData.meeting_type === 'Offline' && travelData.startLocation ? {

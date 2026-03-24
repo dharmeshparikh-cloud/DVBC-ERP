@@ -670,7 +670,7 @@ const ConsultingMeetings = () => {
   const handleUpdateActionItemStatus = async (actionItemId, status) => {
     try {
       await axios.patch(`${API}/meetings/${selectedMeeting.id}/action-items/${actionItemId}?status=${status}`);
-      setMomData(prev => ({ ...prev, action_items: prev.action_(items || []).map(i => i.id === actionItemId ? { ...i, status } : i) }));
+      setMomData(prev => ({ ...prev, action_items: (prev?.action_items || []).map(i => i.id === actionItemId ? { ...i, status } : i) }));
       toast.success('Status updated');
       queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
     } catch { toast.error('Failed to update'); }
@@ -1770,7 +1770,7 @@ const ConsultingMeetings = () => {
                                 <div>
                                   <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Action Items</div>
                                   <div className="space-y-2">
-                                    {meeting.action_(items || []).map(item => (
+                                    {(meeting?.action_items || []).map(item => (
                                       <div key={item.id} className={`flex items-center justify-between p-2 rounded-sm border ${item.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-200'}`}>
                                         <div className="flex items-center gap-2">
                                           {item.status === 'completed' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4 text-zinc-400" />}
@@ -2178,7 +2178,7 @@ const ConsultingMeetings = () => {
               <Label className="text-sm font-medium text-zinc-950">Action Items</Label>
               {momData.action_items.length > 0 && (
                 <div className="space-y-2">
-                  {momData.action_(items || []).map(item => (
+                  {(momData?.action_items || []).map(item => (
                     <div key={item.id} className={`flex items-center justify-between p-3 rounded-sm border ${item.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-200'}`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">

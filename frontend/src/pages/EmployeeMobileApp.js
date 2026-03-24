@@ -438,7 +438,7 @@ const EmployeeMobileApp = () => {
       project_name: expenseForm.project_name || '',
       is_office_expense: expenseForm.is_office_expense,
       notes: expenseForm.notes,
-      line_items: expenseForm.line_(items || []).map(item => ({
+      line_items: (expenseForm?.line_items || []).map(item => ({
         category: item.category,
         description: item.description,
         amount: item.amount,
@@ -502,7 +502,7 @@ const EmployeeMobileApp = () => {
   const removeLineItem = (index) => {
     setExpenseForm({
       ...expenseForm,
-      line_items: expenseForm.line_(items || []).filter((_, i) => i !== index)
+      line_items: (expenseForm?.line_items || []).filter((_, i) => i !== index)
     });
   };
 
@@ -1479,7 +1479,7 @@ const EmployeeMobileApp = () => {
                 {/* Existing Items */}
                 {expenseForm.line_items.length > 0 && (
                   <div className="space-y-2 mb-4">
-                    {expenseForm.line_(items || []).map((item, index) => (
+                    {(expenseForm?.line_items || []).map((item, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
                         <div className="flex items-center gap-3">
                           {item.receipt && (

@@ -244,7 +244,7 @@ const ExpenseApprovals = () => {
                             {/* Line Items */}
                             {expense.line_items?.length > 0 && (
                               <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-                                {expense.line_(items || []).map((item, idx) => (
+                                {(expense?.line_items || []).map((item, idx) => (
                                   <div key={idx} className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">
                                       {item.category}: {item.description}

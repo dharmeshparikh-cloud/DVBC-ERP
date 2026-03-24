@@ -1236,7 +1236,7 @@ const KickoffRequests = () => {
                               <div className="mt-3 pl-11">
                                 <Label className="text-xs text-zinc-500 font-medium">Action Items</Label>
                                 <div className="mt-1 space-y-1">
-                                  {meeting.action_(items || []).map((item, i) => (
+                                  {(meeting?.action_items || []).map((item, i) => (
                                     <div key={i} className="flex items-center gap-2 text-sm">
                                       <div className={`w-2 h-2 rounded-full ${
                                         item.status === 'completed' ? 'bg-green-500' :

@@ -2785,7 +2785,7 @@ const ApprovalsCenter = () => {
                 {/* Line Items */}
                 {selectedExpense.line_items?.length > 0 && (
                   <div className={`mt-3 pt-3 border-t space-y-1 ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
-                    {selectedExpense.line_(items || []).map((item, idx) => (
+                    {(selectedExpense?.line_items || []).map((item, idx) => (
                       <div key={idx} className="flex justify-between text-sm">
                         <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>
                           {item.category}: {item.description}

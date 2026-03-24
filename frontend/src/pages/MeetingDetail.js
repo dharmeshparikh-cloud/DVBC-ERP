@@ -387,7 +387,7 @@ const MeetingDetail = () => {
                 Action Items ({meeting.action_items.length})
               </div>
               <div className="space-y-3">
-                {meeting.action_(items || []).map((item, idx) => (
+                {(meeting?.action_items || []).map((item, idx) => (
                   <div 
                     key={item.id || idx} 
                     className={`flex items-start justify-between p-4 rounded-lg border ${

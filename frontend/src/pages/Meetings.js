@@ -263,7 +263,7 @@ const Meetings = () => {
       // Update local state
       setMomData(prev => ({
         ...prev,
-        action_items: prev.action_(items || []).map(item =>
+        action_items: (prev?.action_items || []).map(item =>
           item.id === actionItemId ? { ...item, status } : item
         )
       }));
@@ -657,7 +657,7 @@ const Meetings = () => {
                             <div>
                               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Action Items</div>
                               <div className="space-y-2">
-                                {meeting.action_(items || []).map((item) => (
+                                {(meeting?.action_items || []).map((item) => (
                                   <div key={item.id} className={`flex items-center justify-between p-2 rounded-sm border ${item.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-200'}`}>
                                     <div className="flex items-center gap-2">
                                       {item.status === 'completed' ? (
@@ -835,7 +835,7 @@ const Meetings = () => {
               {/* Existing Action Items */}
               {momData.action_items.length > 0 && (
                 <div className="space-y-2">
-                  {momData.action_(items || []).map((item) => (
+                  {(momData?.action_items || []).map((item) => (
                     <div key={item.id} className={`flex items-center justify-between p-3 rounded-sm border ${item.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-200'}`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
