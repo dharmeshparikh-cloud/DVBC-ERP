@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import PageHeader from '../components/ui/page-header';
+// Step 5: Import new governed hooks (additive, no existing hook changed)
+import { useSOWsByProject, useNormalizedProjects, useNormalizedMeetingTypes, normalizeProject } from '../hooks/useSOWsByProject';
+import { GovernedDropdown, GovernedReadOnlyField } from '../components/GovernedDropdown';
 import MeetingLocationPicker from '../components/MeetingLocationPicker';
 import {
   Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle,
@@ -186,12 +189,15 @@ const ConsultingMeetings = () => {
     staleTime: 2 * 60 * 1000,
   });
 
-  // React Query: Projects
-  const { data: projects = [] } = useQuery({
+  // React Query: Projects (EXISTING - kept for backward compat in filters/list)
+  const { data: projects = [], isLoading: projectsLoading, isError: projectsError, refetch: refetchProjects } = useQuery({
     queryKey: ['projects', 'list'],
     queryFn: async () => {
       const res = await axios.get(`${API}/projects`);
-      return res.data || [];
+      const raw = res.data || [];
+      const items = Array.isArray(raw) ? raw : (raw.items || []);
+      console.log(`[ConsultingMeetings] Projects loaded: ${items.length}`);
+      return items.map(normalizeProject);
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -210,25 +216,38 @@ const ConsultingMeetings = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // React Query: Meeting Types (Purpose)
-  const { data: meetingTypes = [] } = useQuery({
+  // React Query: Meeting Types (Purpose) - EXISTING, enhanced with logging
+  const { data: meetingTypes = [], isLoading: meetingTypesLoading, isError: meetingTypesError, refetch: refetchMeetingTypes } = useQuery({
     queryKey: ['meeting-types'],
     queryFn: async () => {
       const res = await axios.get(`${API}/masters/meeting-types`);
-      return res.data || [];
+      const data = res.data || [];
+      console.log(`[ConsultingMeetings] Meeting types loaded: ${data.length}`);
+      return data;
     },
     staleTime: 10 * 60 * 1000,
   });
 
-  // React Query: SOWs for dropdown
-  const { data: sows = [], refetch: refetchSows } = useQuery({
+  // React Query: SOWs for dropdown - EXISTING, enhanced with logging
+  const { data: sows = [], refetch: refetchSows, isLoading: sowsLoading, isError: sowsError } = useQuery({
     queryKey: ['sows'],
     queryFn: async () => {
       const res = await axios.get(`${API}/enhanced-sow`);
-      return res.data?.items || res.data || [];
+      const data = res.data?.items || res.data || [];
+      const items = Array.isArray(data) ? data : [];
+      console.log(`[ConsultingMeetings] SOWs loaded: ${items.length}`);
+      return items;
     },
     staleTime: 2 * 60 * 1000,
   });
+
+  // Step 3+5: NEW governed SOW hook — filtered by project (server-side)
+  const { 
+    data: projectSOWs = [], 
+    isLoading: projectSOWsLoading, 
+    isError: projectSOWsError, 
+    refetch: refetchProjectSOWs 
+  } = useSOWsByProject(formData.project_id);
 
   // React Query: Users
   const { data: users = [] } = useQuery({
@@ -931,72 +950,70 @@ const ConsultingMeetings = () => {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Project and Client Selection */}
+                {/* Project and Client Selection — Step 2: Governed Dropdowns */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Project *</Label>
-                    <select value={formData.project_id}
-                      onChange={(e) => {
-                        const p = (projects || []).find(pr => pr.id === e.target.value);
-                        setFormData({ ...formData, project_id: e.target.value, client_id: p?.client_id || '', sow_id: '' });
-                      }}
-                      required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="consulting-meeting-project">
-                      <option value="">Select project</option>
-                      {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Client</Label>
-                    <div className="h-10 px-3 py-2 rounded-sm border border-zinc-200 bg-zinc-50 text-sm text-zinc-700">
-                      {formData.project_id 
-                        ? ((projects || []).find(p => p.id === formData.project_id)?.client_name || 'Select project first')
-                        : 'Auto-filled from project'}
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-zinc-950">SOW *</Label>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => refetchSows()}
-                      className="text-xs h-6 px-2 text-blue-600 hover:text-blue-700"
-                    >
-                      <RefreshCw className="w-3 h-3 mr-1" /> Refresh
-                    </Button>
-                  </div>
-                  <select 
-                    value={formData.sow_id} 
-                    onChange={(e) => setFormData({ ...formData, sow_id: e.target.value })}
+                  <GovernedDropdown
+                    label="Project"
+                    value={formData.project_id}
+                    onChange={(val) => {
+                      const p = (projects || []).find(pr => pr.id === val);
+                      setFormData({ ...formData, project_id: val, client_id: p?.client_id || '', sow_id: '' });
+                    }}
+                    options={projects}
+                    isLoading={projectsLoading}
+                    isError={projectsError}
+                    onRefresh={refetchProjects}
                     required
-                    className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" 
-                    data-testid="consulting-meeting-sow">
-                    <option value="">Select SOW *</option>
-                    {(sows || []).filter(s => !formData.project_id || s.project_id === formData.project_id).map(s => (
-                      <option key={s.id} value={s.id}>{s.title || s.client_name || `SOW-${s.id?.slice(0,8)}`}</option>
-                    ))}
-                  </select>
-                  {formData.project_id && (sows || []).filter(s => s.project_id === formData.project_id).length === 0 && (
-                    <p className="text-xs text-amber-600">No SOW found for this project. Please create SOW first or click Refresh.</p>
-                  )}
+                    placeholder="Select project"
+                    emptyMessage="No projects assigned to you"
+                    errorMessage="Failed to load projects"
+                    labelFormatter={(p) => `${p.name} - ${p.client_name}`}
+                    data-testid="consulting-meeting-project"
+                  />
+                  <GovernedReadOnlyField
+                    label="Client"
+                    value={formData.project_id 
+                      ? ((projects || []).find(p => p.id === formData.project_id)?.client_name || 'Select project first')
+                      : null}
+                    placeholder="Auto-filled from project"
+                    data-testid="consulting-meeting-client"
+                  />
                 </div>
+                
+                {/* SOW — Step 5: Uses new useSOWsByProject hook (server-side filter) */}
+                <GovernedDropdown
+                  label="SOW"
+                  value={formData.sow_id}
+                  onChange={(val) => setFormData({ ...formData, sow_id: val })}
+                  options={formData.project_id ? projectSOWs : []}
+                  isLoading={projectSOWsLoading && !!formData.project_id}
+                  isError={projectSOWsError && !!formData.project_id}
+                  onRefresh={formData.project_id ? refetchProjectSOWs : null}
+                  required
+                  placeholder="Select SOW"
+                  emptyMessage={formData.project_id ? "No SOW found for this project" : "Select a project first"}
+                  errorMessage="Failed to load SOWs"
+                  labelFormatter={(s) => s.name || s.title || `SOW-${(s.id || '').slice(0, 8)}`}
+                  disabled={!formData.project_id}
+                  data-testid="consulting-meeting-sow"
+                />
 
-                {/* Meeting Type Selection */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-zinc-950">Meeting Purpose *</Label>
-                  <select value={formData.meeting_type_code}
-                    onChange={(e) => setFormData({ ...formData, meeting_type_code: e.target.value })}
-                    required
-                    className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
-                    data-testid="meeting-type-select">
-                    <option value="">Select Purpose...</option>
-                    {(meetingTypes || []).map(mt => (
-                      <option key={mt.code} value={mt.code}>{mt.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Meeting Type Selection — Step 2: Governed */}
+                <GovernedDropdown
+                  label="Meeting Purpose"
+                  value={formData.meeting_type_code}
+                  onChange={(val) => setFormData({ ...formData, meeting_type_code: val })}
+                  options={meetingTypes}
+                  isLoading={meetingTypesLoading}
+                  isError={meetingTypesError}
+                  onRefresh={refetchMeetingTypes}
+                  required
+                  placeholder="Select Purpose..."
+                  emptyMessage="No meeting types configured"
+                  errorMessage="Failed to load meeting types"
+                  valueKey="code"
+                  data-testid="meeting-type-select"
+                />
 
                 {/* Date, Start Time, End Time - Separate pickers */}
                 <div className="grid grid-cols-3 gap-4">
