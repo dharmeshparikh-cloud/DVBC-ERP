@@ -1198,6 +1198,7 @@ const ConsultingMeetings = () => {
                       }}
                       onChange={handleScheduleTravelChange}
                       meetingType="Offline"
+                      hideTimeFields={true}
                       data-testid="schedule-meeting-location-picker"
                     />
                   </div>

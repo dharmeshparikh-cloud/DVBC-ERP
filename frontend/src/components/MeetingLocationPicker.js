@@ -151,12 +151,90 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
   );
 };
 
+
+// Searchable Accompanied By employee picker
+const AccompaniedByPicker = ({ employees = [], value, onChange }) => {
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  
+  const filtered = (employees || []).filter(emp => 
+    !search || 
+    (emp.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (emp.employee_id || '').toLowerCase().includes(search.toLowerCase())
+  );
+  
+  const selected = (employees || []).find(e => e.id === value);
+  
+  return (
+    <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+      <Label className="text-xs text-amber-700 dark:text-amber-300 mb-2 block">
+        <Users className="w-4 h-4 inline mr-1" />
+        Accompanied By (No expense claim)
+      </Label>
+      
+      <div className="relative">
+        <div 
+          className="flex items-center h-10 px-3 rounded-md border bg-white dark:bg-zinc-900 cursor-pointer text-sm"
+          onClick={() => setOpen(!open)}
+          data-testid="accompanied-by-trigger"
+        >
+          {selected ? (
+            <span>{selected.full_name} ({selected.employee_id})</span>
+          ) : (
+            <span className="text-zinc-400">Search & select employee...</span>
+          )}
+        </div>
+        
+        {open && (
+          <div className="absolute top-11 left-0 right-0 z-50 bg-white dark:bg-zinc-900 border rounded-md shadow-lg max-h-60 overflow-hidden" data-testid="accompanied-by-dropdown">
+            <div className="p-2 border-b">
+              <Input
+                autoFocus
+                placeholder="Search by name or ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 text-sm"
+                data-testid="accompanied-by-search"
+              />
+            </div>
+            <div className="max-h-44 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <p className="text-center py-3 text-xs text-zinc-400">No employees found</p>
+              ) : (
+                filtered.slice(0, 30).map(emp => (
+                  <div
+                    key={emp.id}
+                    className={`px-3 py-2 text-sm cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/20 flex justify-between items-center ${emp.id === value ? 'bg-amber-100 dark:bg-amber-900/30' : ''}`}
+                    onClick={() => {
+                      onChange(emp.id);
+                      setOpen(false);
+                      setSearch('');
+                    }}
+                  >
+                    <span>{emp.full_name}</span>
+                    <span className="text-xs text-zinc-400">{emp.employee_id}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+        Travel expenses will be claimed by the accompanying employee.
+      </p>
+    </div>
+  );
+};
+
 const MeetingLocationPicker = ({ 
   value = {}, 
   onChange, 
   meetingType = 'Offline',
   disabled = false,
-  leadId = null
+  leadId = null,
+  hideTimeFields = false
 }) => {
   const [startLocation, setStartLocation] = useState(value.startLocation || '');
   const [startLocationData, setStartLocationData] = useState(value.startLocationData || null);
@@ -182,8 +260,11 @@ const MeetingLocationPicker = ({
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(`${API}/users/list`);
+        const response = await axios.get(`${API}/api/employees-dropdown`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
         setEmployees(response.data || []);
+        console.log(`[MeetingLocationPicker] Loaded ${(response.data || []).length} employees`);
       } catch (error) {
         console.error('Failed to fetch employees:', error);
       }
@@ -375,7 +456,8 @@ const MeetingLocationPicker = ({
           </Badge>
         </div>
 
-        {/* Travel Time */}
+        {/* Travel Time — only shown if not inherited from parent form */}
+        {!hideTimeFields && (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs text-zinc-500">Start Time</Label>
@@ -398,6 +480,7 @@ const MeetingLocationPicker = ({
             />
           </div>
         </div>
+        )}
 
         {/* Start Location */}
         <LocationInput
@@ -535,29 +618,13 @@ const MeetingLocationPicker = ({
           </div>
         )}
 
-        {/* Accompanied By Employee Selection */}
+        {/* Accompanied By Employee Selection - Searchable */}
         {travelMode === 'ACCOMPANIED' && (
-          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-            <Label className="text-xs text-amber-700 dark:text-amber-300 mb-2 block">
-              <Users className="w-4 h-4 inline mr-1" />
-              Accompanied By (No expense claim)
-            </Label>
-            <Select value={accompaniedBy} onValueChange={setAccompaniedBy}>
-              <SelectTrigger className="bg-white dark:bg-zinc-900">
-                <SelectValue placeholder="Select employee" />
-              </SelectTrigger>
-              <SelectContent>
-                {(employees || []).map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.full_name} ({emp.employee_id})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-              Travel expenses will be claimed by the accompanying employee.
-            </p>
-          </div>
+          <AccompaniedByPicker
+            employees={employees}
+            value={accompaniedBy}
+            onChange={setAccompaniedBy}
+          />
         )}
 
         {/* Round Trip Toggle - Only show for Car/Bike */}

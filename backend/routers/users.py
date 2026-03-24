@@ -179,6 +179,30 @@ async def get_my_team(current_user: User = Depends(get_current_user)):
     return team_members
 
 
+@router.get("/employees-dropdown")
+async def get_employees_dropdown(current_user: User = Depends(get_current_user)):
+    """Lightweight employee list for dropdown selection. Any authenticated user can access.
+    Returns minimal fields: id, employee_id, full_name, department."""
+    db = get_db()
+    
+    employees = await db.employees.find(
+        {"is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1, "user_id": 1}
+    ).to_list(500)
+    
+    result = []
+    for emp in employees:
+        result.append({
+            "id": emp.get("user_id") or emp.get("id"),
+            "employee_id": emp.get("employee_id", ""),
+            "full_name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+            "department": emp.get("department", "")
+        })
+    
+    return result
+
+
+
 @router.get("/roles")
 async def get_roles(current_user: User = Depends(get_current_user)):
     """Get all available roles."""
