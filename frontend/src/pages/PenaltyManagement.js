@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import {
   AlertTriangle, Search, Filter, Plus, Trash2, Shield, 
   FileWarning, Clock, Plane, Receipt, Users, RefreshCw,
-  ChevronDown, Eye, Ban, CheckCircle2, XCircle
+  ChevronDown, Eye, Ban, CheckCircle2, XCircle, Lock
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -140,7 +140,11 @@ export default function PenaltyManagement() {
 
       if (res.ok) {
         const data = await res.json();
-        toast.success(data.message || 'Penalty applied successfully');
+        if (data.is_arrears) {
+          toast.warning(data.message || 'Penalty tagged as arrears', { duration: 6000 });
+        } else {
+          toast.success(data.message || 'Penalty applied successfully');
+        }
         setFormData({ employee_id: '', violation_code: '', amount: '', description: '', apply_to_payroll: true });
         setSelectedCategory('');
         setEmployeeSearch('');
@@ -310,9 +314,20 @@ export default function PenaltyManagement() {
         </div>
       </div>
 
+      {/* Payroll Status Banner */}
+      {monthPenalties && monthPenalties.payroll_status && monthPenalties.payroll_status !== 'open' && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800" data-testid="payroll-status-banner">
+          <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            Payroll for <strong>{selectedMonth}</strong> is <strong>{monthPenalties.payroll_status}</strong>.
+            New penalties applied to this month will be auto-tagged as <strong>arrears</strong> and carried forward to the next open payroll.
+          </p>
+        </div>
+      )}
+
       {/* Summary Cards */}
       {monthPenalties && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="penalty-summary-cards">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="penalty-summary-cards">
           <Card>
             <CardContent className="pt-4 pb-3 px-4">
               <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Total Penalties</p>
@@ -345,6 +360,19 @@ export default function PenaltyManagement() {
               </p>
             </CardContent>
           </Card>
+          {(monthPenalties.arrears_count || 0) > 0 && (
+            <Card className="border-amber-200 dark:border-amber-800">
+              <CardContent className="pt-4 pb-3 px-4">
+                <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide">Arrears</p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1" data-testid="arrears-count">
+                  {monthPenalties.arrears_count}
+                </p>
+                <p className="text-xs text-amber-500 mt-0.5">
+                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(monthPenalties.arrears_amount || 0)}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -615,7 +643,19 @@ export default function PenaltyManagement() {
                               </Badge>
                             </td>
                             <td className="p-2 text-zinc-700 dark:text-zinc-300">
-                              {p.violation_name || p.name || '-'}
+                              <div className="flex items-center gap-1.5">
+                                {p.violation_name || p.name || '-'}
+                                {p.is_arrears && (
+                                  <Badge className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" data-testid="arrears-badge">
+                                    ARREARS from {p.original_month}
+                                  </Badge>
+                                )}
+                              </div>
+                              {p.is_arrears && p.effective_month && (
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                                  Deducting in {p.effective_month}
+                                </span>
+                              )}
                             </td>
                             <td className="p-2 text-right font-semibold text-red-600 dark:text-red-400">
                               {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p.amount || p.penalty_amount || 0)}

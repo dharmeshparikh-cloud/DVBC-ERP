@@ -150,6 +150,38 @@ async def apply_penalty(data: dict, current_user: User = Depends(get_current_use
     
     now = datetime.now(timezone.utc).isoformat()
     
+    # === ARREARS LOGIC: Check payroll status for the target month ===
+    is_arrears = False
+    original_month = month
+    effective_month = month
+    arrears_reason = None
+    
+    payroll_register = await db.payroll_register.find_one(
+        {"month": month, "status": {"$in": ["locked", "pending_admin_approval"]}},
+        {"_id": 0, "status": 1, "month": 1}
+    )
+    
+    if payroll_register:
+        is_arrears = True
+        payroll_status = payroll_register.get("status", "unknown")
+        arrears_reason = f"Payroll for {month} is {payroll_status}"
+        
+        # Find next unlocked month
+        year, mon = map(int, month.split('-'))
+        for offset in range(1, 13):  # Look up to 12 months ahead
+            next_mon = mon + offset
+            next_year = year + (next_mon - 1) // 12
+            next_mon = ((next_mon - 1) % 12) + 1
+            candidate = f"{next_year}-{next_mon:02d}"
+            
+            locked_register = await db.payroll_register.find_one(
+                {"month": candidate, "status": {"$in": ["locked", "pending_admin_approval"]}},
+                {"_id": 0}
+            )
+            if not locked_register:
+                effective_month = candidate
+                break
+    
     # Check for existing penalty (idempotency)
     existing = await db.employee_penalties.find_one({
         "employee_id": employee_id,
@@ -185,6 +217,10 @@ async def apply_penalty(data: dict, current_user: User = Depends(get_current_use
         "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
         "department": employee.get("department"),
         "month": month,
+        "original_month": original_month,
+        "effective_month": effective_month,
+        "is_arrears": is_arrears,
+        "arrears_reason": arrears_reason,
         "category": category_info["key"],
         "category_name": category_info["name"],
         "violation_code": violation_code,
@@ -216,15 +252,32 @@ async def apply_penalty(data: dict, current_user: User = Depends(get_current_use
             "employee_id": employee_id,
             "month": month,
             "violation": violation_info["name"],
-            "amount": penalty_amount
+            "amount": penalty_amount,
+            "is_arrears": is_arrears,
+            "effective_month": effective_month
         },
         "created_at": now
     })
     
+    if is_arrears:
+        return {
+            "message": f"Penalty applied as ARREARS: {violation_info['name']} - INR {penalty_amount}. "
+                       f"Payroll for {month} is already {payroll_register.get('status')}. "
+                       f"Will be deducted in {effective_month} payroll.",
+            "penalty_id": penalty_id,
+            "action": "created_as_arrears",
+            "is_arrears": True,
+            "original_month": original_month,
+            "effective_month": effective_month,
+            "arrears_reason": arrears_reason
+        }
+    
     return {
-        "message": f"Penalty applied: {violation_info['name']} - ₹{penalty_amount}",
+        "message": f"Penalty applied: {violation_info['name']} - INR {penalty_amount}",
         "penalty_id": penalty_id,
-        "action": "created"
+        "action": "created",
+        "is_arrears": False,
+        "effective_month": month
     }
 
 
@@ -267,18 +320,24 @@ async def get_employee_penalties(
 
 @router.get("/month/{month}")
 async def get_month_penalties(month: str, current_user: User = Depends(get_current_user)):
-    """Get all penalties for a month (for HR review)."""
+    """Get all penalties for a month (for HR review). Includes arrears carried into this month."""
     hr_roles = get_role_group("HR_ROLES", fail_closed=True)
     if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can view monthly penalties")
     
     db = get_db()
     
-    # Policy penalties
+    # Direct penalties for this month
     policy_penalties = await db.employee_penalties.find(
         {"month": month, "status": "active"},
         {"_id": 0}
     ).to_list(500)
+    
+    # Arrears carried into this month (original_month != month but effective_month == month)
+    arrears_penalties = await db.employee_penalties.find(
+        {"effective_month": month, "is_arrears": True, "status": "active", "month": {"$ne": month}},
+        {"_id": 0}
+    ).to_list(200)
     
     # Attendance penalties
     att_penalties = await db.attendance_penalties.find(
@@ -288,7 +347,8 @@ async def get_month_penalties(month: str, current_user: User = Depends(get_curre
     
     # Group by category
     by_category = {}
-    for p in policy_penalties:
+    all_policy = policy_penalties + arrears_penalties
+    for p in all_policy:
         cat = p.get("category", "general")
         if cat not in by_category:
             by_category[cat] = {"count": 0, "total_amount": 0, "penalties": []}
@@ -304,12 +364,21 @@ async def get_month_penalties(month: str, current_user: User = Depends(get_curre
             "penalties": att_penalties
         }
     
+    # Check payroll lock status for this month
+    payroll_reg = await db.payroll_register.find_one(
+        {"month": month, "status": {"$in": ["locked", "pending_admin_approval"]}},
+        {"_id": 0, "status": 1}
+    )
+    
     return {
         "month": month,
         "by_category": by_category,
-        "total_penalties": len(policy_penalties) + len(att_penalties),
-        "total_amount": sum(p.get("amount", 0) for p in policy_penalties) + sum(p.get("penalty_amount", 0) for p in att_penalties),
-        "employees_affected": len(set(p.get("employee_id") for p in policy_penalties + att_penalties))
+        "total_penalties": len(all_policy) + len(att_penalties),
+        "total_amount": sum(p.get("amount", 0) for p in all_policy) + sum(p.get("penalty_amount", 0) for p in att_penalties),
+        "employees_affected": len(set(p.get("employee_id") for p in all_policy + att_penalties)),
+        "arrears_count": len(arrears_penalties),
+        "arrears_amount": sum(p.get("amount", 0) for p in arrears_penalties),
+        "payroll_status": payroll_reg.get("status") if payroll_reg else "open"
     }
 
 

@@ -977,32 +977,42 @@ class PayrollCalculationEngine:
         deductions = []
         
         # === SOURCE 1: Manual penalties from employee_penalties ===
+        # Includes both direct penalties for this month AND arrears carried forward to this month
         penalties = await self.db.employee_penalties.find({
-            "employee_id": employee_id,
-            "month": month,
-            "status": "active"
-        }, {"_id": 0}).to_list(20)
+            "$or": [
+                {"employee_id": employee_id, "month": month, "status": "active", "is_arrears": {"$ne": True}},
+                {"employee_id": employee_id, "effective_month": month, "status": "active", "is_arrears": True}
+            ]
+        }, {"_id": 0}).to_list(50)
         
         for penalty in penalties:
+            is_arrear = penalty.get("is_arrears", False)
+            arrear_label = f" [ARREARS from {penalty.get('original_month', '?')}]" if is_arrear else ""
+            
             calc = self._log_calculation(
-                component_name=penalty.get("name", "Penalty"),
+                component_name=f"{penalty.get('name', 'Penalty')}{arrear_label}",
                 input_values={
                     "rule_id": penalty.get("rule_id"),
                     "reason": penalty.get("reason"),
                     "violation_count": penalty.get("violation_count", 1),
-                    "penalty_source": "employee_penalties"
+                    "penalty_source": "employee_penalties",
+                    "is_arrears": is_arrear,
+                    "original_month": penalty.get("original_month"),
+                    "effective_month": penalty.get("effective_month")
                 },
-                formula=penalty.get("formula", "Rule-based penalty"),
+                formula=f"{'Arrears: ' if is_arrear else ''}Rule-based penalty",
                 output_value=penalty.get("amount", 0),
                 rule_id=penalty.get("rule_id", "PENALTY"),
                 rule_version="1.0"
             )
             deductions.append({
-                "key": f"penalty_{penalty.get('rule_id', 'unknown')}",
-                "name": penalty.get("name", "Policy Violation Penalty"),
+                "key": f"penalty_{penalty.get('rule_id', 'unknown')}{'_arrears' if is_arrear else ''}",
+                "name": f"{penalty.get('name', 'Policy Violation Penalty')}{arrear_label}",
                 "amount": round(penalty.get("amount", 0), 2),
-                "details": penalty.get("reason", ""),
+                "details": f"{penalty.get('reason', '')}{arrear_label}",
                 "penalty_source": "employee_penalties",
+                "is_arrears": is_arrear,
+                "original_month": penalty.get("original_month"),
                 "calculation": calc
             })
         
