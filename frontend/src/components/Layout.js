@@ -326,6 +326,7 @@ const Layout = () => {
   const hrPayrollItems = [
     { name: 'Payroll Engine', href: '/payroll-engine', icon: Calculator, requiresHRorAdmin: true },
     { name: 'Penalty Management', href: '/penalty-management', icon: AlertTriangle, requiresHRorAdmin: true },
+    { name: 'Employee Efforts', href: '/consulting/efforts-summary', icon: BarChart3, requiresHRorAdmin: true },
     { name: 'CTC & Payroll', href: '/ctc-designer', icon: Wallet, requiresApproval: true },
     { name: 'Payroll Summary Report', href: '/payroll-summary-report', icon: FileText, requiresHRorAdmin: true },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },

@@ -102,7 +102,7 @@ FEATURE_FLAGS = {
 SIDEBAR_FEATURE_MAPPING = {
     "hr_section": ["hr.view_employees", "hr.view_attendance", "hr.view_payroll"],
     "sales_section": ["sales.view_leads", "sales.view_agreements", "sales.view_pipeline"],
-    "consulting_section": ["consulting.view_projects", "consulting.view_timesheets"],
+    "consulting_section": ["consulting.view_projects", "consulting.manage_projects"],
     "admin_section": ["admin.manage_users", "admin.manage_roles", "admin.manage_permissions"],
 }
 
