@@ -34,11 +34,12 @@ router = APIRouter(prefix="/project-sow-delivery", tags=["Project SOW Delivery"]
 # ============== Enums ==============
 
 class ProjectSOWStatus(str, Enum):
-    """Status at PROJECT_SOW level"""
+    """Status at PROJECT_SOW and Scope level"""
     OPEN = "open"
     WIP = "wip"
-    DELIVERED = "delivered"
-    NOT_APPLICABLE = "not_applicable"
+    IMPLEMENTED = "implemented"  # Final status - requires proof
+    NOT_APPLICABLE_PENDING = "na_pending"  # Pending manager approval
+    NOT_APPLICABLE = "not_applicable"  # Approved by manager
     REOPEN = "reopen"
 
 
@@ -46,7 +47,7 @@ class TaskStatus(str, Enum):
     """Status for tasks under SOW"""
     OPEN = "open"
     WIP = "wip"
-    DELIVERED = "delivered"
+    IMPLEMENTED = "implemented"  # Changed from DELIVERED
     BLOCKED = "blocked"
 
 
@@ -539,21 +540,95 @@ async def update_scope_status(
         raise HTTPException(status_code=403, detail="Access denied")
     
     db = get_db()
+    now = datetime.now(timezone.utc)
     
     project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0})
     if not project_sow:
         raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
     
     scopes = project_sow.get("scopes", [])
+    target_scope = None
     for scope in scopes:
         if scope.get("id") == scope_id:
-            scope["status"] = status.value
+            target_scope = scope
             break
+    
+    if not target_scope:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    
+    old_status = target_scope.get("status")
+    
+    # Handle "Not Applicable" - requires manager approval
+    if status.value == "not_applicable":
+        # Only managers can directly set to not_applicable
+        if current_user.role not in ADMIN_ROLES + ["principal_consultant", "manager"]:
+            raise HTTPException(
+                status_code=403, 
+                detail="Only managers can mark scope as Not Applicable. Request will be sent for approval."
+            )
+    
+    # Handle "Not Applicable Pending" - consultant requests manager approval
+    if status.value == "na_pending":
+        target_scope["status"] = status.value
+        target_scope["na_requested_by"] = current_user.id
+        target_scope["na_requested_by_name"] = current_user.full_name
+        target_scope["na_requested_at"] = now.isoformat()
+        # TODO: Send notification to manager
+    
+    # Handle "Implemented" - requires proof
+    elif status.value == "implemented":
+        if old_status == "implemented":
+            # Already implemented, no change
+            return {"message": "Scope already implemented", "overall_status": project_sow.get("status")}
+        
+        # Check if there's at least one proof for this scope or its tasks
+        scope_tasks = await db.sow_tasks.find({"scope_id": scope_id}, {"id": 1, "proofs": 1}).to_list(1000)
+        task_ids = [t["id"] for t in scope_tasks]
+        
+        # Count proofs
+        scope_proofs = await db.sow_proofs.count_documents({
+            "entity_type": "scope", 
+            "entity_id": scope_id
+        })
+        
+        task_with_proofs = sum(1 for t in scope_tasks if t.get("proofs"))
+        total_proofs = scope_proofs + task_with_proofs
+        
+        if total_proofs == 0:
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot mark as Implemented without uploading at least one proof. Please upload proof for the scope or its tasks."
+            )
+        
+        target_scope["status"] = status.value
+        target_scope["end_date"] = now.isoformat()
+        
+        # Calculate days taken if start_date exists
+        if target_scope.get("start_date"):
+            start = datetime.fromisoformat(target_scope["start_date"].replace("Z", "+00:00"))
+            days = (now - start).days
+            target_scope["days_taken"] = days
+        
+        target_scope["implemented_by"] = current_user.id
+        target_scope["implemented_by_name"] = current_user.full_name
+        target_scope["implemented_at"] = now.isoformat()
+    
+    # Handle Reopen - clear implementation data
+    elif status.value in ["open", "wip", "reopen"]:
+        target_scope["status"] = status.value
+        if old_status == "implemented":
+            target_scope["end_date"] = None
+            target_scope["days_taken"] = None
+            target_scope["reopened_by"] = current_user.id
+            target_scope["reopened_at"] = now.isoformat()
+    
+    else:
+        target_scope["status"] = status.value
     
     # Recalculate overall SOW status
     statuses = [s.get("status") for s in scopes]
-    if all(s in ["delivered", "not_applicable"] for s in statuses):
-        overall_status = ProjectSOWStatus.DELIVERED.value
+    if all(s in ["implemented", "not_applicable"] for s in statuses):
+        overall_status = ProjectSOWStatus.IMPLEMENTED.value
     elif any(s == "wip" for s in statuses):
         overall_status = ProjectSOWStatus.WIP.value
     else:
@@ -566,12 +641,126 @@ async def update_scope_status(
                 "scopes": scopes,
                 "status": overall_status,
                 "updated_by": current_user.id,
-                "updated_at": datetime.now(timezone.utc).isoformat()
+                "updated_at": now.isoformat()
             }
         }
     )
     
     return {"message": f"Scope status updated to {status.value}", "overall_status": overall_status}
+
+
+# Manager approval endpoint for Not Applicable
+@router.post("/{project_sow_id}/scope/{scope_id}/approve-na")
+async def approve_not_applicable(
+    project_sow_id: str,
+    scope_id: str,
+    approve: bool = True,
+    current_user: User = Depends(get_current_user)
+):
+    """Manager approves or rejects 'Not Applicable' request"""
+    if current_user.role not in ADMIN_ROLES + ["principal_consultant", "manager"]:
+        raise HTTPException(status_code=403, detail="Only managers can approve Not Applicable requests")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0})
+    if not project_sow:
+        raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
+    
+    scopes = project_sow.get("scopes", [])
+    for scope in scopes:
+        if scope.get("id") == scope_id:
+            if scope.get("status") != "na_pending":
+                raise HTTPException(status_code=400, detail="Scope is not pending NA approval")
+            
+            if approve:
+                scope["status"] = ProjectSOWStatus.NOT_APPLICABLE.value
+                scope["na_approved_by"] = current_user.id
+                scope["na_approved_by_name"] = current_user.full_name
+                scope["na_approved_at"] = now.isoformat()
+            else:
+                # Rejected - revert to previous status (wip or open)
+                scope["status"] = ProjectSOWStatus.WIP.value
+                scope["na_rejected_by"] = current_user.id
+                scope["na_rejected_at"] = now.isoformat()
+            break
+    
+    # Recalculate overall status
+    statuses = [s.get("status") for s in scopes]
+    if all(s in ["implemented", "not_applicable"] for s in statuses):
+        overall_status = ProjectSOWStatus.IMPLEMENTED.value
+    elif any(s == "wip" for s in statuses):
+        overall_status = ProjectSOWStatus.WIP.value
+    else:
+        overall_status = project_sow.get("status", ProjectSOWStatus.OPEN.value)
+    
+    await db.project_sow.update_one(
+        {"id": project_sow_id},
+        {
+            "$set": {
+                "scopes": scopes,
+                "status": overall_status,
+                "updated_at": now.isoformat()
+            }
+        }
+    )
+    
+    action = "approved" if approve else "rejected"
+    return {"message": f"Not Applicable request {action}", "overall_status": overall_status}
+
+
+class ScopeDateUpdate(BaseModel):
+    field: str  # "start_date" or "end_date"
+    value: Optional[str] = None
+
+
+@router.patch("/{project_sow_id}/scope/{scope_id}/date")
+async def update_scope_date(
+    project_sow_id: str,
+    scope_id: str,
+    data: ScopeDateUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update scope start_date or end_date (Consultant/PM can do this)"""
+    if not can_execute_tasks(current_user.role):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if data.field not in ["start_date", "end_date"]:
+        raise HTTPException(status_code=400, detail="Invalid field. Must be 'start_date' or 'end_date'")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0})
+    if not project_sow:
+        raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
+    
+    scopes = project_sow.get("scopes", [])
+    for scope in scopes:
+        if scope.get("id") == scope_id:
+            scope[data.field] = data.value
+            
+            # Recalculate days_taken if both dates are set
+            if scope.get("start_date") and scope.get("end_date"):
+                start = datetime.fromisoformat(scope["start_date"].replace("Z", "+00:00"))
+                end = datetime.fromisoformat(scope["end_date"].replace("Z", "+00:00"))
+                days = (end - start).days
+                scope["days_taken"] = days
+            break
+    
+    await db.project_sow.update_one(
+        {"id": project_sow_id},
+        {
+            "$set": {
+                "scopes": scopes,
+                "updated_by": current_user.id,
+                "updated_at": now.isoformat()
+            }
+        }
+    )
+    
+    return {"message": f"Scope {data.field} updated"}
 
 
 @router.post("/{project_sow_id}/scope/{scope_id}/ai-generate-tasks")

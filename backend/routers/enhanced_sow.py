@@ -134,7 +134,7 @@ async def request_manager_approval(
         "scope_ids": approval_data.get("scope_ids", []),
         "notes": approval_data.get("notes", ""),
         "requested_by": current_user.id,
-        "requested_by_name": f"{current_user.first_name} {current_user.last_name}",
+        "requested_by_name": current_user.full_name,
         "requested_at": now.isoformat(),
         "status": "pending"
     }
@@ -190,7 +190,7 @@ async def create_simple_sow(
     
     db = get_db()
     now = datetime.now(timezone.utc)
-    user_name = f"{current_user.first_name} {current_user.last_name}"
+    user_name = current_user.full_name
     
     # Verify pricing plan exists
     plan = await db.pricing_plans.find_one({"id": data.pricing_plan_id}, {"_id": 0})
@@ -288,7 +288,7 @@ async def update_simple_sow(
     
     db = get_db()
     now = datetime.now(timezone.utc)
-    user_name = f"{current_user.first_name} {current_user.last_name}"
+    user_name = current_user.full_name
     
     # Get existing SOW
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
@@ -375,7 +375,7 @@ async def create_sow_from_sales_selection(
         raise HTTPException(status_code=403, detail="Not authorized to create SOW")
 
     current_user_id = current_user.id
-    current_user_name = f"{current_user.first_name} {current_user.last_name}"
+    current_user_name = current_user.full_name
     db = get_db()
     # Verify pricing plan exists
     plan = await db.pricing_plans.find_one({"id": pricing_plan_id}, {"_id": 0})
@@ -620,7 +620,7 @@ async def update_scope_item(
     change_log_entry = {
         "id": str(uuid.uuid4()),
         "changed_by": current_user.id,
-        "changed_by_name": f"{current_user.first_name} {current_user.last_name}",
+        "changed_by_name": current_user.full_name,
         "changed_at": now.isoformat(),
         "old_value": {},
         "new_value": {},
@@ -662,7 +662,7 @@ async def update_scope_item(
     # Add revision metadata if revising
     if update.get("revision_status"):
         scope["revision_by"] = current_user.id
-        scope["revision_by_name"] = f"{current_user.first_name} {current_user.last_name}"
+        scope["revision_by_name"] = current_user.full_name
         scope["revision_at"] = now.isoformat()
         if update.get("client_consent_for_revision"):
             scope["client_consent_for_revision"] = True
@@ -714,7 +714,7 @@ async def add_scope_item(
         raise HTTPException(status_code=404, detail="Category not found")
     
     now = datetime.now(timezone.utc)
-    user_full_name = f"{current_user.first_name} {current_user.last_name}"
+    user_full_name = current_user.full_name
     
     new_scope = {
         "id": str(uuid.uuid4()),
@@ -789,7 +789,7 @@ async def upload_scope_attachment(
     
     scope = scopes[scope_idx]
     now = datetime.now(timezone.utc)
-    user_full_name = f"{current_user.first_name} {current_user.last_name}"
+    user_full_name = current_user.full_name
     
     # Create attachment record
     attachment = {
@@ -896,7 +896,7 @@ async def submit_roadmap_for_approval(
         "scopes_snapshot": scopes_snapshot,
         "status": "pending_client_approval",
         "submitted_by": current_user.id,
-        "submitted_by_name": f"{current_user.first_name} {current_user.last_name}",
+        "submitted_by_name": current_user.full_name,
         "submitted_at": now.isoformat(),
         "created_at": now.isoformat()
     }
@@ -999,7 +999,7 @@ async def upload_consent_document(
         raise HTTPException(status_code=404, detail="SOW not found")
     
     now = datetime.now(timezone.utc)
-    user_full_name = f"{current_user.first_name} {current_user.last_name}"
+    user_full_name = current_user.full_name
     
     consent_doc = {
         "id": str(uuid.uuid4()),
@@ -1167,7 +1167,7 @@ async def create_scope_task(
         "assigned_to_id": task_data.get("assigned_to_id"),
         "assigned_to_name": task_data.get("assigned_to_name"),
         "created_by_id": current_user.id,
-        "created_by_name": f"{current_user.first_name} {current_user.last_name}",
+        "created_by_name": current_user.full_name,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
         "attachments": [],
@@ -1279,7 +1279,7 @@ async def upload_task_attachment(
     
     now = datetime.now(timezone.utc)
     task = tasks[task_idx]
-    user_full_name = f"{current_user.first_name} {current_user.last_name}"
+    user_full_name = current_user.full_name
     
     # Create attachment
     attachment = {
@@ -1354,7 +1354,7 @@ async def request_task_approval(
     
     now = datetime.now(timezone.utc)
     task = tasks[task_idx]
-    user_full_name = f"{current_user.first_name} {current_user.last_name}"
+    user_full_name = current_user.full_name
     
     # Initialize approval tracking
     task["approval_status"] = "pending"
@@ -1474,7 +1474,7 @@ async def approve_task(
         task["manager_approval"]["status"] = "approved" if approved else "rejected"
         task["manager_approval"]["approved_at"] = now.isoformat()
         task["manager_approval"]["approved_by_id"] = current_user.id
-        task["manager_approval"]["approved_by_name"] = f"{current_user.first_name} {current_user.last_name}"
+        task["manager_approval"]["approved_by_name"] = current_user.full_name
         task["manager_approval"]["notes"] = notes
         
     elif approval_type == "client":
@@ -1484,7 +1484,7 @@ async def approve_task(
         task["client_approval"]["status"] = "approved" if approved else "rejected"
         task["client_approval"]["approved_at"] = now.isoformat()
         task["client_approval"]["approved_by_id"] = current_user.id
-        task["client_approval"]["approved_by_name"] = f"{current_user.first_name} {current_user.last_name}"
+        task["client_approval"]["approved_by_name"] = current_user.full_name
         task["client_approval"]["notes"] = notes
     
     # Check if fully approved (both Manager and Client approved)

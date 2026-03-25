@@ -40,15 +40,21 @@ import {
 const SOW_STATUSES = {
   open: { label: 'Open', color: 'bg-zinc-100 text-zinc-700', icon: Clock },
   wip: { label: 'Work In Progress', color: 'bg-blue-100 text-blue-700', icon: Play },
-  delivered: { label: 'Delivered', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
+  implemented: { label: 'Implemented', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
+  na_pending: { label: 'NA Pending Approval', color: 'bg-amber-100 text-amber-700', icon: Clock },
   not_applicable: { label: 'Not Applicable', color: 'bg-zinc-100 text-zinc-500', icon: Pause },
   reopen: { label: 'Re-Opened', color: 'bg-amber-100 text-amber-700', icon: RotateCcw }
 };
 
+// Statuses consultants can select (excludes not_applicable which needs approval)
+const CONSULTANT_ALLOWED_STATUSES = ['open', 'wip', 'implemented', 'na_pending', 'reopen'];
+// Statuses managers can select (includes not_applicable)
+const MANAGER_ALLOWED_STATUSES = ['open', 'wip', 'implemented', 'not_applicable', 'reopen'];
+
 const TASK_STATUSES = {
   open: { label: 'Open', color: 'bg-zinc-100 text-zinc-700' },
   wip: { label: 'WIP', color: 'bg-blue-100 text-blue-700' },
-  delivered: { label: 'Delivered', color: 'bg-emerald-100 text-emerald-700' },
+  implemented: { label: 'Implemented', color: 'bg-emerald-100 text-emerald-700' },
   blocked: { label: 'Blocked', color: 'bg-red-100 text-red-700' }
 };
 
@@ -56,15 +62,18 @@ const TASK_STATUSES = {
 const ScopeCard = ({ 
   scope, 
   tasks, 
-  onStatusChange, 
+  onStatusChange,
+  onStartDateChange,
   onTaskCreate, 
   onTaskUpdate, 
   onTaskDelete,
   onAIGenerateTasks,
   onUploadProof,
+  onRequestNA,
   permissions,
   isGeneratingTasks,
-  uploadingTaskId
+  uploadingTaskId,
+  isManager
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
@@ -77,6 +86,15 @@ const ScopeCard = ({
   const statusConfig = SOW_STATUSES[scope.status] || SOW_STATUSES.open;
   const StatusIcon = statusConfig.icon;
   
+  // Calculate days taken
+  const calculateDays = () => {
+    if (!scope.start_date) return '-';
+    const start = new Date(scope.start_date);
+    const end = scope.end_date ? new Date(scope.end_date) : new Date();
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    return days;
+  };
+  
   const handleCreateTask = () => {
     if (!taskForm.title.trim()) {
       toast.error('Task title is required');
@@ -87,6 +105,13 @@ const ScopeCard = ({
     setShowTaskDialog(false);
   };
   
+  // Format date for display
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+  
   return (
     <Card className="border border-zinc-200">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -95,44 +120,91 @@ const ScopeCard = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                <div>
-                  <CardTitle className="text-sm font-medium">{scope.name}</CardTitle>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-sm font-medium">{scope.name}</CardTitle>
+                    {scope.is_inherited && (
+                      <Badge variant="outline" className="text-[10px] px-1 py-0">
+                        <Lock className="w-2.5 h-2.5 mr-0.5" /> Inherited
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-zinc-500 mt-0.5">
-                    {scope.category_name || scope.domain} • {scope.timeline_weeks || '?'} weeks
+                    {scope.category_name || scope.domain}
                     {scope.assigned_consultant_name && ` • ${scope.assigned_consultant_name}`}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              
+              {/* Dates & Status Row */}
+              <div className="flex items-center gap-4">
+                {/* Start Date */}
+                <div className="text-center">
+                  <p className="text-[10px] text-zinc-400 uppercase">Start</p>
+                  {permissions.can_manage_tasks && !scope.start_date ? (
+                    <input
+                      type="date"
+                      className="text-xs border rounded px-1 py-0.5 w-24"
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onStartDateChange(scope.id, 'start_date', e.target.value);
+                      }}
+                    />
+                  ) : (
+                    <p className="text-xs font-medium">{formatDate(scope.start_date)}</p>
+                  )}
+                </div>
+                
+                {/* End Date */}
+                <div className="text-center">
+                  <p className="text-[10px] text-zinc-400 uppercase">End</p>
+                  <p className="text-xs font-medium">
+                    {scope.status === 'implemented' ? formatDate(scope.end_date) : '-'}
+                  </p>
+                </div>
+                
+                {/* Days Taken */}
+                <div className="text-center w-12">
+                  <p className="text-[10px] text-zinc-400 uppercase">Days</p>
+                  <p className="text-xs font-medium">
+                    {scope.start_date ? calculateDays() : '-'}
+                  </p>
+                </div>
+                
                 {/* Progress */}
-                <div className="w-24 flex items-center gap-2">
-                  <Progress value={progress} className="h-1.5" />
-                  <span className="text-xs text-zinc-500 w-8">{Math.round(progress)}%</span>
+                <div className="w-20 flex items-center gap-1">
+                  <Progress value={progress} className="h-1.5 flex-1" />
+                  <span className="text-[10px] text-zinc-500 w-6">{Math.round(progress)}%</span>
                 </div>
                 
                 {/* Status */}
-                <Badge className={`${statusConfig.color} text-xs`}>
+                <Badge className={`${statusConfig.color} text-xs min-w-[80px] justify-center`}>
                   <StatusIcon className="w-3 h-3 mr-1" />
                   {statusConfig.label}
                 </Badge>
                 
-                {/* Status Change */}
+                {/* Status Change - Only show allowed statuses based on role */}
                 {permissions.can_manage_tasks && (
                   <Select 
                     value={scope.status} 
                     onValueChange={(v) => onStatusChange(scope.id, v)}
                   >
-                    <SelectTrigger className="w-8 h-8 p-0 border-none">
+                    <SelectTrigger className="w-8 h-8 p-0 border-none" onClick={(e) => e.stopPropagation()}>
                       <Edit2 className="w-3 h-3" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(SOW_STATUSES).map(([key, config]) => (
-                        <SelectItem key={key} value={key}>
-                          <span className={`${config.color} px-2 py-0.5 rounded text-xs`}>
-                            {config.label}
-                          </span>
-                        </SelectItem>
-                      ))}
+                      {(isManager ? MANAGER_ALLOWED_STATUSES : CONSULTANT_ALLOWED_STATUSES).map(key => {
+                        const config = SOW_STATUSES[key];
+                        if (!config) return null;
+                        return (
+                          <SelectItem key={key} value={key}>
+                            <span className={`${config.color} px-2 py-0.5 rounded text-xs`}>
+                              {config.label}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 )}
@@ -280,7 +352,7 @@ const TaskRow = ({ task, onUpdate, onDelete, onUploadProof, permissions, isUploa
     <div className="flex items-center justify-between p-2 bg-zinc-50 rounded text-sm group">
       <div className="flex items-center gap-2 flex-1">
         <ListTodo className="w-3.5 h-3.5 text-zinc-400" />
-        <span className={task.status === 'delivered' ? 'line-through text-zinc-400' : ''}>
+        <span className={task.status === 'implemented' ? 'line-through text-zinc-400' : ''}>
           {task.title}
         </span>
         {task.is_ai_generated && (
@@ -412,6 +484,23 @@ const ProjectSOWDelivery = ({ projectId }) => {
     }
   });
   
+  // Update Scope Date Mutation
+  const updateScopeDateMutation = useMutation({
+    mutationFn: async ({ scopeId, field, value }) => {
+      await axios.patch(
+        `${API}/project-sow-delivery/${projectSow.id}/scope/${scopeId}/date`,
+        { field, value }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success('Date updated');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to update date');
+    }
+  });
+  
   const createTaskMutation = useMutation({
     mutationFn: async ({ scopeId, taskData }) => {
       await axios.post(`${API}/project-sow-delivery/${projectSow.id}/tasks`, {
@@ -481,6 +570,10 @@ const ProjectSOWDelivery = ({ projectId }) => {
   // Handlers
   const handleScopeStatusChange = (scopeId, status) => {
     updateScopeMutation.mutate({ scopeId, status });
+  };
+  
+  const handleScopeDateChange = (scopeId, field, value) => {
+    updateScopeDateMutation.mutate({ scopeId, field, value });
   };
   
   const handleAIGenerateTasks = (scopeId) => {
@@ -713,12 +806,24 @@ const ProjectSOWDelivery = ({ projectId }) => {
         
         {/* Scopes Tab */}
         <TabsContent value="scopes" className="mt-4 space-y-3">
+          {/* Scope Table Header */}
+          <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-zinc-100 rounded-lg text-xs font-medium text-zinc-600">
+            <div className="col-span-4">Scope</div>
+            <div className="col-span-1 text-center">Start</div>
+            <div className="col-span-1 text-center">End</div>
+            <div className="col-span-1 text-center">Days</div>
+            <div className="col-span-2 text-center">Progress</div>
+            <div className="col-span-2 text-center">Status</div>
+            <div className="col-span-1"></div>
+          </div>
+          
           {projectSow.scopes?.map(scope => (
             <ScopeCard
               key={scope.id}
               scope={scope}
               tasks={tasks}
               onStatusChange={handleScopeStatusChange}
+              onStartDateChange={handleScopeDateChange}
               onTaskCreate={handleTaskCreate}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
@@ -727,6 +832,7 @@ const ProjectSOWDelivery = ({ projectId }) => {
               isGeneratingTasks={generatingScopeId === scope.id}
               uploadingTaskId={uploadingTaskId}
               permissions={permissions}
+              isManager={user?.role && ['admin', 'hr_admin', 'principal_consultant', 'manager'].includes(user.role)}
             />
           ))}
         </TabsContent>
