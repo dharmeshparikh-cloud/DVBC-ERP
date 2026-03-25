@@ -358,7 +358,7 @@ class AIDeliverablesRequest(BaseModel):
 async def suggest_deliverables(request: AIDeliverablesRequest):
     """
     AI-powered deliverables suggestion for a scope.
-    Returns top 3 prioritized deliverables based on scope name and category.
+    Returns top 5 prioritized deliverables based on scope name and category.
     """
     import os
     
@@ -375,21 +375,21 @@ async def suggest_deliverables(request: AIDeliverablesRequest):
     if existing and existing.get("deliverables"):
         return {
             "source": "library",
-            "deliverables": existing["deliverables"][:3]
+            "deliverables": existing["deliverables"][:5]
         }
     
     # Use AI to generate deliverables
     try:
         from emergentintegrations.llm.chat import chat, UserMessage
         
-        prompt = f"""You are a business consultant. For the following consulting scope, suggest exactly 3 key deliverables.
+        prompt = f"""You are a business consultant. For the following consulting scope, suggest exactly 5 key deliverables.
 
 Scope Name: {scope_name}
 Category: {category}
 Description: {description if description else 'N/A'}
 
 Rules:
-- Return ONLY 3 deliverables, one per line
+- Return ONLY 5 deliverables, one per line
 - Each deliverable should be 3-6 words max
 - Be specific and actionable
 - No numbering, bullets, or formatting
@@ -405,7 +405,9 @@ Deliverables:"""
                 "deliverables": [
                     f"{scope_name} Report",
                     "Implementation Guide",
-                    "Progress Dashboard"
+                    "Progress Dashboard",
+                    "Training Documentation",
+                    "Final Assessment Report"
                 ]
             }
         
@@ -419,21 +421,21 @@ Deliverables:"""
         lines = [line.strip() for line in response.response.strip().split('\n') if line.strip()]
         # Remove any numbering or bullets
         deliverables = []
-        for line in lines[:3]:
+        for line in lines[:5]:
             # Remove leading numbers, bullets, dashes
             clean = line.lstrip('0123456789.-•) ').strip()
             if clean:
                 deliverables.append(clean)
         
-        if len(deliverables) < 3:
+        if len(deliverables) < 5:
             # Pad with defaults
-            defaults = [f"{scope_name} Report", "Implementation Guide", "Progress Dashboard"]
-            while len(deliverables) < 3:
+            defaults = [f"{scope_name} Report", "Implementation Guide", "Progress Dashboard", "Training Documentation", "Final Assessment Report"]
+            while len(deliverables) < 5:
                 deliverables.append(defaults[len(deliverables)])
         
         return {
             "source": "ai",
-            "deliverables": deliverables[:3]
+            "deliverables": deliverables[:5]
         }
         
     except Exception as e:
@@ -443,7 +445,9 @@ Deliverables:"""
             "deliverables": [
                 f"{scope_name} Report",
                 "Implementation Guide", 
-                "Progress Dashboard"
+                "Progress Dashboard",
+                "Training Documentation",
+                "Final Assessment Report"
             ],
             "error": str(e)
         }

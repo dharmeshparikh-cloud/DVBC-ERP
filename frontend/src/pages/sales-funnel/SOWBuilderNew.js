@@ -1,7 +1,7 @@
 /**
  * SOWBuilder - Unified Scope of Work Builder
  * 
- * Sales creates SOW with: Category | Scope | Deliverables (as separate rows)
+ * Sales creates SOW with: Category | Scope | Deliverables (comma-separated in single line)
  * Links to: Quotation → Agreement → Kickoff → Project SOW
  */
 
@@ -24,210 +24,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '../../components/ui/badge';
 import { 
   ArrowLeft, Plus, Trash2, Sparkles, Save, Library, 
-  Check, Loader2, FileText, Lock, ArrowRight, ChevronDown, ChevronRight,
-  PlusCircle, X
+  Check, Loader2, FileText, Lock, ArrowRight, PlusCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import SalesFunnelProgress from '../../components/SalesFunnelProgress';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-
-// Scope Row Component with expandable deliverables
-const ScopeRow = ({ 
-  scope, 
-  index, 
-  categories, 
-  onUpdate, 
-  onRemove, 
-  onSuggestDeliverables,
-  isSuggesting,
-  isLocked,
-  onAddCategory
-}) => {
-  const [expanded, setExpanded] = useState(true);
-  
-  const deliverables = scope.deliverables || [];
-  
-  const addDeliverable = () => {
-    const updated = [...deliverables, ''];
-    onUpdate(scope.id, 'deliverables', updated);
-  };
-  
-  const updateDeliverable = (idx, value) => {
-    const updated = [...deliverables];
-    updated[idx] = value;
-    onUpdate(scope.id, 'deliverables', updated);
-  };
-  
-  const removeDeliverable = (idx) => {
-    const updated = deliverables.filter((_, i) => i !== idx);
-    onUpdate(scope.id, 'deliverables', updated);
-  };
-
-  const selectedCategory = categories.find(c => c.code === scope.category_code);
-  
-  return (
-    <div className="border rounded-lg overflow-hidden bg-white">
-      {/* Main Row */}
-      <div className="grid grid-cols-12 gap-2 px-4 py-3 items-center bg-zinc-50 border-b">
-        {/* Expand Toggle */}
-        <div className="col-span-1 flex items-center gap-2">
-          <button 
-            onClick={() => setExpanded(!expanded)}
-            className="p-1 hover:bg-zinc-200 rounded"
-          >
-            {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          </button>
-          <span className="text-sm text-zinc-500">{index + 1}</span>
-        </div>
-        
-        {/* Category Dropdown */}
-        <div className="col-span-3">
-          <Select
-            value={scope.category_code || ''}
-            onValueChange={(v) => {
-              if (v === '__add_new__') {
-                onAddCategory();
-              } else {
-                const cat = categories.find(c => c.code === v);
-                onUpdate(scope.id, 'category_code', v);
-                onUpdate(scope.id, 'category_name', cat?.name || v);
-              }
-            }}
-            disabled={isLocked}
-          >
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue placeholder="Select Category...">
-                {selectedCategory && (
-                  <span className="flex items-center gap-2">
-                    <span 
-                      className="w-2 h-2 rounded-full" 
-                      style={{ backgroundColor: selectedCategory.color }}
-                    />
-                    {selectedCategory.name}
-                  </span>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map(cat => (
-                <SelectItem key={cat.code} value={cat.code}>
-                  <span className="flex items-center gap-2">
-                    <span 
-                      className="w-2 h-2 rounded-full" 
-                      style={{ backgroundColor: cat.color }}
-                    />
-                    {cat.name}
-                  </span>
-                </SelectItem>
-              ))}
-              <SelectItem value="__add_new__" className="text-blue-600 border-t mt-1 pt-1">
-                <span className="flex items-center gap-2">
-                  <PlusCircle className="w-4 h-4" />
-                  Add New Category
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Scope Name */}
-        <div className="col-span-5">
-          <Input
-            value={scope.name || ''}
-            onChange={(e) => onUpdate(scope.id, 'name', e.target.value)}
-            placeholder="Enter scope name..."
-            className="h-9 text-sm"
-            disabled={isLocked}
-          />
-        </div>
-        
-        {/* Deliverables Count & AI Suggest */}
-        <div className="col-span-2 flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">
-            {deliverables.filter(d => d).length} deliverables
-          </Badge>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-            onClick={() => onSuggestDeliverables(scope.id)}
-            disabled={isLocked || isSuggesting || !scope.name}
-            title="AI Suggest Deliverables"
-          >
-            {isSuggesting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-          </Button>
-        </div>
-        
-        {/* Delete Button */}
-        <div className="col-span-1 flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-            onClick={() => onRemove(scope.id)}
-            disabled={isLocked}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-      
-      {/* Expanded Deliverables Section */}
-      {expanded && (
-        <div className="px-4 py-3 bg-white">
-          <div className="ml-8 space-y-2">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-zinc-500 uppercase">Deliverables</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-xs text-blue-600"
-                onClick={addDeliverable}
-                disabled={isLocked}
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Add Deliverable
-              </Button>
-            </div>
-            
-            {deliverables.length === 0 ? (
-              <p className="text-xs text-zinc-400 italic py-2">
-                No deliverables. Click "Add Deliverable" or use AI Suggest (✨)
-              </p>
-            ) : (
-              deliverables.map((deliverable, idx) => (
-                <div key={idx} className="flex items-center gap-2 group">
-                  <span className="text-xs text-zinc-400 w-4">{idx + 1}.</span>
-                  <Input
-                    value={deliverable}
-                    onChange={(e) => updateDeliverable(idx, e.target.value)}
-                    placeholder="Enter deliverable..."
-                    className="h-8 text-sm flex-1"
-                    disabled={isLocked}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600"
-                    onClick={() => removeDeliverable(idx)}
-                    disabled={isLocked}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const SOWBuilderNew = () => {
   const { pricingPlanId } = useParams();
@@ -245,7 +47,7 @@ const SOWBuilderNew = () => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryCode, setNewCategoryCode] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6');
-  const [selectedLibraryCategory, setSelectedLibraryCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [suggestingId, setSuggestingId] = useState(null);
 
   // Fetch pricing plan and lead data
@@ -304,7 +106,7 @@ const SOWBuilderNew = () => {
         category_code: s.category_code,
         category_name: s.category_name,
         name: s.name,
-        deliverables: s.deliverables || []
+        deliverables: s.deliverables_text || s.deliverables?.join(', ') || ''
       })));
     }
   }, [sowData]);
@@ -315,15 +117,10 @@ const SOWBuilderNew = () => {
   // Create SOW mutation
   const createMutation = useMutation({
     mutationFn: async (scopeData) => {
-      // Convert deliverables array to comma-separated for API
-      const apiScopes = scopeData.map(s => ({
-        ...s,
-        deliverables: s.deliverables?.filter(d => d).join(', ') || ''
-      }));
       const res = await axios.post(`${API}/api/enhanced-sow/simple-create`, {
         pricing_plan_id: pricingPlanId,
         lead_id: leadId || plan?.lead_id,
-        scopes: apiScopes
+        scopes: scopeData
       });
       return res.data;
     },
@@ -339,13 +136,8 @@ const SOWBuilderNew = () => {
   // Update SOW mutation
   const updateMutation = useMutation({
     mutationFn: async (scopeData) => {
-      // Convert deliverables array to comma-separated for API
-      const apiScopes = scopeData.map(s => ({
-        ...s,
-        deliverables: s.deliverables?.filter(d => d).join(', ') || ''
-      }));
       const res = await axios.put(`${API}/api/enhanced-sow/${existingSOW.id}/simple-update`, {
-        scopes: apiScopes
+        scopes: scopeData
       });
       return res.data;
     },
@@ -394,7 +186,7 @@ const SOWBuilderNew = () => {
       category_code: '',
       category_name: '',
       name: '',
-      deliverables: []
+      deliverables: ''
     }]);
   };
 
@@ -407,7 +199,16 @@ const SOWBuilderNew = () => {
   const updateScope = (id, field, value) => {
     setScopes(scopes.map(s => {
       if (s.id !== id) return s;
-      return { ...s, [field]: value };
+      
+      const updated = { ...s, [field]: value };
+      
+      // If category changed, update category_name
+      if (field === 'category_code') {
+        const cat = categories.find(c => c.code === value);
+        updated.category_name = cat?.name || value;
+      }
+      
+      return updated;
     }));
   };
 
@@ -426,7 +227,7 @@ const SOWBuilderNew = () => {
         categoryCode: scope.category_code
       });
       
-      const deliverables = result.deliverables || [];
+      const deliverables = result.deliverables?.join(', ') || '';
       updateScope(scopeId, 'deliverables', deliverables);
       
       if (result.source === 'ai') {
@@ -442,19 +243,19 @@ const SOWBuilderNew = () => {
   };
 
   // Add scope from library
-  const addFromLibrary = (template, categoryCode, categoryName) => {
-    const existingNames = new Set(scopes.map(s => s.name?.toLowerCase()));
-    if (existingNames.has(template.name?.toLowerCase())) {
+  const addFromLibrary = (template) => {
+    const existingIds = new Set(scopes.map(s => s.name?.toLowerCase()));
+    if (existingIds.has(template.name?.toLowerCase())) {
       toast.error('This scope is already added');
       return;
     }
 
     setScopes([...scopes, {
       id: `lib-${Date.now()}`,
-      category_code: categoryCode,
-      category_name: categoryName,
+      category_code: template.category_code,
+      category_name: template.category_name || template.category_code,
       name: template.name,
-      deliverables: template.deliverables || []
+      deliverables: template.deliverables?.join(', ') || ''
     }]);
     
     toast.success(`Added "${template.name}"`);
@@ -502,9 +303,9 @@ const SOWBuilderNew = () => {
   };
 
   // Filter library by category
-  const filteredLibrary = selectedLibraryCategory === 'all' 
+  const filteredLibrary = selectedCategory === 'all' 
     ? scopeLibrary 
-    : scopeLibrary.filter(g => g.category?.code === selectedLibraryCategory);
+    : scopeLibrary.filter(g => g.category?.code === selectedCategory);
 
   if (loadingSOW) {
     return (
@@ -555,7 +356,7 @@ const SOWBuilderNew = () => {
       {/* Funnel Progress */}
       {lead && <SalesFunnelProgress lead={lead} currentStep="sow" />}
 
-      {/* SOW Scopes */}
+      {/* SOW Table */}
       <Card>
         <CardHeader className="py-3 border-b">
           <div className="flex items-center justify-between">
@@ -574,28 +375,122 @@ const SOWBuilderNew = () => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-0">
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-zinc-50 border-b text-xs font-medium text-zinc-600">
+            <div className="col-span-1">#</div>
+            <div className="col-span-2">Category</div>
+            <div className="col-span-3">Scope</div>
+            <div className="col-span-5">Deliverables</div>
+            <div className="col-span-1"></div>
+          </div>
+
+          {/* Table Rows */}
           {scopes.length === 0 ? (
-            <div className="text-center py-12 text-zinc-400 border-2 border-dashed rounded-lg">
+            <div className="text-center py-12 text-zinc-400">
               <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p>No scopes added yet</p>
               <p className="text-xs mt-1">Click "Add Scope" or "Pick from Library" to start</p>
             </div>
           ) : (
-            scopes.map((scope, idx) => (
-              <ScopeRow
-                key={scope.id}
-                scope={scope}
-                index={idx}
-                categories={categories}
-                onUpdate={updateScope}
-                onRemove={removeScope}
-                onSuggestDeliverables={handleSuggestDeliverables}
-                isSuggesting={suggestingId === scope.id}
-                isLocked={isLocked}
-                onAddCategory={() => setCategoryDialogOpen(true)}
-              />
-            ))
+            <div className="divide-y">
+              {scopes.map((scope, idx) => (
+                <div 
+                  key={scope.id} 
+                  className="grid grid-cols-12 gap-2 px-4 py-2 items-center hover:bg-zinc-50"
+                >
+                  {/* Row Number */}
+                  <div className="col-span-1 text-sm text-zinc-400">{idx + 1}</div>
+                  
+                  {/* Category Dropdown */}
+                  <div className="col-span-2">
+                    <Select
+                      value={scope.category_code}
+                      onValueChange={(v) => {
+                        if (v === '__add_new__') {
+                          setCategoryDialogOpen(true);
+                        } else {
+                          updateScope(scope.id, 'category_code', v);
+                        }
+                      }}
+                      disabled={isLocked}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(cat => (
+                          <SelectItem key={cat.code} value={cat.code}>
+                            <span className="flex items-center gap-2">
+                              <span 
+                                className="w-2 h-2 rounded-full" 
+                                style={{ backgroundColor: cat.color }}
+                              />
+                              {cat.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__add_new__" className="text-blue-600 border-t mt-1 pt-1">
+                          <span className="flex items-center gap-2">
+                            <PlusCircle className="w-3 h-3" />
+                            Add New Category
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Scope Name */}
+                  <div className="col-span-3">
+                    <Input
+                      value={scope.name}
+                      onChange={(e) => updateScope(scope.id, 'name', e.target.value)}
+                      placeholder="Scope name..."
+                      className="h-8 text-sm"
+                      disabled={isLocked}
+                    />
+                  </div>
+                  
+                  {/* Deliverables with AI Suggest */}
+                  <div className="col-span-5 flex items-center gap-1">
+                    <Input
+                      value={scope.deliverables}
+                      onChange={(e) => updateScope(scope.id, 'deliverables', e.target.value)}
+                      placeholder="e.g. Report, Training Manual, Dashboard"
+                      className="h-8 text-sm flex-1"
+                      disabled={isLocked}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                      onClick={() => handleSuggestDeliverables(scope.id)}
+                      disabled={isLocked || suggestingId === scope.id}
+                      title="AI Suggest Deliverables"
+                    >
+                      {suggestingId === scope.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {/* Delete Button */}
+                  <div className="col-span-1 flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => removeScope(scope.id)}
+                      disabled={isLocked}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -620,19 +515,14 @@ const SOWBuilderNew = () => {
           {/* Category Filter */}
           <div className="flex items-center gap-2 pb-2 border-b">
             <span className="text-sm text-zinc-500">Filter:</span>
-            <Select value={selectedLibraryCategory} onValueChange={setSelectedLibraryCategory}>
-              <SelectTrigger className="w-48 h-8 text-xs">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-40 h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map(cat => (
-                  <SelectItem key={cat.code} value={cat.code}>
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                      {cat.name}
-                    </span>
-                  </SelectItem>
+                  <SelectItem key={cat.code} value={cat.code}>{cat.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -657,27 +547,25 @@ const SOWBuilderNew = () => {
                     return (
                       <div 
                         key={template.id}
-                        className="flex items-start justify-between p-2 hover:bg-zinc-50 rounded"
+                        className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded"
                       >
                         <div className="flex-1">
                           <p className="text-sm font-medium">{template.name}</p>
                           {template.deliverables?.length > 0 && (
-                            <div className="mt-1">
-                              {template.deliverables.map((d, i) => (
-                                <p key={i} className="text-xs text-zinc-500">• {d}</p>
-                              ))}
-                            </div>
+                            <p className="text-xs text-zinc-500">
+                              {template.deliverables.join(', ')}
+                            </p>
                           )}
                         </div>
                         <Button
                           variant={isAdded ? "secondary" : "outline"}
                           size="sm"
-                          className="h-7 text-xs ml-2"
-                          onClick={() => addFromLibrary(
-                            template,
-                            group.category?.code,
-                            group.category?.name
-                          )}
+                          className="h-7 text-xs"
+                          onClick={() => addFromLibrary({
+                            ...template,
+                            category_code: group.category?.code,
+                            category_name: group.category?.name
+                          })}
                           disabled={isAdded}
                         >
                           {isAdded ? (
