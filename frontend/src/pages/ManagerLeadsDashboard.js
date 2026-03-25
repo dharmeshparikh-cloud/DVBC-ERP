@@ -26,6 +26,7 @@ import {
 } from '../hooks/useStats';
 import { usePauseLead, useResumeLead } from '../hooks/useLeads';
 import ProfilePerformanceCard from '../components/ProfilePerformanceCard';
+import { LeadsTable } from '../components/sales';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -869,117 +870,23 @@ const ManagerLeadsDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Leads Table */}
+      {/* Leads Table - Using SalesDataTable (GOVERNANCE: No manual tables) */}
       <Card className="border-zinc-200 shadow-none rounded-sm overflow-hidden">
         <CardHeader className="pb-2 border-b border-zinc-100">
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-emerald-500" />
-            Team Leads ({filteredLeads.length})
+            Team Leads
           </CardTitle>
         </CardHeader>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-zinc-50 border-b border-zinc-100">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase">Lead</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase">Assigned To</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase">Company</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase">Progress</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase">Value</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {filteredLeads.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
-                    No leads found matching your criteria
-                  </td>
-                </tr>
-              ) : (
-                (filteredLeads || []).map(lead => {
-                  const isPaused = lead.status === 'paused';
-                  return (
-                    <tr 
-                      key={lead.id}
-                      className={`hover:bg-zinc-50 cursor-pointer transition-colors ${isPaused ? 'opacity-60 bg-zinc-50' : ''}`}
-                      onClick={() => handleLeadClick(lead)}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-zinc-900">
-                            {lead.first_name} {lead.last_name}
-                          </span>
-                          {isPaused && (
-                            <Badge className="bg-amber-100 text-amber-800 text-[10px]">PAUSED</Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">
-                        {lead.assigned_employee_name || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">
-                        {lead.company || '-'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge className={`${getStatusBadge(lead.status)} text-xs`}>
-                          {lead.status?.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <div className={`w-2 h-2 rounded-full ${lead.has_pricing_plan ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="Pricing" />
-                          <div className={`w-2 h-2 rounded-full ${lead.has_sow ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="SOW" />
-                          <div className={`w-2 h-2 rounded-full ${lead.has_agreement ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="Agreement" />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {lead.agreement_value > 0 ? (
-                          <span className="text-emerald-600 font-medium">{formatCurrency(lead.agreement_value)}</span>
-                        ) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-end gap-2">
-                          {isPaused ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => handleResumeLead(lead.id, e)}
-                              className="h-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                              title="Resume"
-                            >
-                              <Play className="w-3 h-3" />
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => handlePauseLead(lead.id, e)}
-                              className="h-8 text-orange-600 border-orange-200 hover:bg-orange-50"
-                              title="Pause"
-                            >
-                              <Pause className="w-3 h-3" />
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
-                            className="h-8"
-                            title="View Sales Funnel"
-                          >
-                            <Eye className="w-3 h-3 mr-1" /> View
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <CardContent className="p-0">
+          <LeadsTable
+            onRowClick={(lead) => handleLeadClick(lead)}
+            onPause={(lead) => handlePauseLead(lead.id)}
+            onResume={(lead) => handleResumeLead(lead.id)}
+            externalFilters={selectedEmployee ? { assigned_to: selectedEmployee } : {}}
+            className="border-0 rounded-none"
+          />
+        </CardContent>
       </Card>
     </div>
   );

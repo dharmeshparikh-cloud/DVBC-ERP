@@ -34,6 +34,7 @@ export const leadKeys = {
 
 /**
  * Fetch all leads with optional filters
+ * Returns: { data: Lead[], total: number, page: number, page_size: number, total_pages: number }
  */
 export const useLeads = (filters = {}) => {
   const { page = 1, pageSize = 100, status, assigned_to, search } = filters;
@@ -51,10 +52,19 @@ export const useLeads = (filters = {}) => {
       const { data } = await axios.get(`${API}/api/leads?${params}`, {
         headers: getAuthHeaders(),
       });
+      
+      // Handle both new paginated format and legacy array format
+      if (Array.isArray(data)) {
+        // Legacy format - wrap in pagination structure
+        return { data, total: data.length, page, page_size: pageSize, total_pages: 1 };
+      }
+      // New paginated format
       return data;
     },
     staleTime: 5 * 60 * 1000,
     keepPreviousData: true,
+    // Select function to extract just the data array for backward compatibility
+    select: (response) => response?.data || response || [],
   });
 };
 

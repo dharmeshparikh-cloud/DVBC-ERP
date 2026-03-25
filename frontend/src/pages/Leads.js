@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../com
 import { useQueryClient } from '@tanstack/react-query';
 import { GovernedDropdown } from '../components/GovernedDropdown';
 import { useIndustryOptions, useLeadSources, useLeadStatusOptions } from '../hooks/useSOWsByProject';
+import { LeadsTable } from '../components/sales';
 import {
   useLeads as useLeadsQuery,
   useBulkLeadProgress,
@@ -1125,107 +1126,28 @@ const Leads = () => {
           </CardContent>
         </Card>
       ) : viewMode === 'list' ? (
-        /* List View */
-        <div className="border border-zinc-200 rounded-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Name</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Company</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Email</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Progress</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {(filteredLeads || []).map((lead) => {
-                const progress = leadProgress[lead.id] || {};
-                const isPaused = lead.status === 'paused';
-                return (
-                  <tr 
-                    key={lead.id} 
-                    className={`hover:bg-zinc-50 cursor-pointer transition-colors ${isPaused ? 'opacity-60 bg-zinc-100' : ''}`}
-                    onClick={() => handleLeadClick(lead)}
-                    data-testid={`lead-row-${lead.id}`}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-zinc-900">{lead.first_name} {lead.last_name}</span>
-                        {isPaused && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 rounded">PAUSED</span>
-                        )}
-                      </div>
-                      {lead.job_title && <p className="text-xs text-zinc-500">{lead.job_title}</p>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-600">{lead.company}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-600">{lead.email}</td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      {/* Funnel Progress Indicator */}
-                      <FunnelProgressIndicator 
-                        progress={progress}
-                        onClick={() => navigate(`/sales-funnel-onboarding?leadId=${lead.id}`)}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-2">
-                        <FollowUpActionButton entityType="lead" entityId={lead.id} clientName={lead.company || `${lead.first_name} ${lead.last_name}`} />
-                        {/* Pause/Resume for managers */}
-                        {isManagerOrAbove && (
-                          isPaused ? (
-                            <Button
-                              onClick={(e) => handleResumeLead(lead.id, e)}
-                              size="sm"
-                              variant="outline"
-                              className="rounded-sm h-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                              title="Resume Lead"
-                            >
-                              <Play className="w-3 h-3" />
-                            </Button>
-                          ) : (
-                            <Button
-                              onClick={(e) => handlePauseLead(lead.id, e)}
-                              size="sm"
-                              variant="outline"
-                              className="rounded-sm h-8 text-orange-600 border-orange-200 hover:bg-orange-50"
-                              title="Pause Lead"
-                            >
-                              <Pause className="w-3 h-3" />
-                            </Button>
-                          )
-                        )}
-                        {/* Start Onboarding Button */}
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/sales-funnel-onboarding?leadId=${lead.id}`);
-                          }}
-                          size="sm"
-                          className="rounded-sm h-8 bg-blue-600 hover:bg-blue-700 text-white"
-                          disabled={isPaused}
-                          title="Start Sales Funnel"
-                          data-testid={`start-onboarding-${lead.id}`}
-                        >
-                          <TrendingUp className="w-3 h-3 mr-1" />
-                          <span className="text-xs">Funnel</span>
-                        </Button>
-                        {lead.linkedin_url && (
-                          <Button
-                            onClick={() => window.open(lead.linkedin_url, '_blank')}
-                            size="sm"
-                            variant="outline"
-                            className="rounded-sm h-8"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        /* List View - Using SalesDataTable (GOVERNANCE: No manual tables) */
+        <LeadsTable
+          onRowClick={handleLeadClick}
+          onEdit={(lead) => {
+            setEditLead(lead);
+            setFormData({
+              first_name: lead.first_name || '',
+              last_name: lead.last_name || '',
+              email: lead.email || '',
+              phone: lead.phone || '',
+              company: lead.company || '',
+              job_title: lead.job_title || '',
+              industry: lead.industry || '',
+              linkedin_url: lead.linkedin_url || '',
+              address: lead.address || '',
+            });
+            setDialogOpen(true);
+          }}
+          onPause={(lead) => handlePauseLead(lead.id)}
+          onResume={(lead) => handleResumeLead(lead.id)}
+          className="border border-zinc-200 rounded-sm"
+        />
       ) : (
         /* Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
