@@ -2,6 +2,11 @@
 
 ## Latest Updates - March 25, 2026
 
+### P1 Enhancements - Lead Reassignment, Follow-up Email, Lead Integration (Session 8)
+- **Lead Reassignment**: Single-lead reassign (any role) + Bulk migration (admin/manager only). Transfers all associated data (meetings, pricing, SOW, quotations, agreements, follow-ups). Activity log tracks all transfers with reason.
+- **Follow-up Email Trigger**: 3 templates (Formal, Meeting, Reminder) with CTA links (Close Follow-up, Reschedule). Client responses auto-logged in follow-up history. Template includes client name, company, follow-up notes.
+- **Follow-up ↔ Lead Integration**: Lead dropdown always required when creating follow-up. Linked Lead banner in detail dialog with "View Pipeline" button. Client Response column in FollowUpsTable showing Confirmed/Reschedule/—. Backend enriches follow-ups with lead email and company.
+
 ### Bug Fixes - Leads, Follow-ups, Pricing (Session 8 continued)
 - **Follow-up Create**: Lead dropdown always visible and required (removed free-text client name), added time field
 - **Edit Lead**: Fixed by populating all form fields including source/notes/follow-up, stripping invalid fields on submit
