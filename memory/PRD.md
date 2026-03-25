@@ -40,13 +40,32 @@
 - `follow_ups.assigned_to`, `follow_ups.due_date`, `follow_ups.status`
 - `quotations.status`, `quotations.created_at`, `quotations.total_value`
 
-**Phase 4: Migration Complete** [March 25, Session 7]:
+**Phase 4: Migration Complete** [March 25, Session 7-8]:
 | Page | Before | After |
 |------|--------|-------|
 | `Leads.js` (List view) | Manual `<table>` with `.map()` | `LeadsTable` (SalesDataTable) |
 | `ManagerLeadsDashboard.js` | Manual leads table | `LeadsTable` with external filters |
+| `Agreements.js` | Manual list/card | `AgreementsTable` (SalesDataTable) |
+| `ProformaInvoice.js` | Manual list | `ProformaInvoiceTable` (SalesDataTable) |
+| `SalesSOWList.js` | Manual `<table>` | `SOWTable` (SalesDataTable) |
+| `FollowUps.js` | Card-based `.map()` list | `FollowUpsTable` (SalesDataTable) |
 
-**Test Report**: `/app/test_reports/iteration_216.json` - 100% frontend pass
+**Additional Backend Standardization** [March 25, Session 8]:
+| API | Update |
+|-----|--------|
+| `/api/agreements` | Now returns paginated `{ data, total, page, page_size, total_pages }` with search, sorting, filters |
+| `/api/enhanced-sow/list` | Now returns paginated response with search, status, category filters |
+
+**Specialized Sales Tables Updated**:
+| Component | Purpose |
+|-----------|---------|
+| `AgreementsTable.jsx` | Agreement tracking with type/status filters |
+| `ProformaInvoiceTable.jsx` | Proforma invoice management |
+| `SOWTable.jsx` | SOW tracking with scope/status filters |
+
+**Test Reports**: 
+- `/app/test_reports/iteration_217.json` - Agreements/PI/SOW migration: 100% pass
+- `/app/test_reports/iteration_218.json` - FollowUps migration + regression: 100% pass
 
 ---
 
