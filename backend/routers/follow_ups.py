@@ -426,6 +426,9 @@ async def close_follow_up(follow_up_id: str, data: FollowUpUpdate, current_user:
     fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
     if not fu:
         raise HTTPException(status_code=404, detail="Follow-up not found")
+    
+    if fu.get("status") == "closed":
+        raise HTTPException(status_code=400, detail="This follow-up is already closed.")
 
     history_entry = {
         "action": "closed",
@@ -468,6 +471,9 @@ async def schedule_next_follow_up(follow_up_id: str, data: ScheduleNextFollowUp,
     fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
     if not fu:
         raise HTTPException(status_code=404, detail="Follow-up not found")
+    
+    if fu.get("status") == "closed":
+        raise HTTPException(status_code=400, detail="This follow-up is already closed. Cannot schedule next.")
 
     # Close current
     close_entry = {
@@ -932,6 +938,12 @@ async def client_follow_up_action(
             due_display = str(due_date)
     
     if action == "close":
+        # Guard: already closed
+        if fu.get("status") == "closed":
+            details = f"Hi {client_name}, this follow-up has already been confirmed."
+            if due_display:
+                details += f"<br><br><div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;'><p style='margin:0 0 4px 0;color:#166534;font-size:12px;font-weight:600;'>Confirmed Schedule</p><p style='margin:0;color:#15803d;font-size:15px;font-weight:600;'>{due_display}</p></div>"
+            return HTMLResponse(content=_build_action_page("Already Confirmed", details, "success"))
         await db.follow_ups.update_one(
             {"id": follow_up_id},
             {"$set": {"status": "closed", "closed_at": now, "updated_at": now, "client_response": "Confirmed via email"},
