@@ -2,6 +2,16 @@
 
 ## Latest Updates - March 25, 2026
 
+### Bug Fixes - Leads, Follow-ups, Pricing (Session 8 continued)
+- **Follow-up Create**: Lead dropdown always visible and required (removed free-text client name), added time field
+- **Edit Lead**: Fixed by populating all form fields including source/notes/follow-up, stripping invalid fields on submit
+- **Funnel column**: Fixed FUNNEL_STAGES to map to actual DB statuses (new→New Lead, contacted→Meeting, qualified→Pricing/SOW, proposal→Quotation, agreement→Agreement, closed→Complete)
+- **Backend auto-sync**: Leads list API now auto-syncs lead status with funnel progress on each list fetch
+- **Discount field**: Fixed prefilled 0 (shows empty, placeholder "0"), fixed float precision (Math.round for accurate %)
+- **Pricing Save button**: Added validation messages below button ("Add at least one team member" / "Enter total investment" / "Select start date")
+- **Add Lead dialog**: Lead Source now a governed dropdown (Website, Referral, LinkedIn, etc.), removed LinkedIn URL field
+- **Actions stopPropagation**: Fixed action column click not triggering row navigation
+
 ### Bug Fixes - Leads Page (Session 8)
 - Fixed "View Pipeline" action: now navigates to `/sales-funnel-onboarding?leadId=X` (was pointing to non-existent route)
 - Fixed "Edit Lead" action: added missing `editLead` state, dialog now pre-fills with lead data
