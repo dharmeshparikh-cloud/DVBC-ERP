@@ -364,12 +364,25 @@ async def get_escalated_follow_ups(current_user: User = Depends(get_current_user
 
 @router.get("/{follow_up_id}")
 async def get_follow_up(follow_up_id: str, current_user: User = Depends(get_current_user)):
-    """Get a single follow-up with full history."""
+    """Get a single follow-up with full history. Enriches with latest lead data."""
     db = get_db()
     fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
     if not fu:
         raise HTTPException(status_code=404, detail="Follow-up not found")
-    return fu
+    
+    # Enrich with latest lead data (email, company, name)
+    if fu.get("lead_id"):
+        lead = await db.leads.find_one(
+            {"id": fu["lead_id"]},
+            {"_id": 0, "email": 1, "company": 1, "first_name": 1, "last_name": 1}
+        )
+        if lead:
+            fu["lead_email"] = lead.get("email", "")
+            fu["lead_company"] = lead.get("company", "")
+            if not fu.get("client_name"):
+                fu["client_name"] = lead.get("company") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+    
+    return serialize_doc(fu)
 
 
 @router.put("/{follow_up_id}/update")
