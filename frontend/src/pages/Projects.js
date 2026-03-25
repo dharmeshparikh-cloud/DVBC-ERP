@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Calendar, Users, IndianRupee, ListTodo, UserPlus, PlayCircle, Clock, AlertTriangle, CheckCircle2, RefreshCw, Lock } from 'lucide-react';
+import { Plus, Calendar, Users, IndianRupee, ListTodo, UserPlus, PlayCircle, Clock, AlertTriangle, CheckCircle2, RefreshCw, Lock, FileText, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, isPast } from 'date-fns';
 import ProjectConsultantAssignment from '../components/ProjectConsultantAssignment';
@@ -278,15 +278,18 @@ const Projects = () => {
             <Card
               key={project.id}
               data-testid={`project-card-${project.id}`}
-              className="border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 shadow-none rounded-sm hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+              className="border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 shadow-none rounded-sm hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors cursor-pointer"
+              onClick={() => navigate(`/projects/${project.id}`)}
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg font-semibold text-zinc-950 dark:text-zinc-100">
-                      {project.name || project.project_name}
+                      {project.client_name || project.name}
                     </CardTitle>
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{project.client_name}</div>
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                      {project.name || project.project_name}
+                    </div>
                   </div>
                   {(() => {
                     const badge = getStatusBadge(project.status, getTimelineInfo(project));
@@ -419,8 +422,20 @@ const Projects = () => {
                 )}
 
                 {/* Action Buttons */}
-                <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-2">
+                <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                  {/* SOW Button - Primary Action */}
+                  <Button
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    size="sm"
+                    className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                    data-testid={`sow-btn-${project.id}`}
+                  >
+                    <FileText className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                    SOW
+                  </Button>
+                  
                   <FollowUpActionButton entityType="project" entityId={project.id} clientName={project.client_name || project.name} />
+                  
                   {isProjectReadOnly(project.status) ? (
                     <>
                       <Button
@@ -431,7 +446,7 @@ const Projects = () => {
                         data-testid={`view-details-btn-${project.id}`}
                       >
                         <ListTodo className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                        View Details
+                        Tasks
                       </Button>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded-sm border border-amber-200">
                         <Lock className="w-3.5 h-3.5" />
@@ -440,15 +455,6 @@ const Projects = () => {
                     </>
                   ) : (
                     <>
-                      <Button
-                        onClick={() => navigate(`/projects/${project.id}/kickoff`)}
-                        size="sm"
-                        className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                        data-testid={`kickoff-btn-${project.id}`}
-                      >
-                        <PlayCircle className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                        Kick-off
-                      </Button>
                       <Button
                         onClick={() => navigate(`/projects/${project.id}/tasks`)}
                         size="sm"

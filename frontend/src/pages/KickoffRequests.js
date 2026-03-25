@@ -1350,7 +1350,30 @@ const KickoffRequests = () => {
 
               {/* SOW Tab */}
               <TabsContent value="sow" className="space-y-4">
-                {detailData.sow?.items?.length > 0 ? (
+                {detailData.sow?.scopes?.length > 0 ? (
+                  <div className="space-y-3">
+                    {(detailData?.sow?.scopes || []).map((scope, index) => (
+                      <Card key={scope.id || index}>
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="secondary" className="text-xs">{scope.category_name || scope.category}</Badge>
+                                <span className="font-medium">{scope.name || scope.scope_name}</span>
+                              </div>
+                              {scope.deliverables && (
+                                <div className="mt-2">
+                                  <Label className="text-xs text-zinc-500">Deliverables:</Label>
+                                  <p className="text-sm text-zinc-600 mt-1">{scope.deliverables}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : detailData.sow?.items?.length > 0 ? (
                   <div className="space-y-3">
                     {(detailData?.sow?.items || []).map((item, index) => (
                       <Card key={item.id || index}>

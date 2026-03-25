@@ -72,6 +72,7 @@ const ConsultantExpenses = lazy(() => import('./pages/consulting/ConsultantExpen
 const Consultants = lazy(() => import('./pages/Consultants'));
 const ConsultantDashboard = lazy(() => import('./pages/ConsultantDashboard'));
 const ProjectTasks = lazy(() => import('./pages/ProjectTasks'));
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const HandoverAlerts = lazy(() => import('./pages/HandoverAlerts'));
 const KickoffMeeting = lazy(() => import('./pages/KickoffMeeting'));
 const KickoffRequests = lazy(() => import('./pages/KickoffRequests'));
@@ -331,6 +332,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
         <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
         <Route path="projects/:projectId/payments" element={<ProjectPaymentDetails />} />
+        <Route path="projects/:projectId" element={<ProjectDetail />} />
         <Route path="payments" element={<ProjectPayments />} />
         <Route path="handover-alerts" element={<RoleGuard allowedRoles={['sales_manager', 'principal_consultant', 'lead_consultant', 'project_manager']} allowedDepts={['Sales', 'Consulting']}><HandoverAlerts /></RoleGuard>} />
         <Route path="kickoff-requests" element={<RoleGuard allowedRoles={['sales_manager', 'principal_consultant', 'lead_consultant', 'project_manager']} allowedDepts={['Sales', 'Consulting']}><KickoffRequests /></RoleGuard>} />

@@ -545,10 +545,10 @@ async def get_kickoff_request_details(
     if not pricing_plan and agreement:
         pricing_plan = await db.pricing_plans.find_one({"id": agreement.get("pricing_plan_id")}, {"_id": 0})
     
-    # Get SOW details
+    # Get SOW details - check enhanced_sow first
     sow = None
     if lead_id:
-        sow = await db.enhanced_sows.find_one({"lead_id": lead_id}, {"_id": 0})
+        sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
         if not sow:
             sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0})
     
@@ -599,8 +599,9 @@ async def get_kickoff_request_details(
             "completed": sow is not None,
             "data": {
                 "id": sow.get("id") if sow else None,
-                "scope_items_count": len(sow.get("scope_items", [])) if sow else 0,
-                "deliverables_count": len(sow.get("deliverables", [])) if sow else 0
+                "scopes_count": len(sow.get("scopes", [])) if sow else 0,
+                "scope_items_count": len(sow.get("scopes", [])) if sow else 0,
+                "deliverables_count": sum(len(s.get("deliverables", "").split(",")) for s in sow.get("scopes", [])) if sow else 0
             } if sow else None
         },
         "quotation": {
