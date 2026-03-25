@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 import uuid
 
 # API Configuration
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ai-task-gen.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://unified-sow-builder.preview.emergentagent.com')
 
 # Test Credentials - Verified working credentials
 TEST_CREDENTIALS = {

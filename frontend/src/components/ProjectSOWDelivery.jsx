@@ -13,10 +13,10 @@
  * - TASKS = Execution units under scopes
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { API } from '../App';
+import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -33,8 +33,12 @@ import {
   FileText, Plus, CheckCircle, Clock, AlertCircle, 
   ChevronDown, ChevronRight, Upload, Download, Trash2,
   Edit2, Play, Pause, RotateCcw, Lock, Unlock,
-  ListTodo, ClipboardList, User, Calendar, FileUp, Loader2
+  ListTodo, ClipboardList, User, Calendar, FileUp, Loader2,
+  ThumbsUp, ThumbsDown, AlertTriangle
 } from 'lucide-react';
+
+// Manager roles that can approve NA requests
+const MANAGER_ROLES = ['admin', 'hr_admin', 'principal_consultant', 'manager'];
 
 // Status configurations
 const SOW_STATUSES = {
@@ -451,7 +455,11 @@ const TaskRow = ({ task, onUpdate, onDelete, onUploadProof, permissions, isUploa
 // Main Component
 const ProjectSOWDelivery = ({ projectId }) => {
   const queryClient = useQueryClient();
+  const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('scopes');
+  
+  // Check if current user is a manager who can approve NA requests
+  const isManager = user?.role && MANAGER_ROLES.includes(user.role);
   
   // Fetch PROJECT_SOW
   const { data, isLoading, error } = useQuery({
@@ -467,6 +475,9 @@ const ProjectSOWDelivery = ({ projectId }) => {
   const tasks = data?.tasks || [];
   const proofs = data?.proofs || [];
   const permissions = data?.permissions || {};
+  
+  // Get scopes pending NA approval
+  const pendingNAScopes = projectSow?.scopes?.filter(s => s.status === 'na_pending') || [];
   
   // Mutations
   const updateScopeMutation = useMutation({
@@ -591,6 +602,32 @@ const ProjectSOWDelivery = ({ projectId }) => {
   const handleTaskDelete = (taskId) => {
     if (window.confirm('Delete this task?')) {
       deleteTaskMutation.mutate(taskId);
+    }
+  };
+  
+  // NA Approval Mutation (Manager only)
+  const approveNAMutation = useMutation({
+    mutationFn: async ({ scopeId, approve }) => {
+      const response = await axios.post(
+        `${API}/project-sow-delivery/${projectSow.id}/scope/${scopeId}/approve-na?approve=${approve}`
+      );
+      return response.data;
+    },
+    onSuccess: (data, { approve }) => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success(approve ? 'Scope marked as Not Applicable' : 'NA request rejected');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to process NA request');
+    }
+  });
+  
+  const handleApproveNA = (scopeId, approve) => {
+    if (window.confirm(approve 
+      ? 'Are you sure you want to mark this scope as Not Applicable?' 
+      : 'Are you sure you want to reject this request?'
+    )) {
+      approveNAMutation.mutate({ scopeId, approve });
     }
   };
   
@@ -787,6 +824,58 @@ const ProjectSOWDelivery = ({ projectId }) => {
         </span>
       </div>
       
+      {/* Pending NA Approvals Section - Only visible to managers */}
+      {isManager && pendingNAScopes.length > 0 && (
+        <Card className="border border-amber-200 bg-amber-50">
+          <CardHeader className="py-3 border-b border-amber-200">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <CardTitle className="text-sm font-medium text-amber-800">
+                Pending "Not Applicable" Approvals ({pendingNAScopes.length})
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="py-3">
+            <div className="space-y-2">
+              {pendingNAScopes.map(scope => (
+                <div 
+                  key={scope.id} 
+                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-amber-100"
+                >
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{scope.name}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {scope.category_name} • Requested by: {scope.na_requested_by_name || 'Consultant'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-red-200 text-red-600 hover:bg-red-50"
+                      onClick={() => handleApproveNA(scope.id, false)}
+                      disabled={approveNAMutation.isPending}
+                    >
+                      <ThumbsDown className="w-3 h-3 mr-1" />
+                      Reject
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => handleApproveNA(scope.id, true)}
+                      disabled={approveNAMutation.isPending}
+                    >
+                      <ThumbsUp className="w-3 h-3 mr-1" />
+                      Approve NA
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-zinc-100">
@@ -832,7 +921,7 @@ const ProjectSOWDelivery = ({ projectId }) => {
               isGeneratingTasks={generatingScopeId === scope.id}
               uploadingTaskId={uploadingTaskId}
               permissions={permissions}
-              isManager={user?.role && ['admin', 'hr_admin', 'principal_consultant', 'manager'].includes(user.role)}
+              isManager={isManager}
             />
           ))}
         </TabsContent>

@@ -8,7 +8,7 @@ DUAL APPROVAL FLOW:
 4. Project activated, consultant can be assigned manually
 """
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form
 from fastapi.responses import HTMLResponse
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
@@ -35,7 +35,7 @@ from websocket_manager import get_manager as get_ws_manager
 
 router = APIRouter(prefix="/kickoff-requests", tags=["Kickoff Requests"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://ai-task-gen.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://unified-sow-builder.preview.emergentagent.com").replace("/api", "")
 LOGO_URL = "https://dvconsulting.co.in/wp-content/uploads/2020/02/logov4-min.png"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -1178,7 +1178,7 @@ async def client_approve_kickoff_page(token: str):
 async def client_confirm_approval(
     token: str,
     background_tasks: BackgroundTasks,
-    start_date: str = None
+    start_date: str = Form(None)
 ):
     """
     CLIENT APPROVAL CONFIRMATION - Final step.
@@ -1188,11 +1188,9 @@ async def client_confirm_approval(
     2. Create client user account (ID: 98XXX)
     3. Send welcome email with credentials
     4. Notify all stakeholders
+    5. Auto-creates PROJECT_SOW from SOW_MASTER (locks master SOW)
     """
     db = get_db()
-    
-    # Handle form data
-    from fastapi import Form, Request
     
     kickoff = await db.kickoff_requests.find_one({"client_approval_token": token}, {"_id": 0})
     if not kickoff:
@@ -1224,9 +1222,27 @@ async def client_confirm_approval(
     temp_password = generate_random_password()
     hashed_password = pwd_context.hash(temp_password)
     
-    # Determine confirmed start date
-    confirmed_start = start_date or str(kickoff.get('expected_start_date', ''))[:10]
+    # Determine confirmed start date - with robust validation
+    confirmed_start = None
+    
+    # Try form-submitted start_date first
+    if start_date and start_date not in ['None', 'null', '']:
+        confirmed_start = start_date.strip()[:10]
+    
+    # Fallback to expected_start_date from kickoff
     if not confirmed_start:
+        expected = kickoff.get('expected_start_date')
+        if expected and str(expected) not in ['None', 'null', '']:
+            confirmed_start = str(expected)[:10]
+    
+    # Final fallback to today's date
+    if not confirmed_start or confirmed_start in ['None', 'null', '']:
+        confirmed_start = datetime.now().strftime('%Y-%m-%d')
+    
+    # Validate date format
+    try:
+        datetime.strptime(confirmed_start, "%Y-%m-%d")
+    except ValueError:
         confirmed_start = datetime.now().strftime('%Y-%m-%d')
     
     # Create client user account

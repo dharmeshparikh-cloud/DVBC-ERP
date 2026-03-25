@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://ai-task-gen.preview.emergentagent.com",
+      "value": "https://unified-sow-builder.preview.emergentagent.com",
       "type": "string"
     },
     {

@@ -21,7 +21,7 @@ import random
 import string
 
 # Configuration
-API_URL = "https://ai-task-gen.preview.emergentagent.com"
+API_URL = "https://unified-sow-builder.preview.emergentagent.com"
 ADMIN_CREDENTIALS = {"employee_id": "ADMIN001", "password": "admin123"}
 
 def generate_random_string(length=6):
