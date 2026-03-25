@@ -640,76 +640,56 @@ async def send_follow_up_email(
     # Get lead email
     recipient_email = data.recipient_email
     if not recipient_email and fu.get("lead_id"):
-        lead = await db.leads.find_one({"id": fu["lead_id"]}, {"_id": 0, "email": 1, "first_name": 1, "last_name": 1, "company": 1})
+        lead = await db.leads.find_one({"id": fu["lead_id"]}, {"_id": 0, "email": 1})
         if lead:
             recipient_email = lead.get("email")
     
     if not recipient_email:
         raise HTTPException(status_code=400, detail="No recipient email found. Please provide one or ensure the lead has an email.")
     
-    # Send email using existing email infrastructure
-    import smtplib
-    import os
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
+    # Use the existing async email service
+    from services.email_service import send_email
     
-    try:
-        smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-        smtp_user = os.environ.get("SMTP_USER")
-        smtp_password = os.environ.get("SMTP_PASSWORD")
-        sender_name = os.environ.get("SENDER_NAME", "DVBC NETRA")
-        
-        if not smtp_user or not smtp_password:
-            raise HTTPException(status_code=500, detail="SMTP not configured. Contact admin to set up email.")
-        
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = data.subject
-        msg["From"] = f"{sender_name} <{smtp_user}>"
-        msg["To"] = recipient_email
-        
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            {data.body.replace(chr(10), '<br>')}
-            <br><br>
-            <p style="color: #666; font-size: 12px;">
-                Sent via NETRA CRM by {current_user.full_name}
-            </p>
-        </div>
-        """
-        
-        html_part = MIMEText(html_content, "html")
-        msg.attach(html_part)
-        
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.sendmail(smtp_user, recipient_email, msg.as_string())
-        
-        # Log email in follow-up history
-        now = datetime.now(timezone.utc).isoformat()
-        await db.follow_ups.update_one(
-            {"id": follow_up_id},
-            {"$push": {"history": {
-                "action": "email_sent",
-                "date": now,
-                "by": current_user.full_name,
-                "by_id": current_user.id,
-                "notes": f"Email sent to {recipient_email}: {data.subject}",
-            }},
-            "$set": {"updated_at": now}}
-        )
-        
-        return {
-            "message": f"Email sent to {recipient_email}",
-            "recipient": recipient_email,
-            "subject": data.subject,
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+        {data.body.replace(chr(10), '<br>')}
+        <br><br>
+        <p style="color: #888; font-size: 11px; border-top: 1px solid #eee; padding-top: 10px;">
+            Sent via NETRA CRM by {current_user.full_name}
+        </p>
+    </div>
+    """
+    
+    result = await send_email(
+        to_email=recipient_email,
+        subject=data.subject,
+        html_content=html_content,
+        plain_content=data.body,
+        reply_to=current_user.email if hasattr(current_user, 'email') else None
+    )
+    
+    if result.get("status") == "error":
+        raise HTTPException(status_code=500, detail=result.get("message", "Failed to send email"))
+    
+    # Log email in follow-up history
+    now = datetime.now(timezone.utc).isoformat()
+    await db.follow_ups.update_one(
+        {"id": follow_up_id},
+        {"$push": {"history": {
+            "action": "email_sent",
+            "date": now,
+            "by": current_user.full_name,
+            "by_id": current_user.id,
+            "notes": f"Email sent to {recipient_email}: {data.subject}",
+        }},
+        "$set": {"updated_at": now}}
+    )
+    
+    return {
+        "message": f"Email sent to {recipient_email}",
+        "recipient": recipient_email,
+        "subject": data.subject,
+    }
 
 
 @router.get("/{follow_up_id}/email-template")
