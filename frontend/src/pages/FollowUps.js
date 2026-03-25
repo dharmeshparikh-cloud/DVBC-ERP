@@ -12,12 +12,14 @@ import { toast } from 'sonner';
 import {
   CalendarCheck, DollarSign, Users, Clock, AlertTriangle,
   CheckCircle, Phone, RefreshCw, ChevronRight, X,
-  MessageSquare, UserCheck, ArrowRightLeft, History, Plus, Send, Mail
+  MessageSquare, UserCheck, ArrowRightLeft, History, Plus, Send, Mail,
+  ChevronDown, LayoutList, Users2
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { isManager as checkIsManager } from '../utils/roles';
 import { FollowUpsTable } from '../components/sales';
+import { cn } from '../lib/utils';
 
 const ENTITY_LABELS = {
   lead: 'Lead',
@@ -67,6 +69,8 @@ const FollowUps = () => {
   const [transferAll, setTransferAll] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createForm, setCreateForm] = useState({ entity_type: 'lead', entity_id: '', lead_id: '', client_name: '', due_date: '', due_time: '', notes: '', priority: 'medium' });
+  const [viewMode, setViewMode] = useState('grouped'); // 'table' | 'grouped'
+  const [expandedClients, setExpandedClients] = useState(new Set());
   
   // Email state
   const [showEmailDialog, setShowEmailDialog] = useState(false);
@@ -270,6 +274,41 @@ const FollowUps = () => {
   // Filter and search - still used for stats
   const filteredFollowUps = followUps;
 
+  // Grouped by client
+  const clientGroups = useMemo(() => {
+    const groups = {};
+    (followUps || []).forEach(fu => {
+      const key = fu.client_name || 'Unknown';
+      if (!groups[key]) groups[key] = { client: key, items: [], openCount: 0, closedCount: 0 };
+      groups[key].items.push(fu);
+      if (fu.status === 'open') groups[key].openCount++;
+      else groups[key].closedCount++;
+    });
+    // Sort: clients with open items first, then by name
+    return Object.values(groups).sort((a, b) => {
+      if (a.openCount > 0 && b.openCount === 0) return -1;
+      if (a.openCount === 0 && b.openCount > 0) return 1;
+      return a.client.localeCompare(b.client);
+    });
+  }, [followUps]);
+
+  // Auto-expand clients with open follow-ups on first load
+  useMemo(() => {
+    const openClients = clientGroups.filter(g => g.openCount > 0).map(g => g.client);
+    if (openClients.length > 0 && expandedClients.size === 0) {
+      setExpandedClients(new Set(openClients));
+    }
+  }, [clientGroups]);
+
+  const toggleClient = (client) => {
+    setExpandedClients(prev => {
+      const next = new Set(prev);
+      if (next.has(client)) next.delete(client);
+      else next.add(client);
+      return next;
+    });
+  };
+
   const getDaysLabel = (dateStr) => {
     const due = new Date(dateStr);
     const today = new Date();
@@ -425,51 +464,204 @@ const FollowUps = () => {
         </Card>
       )}
 
-      {/* Filters - Passed as externalFilters to FollowUpsTable */}
-      <div className="flex gap-3 flex-wrap">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32 border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-status-filter">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="open">Open</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
-            <SelectItem value="overdue">Overdue</SelectItem>
-            {isManager && <SelectItem value="escalated">Escalated</SelectItem>}
-          </SelectContent>
-        </Select>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-40 border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-type-filter">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Stages</SelectItem>
-            {Object.entries(ENTITY_LABELS || {}).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Filters + View Toggle */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex gap-3 flex-wrap">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-32 border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-status-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+              {isManager && <SelectItem value="escalated">Escalated</SelectItem>}
+            </SelectContent>
+          </Select>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-40 border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-type-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Stages</SelectItem>
+              {Object.entries(ENTITY_LABELS || {}).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-1 bg-zinc-100 dark:bg-[#222226] rounded-md p-0.5" data-testid="view-mode-toggle">
+          <button
+            onClick={() => setViewMode('grouped')}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all",
+              viewMode === 'grouped' ? 'bg-white dark:bg-[#1A1A1C] shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700'
+            )}
+            data-testid="view-mode-grouped"
+          >
+            <Users2 className="w-3.5 h-3.5" /> By Client
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all",
+              viewMode === 'table' ? 'bg-white dark:bg-[#1A1A1C] shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700'
+            )}
+            data-testid="view-mode-table"
+          >
+            <LayoutList className="w-3.5 h-3.5" /> Table
+          </button>
+        </div>
       </div>
 
-      {/* Follow-ups List - Using SalesDataTable (GOVERNANCE: No manual tables) */}
-      <FollowUpsTable
-        onRowClick={(fu) => openDetail(fu)}
-        onComplete={(fu) => {
-          setSelectedFollowUp(fu);
-          setShowCloseDialog(true);
-        }}
-        onReschedule={(fu) => {
-          setSelectedFollowUp(fu);
-          setShowNextDialog(true);
-        }}
-        externalFilters={{
-          ...(statusFilter && statusFilter !== 'all' && statusFilter !== 'escalated' && statusFilter !== 'overdue' ? { status: statusFilter } : {}),
-          ...(statusFilter === 'overdue' ? { overdue_only: true } : {}),
-          ...(filter !== 'all' ? { entity_type: filter } : {}),
-        }}
-        className="border border-zinc-200 rounded-sm"
-      />
+      {/* Follow-ups View */}
+      {viewMode === 'table' ? (
+        <FollowUpsTable
+          onRowClick={(fu) => openDetail(fu)}
+          onComplete={(fu) => {
+            setSelectedFollowUp(fu);
+            setShowCloseDialog(true);
+          }}
+          onReschedule={(fu) => {
+            setSelectedFollowUp(fu);
+            setShowNextDialog(true);
+          }}
+          externalFilters={{
+            ...(statusFilter && statusFilter !== 'all' && statusFilter !== 'escalated' && statusFilter !== 'overdue' ? { status: statusFilter } : {}),
+            ...(statusFilter === 'overdue' ? { overdue_only: true } : {}),
+            ...(filter !== 'all' ? { entity_type: filter } : {}),
+          }}
+          className="border border-zinc-200 rounded-sm"
+        />
+      ) : (
+        <div className="space-y-3" data-testid="grouped-follow-ups">
+          {clientGroups.length === 0 && (
+            <Card className={dk ? 'bg-[#1A1A1C] border-[#2A2A2E]' : 'bg-white border-zinc-200'}>
+              <CardContent className="py-12 text-center">
+                <p className="text-zinc-400 text-sm">No follow-ups found.</p>
+              </CardContent>
+            </Card>
+          )}
+          {clientGroups.map(group => {
+            const isOpen = expandedClients.has(group.client);
+            return (
+              <Card key={group.client} className={cn("overflow-hidden transition-shadow", dk ? 'bg-[#1A1A1C] border-[#2A2A2E]' : 'bg-white border-zinc-200', isOpen && 'shadow-sm')} data-testid={`client-group-${group.client}`}>
+                {/* Client Header */}
+                <button
+                  onClick={() => toggleClient(group.client)}
+                  className={cn("w-full flex items-center justify-between px-5 py-3.5 text-left transition-colors",
+                    isOpen ? (dk ? 'bg-[#222226]' : 'bg-zinc-50') : 'hover:bg-zinc-50 dark:hover:bg-[#222226]'
+                  )}
+                  data-testid={`client-toggle-${group.client}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ChevronDown className={cn("w-4 h-4 text-zinc-400 transition-transform", isOpen ? '' : '-rotate-90')} />
+                    <span className="font-semibold text-zinc-900 dark:text-white text-sm">{group.client}</span>
+                    <span className="text-xs text-zinc-400">({group.items.length} follow-up{group.items.length !== 1 ? 's' : ''})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {group.openCount > 0 && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200">{group.openCount} open</span>
+                    )}
+                    {group.closedCount > 0 && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 font-medium border border-zinc-200">{group.closedCount} closed</span>
+                    )}
+                  </div>
+                </button>
+                {/* Expanded Rows */}
+                {isOpen && (
+                  <div className="border-t border-zinc-100 dark:border-[#2A2A2E]">
+                    {/* Compact Header Row */}
+                    <div className={cn("grid grid-cols-12 gap-2 px-5 py-2 text-[10px] font-semibold uppercase tracking-wider",
+                      dk ? 'text-zinc-500 bg-[#1A1A1C]' : 'text-zinc-400 bg-zinc-50/50'
+                    )}>
+                      <div className="col-span-2">Type</div>
+                      <div className="col-span-3">Notes</div>
+                      <div className="col-span-2">Due Date</div>
+                      <div className="col-span-1">Priority</div>
+                      <div className="col-span-1">Client</div>
+                      <div className="col-span-1">Status</div>
+                      <div className="col-span-2 text-right">Actions</div>
+                    </div>
+                    {group.items
+                      .sort((a, b) => (a.status === 'open' ? -1 : 1) - (b.status === 'open' ? -1 : 1) || new Date(a.due_date) - new Date(b.due_date))
+                      .map(fu => {
+                        const dueDate = fu.due_date ? new Date(fu.due_date) : null;
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        const isOverdue = dueDate && dueDate < today && fu.status === 'open';
+                        const isDueToday = dueDate && dueDate.toDateString() === today.toDateString();
+                        const clientAction = (fu.history || []).filter(h => h.action?.startsWith('client_')).pop();
+                        const priorityColors = { high: 'bg-red-50 text-red-700', medium: 'bg-yellow-50 text-yellow-700', low: 'bg-green-50 text-green-700' };
+
+                        return (
+                          <div
+                            key={fu.id}
+                            onClick={() => openDetail(fu)}
+                            className={cn("grid grid-cols-12 gap-2 px-5 py-2.5 items-center cursor-pointer border-t transition-colors text-sm",
+                              dk ? 'border-[#2A2A2E] hover:bg-[#222226]' : 'border-zinc-100 hover:bg-zinc-50',
+                              fu.status === 'closed' && 'opacity-60'
+                            )}
+                            data-testid={`followup-row-${fu.id}`}
+                          >
+                            <div className="col-span-2">
+                              <span className={cn("text-[11px] px-2 py-0.5 rounded font-medium capitalize", ENTITY_COLORS[fu.entity_type] || 'bg-zinc-100 text-zinc-600')}>
+                                {ENTITY_LABELS[fu.entity_type] || fu.entity_type}
+                              </span>
+                            </div>
+                            <div className="col-span-3">
+                              <span className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-1">{fu.notes || '-'}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className={cn("text-xs px-2 py-0.5 rounded",
+                                isOverdue && "bg-red-50 text-red-700 font-medium",
+                                isDueToday && !isOverdue && "bg-yellow-50 text-yellow-700",
+                                !isOverdue && !isDueToday && "text-zinc-600"
+                              )}>
+                                {dueDate ? dueDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '-'}
+                              </span>
+                            </div>
+                            <div className="col-span-1">
+                              <span className={cn("text-[11px] px-2 py-0.5 rounded capitalize", priorityColors[fu.priority] || priorityColors.medium)}>
+                                {fu.priority || 'Medium'}
+                              </span>
+                            </div>
+                            <div className="col-span-1">
+                              {clientAction?.action === 'client_closed' ? (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 font-medium">Confirmed</span>
+                              ) : clientAction?.action === 'client_reschedule' ? (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">Reschedule</span>
+                              ) : (
+                                <span className="text-[10px] text-zinc-400">—</span>
+                              )}
+                            </div>
+                            <div className="col-span-1">
+                              <span className={cn("text-[11px] px-2 py-0.5 rounded capitalize",
+                                fu.status === 'open' ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-zinc-500'
+                              )}>
+                                {fu.status || 'Open'}
+                              </span>
+                            </div>
+                            <div className="col-span-2 flex justify-end gap-1">
+                              {fu.status !== 'closed' && (
+                                <>
+                                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-green-600 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); setSelectedFollowUp(fu); setShowCloseDialog(true); }} data-testid={`complete-btn-${fu.id}`}>
+                                    <CheckCircle className="w-3 h-3 mr-1" /> Close
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-zinc-500 hover:bg-zinc-100" onClick={(e) => { e.stopPropagation(); setSelectedFollowUp(fu); setShowNextDialog(true); }} data-testid={`reschedule-btn-${fu.id}`}>
+                                    <RefreshCw className="w-3 h-3 mr-1" /> Next
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
