@@ -3,16 +3,38 @@ Follow-ups Router — Centralized follow-up system across all funnel stages.
 Supports: create, update, close, schedule-next, history, escalation, reassignment.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 import uuid
+import os
 
 from .deps import get_db
 from .deps import get_current_user
 from .models import User
+from fastapi import Response
 
 router = APIRouter(prefix="/follow-ups", tags=["Follow-ups"])
+
+# D&V Logo storage path
+DV_LOGO_STORAGE_PATH = "netra-erp/assets/dv-logo.png"
+
+@router.get("/assets/logo.png", include_in_schema=False)
+async def serve_logo():
+    """Public endpoint to serve D&V logo for emails."""
+    import requests as sync_requests
+    STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+    EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+    try:
+        init_resp = sync_requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=10)
+        storage_key = init_resp.json()["storage_key"]
+        resp = sync_requests.get(f"{STORAGE_URL}/objects/{DV_LOGO_STORAGE_PATH}", headers={"X-Storage-Key": storage_key}, timeout=30)
+        resp.raise_for_status()
+        return Response(content=resp.content, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+    except Exception:
+        # Fallback to existing web logo
+        return Response(status_code=302, headers={"Location": "https://dvconsulting.co.in/wp-content/uploads/2020/02/logov4-min.png"})
 
 VALID_ENTITY_TYPES = ["lead", "meeting", "pricing_plan", "sow", "quotation", "agreement", "payment", "kickoff", "project"]
 
@@ -650,13 +672,67 @@ async def send_follow_up_email(
     # Use the existing async email service
     from services.email_service import send_email
     
+    # Build branded HTML email with D&V logo and styled CTA buttons
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
+    if not base_url:
+        base_url = "https://sales-table-refactor.preview.emergentagent.com"
+    close_link = f"{base_url}/api/follow-ups/{follow_up_id}/client-action?action=close"
+    reschedule_link = f"{base_url}/api/follow-ups/{follow_up_id}/client-action?action=reschedule"
+    logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
+    
+    # Convert plain text body to clean paragraphs, strip CTA/link lines
+    body_lines = data.body.strip().split('\n')
+    body_html_parts = []
+    skip_keywords = ['client-action?action=', 'Confirm & Close', 'Reschedule Follow-up:', 'All Good - Close:', 'Need More Time -', 'To confirm', 'To request', 'If everything is aligned', 'If you need to reschedule']
+    for line in body_lines:
+        stripped = line.strip()
+        if any(kw in stripped for kw in skip_keywords):
+            continue
+        if stripped == '':
+            body_html_parts.append('<br>')
+        else:
+            body_html_parts.append(f'<p style="margin: 0 0 6px 0; color: #374151; font-size: 15px; line-height: 1.7;">{stripped}</p>')
+    
+    body_html = '\n'.join(body_html_parts)
+    sender_name = current_user.full_name
+    
     html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
-        {data.body.replace(chr(10), '<br>')}
-        <br><br>
-        <p style="color: #888; font-size: 11px; border-top: 1px solid #eee; padding-top: 10px;">
-            Sent via NETRA CRM by {current_user.full_name}
-        </p>
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+        <!-- Logo Header - White Background -->
+        <div style="padding: 28px 32px 20px 32px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+            <img src="{logo_url}" alt="D&V Business Consulting" style="max-height: 52px; width: auto;" />
+        </div>
+        
+        <!-- Body -->
+        <div style="padding: 32px 36px 20px 36px;">
+            {body_html}
+        </div>
+        
+        <!-- CTA Buttons -->
+        <div style="padding: 8px 36px 36px 36px; text-align: center;">
+            <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 14px;">How would you like to proceed?</p>
+            <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                <tr>
+                    <td style="padding-right: 14px;">
+                        <a href="{close_link}" style="display: inline-block; background: #059669; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600;">Looks Good, Confirm</a>
+                    </td>
+                    <td>
+                        <a href="{reschedule_link}" style="display: inline-block; background: #ffffff; color: #b45309; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-size: 14px; font-weight: 600; border: 2px solid #d97706;">Reschedule</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Signature -->
+        <div style="padding: 20px 36px; border-top: 1px solid #f0f0f0;">
+            <p style="margin: 0; color: #111827; font-size: 14px; font-weight: 600;">{sender_name}</p>
+            <p style="margin: 2px 0 0 0; color: #9ca3af; font-size: 13px;">D&amp;V Business Consulting</p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #f9fafb; padding: 14px 36px; text-align: center;">
+            <p style="margin: 0; color: #b0b7c3; font-size: 10px;">D&amp;V Business Consulting &bull; Sent via NETRA</p>
+        </div>
     </div>
     """
     
@@ -755,14 +831,16 @@ async def client_follow_up_action(
     response_text: Optional[str] = None,
 ):
     """Public endpoint for client CTA buttons in emails.
-    No auth required - uses follow_up_id as token."""
+    No auth required - uses follow_up_id as token.
+    Returns a branded HTML response page."""
     db = get_db()
     
     fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
     if not fu:
-        raise HTTPException(status_code=404, detail="Follow-up not found")
+        return HTMLResponse(content=_build_action_page("Not Found", "This follow-up could not be found.", "error"), status_code=404)
     
     now = datetime.now(timezone.utc).isoformat()
+    client_name = fu.get("client_name", "Client")
     
     if action == "close":
         await db.follow_ups.update_one(
@@ -775,7 +853,11 @@ async def client_follow_up_action(
                 "notes": response_text or "Client confirmed closure via email CTA",
             }}}
         )
-        return {"message": "Follow-up closed successfully. Thank you for confirming!", "action": "closed"}
+        return HTMLResponse(content=_build_action_page(
+            "Confirmed!",
+            f"Thank you, {client_name}. Your confirmation has been recorded and the follow-up has been closed. Our team has been notified.",
+            "success"
+        ))
     
     elif action == "reschedule":
         await db.follow_ups.update_one(
@@ -788,12 +870,65 @@ async def client_follow_up_action(
                 "notes": response_text or "Client requested reschedule via email CTA",
             }}}
         )
-        return {"message": "Reschedule request received. Our team will contact you shortly.", "action": "reschedule_requested"}
+        return HTMLResponse(content=_build_action_page(
+            "Reschedule Requested",
+            f"Thank you, {client_name}. Your request to reschedule has been received. Our team will reach out to you shortly with new available times.",
+            "reschedule"
+        ))
     
     else:
-        return {"message": "Follow-up acknowledged", "action": "viewed", "follow_up": {
-            "client_name": fu.get("client_name"),
-            "due_date": fu.get("due_date"),
-            "notes": fu.get("notes"),
-            "status": fu.get("status"),
-        }}
+        return HTMLResponse(content=_build_action_page(
+            "Follow-up Details",
+            f"Client: {client_name}<br>Status: {fu.get('status', 'open').title()}<br>Notes: {fu.get('notes', '-')}",
+            "info"
+        ))
+
+
+def _build_action_page(title: str, message: str, action_type: str) -> str:
+    """Build a branded HTML response page for client actions with D&V logo."""
+    colors = {
+        "success": {"bg": "#059669", "icon": "&#10003;", "accent": "#ecfdf5", "border": "#a7f3d0"},
+        "reschedule": {"bg": "#d97706", "icon": "&#128197;", "accent": "#fffbeb", "border": "#fde68a"},
+        "error": {"bg": "#dc2626", "icon": "&#10007;", "accent": "#fef2f2", "border": "#fecaca"},
+        "info": {"bg": "#2563eb", "icon": "&#8505;", "accent": "#eff6ff", "border": "#bfdbfe"},
+    }
+    c = colors.get(action_type, colors["info"])
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-table-refactor.preview.emergentagent.com").rstrip("/")
+    logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
+    
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title} — D&V Business Consulting</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #f4f5f7; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }}
+        .card {{ background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 480px; width: 100%; overflow: hidden; }}
+        .header {{ padding: 28px 32px 20px; text-align: center; border-bottom: 1px solid #f0f0f0; }}
+        .header img {{ max-height: 48px; width: auto; }}
+        .body {{ padding: 40px 32px; text-align: center; }}
+        .icon {{ width: 72px; height: 72px; border-radius: 50%; background: {c['accent']}; border: 2px solid {c['border']}; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 32px; color: {c['bg']}; }}
+        .body h1 {{ font-size: 24px; color: #111827; margin-bottom: 14px; font-weight: 700; }}
+        .body p {{ color: #6b7280; font-size: 15px; line-height: 1.7; }}
+        .footer {{ padding: 16px 32px; background: #f9fafb; border-top: 1px solid #f0f0f0; text-align: center; }}
+        .footer p {{ color: #b0b7c3; font-size: 11px; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <img src="{logo_url}" alt="D&V Business Consulting" />
+        </div>
+        <div class="body">
+            <div class="icon">{c['icon']}</div>
+            <h1>{title}</h1>
+            <p>{message}</p>
+        </div>
+        <div class="footer">
+            <p>D&amp;V Business Consulting &bull; Powered by NETRA</p>
+        </div>
+    </div>
+</body>
+</html>"""
