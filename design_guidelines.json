@@ -1,124 +1,171 @@
 {
-  "project_name": "NETRA ERP Login Redesign",
+  "project_name": "NETRA ERP - SOW Module",
   "design_philosophy": {
-    "identity": "The Glass Citadel",
-    "core_principles": [
-      "Trust through Clarity: No hidden elements, clear hierarchy.",
-      "Growth & Vision: Emerald greens symbolize growth; the design feels expansive.",
-      "Tactile Precision: Inputs and buttons feel physical and responsive."
+    "theme": "Enterprise Precision",
+    "core_values": [
+      "Clarity over decoration",
+      "Density with breathability",
+      "Action-oriented layouts"
     ],
-    "mood": "Professional, Secure, Modern, Fluid"
+    "aesthetic": "Zinc & White. High contrast text, subtle borders, no shadows unless for elevation (modals/popovers)."
   },
   "typography": {
-    "font_family": {
-      "headings": "Inter, sans-serif",
-      "body": "Inter, sans-serif",
-      "data_inputs": "JetBrains Mono, monospace"
-    },
+    "font_family_primary": "Inter, sans-serif",
+    "font_family_code": "JetBrains Mono, monospace",
     "scale": {
-      "h1": "text-4xl md:text-5xl font-semibold tracking-tight",
-      "h2": "text-3xl font-medium tracking-tight",
-      "h3": "text-xl font-medium text-emerald-900",
-      "body_lg": "text-lg text-zinc-600 leading-relaxed",
-      "body_sm": "text-sm text-zinc-500 font-medium",
-      "label": "text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2 block"
+      "h1": "text-2xl font-semibold tracking-tight text-zinc-900",
+      "h2": "text-lg font-medium tracking-tight text-zinc-900",
+      "h3": "text-base font-medium text-zinc-900",
+      "body": "text-sm text-zinc-600 leading-relaxed",
+      "body_small": "text-xs text-zinc-500",
+      "label": "text-[11px] uppercase tracking-wider font-semibold text-zinc-500",
+      "metric": "text-2xl font-bold tracking-tight text-zinc-900"
     }
   },
   "colors": {
-    "palette": {
-      "background": {
-        "page": "bg-zinc-50",
-        "panel_right": "bg-emerald-950",
-        "glass_card": "bg-white/10 backdrop-blur-md border border-white/10"
-      },
-      "primary": {
-        "main": "bg-emerald-600",
-        "hover": "hover:bg-emerald-700",
-        "text": "text-emerald-600"
-      },
-      "text": {
-        "primary": "text-zinc-900",
-        "secondary": "text-zinc-500",
-        "inverse": "text-white"
-      },
-      "border": {
-        "default": "border-zinc-200",
-        "focus": "ring-emerald-500/20"
-      }
+    "background": {
+      "page": "bg-zinc-50/50",
+      "card": "bg-white",
+      "header": "bg-white/80 backdrop-blur-md border-b border-zinc-200"
     },
-    "gradients": {
-      "vision_panel": "bg-gradient-to-br from-emerald-900 via-emerald-950 to-zinc-950"
+    "border": {
+      "default": "border-zinc-200",
+      "active": "border-zinc-400",
+      "selected": "border-zinc-900"
+    },
+    "text": {
+      "primary": "text-zinc-900",
+      "secondary": "text-zinc-500",
+      "tertiary": "text-zinc-400",
+      "link": "text-zinc-900 hover:text-zinc-700 underline underline-offset-4 decoration-zinc-300"
+    },
+    "status": {
+      "draft": {
+        "bg": "bg-zinc-100",
+        "text": "text-zinc-700",
+        "border": "border-zinc-200"
+      },
+      "pending": {
+        "bg": "bg-amber-50",
+        "text": "text-amber-700",
+        "border": "border-amber-200"
+      },
+      "approved": {
+        "bg": "bg-emerald-50",
+        "text": "text-emerald-700",
+        "border": "border-emerald-200"
+      },
+      "rejected": {
+        "bg": "bg-rose-50",
+        "text": "text-rose-700",
+        "border": "border-rose-200"
+      }
     }
   },
-  "layout": {
-    "structure": "Grid Layout (Mobile: 1 col, Desktop: 12 cols)",
-    "desktop_split": "Left: 5 cols (Form), Right: 7 cols (Vision Panel)",
-    "container_padding": "p-6 md:p-12 lg:p-24",
-    "z_index": {
-      "base": "z-0",
-      "content": "z-10",
-      "overlay": "z-20",
-      "modal": "z-50"
-    }
+  "layout_structure": {
+    "page_container": "max-w-[1600px] mx-auto p-6 space-y-6",
+    "header_grid": "grid grid-cols-1 md:grid-cols-4 gap-4",
+    "main_content": "grid grid-cols-12 gap-6 h-[calc(100vh-200px)]",
+    "sidebar": "col-span-12 lg:col-span-3 space-y-6",
+    "work_area": "col-span-12 lg:col-span-9 flex flex-col gap-4"
   },
   "components": {
-    "button": {
-      "base": "h-12 px-8 rounded-lg font-medium transition-all duration-300 transform active:scale-95",
-      "primary": "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/40 hover:-translate-y-0.5",
-      "secondary": "bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300",
-      "ghost": "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+    "SOWSummaryHeader": {
+      "path": "src/components/sow/SOWSummaryHeader.js",
+      "description": "Bento-grid style metrics summary.",
+      "structure": [
+        {
+          "label": "Total Value",
+          "value": "$142,500",
+          "trend": "+12% vs target",
+          "icon": "DollarSign"
+        },
+        {
+          "label": "Duration",
+          "value": "14 Weeks",
+          "sub": "Start: Oct 12",
+          "icon": "CalendarClock"
+        },
+        {
+          "label": "Effort",
+          "value": "840 Hrs",
+          "sub": "4 Consultants",
+          "icon": "Users"
+        },
+        {
+          "label": "Margin",
+          "value": "32%",
+          "trend": "Healthy",
+          "icon": "TrendingUp",
+          "highlight": true
+        }
+      ]
     },
-    "input": {
-      "wrapper": "relative group",
-      "field": "h-12 w-full rounded-lg border border-zinc-200 bg-white px-4 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-200 font-medium",
-      "label_floating": "absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none transition-all duration-200 group-focus-within:-translate-y-[28px] group-focus-within:text-xs group-focus-within:text-emerald-600 bg-white px-1"
+    "TemplateSelector": {
+      "path": "src/components/sow/TemplateSelector.js",
+      "description": "Horizontal scroll or grid of template cards.",
+      "style": "Card with 'group' hover state. Icon expands on hover.",
+      "variants": ["Time & Materials", "Fixed Bid", "Retainer", "Managed Service"]
     },
-    "card": {
-      "glass": "rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-8"
+    "EnhancedTable": {
+      "path": "src/components/sow/SOWTable.js",
+      "features": [
+        "Draggable Rows (dnd-kit)",
+        "Inline Edit Inputs",
+        "Progress Bar column for 'Completion'",
+        "Avatar group for 'Assignees'",
+        "Status Badge"
+      ],
+      "row_style": "group hover:bg-zinc-50/50 transition-colors border-b border-zinc-100 last:border-0"
+    },
+    "GanttView": {
+      "path": "src/components/sow/SOWGantt.js",
+      "library": "frappe-gantt or react-gantt-timeline",
+      "customization": "Override default blue/orange bars with Zinc (completed) and Striped Zinc (planned) patterns."
     }
   },
-  "visual_enhancers": {
-    "texture": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")",
-    "shadows": {
-      "soft": "shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
-      "glow": "shadow-[0_0_50px_-12px_rgb(16,185,129,0.25)]"
-    },
-    "images": {
-      "logo_url": "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png",
-      "background_texture": "https://images.unsplash.com/photo-1765207373297-9c562a2521d0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBvZmZpY2UlMjBhcmNoaXRlY3R1cmUlMjBhYnN0cmFjdCUyMGJsdXIlMjBtaW5pbWFsfGVufDB8fHx8MTc3Mjg1MzEzNXww&ixlib=rb-4.1.0&q=85"
-    }
+  "mock_data_structure": {
+    "sow_items": [
+      {
+        "id": "item-1",
+        "category": "Discovery",
+        "task": "Stakeholder Interviews",
+        "role": "Principal Consultant",
+        "hours": 40,
+        "rate": 250,
+        "total": 10000,
+        "start_date": "2024-10-12",
+        "end_date": "2024-10-19",
+        "status": "completed"
+      },
+      {
+        "id": "item-2",
+        "category": "Design",
+        "task": "Solution Architecture Blueprint",
+        "role": "Solution Architect",
+        "hours": 80,
+        "rate": 220,
+        "total": 17600,
+        "start_date": "2024-10-20",
+        "end_date": "2024-11-03",
+        "status": "in-progress"
+      }
+    ]
   },
-  "motion": {
-    "entrance": {
-      "initial": { "opacity": 0, "y": 20 },
-      "animate": { "opacity": 1, "y": 0 },
-      "transition": { "duration": 0.6, "ease": [0.22, 1, 0.36, 1] }
-    },
-    "hover": {
-      "scale": 1.02
-    }
-  },
-  "accessibility": {
-    "focus_visible": "focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2",
-    "contrast_check": "Ensure text-zinc-500 is only used on white backgrounds. Use text-zinc-400 for placeholders only."
-  },
-  "instructions_to_main_agent": [
-    "INSTALL: `npm install framer-motion` or `yarn add framer-motion` for the animations.",
-    "LAYOUT: Use a min-h-screen flex col md:grid md:grid-cols-12 overflow-hidden.",
-    "LEFT PANEL (Cols 1-5): Flex col justify-center p-8 md:p-12 relative z-10 bg-zinc-50.",
-    "RIGHT PANEL (Cols 6-12): Relative hidden md:flex flex-col justify-center items-center bg-emerald-950 overflow-hidden.",
-    "RIGHT PANEL BACKGROUND: Apply the 'background_texture' image with `mix-blend-overlay` and opacity-20. Add the SVG noise texture on top.",
-    "RIGHT PANEL CONTENT: Create a 'Glass Stack' of features. Use the provided glass_card style. Rotate cards slightly for a 'tossed' look.",
-    "LOGO: Place the logo at the top left of the Left Panel (w-32).",
-    "FORM: Center the form vertically in the Left Panel. Max width 420px.",
-    "INPUTS: Use the 'Floating Label' style defined in components.input.",
-    "TESTING: Add data-testid to ALL interactive elements (e.g., 'login-email-input', 'login-submit-button')."
+  "universal_guidelines": [
+    "Use 'Sonner' for all success/error toasts.",
+    "No gradients. Use solid colors and borders.",
+    "Input fields should be 'h-9' (compact) rather than 'h-10' default for density.",
+    "Buttons should have 'shadow-sm' but no large drop shadows.",
+    "All monetary values must be right-aligned in tables.",
+    "Dates must be formatted as 'MMM dd, yyyy' (e.g., Oct 12, 2024).",
+    "Interactive elements must have 'data-testid' attributes."
   ],
-  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
-    "Do not use gradients for dark solid colors.",
-    "Avoid centering text in the main form; keep it left-aligned for readability.",
-    "Use 'JetBrains Mono' for the Employee ID field to distinguish it from regular text.",
-    "Ensure the Google Login button is styled as 'Secondary' but with the Google icon.",
-    "Use `lucide-react` for icons (Lock, User, Check, Eye, EyeOff)."
-  ]
+  "image_assets": {
+    "user_avatars": [
+      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+    ]
+  }
 }
