@@ -114,8 +114,8 @@ const FollowUps = () => {
   const { data: leads = [] } = useQuery({
     queryKey: ['leads-for-followup-create'],
     queryFn: async () => {
-      const res = await axios.get(`${API}/leads`);
-      return Array.isArray(res.data) ? res.data : res.data?.items || [];
+      const res = await axios.get(`${API}/leads?page_size=500`);
+      return Array.isArray(res.data) ? res.data : res.data?.data || res.data?.items || [];
     },
     enabled: showCreateDialog,
   });
