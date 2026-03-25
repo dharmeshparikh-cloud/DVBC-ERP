@@ -2,6 +2,28 @@
 
 ## Latest Updates - March 25, 2026
 
+### Global Export Permission (RBAC) - Session 11 continued
+- **Permission Added**: `system.can_export_data` - Global toggle controlling ALL downloads/exports across ERP
+- **Implementation**:
+  - Backend: Added to `FEATURE_FLAGS` in `/app/backend/routers/permissions.py`
+  - RBAC Seeder: Added to `hr_manager`, `sales_manager`, `manager`, `principal_consultant` roles
+  - Frontend Context: Added `canExportData()` function to `PermissionContext.js`
+  - UI Components Updated:
+    - `SalesDataTable.jsx` - Export button shows Lock icon when disabled
+    - `Reports.js` - Excel/PDF download buttons show Lock icon when disabled
+    - `PayrollEngine.js` - Export CSV/Excel buttons show Lock icon when disabled
+- **Permission Matrix**:
+  | Role | Has Export Permission |
+  |------|----------------------|
+  | Admin | ✅ (via wildcard *) |
+  | HR Manager | ✅ |
+  | Sales Manager | ✅ |
+  | Manager | ✅ |
+  | Principal Consultant | ✅ |
+  | Sales Executive | ❌ |
+  | Employee | ❌ |
+- **Testing**: 100% backend (9/9) and frontend pass rate (iteration_226.json)
+
 ### P2 - Saved Views & Export to CSV for SalesDataTable (Session 11 continued)
 - **Saved Views Feature**:
   - Added `useSavedViews` hook that persists custom views to localStorage per table
