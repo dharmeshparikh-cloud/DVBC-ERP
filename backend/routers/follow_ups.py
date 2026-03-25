@@ -194,12 +194,12 @@ async def list_follow_ups(
     
     # Overdue filter
     if overdue_only:
-        query["due_date"] = {"$lt": datetime.utcnow()}
+        query["due_date"] = {"$lt": datetime.now(timezone.utc)}
         query["status"] = "open"
     
     # Due date filters
     if due_date == "TODAY":
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
         query["due_date"] = {"$gte": today_start, "$lt": today_end}
     elif due_from or due_to:
@@ -215,8 +215,8 @@ async def list_follow_ups(
         search_regex = {"$regex": search, "$options": "i"}
         query["$or"] = [
             {"notes": search_regex},
-            {"entity_name": search_regex},
-            {"action_type": search_regex}
+            {"client_name": search_regex},
+            {"assigned_to_name": search_regex}
         ]
     
     # Sorting
@@ -262,7 +262,7 @@ async def get_today_follow_ups(current_user: User = Depends(get_current_user)):
     """Get follow-ups due today for dashboard widget. Includes overdue items."""
     db = get_db()
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
 
@@ -324,7 +324,7 @@ async def get_escalated_follow_ups(current_user: User = Depends(get_current_user
     if not is_manager:
         raise HTTPException(status_code=403, detail="Only managers can view escalations")
 
-    cutoff = datetime.utcnow() - timedelta(days=2)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=2)
 
     query = {
         "status": "open",
@@ -345,7 +345,7 @@ async def get_escalated_follow_ups(current_user: User = Depends(get_current_user
     escalated = await db.follow_ups.find(query, {"_id": 0}).sort("due_date", 1).to_list(100)
 
     # Compute days overdue
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for fu in escalated:
         due = fu.get("due_date")
         try:
@@ -475,6 +475,12 @@ async def schedule_next_follow_up(follow_up_id: str, data: ScheduleNextFollowUp,
     if fu.get("status") == "closed":
         raise HTTPException(status_code=400, detail="This follow-up is already closed. Cannot schedule next.")
 
+    # Governance: Next due date must not be in the past
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    due_date_utc = data.due_date.replace(tzinfo=timezone.utc) if data.due_date.tzinfo is None else data.due_date
+    if due_date_utc < today_start:
+        raise HTTPException(status_code=400, detail="Next due date cannot be in the past.")
+
     # Close current
     close_entry = {
         "action": "closed_with_next",
@@ -520,8 +526,8 @@ async def schedule_next_follow_up(follow_up_id: str, data: ScheduleNextFollowUp,
             "due_date": data.due_date.isoformat(),
             "previous_follow_up_id": follow_up_id,
         }],
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
         "closed_at": None,
         "last_follow_up_summary": fu.get("last_follow_up_summary"),
     }
@@ -551,6 +557,9 @@ async def reassign_follow_up(follow_up_id: str, data: ReassignFollowUp, current_
     fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
     if not fu:
         raise HTTPException(status_code=404, detail="Follow-up not found")
+    
+    if fu.get("status") == "closed":
+        raise HTTPException(status_code=400, detail="Cannot reassign a closed follow-up.")
 
     # Get new owner info
     new_owner = await db.users.find_one({"id": data.new_owner_id}, {"_id": 0, "id": 1, "full_name": 1})
@@ -693,6 +702,9 @@ async def send_follow_up_email(
     
     if not recipient_email:
         raise HTTPException(status_code=400, detail="No recipient email found. Please provide one or ensure the lead has an email.")
+    
+    if fu.get("status") == "closed":
+        raise HTTPException(status_code=400, detail="Cannot send email for a closed follow-up.")
     
     # Use the existing async email service
     from services.email_service import send_email
@@ -961,6 +973,12 @@ async def client_follow_up_action(
         return HTMLResponse(content=_build_action_page("Confirmed!", details, "success"))
     
     elif action == "reschedule":
+        # Guard: already closed
+        if fu.get("status") == "closed":
+            details = f"Hi {client_name}, this follow-up has already been confirmed and cannot be rescheduled."
+            if due_display:
+                details += f"<br><br><div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;'><p style='margin:0 0 4px 0;color:#166534;font-size:12px;font-weight:600;'>Confirmed Schedule</p><p style='margin:0;color:#15803d;font-size:15px;font-weight:600;'>{due_display}</p></div>"
+            return HTMLResponse(content=_build_action_page("Already Confirmed", details, "success"))
         # Show a date/time picker form instead of instant confirmation
         base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-email-cta.preview.emergentagent.com").rstrip("/")
         submit_url = f"{base_url}/api/follow-ups/{follow_up_id}/client-reschedule"
@@ -982,6 +1000,9 @@ async def client_reschedule_submit(follow_up_id: str, request: Request):
     fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
     if not fu:
         return HTMLResponse(content=_build_action_page("Not Found", "This follow-up could not be found.", "error"), status_code=404)
+    
+    if fu.get("status") == "closed":
+        return HTMLResponse(content=_build_action_page("Already Confirmed", "This follow-up has already been confirmed and cannot be rescheduled.", "success"))
     
     # Parse form data
     form = await request.form()
