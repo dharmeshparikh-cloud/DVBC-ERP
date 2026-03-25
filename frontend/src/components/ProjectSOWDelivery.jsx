@@ -13,7 +13,7 @@
  * - TASKS = Execution units under scopes
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { API } from '../App';
@@ -60,7 +60,11 @@ const ScopeCard = ({
   onTaskCreate, 
   onTaskUpdate, 
   onTaskDelete,
-  permissions 
+  onAIGenerateTasks,
+  onUploadProof,
+  permissions,
+  isGeneratingTasks,
+  uploadingTaskId
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
@@ -166,15 +170,31 @@ const ScopeCard = ({
                   TASKS ({scopeTasks.length})
                 </p>
                 {permissions.can_manage_tasks && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 text-xs"
-                    onClick={() => setShowTaskDialog(true)}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Add Task
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                      onClick={() => onAIGenerateTasks(scope.id)}
+                      disabled={isGeneratingTasks}
+                    >
+                      {isGeneratingTasks ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      ) : (
+                        <span className="mr-1">✨</span>
+                      )}
+                      AI Suggest
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 text-xs"
+                      onClick={() => setShowTaskDialog(true)}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add Task
+                    </Button>
+                  </div>
                 )}
               </div>
               
@@ -188,7 +208,9 @@ const ScopeCard = ({
                       task={task} 
                       onUpdate={onTaskUpdate}
                       onDelete={onTaskDelete}
+                      onUploadProof={onUploadProof}
                       permissions={permissions}
+                      isUploading={uploadingTaskId === task.id}
                     />
                   ))}
                 </div>
@@ -238,9 +260,21 @@ const ScopeCard = ({
   );
 };
 
-// Task Row Component
-const TaskRow = ({ task, onUpdate, onDelete, permissions }) => {
+// Task Row Component with Proof Upload
+const TaskRow = ({ task, onUpdate, onDelete, onUploadProof, permissions, isUploading }) => {
   const statusConfig = TASK_STATUSES[task.status] || TASK_STATUSES.open;
+  const fileInputRef = useRef(null);
+  
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onUploadProof(task.id, file);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
   
   return (
     <div className="flex items-center justify-between p-2 bg-zinc-50 rounded text-sm group">
@@ -291,9 +325,36 @@ const TaskRow = ({ task, onUpdate, onDelete, permissions }) => {
           </Badge>
         )}
         
+        {/* Proof upload button */}
+        {permissions.can_manage_tasks && (
+          <>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-zinc-400 hover:text-emerald-600"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              title="Upload proof"
+            >
+              {isUploading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Upload className="w-3 h-3" />
+              )}
+            </Button>
+          </>
+        )}
+        
         {/* Proof indicator */}
         {task.proofs?.length > 0 && (
-          <Badge variant="outline" className="text-[10px] px-1">
+          <Badge variant="outline" className="text-[10px] px-1 bg-emerald-50 text-emerald-600 border-emerald-200">
             <FileUp className="w-2.5 h-2.5 mr-0.5" />
             {task.proofs.length}
           </Badge>
@@ -394,9 +455,36 @@ const ProjectSOWDelivery = ({ projectId }) => {
     }
   });
   
+  // AI Generate Tasks Mutation
+  const [generatingScopeId, setGeneratingScopeId] = useState(null);
+  const aiGenerateTasksMutation = useMutation({
+    mutationFn: async (scopeId) => {
+      const response = await axios.post(
+        `${API}/project-sow-delivery/${projectSow.id}/scope/${scopeId}/ai-generate-tasks`
+      );
+      return response.data;
+    },
+    onMutate: (scopeId) => {
+      setGeneratingScopeId(scopeId);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success(`Generated ${data.tasks?.length || 0} AI-suggested tasks`);
+      setGeneratingScopeId(null);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to generate tasks');
+      setGeneratingScopeId(null);
+    }
+  });
+  
   // Handlers
   const handleScopeStatusChange = (scopeId, status) => {
     updateScopeMutation.mutate({ scopeId, status });
+  };
+  
+  const handleAIGenerateTasks = (scopeId) => {
+    aiGenerateTasksMutation.mutate(scopeId);
   };
   
   const handleTaskCreate = (scopeId, taskData) => {
@@ -411,6 +499,98 @@ const ProjectSOWDelivery = ({ projectId }) => {
     if (window.confirm('Delete this task?')) {
       deleteTaskMutation.mutate(taskId);
     }
+  };
+  
+  // Proof Upload Mutation
+  const [uploadingTaskId, setUploadingTaskId] = useState(null);
+  const uploadProofMutation = useMutation({
+    mutationFn: async ({ taskId, file }) => {
+      // First upload file to storage
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const uploadResponse = await axios.post(
+        `${API}/storage/upload?folder=proofs`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      const fileData = uploadResponse.data.file;
+      
+      // Then register proof with SOW
+      const proofResponse = await axios.post(`${API}/project-sow-delivery/proofs`, {
+        entity_type: 'task',
+        entity_id: taskId,
+        file_url: fileData.file_url,
+        file_name: fileData.original_filename,
+        file_type: fileData.content_type,
+        file_size: fileData.size
+      });
+      
+      return proofResponse.data;
+    },
+    onMutate: ({ taskId }) => {
+      setUploadingTaskId(taskId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success('Proof uploaded successfully');
+      setUploadingTaskId(null);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to upload proof');
+      setUploadingTaskId(null);
+    }
+  });
+  
+  // SOW-level proof upload
+  const [uploadingSOWProof, setUploadingSOWProof] = useState(false);
+  const uploadSOWProofMutation = useMutation({
+    mutationFn: async (file) => {
+      // First upload file to storage
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const uploadResponse = await axios.post(
+        `${API}/storage/upload?folder=proofs`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      const fileData = uploadResponse.data.file;
+      
+      // Then register proof with SOW
+      const proofResponse = await axios.post(`${API}/project-sow-delivery/proofs`, {
+        entity_type: 'project_sow',
+        entity_id: projectSow.id,
+        file_url: fileData.file_url,
+        file_name: fileData.original_filename,
+        file_type: fileData.content_type,
+        file_size: fileData.size
+      });
+      
+      return proofResponse.data;
+    },
+    onMutate: () => {
+      setUploadingSOWProof(true);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success('SOW proof uploaded successfully');
+      setUploadingSOWProof(false);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to upload proof');
+      setUploadingSOWProof(false);
+    }
+  });
+  
+  const handleUploadProof = (taskId, file) => {
+    uploadProofMutation.mutate({ taskId, file });
+  };
+  
+  const handleUploadSOWProof = (file) => {
+    uploadSOWProofMutation.mutate(file);
   };
   
   // Loading state
@@ -542,6 +722,10 @@ const ProjectSOWDelivery = ({ projectId }) => {
               onTaskCreate={handleTaskCreate}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
+              onAIGenerateTasks={handleAIGenerateTasks}
+              onUploadProof={handleUploadProof}
+              isGeneratingTasks={generatingScopeId === scope.id}
+              uploadingTaskId={uploadingTaskId}
               permissions={permissions}
             />
           ))}
@@ -580,6 +764,17 @@ const ProjectSOWDelivery = ({ projectId }) => {
         {/* Proofs Tab */}
         <TabsContent value="proofs" className="mt-4">
           <Card className="border border-zinc-200">
+            <CardHeader className="py-3 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">SOW-Level Proofs</CardTitle>
+                {permissions.can_manage_tasks && (
+                  <SOWProofUploader 
+                    onUpload={handleUploadSOWProof} 
+                    isUploading={uploadingSOWProof} 
+                  />
+                )}
+              </div>
+            </CardHeader>
             <CardContent className="py-4">
               {proofs.length === 0 ? (
                 <div className="text-center py-8">
@@ -594,7 +789,7 @@ const ProjectSOWDelivery = ({ projectId }) => {
                   {proofs.map(proof => (
                     <div key={proof.id} className="flex items-center justify-between p-2 bg-zinc-50 rounded">
                       <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-zinc-400" />
+                        <FileText className="w-4 h-4 text-emerald-500" />
                         <div>
                           <p className="text-sm">{proof.file_name}</p>
                           <p className="text-xs text-zinc-500">
@@ -616,6 +811,47 @@ const ProjectSOWDelivery = ({ projectId }) => {
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+// SOW Proof Uploader Component
+const SOWProofUploader = ({ onUpload, isUploading }) => {
+  const fileInputRef = useRef(null);
+  
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onUpload(file);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  return (
+    <>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        className="hidden"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif"
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 text-xs"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isUploading}
+      >
+        {isUploading ? (
+          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+        ) : (
+          <Upload className="w-3 h-3 mr-1" />
+        )}
+        Upload Proof
+      </Button>
+    </>
   );
 };
 

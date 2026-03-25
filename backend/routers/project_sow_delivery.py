@@ -574,6 +574,128 @@ async def update_scope_status(
     return {"message": f"Scope status updated to {status.value}", "overall_status": overall_status}
 
 
+@router.post("/{project_sow_id}/scope/{scope_id}/ai-generate-tasks")
+async def ai_generate_tasks_for_scope(
+    project_sow_id: str,
+    scope_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generate AI-suggested tasks for a specific scope item.
+    Tasks are created automatically and marked as AI-generated.
+    """
+    import os
+    import httpx
+    
+    if not can_execute_tasks(current_user.role):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    db = get_db()
+    
+    # Get PROJECT_SOW and scope
+    project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0})
+    if not project_sow:
+        raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
+    
+    scope = None
+    for s in project_sow.get("scopes", []):
+        if s.get("id") == scope_id:
+            scope = s
+            break
+    
+    if not scope:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    
+    # Call AI suggestion endpoint internally
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+        if not EMERGENT_LLM_KEY:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Build prompt
+        prompt_parts = [
+            f"Generate 3-5 specific, actionable tasks for the following consulting scope item:",
+            f"",
+            f"SCOPE: {scope.get('name', '')}",
+        ]
+        
+        if scope.get("description"):
+            prompt_parts.append(f"DESCRIPTION: {scope.get('description')}")
+        
+        if scope.get("category_name"):
+            prompt_parts.append(f"CATEGORY: {scope.get('category_name')}")
+        
+        if scope.get("deliverables"):
+            prompt_parts.append(f"EXPECTED DELIVERABLES: {', '.join(scope.get('deliverables', []))}")
+        
+        if scope.get("timeline_weeks"):
+            prompt_parts.append(f"TIMELINE: {scope.get('timeline_weeks')} weeks")
+        
+        prompt_parts.extend([
+            "",
+            "For each task, provide:",
+            "- A clear, action-oriented title (max 10 words)",
+            "- A brief description of what needs to be done (1-2 sentences)",
+            "",
+            "Output format (JSON array):",
+            '[{"title": "Task title here", "description": "Task description here"}, ...]',
+            "",
+            "Output ONLY the JSON array, no explanations or markdown."
+        ])
+        
+        full_prompt = "\n".join(prompt_parts)
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"sow-tasks-{uuid.uuid4().hex[:8]}",
+            system_message="You are a consulting project manager assistant. Generate specific, actionable tasks for consulting engagements. Output only valid JSON arrays.",
+        )
+        chat.with_model("openai", "gpt-5.2")
+        
+        response = await chat.send_message(UserMessage(text=full_prompt))
+        
+        # Clean response and parse JSON
+        import json
+        clean = response.strip()
+        if clean.startswith("```"):
+            clean = clean.split("```")[1]
+            if clean.startswith("json"):
+                clean = clean[4:]
+        clean = clean.strip()
+        
+        tasks_data = json.loads(clean)
+        if not isinstance(tasks_data, list):
+            tasks_data = [tasks_data]
+        
+        # Create tasks in database
+        created_tasks = []
+        for task_data in tasks_data[:5]:  # Max 5 tasks
+            if isinstance(task_data, dict) and task_data.get("title"):
+                task = SOWTask(
+                    project_sow_id=project_sow_id,
+                    scope_id=scope_id,
+                    title=task_data.get("title", "")[:100],
+                    description=task_data.get("description", "")[:500],
+                    is_ai_generated=True,
+                    created_by=current_user.id,
+                    created_by_name=current_user.full_name
+                )
+                await db.sow_tasks.insert_one(task.model_dump())
+                created_tasks.append({"id": task.id, "title": task.title})
+        
+        return {
+            "message": f"Generated {len(created_tasks)} AI-suggested tasks",
+            "tasks": created_tasks
+        }
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Failed to parse AI response")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Task generation failed: {str(e)}")
+
+
 # ============== TASK CRUD ==============
 
 @router.post("/{project_sow_id}/tasks")

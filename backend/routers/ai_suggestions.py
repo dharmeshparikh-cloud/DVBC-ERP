@@ -50,7 +50,17 @@ CONTEXT_PROMPTS = {
     "action_items": "Transform these into clear, assignable action items with professional language:",
     "client_expectations": "Polish these client expectations into clear, well-articulated points:",
     "key_commitments": "Rewrite these commitments in clear, professional language that shows accountability:",
+    "sow_tasks": "Generate specific, actionable tasks for the following scope of work item. Each task should be concrete and completable within 1-2 weeks:",
 }
+
+
+class SOWTaskGenerationRequest(BaseModel):
+    """Request to generate tasks for a SOW scope item"""
+    scope_name: str
+    scope_description: Optional[str] = ""
+    deliverables: Optional[list] = []
+    category: Optional[str] = ""
+    timeline_weeks: Optional[int] = None
 
 
 @router.post("/suggest")
@@ -98,3 +108,113 @@ async def get_ai_suggestion(data: SuggestionRequest, current_user: User = Depend
         return {"suggestion": clean}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI suggestion failed: {str(e)}")
+
+
+@router.post("/generate-sow-tasks")
+async def generate_sow_tasks(data: SOWTaskGenerationRequest, current_user: User = Depends(get_current_user)):
+    """
+    Generate AI-suggested tasks for a SOW scope item.
+    
+    This is used when:
+    1. PROJECT_SOW is created from kickoff (auto-generate initial tasks)
+    2. User clicks "Suggest Tasks" on a scope item
+    
+    Returns a list of task suggestions with titles and descriptions.
+    """
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    if not data.scope_name:
+        raise HTTPException(status_code=400, detail="Scope name is required")
+    
+    # Build prompt
+    prompt_parts = [
+        f"Generate 3-5 specific, actionable tasks for the following consulting scope item:",
+        f"",
+        f"SCOPE: {data.scope_name}"
+    ]
+    
+    if data.scope_description:
+        prompt_parts.append(f"DESCRIPTION: {data.scope_description}")
+    
+    if data.category:
+        prompt_parts.append(f"CATEGORY: {data.category}")
+    
+    if data.deliverables:
+        prompt_parts.append(f"EXPECTED DELIVERABLES: {', '.join(data.deliverables)}")
+    
+    if data.timeline_weeks:
+        prompt_parts.append(f"TIMELINE: {data.timeline_weeks} weeks")
+    
+    prompt_parts.extend([
+        "",
+        "For each task, provide:",
+        "- A clear, action-oriented title (max 10 words)",
+        "- A brief description of what needs to be done (1-2 sentences)",
+        "",
+        "Output format (JSON array):",
+        '[{"title": "Task title here", "description": "Task description here"}, ...]',
+        "",
+        "Output ONLY the JSON array, no explanations or markdown."
+    ])
+    
+    full_prompt = "\n".join(prompt_parts)
+    
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"sow-tasks-{uuid.uuid4().hex[:8]}",
+            system_message="You are a consulting project manager assistant. Generate specific, actionable tasks for consulting engagements. Output only valid JSON arrays.",
+        )
+        chat.with_model("openai", "gpt-5.2")
+        
+        response = await chat.send_message(UserMessage(text=full_prompt))
+        
+        # Clean response and parse JSON
+        clean = response.strip()
+        # Remove any markdown code blocks
+        if clean.startswith("```"):
+            clean = clean.split("```")[1]
+            if clean.startswith("json"):
+                clean = clean[4:]
+        clean = clean.strip()
+        
+        import json
+        try:
+            tasks = json.loads(clean)
+            if not isinstance(tasks, list):
+                tasks = [tasks]
+            
+            # Validate and clean tasks
+            validated_tasks = []
+            for task in tasks:
+                if isinstance(task, dict) and task.get("title"):
+                    validated_tasks.append({
+                        "title": task.get("title", "")[:100],  # Max 100 chars
+                        "description": task.get("description", "")[:500],  # Max 500 chars
+                        "is_ai_generated": True
+                    })
+            
+            return {"tasks": validated_tasks, "count": len(validated_tasks)}
+            
+        except json.JSONDecodeError:
+            # Fallback: parse line by line if JSON fails
+            lines = clean.split("\n")
+            tasks = []
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith("[") and not line.startswith("]"):
+                    # Try to extract title from line
+                    if line.startswith("-"):
+                        line = line[1:].strip()
+                    if line:
+                        tasks.append({
+                            "title": line[:100],
+                            "description": "",
+                            "is_ai_generated": True
+                        })
+            
+            return {"tasks": tasks[:5], "count": len(tasks[:5])}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Task generation failed: {str(e)}")

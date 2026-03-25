@@ -732,6 +732,10 @@ api_router.include_router(business_governance_router.router)
 from routers import ai_suggestions as ai_suggestions_router
 api_router.include_router(ai_suggestions_router.router)
 
+from routers import storage as storage_router
+api_router.include_router(storage_router.router)
+
+
 
 # WebSocket for real-time updates (under /api prefix for proper routing through ingress)
 from routers import websocket_router

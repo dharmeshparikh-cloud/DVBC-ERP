@@ -35,13 +35,114 @@ from websocket_manager import get_manager as get_ws_manager
 
 router = APIRouter(prefix="/kickoff-requests", tags=["Kickoff Requests"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-meeting-fix.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://ai-task-gen.preview.emergentagent.com").replace("/api", "")
 LOGO_URL = "https://dvconsulting.co.in/wp-content/uploads/2020/02/logov4-min.png"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # ============== HELPER FUNCTIONS ==============
+
+async def auto_create_project_sow(db, project_id: str, lead_id: str, approved_by_id: str, approved_by_name: str):
+    """
+    Auto-create PROJECT_SOW from SOW_MASTER when kickoff is approved.
+    
+    This function:
+    1. Finds the SOW_MASTER (enhanced_sow) for the lead
+    2. Locks the SOW_MASTER
+    3. Creates PROJECT_SOW with copied scopes
+    
+    Called automatically when client approves kickoff.
+    """
+    try:
+        # Find SOW_MASTER for this lead
+        sow_master = await db.enhanced_sow.find_one(
+            {"lead_id": lead_id}, 
+            {"_id": 0}
+        )
+        
+        if not sow_master:
+            # No SOW exists for this lead - skip PROJECT_SOW creation
+            print(f"[PROJECT_SOW] No SOW_MASTER found for lead {lead_id}")
+            return None
+        
+        sow_master_id = sow_master.get("id")
+        
+        # Check if PROJECT_SOW already exists for this project
+        existing = await db.project_sow.find_one({"project_id": project_id}, {"_id": 0})
+        if existing:
+            print(f"[PROJECT_SOW] Already exists for project {project_id}")
+            return existing.get("id")
+        
+        # Get lead info for client name
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        client_name = lead.get("company") if lead else None
+        
+        # Copy scopes from master to delivery layer
+        master_scopes = sow_master.get("scopes", [])
+        delivery_scopes = []
+        
+        for scope in master_scopes:
+            delivery_scope = {
+                "id": str(uuid.uuid4()),
+                "original_scope_id": scope.get("id", str(uuid.uuid4())),
+                "name": scope.get("name", ""),
+                "description": scope.get("description"),
+                "category_id": scope.get("category_id", ""),
+                "category_code": scope.get("category_code", ""),
+                "category_name": scope.get("category_name", ""),
+                "domain": scope.get("category_code"),
+                "timeline_weeks": scope.get("timeline_weeks"),
+                "assigned_consultant_id": scope.get("assigned_consultant_id"),
+                "assigned_consultant_name": scope.get("assigned_consultant_name"),
+                "deliverables": scope.get("deliverables", []),
+                "status": "open",
+                "progress_percentage": 0.0,
+                "is_customized": False
+            }
+            delivery_scopes.append(delivery_scope)
+        
+        # Create PROJECT_SOW
+        project_sow_id = str(uuid.uuid4())
+        project_sow_doc = {
+            "id": project_sow_id,
+            "sow_master_id": sow_master_id,
+            "project_id": project_id,
+            "lead_id": lead_id,
+            "client_name": client_name,
+            "scopes": delivery_scopes,
+            "status": "open",
+            "created_from_kickoff": True,
+            "created_by": approved_by_id,
+            "created_by_name": approved_by_name,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "reopen_count": 0
+        }
+        
+        await db.project_sow.insert_one(project_sow_doc)
+        
+        # Lock the SOW_MASTER
+        await db.enhanced_sow.update_one(
+            {"id": sow_master_id},
+            {
+                "$set": {
+                    "is_locked": True,
+                    "locked_at": datetime.now(timezone.utc).isoformat(),
+                    "locked_by": approved_by_id,
+                    "project_id": project_id,
+                    "consulting_kickoff_complete": True,
+                    "consulting_kickoff_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        
+        print(f"[PROJECT_SOW] Created {project_sow_id} from SOW_MASTER {sow_master_id} for project {project_id}")
+        return project_sow_id
+        
+    except Exception as e:
+        print(f"[PROJECT_SOW] Error creating PROJECT_SOW: {str(e)}")
+        return None
 
 async def generate_project_id(db) -> str:
     """Generate Project ID in format: PROJ-YYYYMMDD-XXXX"""
@@ -1206,6 +1307,22 @@ async def client_confirm_approval(
                 "client_approved_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
+        )
+    
+    # AUTO-CREATE PROJECT_SOW from SOW_MASTER (Delivery Layer)
+    # This locks the SOW_MASTER and creates the delivery copy for consulting
+    project_sow_id = await auto_create_project_sow(
+        db=db,
+        project_id=project_id,
+        lead_id=kickoff.get("lead_id"),
+        approved_by_id=kickoff.get("internal_approved_by"),
+        approved_by_name=kickoff.get("internal_approved_by_name", "System")
+    )
+    if project_sow_id:
+        # Update project with project_sow reference
+        await db.projects.update_one(
+            {"id": project_id},
+            {"$set": {"project_sow_id": project_sow_id}}
         )
     
     # AUTO-CREATE CLIENT MASTER from Lead data (when kickoff is accepted)

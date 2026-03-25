@@ -14,7 +14,7 @@ from typing import Dict, List, Any
 import calendar
 
 # Configuration
-API_BASE = "https://sales-meeting-fix.preview.emergentagent.com/api"
+API_BASE = "https://ai-task-gen.preview.emergentagent.com/api"
 
 # Test credentials
 CREDENTIALS = {
