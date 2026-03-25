@@ -1,6 +1,13 @@
 # NETRA ERP - Product Requirements Document
 
-## Latest Updates - March 24, 2026
+## Latest Updates - March 25, 2026
+
+### Bug Fixes - Leads Page (Session 8)
+- Fixed "View Pipeline" action: now navigates to `/sales-funnel-onboarding?leadId=X` (was pointing to non-existent route)
+- Fixed "Edit Lead" action: added missing `editLead` state, dialog now pre-fills with lead data
+- Fixed lead row click: navigates to funnel onboarding page (was going directly to pricing)
+- Added **Funnel Progress column** to LeadsTable showing visual progress bar with stage label and step count (e.g., "Lead 1/9")
+- Fixed `stopPropagation` on actions column to prevent row click interference
 
 ### Sales Module Governance System (COMPLETE) [March 24, Session 6]
 
@@ -43,29 +50,18 @@
 **Phase 4: Migration Complete** [March 25, Session 7-8]:
 | Page | Before | After |
 |------|--------|-------|
-| `Leads.js` (List view) | Manual `<table>` with `.map()` | `LeadsTable` (SalesDataTable) |
+| `Leads.js` (List view) | Manual `<table>` with `.map()` | `LeadsTable` (SalesDataTable) with Funnel column |
 | `ManagerLeadsDashboard.js` | Manual leads table | `LeadsTable` with external filters |
 | `Agreements.js` | Manual list/card | `AgreementsTable` (SalesDataTable) |
 | `ProformaInvoice.js` | Manual list | `ProformaInvoiceTable` (SalesDataTable) |
 | `SalesSOWList.js` | Manual `<table>` | `SOWTable` (SalesDataTable) |
 | `FollowUps.js` | Card-based `.map()` list | `FollowUpsTable` (SalesDataTable) |
 
-**Additional Backend Standardization** [March 25, Session 8]:
-| API | Update |
-|-----|--------|
-| `/api/agreements` | Now returns paginated `{ data, total, page, page_size, total_pages }` with search, sorting, filters |
-| `/api/enhanced-sow/list` | Now returns paginated response with search, status, category filters |
-
-**Specialized Sales Tables Updated**:
-| Component | Purpose |
-|-----------|---------|
-| `AgreementsTable.jsx` | Agreement tracking with type/status filters |
-| `ProformaInvoiceTable.jsx` | Proforma invoice management |
-| `SOWTable.jsx` | SOW tracking with scope/status filters |
-
-**Test Reports**: 
-- `/app/test_reports/iteration_217.json` - Agreements/PI/SOW migration: 100% pass
-- `/app/test_reports/iteration_218.json` - FollowUps migration + regression: 100% pass
+**Bug Fixes** [March 25, Session 8]:
+- Leads page: View Pipeline, Edit Lead actions, row click navigation, Funnel column added
+- Agreements API: standardized to paginated response
+- Enhanced SOW API: standardized to paginated response  
+- SOWTable: fixed endpoint from `/api/sow` to `/api/enhanced-sow/list`
 
 ---
 
