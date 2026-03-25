@@ -12,7 +12,7 @@ GOVERNANCE: March 2026
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 import uuid
 
@@ -306,11 +306,28 @@ async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_
 async def get_leads(
     status: Optional[str] = None,
     assigned_to: Optional[str] = None,
+    search: Optional[str] = Query(None, description="Search in name, company, email"),
+    source: Optional[str] = Query(None, description="Lead source filter"),
+    industry: Optional[str] = Query(None, description="Industry filter"),
+    deal_value_min: Optional[float] = Query(None, description="Minimum deal value"),
+    deal_value_max: Optional[float] = Query(None, description="Maximum deal value"),
+    created_from: Optional[str] = Query(None, description="Created date from (YYYY-MM-DD)"),
+    created_to: Optional[str] = Query(None, description="Created date to (YYYY-MM-DD)"),
+    days_since_activity: Optional[int] = Query(None, description="Days since last activity (stuck deals)"),
+    sort_field: Optional[str] = Query("created_at", description="Sort field"),
+    sort_direction: Optional[str] = Query("desc", description="Sort direction (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE, description="Items per page"),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all leads with optional filters and pagination.
+    """Get all leads with advanced filters and pagination.
+    
+    SALES DATATABLE API - Supports Excel-like filtering:
+    - Text search: name, company, email
+    - Dropdown filters: status, assigned_to, source, industry
+    - Range filters: deal_value_min/max
+    - Date range: created_from/to
+    - Stuck deals: days_since_activity
     
     Access: sales_*, admin
     
@@ -318,10 +335,6 @@ async def get_leads(
     - Admin: sees all leads
     - HR Manager: sees all leads  
     - Manager/Executive: sees own leads + team leads (reportees)
-    
-    Pagination:
-    - page: Page number (default: 1)
-    - page_size: Items per page (default: 100, max: 1000)
     """
     db = get_db()
     
@@ -331,10 +344,55 @@ async def get_leads(
         raise HTTPException(status_code=403, detail="Access denied. Only sales team and admin can view leads.")
     
     query = {}
+    
+    # Basic filters
     if status:
         query['status'] = status
     if assigned_to:
         query['assigned_to'] = assigned_to
+    if source:
+        query['source'] = source
+    if industry:
+        query['industry'] = industry
+    
+    # Text search (case-insensitive)
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [
+            {"first_name": search_regex},
+            {"last_name": search_regex},
+            {"company": search_regex},
+            {"email": search_regex},
+            {"phone": search_regex}
+        ]
+    
+    # Deal value range
+    if deal_value_min is not None or deal_value_max is not None:
+        value_query = {}
+        if deal_value_min is not None:
+            value_query["$gte"] = deal_value_min
+        if deal_value_max is not None:
+            value_query["$lte"] = deal_value_max
+        query["deal_value"] = value_query
+    
+    # Date range filter
+    if created_from or created_to:
+        date_query = {}
+        if created_from:
+            date_query["$gte"] = datetime.fromisoformat(created_from + "T00:00:00")
+        if created_to:
+            date_query["$lte"] = datetime.fromisoformat(created_to + "T23:59:59")
+        query["created_at"] = date_query
+    
+    # Stuck deals filter (no activity in X days)
+    if days_since_activity:
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_since_activity)
+        query["$and"] = query.get("$and", []) + [
+            {"$or": [
+                {"updated_at": {"$lt": cutoff_date}},
+                {"updated_at": {"$exists": False}}
+            ]}
+        ]
     
     # RBAC Migration: Data scoping by role and hierarchy
     hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=False) or ['admin', 'hr_manager']
@@ -372,15 +430,21 @@ async def get_leads(
                 {"created_by": {"$in": user_ids_to_include}}
             ]
     
+    # Sorting
+    sort_order = -1 if sort_direction == "desc" else 1
+    valid_sort_fields = ["created_at", "updated_at", "company", "status", "deal_value", "first_name"]
+    if sort_field not in valid_sort_fields:
+        sort_field = "created_at"
+    
     # Pagination
-    params = PaginationParams(page=page, page_size=page_size, sort_by="created_at")
+    params = PaginationParams(page=page, page_size=page_size, sort_by=sort_field, sort_order=sort_direction)
     
     # Get total count and paginated results
     total = await db.leads.count_documents(query)
     leads = await db.leads.find(
         query, 
         {"_id": 0}
-    ).sort("created_at", -1).skip(params.skip).limit(params.page_size).to_list(params.page_size)
+    ).sort(sort_field, sort_order).skip(params.skip).limit(params.page_size).to_list(params.page_size)
     
     for lead in leads:
         if isinstance(lead.get('created_at'), str):
@@ -390,7 +454,14 @@ async def get_leads(
         if lead.get('enriched_at') and isinstance(lead['enriched_at'], str):
             lead['enriched_at'] = datetime.fromisoformat(lead['enriched_at'])
     
-    return paginate_response(leads, total, params)
+    # Return standardized response for SalesDataTable
+    return {
+        "data": leads,
+        "total": total,
+        "page": params.page,
+        "page_size": params.page_size,
+        "total_pages": (total + params.page_size - 1) // params.page_size if total > 0 else 1
+    }
 
 
 @router.get("/all")

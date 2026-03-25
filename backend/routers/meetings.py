@@ -5,7 +5,7 @@ Sends email notifications when MOM is filled
 Auto-prompts for travel expense after in-person meeting delivery
 """
 
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks, Query
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 import uuid
@@ -180,21 +180,75 @@ async def create_meeting(meeting_create: MeetingCreate, current_user: User = Dep
     return meeting
 
 
-@router.get("", response_model=List[Meeting])
+@router.get("")
 async def get_meetings(
     project_id: Optional[str] = None,
     meeting_type: Optional[str] = None,
+    lead_id: Optional[str] = Query(None, description="Filter by lead ID"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    search: Optional[str] = Query(None, description="Search in title, client"),
+    date_from: Optional[str] = Query(None, description="Meeting date from (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="Meeting date to (YYYY-MM-DD)"),
+    assigned_to: Optional[str] = Query(None, description="Filter by assigned user"),
+    sort_field: Optional[str] = Query("meeting_date", description="Sort field"),
+    sort_direction: Optional[str] = Query("desc", description="Sort direction (asc/desc)"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=500, description="Items per page"),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all meetings with optional filters."""
+    """Get all meetings with filters, sorting, and pagination.
+    
+    SALES DATATABLE API - Supports Excel-like filtering.
+    """
     db = get_db()
     query = {}
+    
+    # Basic filters
     if project_id:
         query['project_id'] = project_id
     if meeting_type:
         query['type'] = meeting_type
-
-    meetings = await db.meetings.find(query, {"_id": 0}).to_list(1000)
+    if lead_id:
+        query['lead_id'] = lead_id
+    if status:
+        query['status'] = status
+    if assigned_to:
+        query['$or'] = [
+            {"scheduled_by": assigned_to},
+            {"created_by": assigned_to},
+            {"attendees": assigned_to}
+        ]
+    
+    # Text search
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = query.get("$or", []) + [
+            {"title": search_regex},
+            {"client_name": search_regex},
+            {"project_name": search_regex}
+        ]
+    
+    # Date range
+    if date_from or date_to:
+        date_query = {}
+        if date_from:
+            date_query["$gte"] = datetime.fromisoformat(date_from + "T00:00:00")
+        if date_to:
+            date_query["$lte"] = datetime.fromisoformat(date_to + "T23:59:59")
+        query["meeting_date"] = date_query
+    
+    # Sorting
+    sort_order = -1 if sort_direction == "desc" else 1
+    valid_sort_fields = ["meeting_date", "created_at", "title", "status"]
+    if sort_field not in valid_sort_fields:
+        sort_field = "meeting_date"
+    
+    # Pagination
+    skip = (page - 1) * page_size
+    
+    # Get total and paginated data
+    total = await db.meetings.count_documents(query)
+    meetings = await db.meetings.find(query, {"_id": 0}).sort(sort_field, sort_order).skip(skip).limit(page_size).to_list(page_size)
 
     for meeting in meetings:
         if isinstance(meeting.get('meeting_date'), str):
@@ -202,7 +256,13 @@ async def get_meetings(
         if isinstance(meeting.get('created_at'), str):
             meeting['created_at'] = datetime.fromisoformat(meeting['created_at'])
 
-    return meetings
+    return {
+        "data": meetings,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size if total > 0 else 1
+    }
 
 
 @router.get("/lead/{lead_id}")

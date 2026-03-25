@@ -2,7 +2,7 @@
 Follow-ups Router — Centralized follow-up system across all funnel stages.
 Supports: create, update, close, schedule-next, history, escalation, reassignment.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -130,9 +130,21 @@ async def list_follow_ups(
     entity_type: Optional[str] = None,
     assigned_to: Optional[str] = None,
     overdue_only: bool = False,
+    search: Optional[str] = Query(None, description="Search in notes, entity name"),
+    due_date: Optional[str] = Query(None, description="Filter by due date (YYYY-MM-DD or TODAY)"),
+    due_from: Optional[str] = Query(None, description="Due date from (YYYY-MM-DD)"),
+    due_to: Optional[str] = Query(None, description="Due date to (YYYY-MM-DD)"),
+    priority: Optional[str] = Query(None, description="Filter by priority"),
+    sort_field: Optional[str] = Query("due_date", description="Sort field"),
+    sort_direction: Optional[str] = Query("asc", description="Sort direction (asc/desc)"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=500, description="Items per page"),
     current_user: User = Depends(get_current_user),
 ):
-    """List follow-ups with filters."""
+    """List follow-ups with filters, sorting, and pagination.
+    
+    SALES DATATABLE API - Supports Excel-like filtering.
+    """
     db = get_db()
     query = {}
 
@@ -149,12 +161,56 @@ async def list_follow_ups(
         query["status"] = status
     if entity_type:
         query["entity_type"] = entity_type
+    if priority:
+        query["priority"] = priority
+    
+    # Overdue filter
     if overdue_only:
         query["due_date"] = {"$lt": datetime.utcnow()}
         query["status"] = "open"
-
-    follow_ups = await db.follow_ups.find(query, {"_id": 0}).sort("due_date", 1).to_list(500)
-    return serialize_list(follow_ups)
+    
+    # Due date filters
+    if due_date == "TODAY":
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        query["due_date"] = {"$gte": today_start, "$lt": today_end}
+    elif due_from or due_to:
+        date_query = {}
+        if due_from:
+            date_query["$gte"] = datetime.fromisoformat(due_from + "T00:00:00")
+        if due_to:
+            date_query["$lte"] = datetime.fromisoformat(due_to + "T23:59:59")
+        query["due_date"] = date_query
+    
+    # Text search
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [
+            {"notes": search_regex},
+            {"entity_name": search_regex},
+            {"action_type": search_regex}
+        ]
+    
+    # Sorting
+    sort_order = 1 if sort_direction == "asc" else -1
+    valid_sort_fields = ["due_date", "created_at", "status", "priority", "entity_type"]
+    if sort_field not in valid_sort_fields:
+        sort_field = "due_date"
+    
+    # Pagination
+    skip = (page - 1) * page_size
+    
+    # Get total and paginated data
+    total = await db.follow_ups.count_documents(query)
+    follow_ups = await db.follow_ups.find(query, {"_id": 0}).sort(sort_field, sort_order).skip(skip).limit(page_size).to_list(page_size)
+    
+    return {
+        "data": serialize_list(follow_ups),
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size if total > 0 else 1
+    }
 
 
 @router.get("/dashboard/today")

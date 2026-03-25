@@ -3,7 +3,7 @@ Quotations Router - Quotation/Proforma Invoice creation and management.
 Sends email notification when proforma is generated.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 import uuid
@@ -140,9 +140,21 @@ async def create_quotation(
 async def get_quotations(
     lead_id: Optional[str] = None,
     status: Optional[str] = None,
+    search: Optional[str] = Query(None, description="Search in title, client name"),
+    created_from: Optional[str] = Query(None, description="Created date from (YYYY-MM-DD)"),
+    created_to: Optional[str] = Query(None, description="Created date to (YYYY-MM-DD)"),
+    value_min: Optional[float] = Query(None, description="Minimum quotation value"),
+    value_max: Optional[float] = Query(None, description="Maximum quotation value"),
+    sort_field: Optional[str] = Query("created_at", description="Sort field"),
+    sort_direction: Optional[str] = Query("desc", description="Sort direction (asc/desc)"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=500, description="Items per page"),
     current_user: User = Depends(get_current_user)
 ):
-    """Get quotations with filters"""
+    """Get quotations with filters, sorting, and pagination.
+    
+    SALES DATATABLE API - Supports Excel-like filtering.
+    """
     db = get_db()
     
     query = {}
@@ -151,8 +163,53 @@ async def get_quotations(
     if status:
         query["status"] = status
     
-    quotations = await db.quotations.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
-    return quotations
+    # Text search
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [
+            {"title": search_regex},
+            {"client_name": search_regex},
+            {"company_name": search_regex}
+        ]
+    
+    # Date range
+    if created_from or created_to:
+        date_query = {}
+        if created_from:
+            date_query["$gte"] = datetime.fromisoformat(created_from + "T00:00:00")
+        if created_to:
+            date_query["$lte"] = datetime.fromisoformat(created_to + "T23:59:59")
+        query["created_at"] = date_query
+    
+    # Value range
+    if value_min is not None or value_max is not None:
+        value_query = {}
+        if value_min is not None:
+            value_query["$gte"] = value_min
+        if value_max is not None:
+            value_query["$lte"] = value_max
+        query["total_value"] = value_query
+    
+    # Sorting
+    sort_order = -1 if sort_direction == "desc" else 1
+    valid_sort_fields = ["created_at", "total_value", "status", "valid_until"]
+    if sort_field not in valid_sort_fields:
+        sort_field = "created_at"
+    
+    # Pagination
+    skip = (page - 1) * page_size
+    
+    # Get total and paginated data
+    total = await db.quotations.count_documents(query)
+    quotations = await db.quotations.find(query, {"_id": 0}).sort(sort_field, sort_order).skip(skip).limit(page_size).to_list(page_size)
+    
+    return {
+        "data": quotations,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size if total > 0 else 1
+    }
 
 
 @router.patch("/{quotation_id}/finalize")

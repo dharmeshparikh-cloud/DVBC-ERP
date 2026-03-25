@@ -105,6 +105,18 @@ SALES_INDEXES: List[Tuple[str, list, dict]] = [
     # Quotations
     ("quotations", [("id", 1)], {"unique": True, "background": True}),
     ("quotations", [("lead_id", 1)], {"background": True}),
+    ("quotations", [("status", 1)], {"background": True}),
+    ("quotations", [("created_at", -1)], {"background": True}),
+    ("quotations", [("total_value", -1)], {"background": True}),
+    
+    # Follow-ups (SALES DATATABLE)
+    ("follow_ups", [("id", 1)], {"unique": True, "background": True}),
+    ("follow_ups", [("assigned_to", 1)], {"background": True}),
+    ("follow_ups", [("due_date", 1)], {"background": True}),
+    ("follow_ups", [("status", 1)], {"background": True}),
+    ("follow_ups", [("entity_type", 1)], {"background": True}),
+    ("follow_ups", [("assigned_to", 1), ("status", 1)], {"background": True}),
+    ("follow_ups", [("status", 1), ("due_date", 1)], {"background": True}),
     
     # Agreements
     ("agreements", [("id", 1)], {"unique": True, "background": True}),
