@@ -90,6 +90,12 @@ async def create_follow_up(data: FollowUpCreate, current_user: User = Depends(ge
     if data.entity_type not in VALID_ENTITY_TYPES:
         raise HTTPException(status_code=400, detail=f"Invalid entity_type. Must be one of: {VALID_ENTITY_TYPES}")
 
+    # Governance: Due date must not be in the past
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    due_date_utc = data.due_date.replace(tzinfo=timezone.utc) if data.due_date.tzinfo is None else data.due_date
+    if due_date_utc < today_start:
+        raise HTTPException(status_code=400, detail="Due date cannot be in the past. Please select today or a future date.")
+
     # Auto-resolve client_name from lead if not provided
     client_name = data.client_name
     lead_id = data.lead_id

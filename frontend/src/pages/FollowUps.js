@@ -618,7 +618,7 @@ const FollowUps = () => {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label className="text-sm">Next Follow-up Date *</Label>
-              <Input data-testid="next-follow-up-date" type="date" value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
+              <Input data-testid="next-follow-up-date" type="date" value={nextDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => setNextDate(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-sm">Notes</Label>
@@ -719,7 +719,7 @@ const FollowUps = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-sm">Due Date *</Label>
-                <Input data-testid="create-due-date" type="date" value={createForm.due_date} onChange={(e) => setCreateForm(p => ({ ...p, due_date: e.target.value }))} />
+                <Input data-testid="create-due-date" type="date" value={createForm.due_date} min={new Date().toISOString().split('T')[0]} onChange={(e) => setCreateForm(p => ({ ...p, due_date: e.target.value }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-sm">Time</Label>
