@@ -2,6 +2,13 @@
 
 ## Latest Updates - March 25, 2026
 
+### P0 Bug Fixes - Email CTA Flow (Session 9)
+- **Reschedule CTA Page**: Built a branded client-facing reschedule form with date/time picker, current schedule display, optional message field, and form submission. Replaced the previous instant confirmation behavior.
+- **Close Confirmation Page**: Added the scheduled follow-up date/time display to the "Confirmed!" page so clients see what they've agreed to.
+- **Email Logo Size**: Increased logo from 48-52px to 64px (max-width: 240px) across email template, action pages, and reschedule page.
+- **CTA Status Tracking**: Verified that both `client_closed` and `client_reschedule` actions are correctly logged in follow-up history with proper attribution ("Client via email"). Reschedule submissions store `client_preferred_date`, `client_preferred_time`, and `client_response` fields.
+- **Bug Fix**: Fixed missing `_build_reschedule_page` function (was called but never defined, causing runtime error). Fixed `Request` import from fastapi (was imported inside function body after being used as type hint).
+
 ### P1 Enhancements - Lead Reassignment, Follow-up Email, Lead Integration (Session 8)
 - **Lead Reassignment**: Single-lead reassign (any role) + Bulk migration (admin/manager only). Transfers all associated data (meetings, pricing, SOW, quotations, agreements, follow-ups). Activity log tracks all transfers with reason.
 - **Follow-up Email Trigger**: 3 templates (Formal, Meeting, Reminder) with CTA links (Close Follow-up, Reschedule). Client responses auto-logged in follow-up history. Template includes client name, company, follow-up notes.
@@ -334,14 +341,16 @@
 
 ## Backlog (Prioritized)
 
-### P0 — All Complete ✅
-All P0 governance fixes have been implemented and tested.
+### P0 — All Complete
+All P0 governance fixes and email CTA flow fixes have been implemented and tested.
 
 ### P1 — Upcoming
-- Data Governance Phase 2: Expand `GovernedDropdown` to Expenses and Project Management modules
+- Phase 5: Strict Sales Governance — Linting rules to prevent manual tables in sales module
+- Phase 7: Full Sales Module E2E Test — Comprehensive test suite for entire sales module
 - Appraisals Integration: Auto-reflect salary revisions in payroll engine
 
 ### P2 — Future
+- Phase 8: Advanced Sales Features (Saved Views, Export to CSV for SalesDataTable)
 - HR Dashboard Frontend UI (backend API `/api/hr/dashboard` exists)
 - Bank Details Management UI
 - Salary Slip PDF generation
@@ -349,6 +358,7 @@ All P0 governance fixes have been implemented and tested.
 
 ### P3 — Backlog
 - Refactor ConsultingMeetings.js (technical debt, 2300+ lines)
+- Governance Dashboard UI (frontend page for `/api/governance/*` endpoints)
 - Naming standardization (forward-only approach)
 
 ---
@@ -367,6 +377,7 @@ All P0 governance fixes have been implemented and tested.
 
 ## Testing Status
 
+- **Iteration 222**: P0 Email CTA Fixes - 100% backend + frontend pass (Reschedule page, Close confirmation, Logo size, Status tracking)
 - **Iteration 216**: Phase 4 Migration (Leads.js, ManagerLeadsDashboard.js) - 100% frontend pass
 - **Iteration 215**: Sales Module Governance APIs - 100% backend pass (35/35 tests)
 - **Iteration 214**: Data Governance Phase 2 - 100% frontend pass rate (GovernedDropdown across all modules)
