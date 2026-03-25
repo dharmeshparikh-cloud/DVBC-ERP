@@ -12,7 +12,7 @@ async def run_test():
         page = await context.new_page()
         
         test_results = []
-        base_url = "https://sales-email-cta.preview.emergentagent.com"
+        base_url = "https://sales-meeting-fix.preview.emergentagent.com"
         
         # Step 1: Login
         print("=" * 60)

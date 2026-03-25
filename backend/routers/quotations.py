@@ -17,7 +17,7 @@ from services.funnel_notifications import proforma_generated_email, get_sales_ma
 
 router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-email-cta.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-meeting-fix.preview.emergentagent.com").replace("/api", "")
 
 
 class QuotationCreate(BaseModel):

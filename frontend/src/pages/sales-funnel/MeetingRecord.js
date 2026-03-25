@@ -70,15 +70,14 @@ const MeetingRecord = () => {
   });
 
   // MOM (Minutes of Meeting) data
+  // Note: Fields like discussion_points, decisions_made, etc. were simplified to textareas
+  // and are no longer used in the form. We keep action_items for compatibility.
   const [momData, setMomData] = useState({
     notes: '',
     mom: '',
-    discussion_points: [''],
-    decisions_made: [''],
-    client_expectations: [''],
-    key_commitments: [''],
-    action_items: [''],
-    next_steps: ''
+    price_discussion: '',
+    next_steps: '',
+    action_items: '' // Kept as string for textarea input
   });
 
   // ===== Draft Auto-Save Logic =====
@@ -117,9 +116,11 @@ const MeetingRecord = () => {
     if (!leadId || !showMOMDialog) return;
     
     // Only save if there's meaningful content
+    // Note: discussion_points and other list fields were converted to simple textareas
+    // so we only check mom and notes for content
     const hasContent = momData.mom.trim() || momData.notes.trim() || 
-                       (momData?.discussion_points || []).some(p => p.trim()) ||
-                       (momData?.client_expectations || []).some(p => p.trim());
+                       (momData?.price_discussion || '').trim() ||
+                       (momData?.next_steps || '').trim();
     
     if (!hasContent) return;
     
@@ -223,28 +224,6 @@ const MeetingRecord = () => {
     setFormData(prev => ({
       ...prev,
       attendees: (prev?.attendees || []).map((a, i) => i === index ? value : a)
-    }));
-  };
-
-  // MOM list handlers
-  const handleAddListItem = (field) => {
-    setMomData(prev => ({
-      ...prev,
-      [field]: [...prev[field], '']
-    }));
-  };
-
-  const handleRemoveListItem = (field, index) => {
-    setMomData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleListItemChange = (field, index, value) => {
-    setMomData(prev => ({
-      ...prev,
-      [field]: prev[field].map((item, i) => i === index ? value : item)
     }));
   };
 
@@ -448,12 +427,9 @@ const MeetingRecord = () => {
       setMomData({
         notes: '',
         mom: '',
-        discussion_points: [''],
-        decisions_made: [''],
-        client_expectations: [''],
-        key_commitments: [''],
-        action_items: [''],
-        next_steps: ''
+        price_discussion: '',
+        next_steps: '',
+        action_items: ''
       });
       
       // Reset travel data
