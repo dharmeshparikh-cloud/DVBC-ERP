@@ -58,9 +58,16 @@ async def get_all_enhanced_sows(current_user: User = Depends(get_current_user)):
 @router.get("/list")
 async def list_enhanced_sows(
     role: str = "all",
+    page: int = 1,
+    page_size: int = 20,
+    sort_field: str = "created_at",
+    sort_direction: str = "desc",
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    category: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """List all enhanced SOWs - filtered by role access"""
+    """List all enhanced SOWs - filtered by role access, with pagination and sorting"""
     if current_user.role not in SOW_VIEW_ROLES:
         raise HTTPException(status_code=403, detail="Access denied.")
     
@@ -71,8 +78,37 @@ async def list_enhanced_sows(
     if role == "consulting" or (current_user.role in CONSULTING_ROLES and current_user.role not in ADMIN_ROLES):
         query["sales_handover_complete"] = True
     
-    sows = await db.enhanced_sow.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
-    return sows
+    if status:
+        query["status"] = status
+    if category:
+        query["category"] = category
+    if search:
+        query["$or"] = [
+            {"title": {"$regex": search, "$options": "i"}},
+            {"client_name": {"$regex": search, "$options": "i"}},
+            {"sow_number": {"$regex": search, "$options": "i"}},
+        ]
+    
+    # Sorting
+    sort_dir = -1 if sort_direction == "desc" else 1
+    allowed_sort_fields = ["created_at", "status", "category", "sow_number", "title"]
+    if sort_field not in allowed_sort_fields:
+        sort_field = "created_at"
+    
+    # Count total
+    total = await db.enhanced_sow.count_documents(query)
+    
+    # Paginated query
+    skip = (page - 1) * page_size
+    sows = await db.enhanced_sow.find(query, {"_id": 0}).sort(sort_field, sort_dir).skip(skip).limit(page_size).to_list(page_size)
+    
+    return {
+        "data": sows,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size
+    }
 
 
 # ============== Manager Approval ==============

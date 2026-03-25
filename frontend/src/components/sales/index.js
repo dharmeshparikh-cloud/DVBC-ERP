@@ -13,3 +13,6 @@ export { LeadsTable } from './LeadsTable';
 export { MeetingsTable } from './MeetingsTable';
 export { FollowUpsTable } from './FollowUpsTable';
 export { QuotationsTable } from './QuotationsTable';
+export { AgreementsTable } from './AgreementsTable';
+export { ProformaInvoiceTable } from './ProformaInvoiceTable';
+export { SOWTable } from './SOWTable';

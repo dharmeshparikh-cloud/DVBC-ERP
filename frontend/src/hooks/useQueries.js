@@ -319,7 +319,7 @@ export function useAgreements(filters = {}, enabled = true) {
       if (filters.client_id) params.append('client_id', filters.client_id);
       
       const { data } = await axios.get(`${API}/agreements?${params.toString()}`);
-      return data;
+      return Array.isArray(data) ? data : (data?.data || []);
     },
     enabled,
   });

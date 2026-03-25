@@ -18,6 +18,7 @@ import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
 import LeadSelector, { LockedField } from '../../components/LeadSelector';
 import { useFunnelEligibility, getFunnelTooltip } from '../../hooks/useFunnelEligibility';
+import { AgreementsTable } from '../../components/sales';
 
 const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
@@ -143,15 +144,15 @@ const Agreements = () => {
     queryFn: async () => {
       // Fetch all data in parallel with individual error handling
       const [agreementsRes, quotationsRes, leadsRes, templatesRes, plansRes] = await Promise.all([
-        axios.get(`${API}/agreements`, { params: leadId ? { lead_id: leadId } : {} }).catch(() => ({ data: [] })),
-        axios.get(`${API}/quotations`).catch(() => ({ data: [] })),
+        axios.get(`${API}/agreements`, { params: { ...(leadId ? { lead_id: leadId } : {}), page_size: 500 } }).catch(() => ({ data: { data: [] } })),
+        axios.get(`${API}/quotations`).catch(() => ({ data: { data: [] } })),
         axios.get(`${API}/leads`).catch(() => ({ data: { items: [] } })),
         axios.get(`${API}/email-templates`).catch(() => ({ data: { templates: [] } })),
         axios.get(`${API}/pricing-plans`).catch(() => ({ data: [] }))
       ]);
       return {
-        agreements: agreementsRes.data || [],
-        quotations: quotationsRes.data || [],
+        agreements: agreementsRes.data?.data || agreementsRes.data || [],
+        quotations: quotationsRes.data?.data || quotationsRes.data || [],
         leads: leadsRes.data?.items || leadsRes.data || [],
         emailTemplates: templatesRes.data?.templates || templatesRes.data || [],
         pricingPlans: plansRes.data || []
@@ -481,75 +482,16 @@ const Agreements = () => {
           </CardContent>
         </Card>
       ) : viewMode === 'list' ? (
-        /* List View */
-        <div className="border border-zinc-200 rounded-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Agreement #</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Client</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Type</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Tenure</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {(agreements || []).map((agreement) => {
-                const statusInfo = getStatusBadge(agreement.status);
-                const StatusIcon = statusInfo.icon;
-                return (
-                  <tr 
-                    key={agreement.id} 
-                    className="hover:bg-zinc-50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/sales-funnel/agreement/${agreement.id}`)}
-                    data-testid={`agreement-row-${agreement.id}`}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-zinc-900 flex items-center gap-1">
-                        {agreement.agreement_number}
-                        {!isAgreementEditable(agreement) && (
-                          <Lock className="w-3 h-3 text-amber-500" title="Locked - cannot be modified" />
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-600">{getLeadName(agreement.lead_id)}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-600 capitalize">{agreement.agreement_type}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-600">{agreement.project_tenure_months || 12} months</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-sm inline-flex items-center gap-1 ${statusInfo.bg}`}>
-                        <StatusIcon className="w-3 h-3" strokeWidth={1.5} />
-                        {agreement.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-2">
-                        <FollowUpActionButton entityType="agreement" entityId={agreement.id} leadId={agreement.lead_id} clientName={getLeadName(agreement.lead_id)} />
-                        <Button
-                          onClick={() => navigate(`/sales-funnel/agreement/${agreement.id}`)}
-                          size="sm"
-                          variant="outline"
-                          className="rounded-sm h-8"
-                        >
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDownload(agreement.id, 'pdf')}
-                          size="sm"
-                          variant="outline"
-                          disabled={downloading[`${agreement.id}-pdf`]}
-                          className="rounded-sm h-8"
-                        >
-                          <Download className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        /* List View - Using SalesDataTable (GOVERNANCE: No manual tables) */
+        <AgreementsTable
+          onRowClick={(agreement) => navigate(`/sales-funnel/agreement/${agreement.id}`)}
+          onDownload={(id, format) => handleDownload(id, format)}
+          onSendEmail={(agreement) => {
+            setSelectedAgreement(agreement);
+            setEmailDialogOpen(true);
+          }}
+          className="border border-zinc-200 rounded-sm"
+        />
       ) : (
         /* Card View */
         <div className="space-y-4">

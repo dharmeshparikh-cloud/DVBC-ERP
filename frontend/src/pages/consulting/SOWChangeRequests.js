@@ -88,8 +88,9 @@ const SOWChangeRequests = () => {
   const { data: sows = [] } = useQuery({
     queryKey: ['enhanced-sow', 'list', 'consulting'],
     queryFn: async () => {
-      const res = await axios.get(`${API}/enhanced-sow/list?role=consulting`);
-      return (res.data || []).filter(s => s.sales_handover_complete);
+      const res = await axios.get(`${API}/enhanced-sow/list?role=consulting&page_size=500`);
+      const sowData = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      return sowData.filter(s => s.sales_handover_complete);
     },
     staleTime: 5 * 60 * 1000,
   });

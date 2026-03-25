@@ -423,7 +423,7 @@ export const useAgreements = (filters = {}) => {
       const { data } = await axios.get(`${API}/api/agreements?${params}`, {
         headers: getAuthHeaders(),
       });
-      return data;
+      return Array.isArray(data) ? data : (data?.data || []);
     },
     staleTime: 3 * 60 * 1000,
   });

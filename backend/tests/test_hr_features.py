@@ -8,7 +8,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://smart-erp-hub-8.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sales-table-refactor.preview.emergentagent.com')
 
 class TestHRFeatures:
     """Tests for new HR features: OrgChart, Leave, Attendance, Payroll"""

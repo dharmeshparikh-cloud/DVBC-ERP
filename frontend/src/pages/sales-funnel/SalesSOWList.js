@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import ViewToggle from '../../components/ViewToggle';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
+import { SOWTable } from '../../components/sales';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-zinc-100 text-zinc-700', icon: FileText },
@@ -44,14 +45,15 @@ const SalesSOWList = () => {
   }, []);
 
   // React Query: SOW List
-  const { data: sowList = [], isLoading: loadingSOW, refetch: refetchSOW } = useQuery({
+  const { data: sowRawData = { data: [] }, isLoading: loadingSOW, refetch: refetchSOW } = useQuery({
     queryKey: ['enhanced-sow', 'list', 'sales'],
     queryFn: async () => {
-      const res = await axios.get(`${API}/enhanced-sow/list?role=sales`);
-      return res.data || [];
+      const res = await axios.get(`${API}/enhanced-sow/list?role=sales&page_size=500`);
+      return res.data || { data: [] };
     },
     staleTime: 2 * 60 * 1000,
   });
+  const sowList = Array.isArray(sowRawData) ? sowRawData : (sowRawData?.data || []);
 
   // React Query: Pricing Plans
   const { data: pricingPlans = [] } = useQuery({
@@ -210,84 +212,11 @@ const SalesSOWList = () => {
       {/* SOW List */}
       {filteredSOWs.length > 0 ? (
         viewMode === 'list' ? (
-          /* List View */
-          <div className="border border-zinc-200 rounded-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Client</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Company</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Scopes</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Created</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {(filteredSOWs || []).map(sow => {
-                  const lead = getLeadInfo(sow);
-                  const status = getSOWStatus(sow);
-                  const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
-                  
-                  return (
-                    <tr 
-                      key={sow.id} 
-                      className="hover:bg-zinc-50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/sales-funnel/sow-review/${sow.pricing_plan_id}`)}
-                      data-testid={`sow-row-${sow.id}`}
-                    >
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-zinc-900">
-                          {lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Client'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">{lead?.company || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">{sow.scopes?.length || 0} scopes</td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">
-                        {sow.created_at ? format(new Date(sow.created_at), 'MMM d, yyyy') : 'N/A'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-sm ${statusConfig.color}`}>
-                          {statusConfig.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-2">
-                          <FollowUpActionButton entityType="sow" entityId={sow.id} leadId={sow.lead_id} clientName={lead?.company || 'SOW Client'} />
-                          <Button
-                            onClick={() => navigate(`/sales-funnel/scope-selection/${sow.pricing_plan_id}`)}
-                            variant="ghost"
-                            size="sm"
-                            className="h-8"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            onClick={() => navigate(`/sales-funnel/sow-review/${sow.pricing_plan_id}`)}
-                            variant="ghost"
-                            size="sm"
-                            className="h-8"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {status === 'draft' && (
-                            <Button
-                              onClick={() => handleCompleteHandover(sow.id)}
-                              variant="outline"
-                              size="sm"
-                              className="text-blue-600 border-blue-200 hover:bg-blue-50 h-8"
-                            >
-                              <Send className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          /* List View - Using SalesDataTable (GOVERNANCE: No manual tables) */
+          <SOWTable
+            onRowClick={(sow) => navigate(`/sales-funnel/sow-review/${sow.pricing_plan_id || sow.id}`)}
+            className="border border-zinc-200 rounded-sm"
+          />
         ) : (
           /* Card View */
           <div className="space-y-3">

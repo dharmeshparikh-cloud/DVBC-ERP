@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://smart-erp-hub-8.preview.emergentagent.com",
+      "value": "https://sales-table-refactor.preview.emergentagent.com",
       "type": "string"
     },
     {

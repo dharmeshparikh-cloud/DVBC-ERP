@@ -22,6 +22,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import LeadSelector from '../../components/LeadSelector';
 import { useFunnelEligibility, getFunnelTooltip } from '../../hooks/useFunnelEligibility';
+import { ProformaInvoiceTable } from '../../components/sales';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -102,7 +103,7 @@ const ProformaInvoice = () => {
 
   // Query: Fetch agreements
   const { data: agreementsData } = useFetch('/api/agreements');
-  const agreements = Array.isArray(agreementsData) ? agreementsData : [];
+  const agreements = Array.isArray(agreementsData) ? agreementsData : (agreementsData?.data || []);
 
   // Query: Fetch SOW data if we have a pricing plan ID
   const { data: sowData } = useFetch(
@@ -735,64 +736,20 @@ const ProformaInvoice = () => {
           })}
         </div>
       ) : viewMode === 'list' ? (
-        /* List View */
-        <div className="border border-zinc-200 rounded-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Invoice #</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Client</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Meetings</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Grand Total</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {(invoices || []).map((invoice) => (
-                <tr 
-                  key={invoice.id} 
-                  className="hover:bg-zinc-50 cursor-pointer transition-colors"
-                  onClick={() => openViewDialog(invoice)}
-                  data-testid={`invoice-row-${invoice.id}`}
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-zinc-900">{invoice.quotation_number}</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-zinc-600">{getLeadName(invoice.lead_id)}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-900 text-right font-medium">{invoice.total_meetings}</td>
-                  <td className="px-4 py-3 text-sm text-emerald-600 text-right font-semibold">{formatINR(invoice.grand_total)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(invoice.status, invoice.is_final)}`}>
-                      {invoice.is_final ? 'Finalized' : invoice.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        onClick={() => openViewDialog(invoice)}
-                        size="sm"
-                        variant="outline"
-                        className="rounded-sm h-8"
-                      >
-                        <Eye className="w-3 h-3" />
-                      </Button>
-                      {invoice.is_final && canEdit && (
-                        <Button
-                          onClick={() => navigate(`/sales-funnel/agreements?quotationId=${invoice.id}&leadId=${invoice.lead_id}`)}
-                          size="sm"
-                          className="bg-zinc-900 text-white hover:bg-zinc-800 rounded-sm h-8"
-                        >
-                          <ArrowRight className="w-3 h-3" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        /* List View - Using SalesDataTable (GOVERNANCE: No manual tables) */
+        <ProformaInvoiceTable
+          onView={(invoice) => openViewDialog(invoice)}
+          onDownload={(invoice) => window.print()}
+          onSend={(invoice) => {
+            setSelectedInvoice(invoice);
+            setEmailDialogOpen(true);
+          }}
+          onPrint={(invoice) => {
+            openViewDialog(invoice);
+            setTimeout(() => window.print(), 500);
+          }}
+          className="border border-zinc-200 rounded-sm"
+        />
       ) : (
         <div className="space-y-4">
           {(invoices || []).map((invoice) => (

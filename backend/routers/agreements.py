@@ -20,7 +20,7 @@ from services.funnel_notifications import agreement_created_email, get_agreement
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://smart-erp-hub-8.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-table-refactor.preview.emergentagent.com").replace("/api", "")
 
 # Role constants for this router - now using RBAC service as source of truth
 AGREEMENT_VIEW_ROLES = SALES_ROLES + SENIOR_CONSULTING_ROLES  # sales, admin, principal_consultant
@@ -226,9 +226,15 @@ async def get_agreement_full(agreement_id: str, current_user: User = Depends(get
 async def get_agreements(
     status: Optional[str] = None,
     lead_id: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+    sort_field: str = "created_at",
+    sort_direction: str = "desc",
+    search: Optional[str] = None,
+    agreement_type: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all agreements with optional filters. 
+    """Get all agreements with optional filters, pagination, and sorting.
     Access: sales, admin, principal_consultant"""
     db = get_db()
     
@@ -241,9 +247,34 @@ async def get_agreements(
         query["status"] = status
     if lead_id:
         query["lead_id"] = lead_id
+    if agreement_type:
+        query["agreement_type"] = agreement_type
+    if search:
+        query["$or"] = [
+            {"agreement_number": {"$regex": search, "$options": "i"}},
+            {"client_name": {"$regex": search, "$options": "i"}},
+        ]
     
-    agreements = await db.agreements.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
-    return agreements
+    # Sorting
+    sort_dir = -1 if sort_direction == "desc" else 1
+    allowed_sort_fields = ["created_at", "agreement_number", "status", "agreement_type", "project_tenure_months", "total_value"]
+    if sort_field not in allowed_sort_fields:
+        sort_field = "created_at"
+    
+    # Count total
+    total = await db.agreements.count_documents(query)
+    
+    # Paginated query
+    skip = (page - 1) * page_size
+    agreements = await db.agreements.find(query, {"_id": 0}).sort(sort_field, sort_dir).skip(skip).limit(page_size).to_list(page_size)
+    
+    return {
+        "data": agreements,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size
+    }
 
 
 @router.patch("/{agreement_id}/submit-for-approval")

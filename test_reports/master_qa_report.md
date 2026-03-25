@@ -1,7 +1,7 @@
 # 🧪 MASTER QA TEST REPORT: Consulting Workflow
 **Date:** March 18-19, 2026  
 **Tester:** Automated E2E Testing  
-**App URL:** https://smart-erp-hub-8.preview.emergentagent.com
+**App URL:** https://sales-table-refactor.preview.emergentagent.com
 **Status:** ✅ ALL CRITICAL ISSUES FIXED
 
 ---
