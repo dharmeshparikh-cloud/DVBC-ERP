@@ -2,6 +2,19 @@
 
 ## Latest Updates - March 25, 2026
 
+### P2 - Saved Views & Export to CSV for SalesDataTable (Session 11 continued)
+- **Saved Views Feature**:
+  - Added `useSavedViews` hook that persists custom views to localStorage per table
+  - Created `SaveViewDialog` component showing view name input, "Set as default" checkbox, and summary of what will be saved (filters, sort, page size)
+  - Dropdown menu in table header shows saved views with star indicator for default, delete option, and "Save Current View" button
+  - Views are restored on page load if marked as default
+- **Export to CSV Feature**:
+  - Created `ExportDialog` component with two export options: "Current Page" or "All Matching Records"
+  - Shows record counts for each option and list of columns that will be exported
+  - Fetches all data from API when exporting all records (up to 10,000)
+  - CSV includes BOM for proper Excel compatibility
+- **Testing**: 100% frontend pass rate on Leads and Follow-ups pages (iteration_225.json)
+
 ### P1 - Funnel Checklist Alignment & Governance Linting (Session 11 continued)
 - **Funnel Checklists Aligned**: Updated backend `/api/leads/{id}/funnel-checklist` endpoint to match actual mandatory fields:
   - **SOW**: SOW created + scope item with title (required), category/timeline/consultant (optional)
