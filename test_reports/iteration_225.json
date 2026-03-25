@@ -1,0 +1,79 @@
+{
+  "summary": "Tested Saved Views and Export to CSV features for SalesDataTable component. All features working correctly on Leads page (/leads) and Follow-ups page (/follow-ups) in Table view mode.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_225.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "sales_executive": {"employee_id": "EMP003", "password": "sales123"}
+  },
+  "seed_data_creation": "None - used existing data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Saved Views and Export to CSV features verified working on SalesDataTable component. Features tested on Leads page (/leads) and Follow-ups page (/follow-ups) in Table view mode. Note: Follow-ups page has two view modes - 'By Client' (grouped view) and 'Table' view. Only the Table view uses SalesDataTable with Saved Views and Export features.",
+  "test_results": {
+    "leads_page": {
+      "saved_views_dropdown": "PASSED - data-testid='saved-views-dropdown' found and clickable",
+      "saved_views_dropdown_content": "PASSED - Shows 'Saved Views' label, 'No saved views yet' message, 'Save Current View' option",
+      "save_view_dialog": "PASSED - Opens with view name input (data-testid='save-view-name-input'), 'Set as default view' checkbox, info section showing what will be saved",
+      "save_view_functionality": "PASSED - View 'Test Hot Leads' saved successfully, appears in dropdown with badge count",
+      "export_csv_button": "PASSED - data-testid='export-csv-btn' found and clickable",
+      "export_dialog": "PASSED - Shows 'Current Page' (5 records) and 'All Matching Records' (5 records) options",
+      "export_columns_info": "PASSED - Shows columns: Company, Contact, Stage, Funnel, Deal Value, Source, Industry, Created",
+      "search_input": "PASSED - data-testid='sales-table-search' found",
+      "quick_views": "PASSED - All Leads, My Leads, New, Hot Deals, Stuck, In Meeting, Closing buttons visible"
+    },
+    "followups_page_table_view": {
+      "view_mode_toggle": "PASSED - 'By Client' and 'Table' view mode buttons found (data-testid='view-mode-table')",
+      "saved_views_dropdown": "PASSED - data-testid='saved-views-dropdown' found in Table view",
+      "saved_views_dropdown_content": "PASSED - Shows 'Saved Views' label, 'No saved views yet' message, 'Save Current View' option",
+      "export_csv_button": "PASSED - data-testid='export-csv-btn' found in Table view",
+      "export_dialog": "PASSED - Shows 'Current Page' (8 records) and 'All Matching Records' (8 records) options",
+      "export_columns_info": "PASSED - Shows columns: Related To, Action, Notes, Due Date, Priority, Client, Status",
+      "search_input": "PASSED - data-testid='sales-table-search' found in Table view",
+      "quick_views": "PASSED - All Follow-ups, Open, Today, Overdue, High Priority, Completed buttons visible"
+    }
+  },
+  "features_verified": {
+    "saved_views": {
+      "views_button_with_folder_icon": "PASSED - Button shows folder icon and 'Views' text",
+      "dropdown_menu": "PASSED - Opens dropdown with saved views list and 'Save Current View' option",
+      "save_view_dialog": "PASSED - Dialog with name input, 'Set as default view' checkbox, and info section",
+      "save_view_confirm_button": "PASSED - data-testid='save-view-confirm-btn' found",
+      "saved_view_persistence": "PASSED - Saved view appears in dropdown after saving",
+      "success_toast": "PASSED - Shows 'View \"Test Hot Leads\" saved successfully' toast"
+    },
+    "export_to_csv": {
+      "export_button_with_download_icon": "PASSED - Button shows download icon",
+      "export_dialog": "PASSED - Dialog with 'Current Page' and 'All Matching Records' options",
+      "columns_info_section": "PASSED - Shows list of columns that will be exported",
+      "export_confirm_button": "PASSED - data-testid='export-confirm-btn' found"
+    }
+  },
+  "data_testids_verified": [
+    "saved-views-dropdown",
+    "save-view-name-input",
+    "save-view-confirm-btn",
+    "export-csv-btn",
+    "export-confirm-btn",
+    "sales-table-search",
+    "quick-view-all",
+    "view-mode-table",
+    "view-mode-grouped"
+  ]
+}

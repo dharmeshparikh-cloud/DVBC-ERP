@@ -13,6 +13,8 @@
  * - Debounce (300ms)
  * - Color coding for status
  * - Quick views
+ * - **SAVED VIEWS** - Save and load custom filter configurations
+ * - **EXPORT TO CSV** - Export current page or all data
  * 
  * DO NOT use manual <table> with .map() in Sales module.
  * ALL Sales tables MUST use this component.
@@ -24,7 +26,8 @@ import axios from 'axios';
 import { 
   ChevronUp, ChevronDown, Search, X, Filter, RefreshCw, 
   ChevronLeft, ChevronRight, Download, Loader2, AlertCircle,
-  Calendar, SlidersHorizontal, Eye, MoreHorizontal
+  Calendar, SlidersHorizontal, Eye, MoreHorizontal, Save, 
+  FolderOpen, Trash2, Star, Check, FileDown
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -34,7 +37,10 @@ import {
 } from '../ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
+import { Label } from '../ui/label';
 import { cn } from '../../lib/utils';
+import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -123,6 +129,330 @@ const useDebounce = (value, delay = 300) => {
   }, [value, delay]);
   
   return debouncedValue;
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// SAVED VIEWS HOOK - Persist user's custom views to localStorage
+// ═══════════════════════════════════════════════════════════════════
+
+const SAVED_VIEWS_KEY_PREFIX = 'sales_saved_views_';
+
+const useSavedViews = (tableKey) => {
+  const storageKey = `${SAVED_VIEWS_KEY_PREFIX}${tableKey}`;
+  
+  const [savedViews, setSavedViews] = useState(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  
+  const saveView = useCallback((name, config, isDefault = false) => {
+    const newView = {
+      id: `view_${Date.now()}`,
+      name,
+      config,
+      isDefault,
+      createdAt: new Date().toISOString(),
+    };
+    
+    setSavedViews(prev => {
+      // If setting as default, unset other defaults
+      const updated = isDefault 
+        ? prev.map(v => ({ ...v, isDefault: false }))
+        : prev;
+      const newViews = [...updated, newView];
+      localStorage.setItem(storageKey, JSON.stringify(newViews));
+      return newViews;
+    });
+    
+    return newView;
+  }, [storageKey]);
+  
+  const deleteView = useCallback((viewId) => {
+    setSavedViews(prev => {
+      const newViews = prev.filter(v => v.id !== viewId);
+      localStorage.setItem(storageKey, JSON.stringify(newViews));
+      return newViews;
+    });
+  }, [storageKey]);
+  
+  const setDefaultView = useCallback((viewId) => {
+    setSavedViews(prev => {
+      const newViews = prev.map(v => ({
+        ...v,
+        isDefault: v.id === viewId
+      }));
+      localStorage.setItem(storageKey, JSON.stringify(newViews));
+      return newViews;
+    });
+  }, [storageKey]);
+  
+  const getDefaultView = useCallback(() => {
+    return savedViews.find(v => v.isDefault);
+  }, [savedViews]);
+  
+  return { savedViews, saveView, deleteView, setDefaultView, getDefaultView };
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// SAVE VIEW DIALOG COMPONENT
+// ═══════════════════════════════════════════════════════════════════
+
+const SaveViewDialog = ({ open, onOpenChange, onSave, currentConfig }) => {
+  const [viewName, setViewName] = useState('');
+  const [isDefault, setIsDefault] = useState(false);
+  
+  const handleSave = () => {
+    if (!viewName.trim()) {
+      toast.error('Please enter a view name');
+      return;
+    }
+    onSave(viewName.trim(), currentConfig, isDefault);
+    setViewName('');
+    setIsDefault(false);
+    onOpenChange(false);
+    toast.success(`View "${viewName}" saved successfully`);
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Save className="w-5 h-5 text-blue-500" />
+            Save Current View
+          </DialogTitle>
+          <DialogDescription>
+            Save your current filters, sorting, and column settings as a reusable view.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="view-name">View Name</Label>
+            <Input
+              id="view-name"
+              placeholder="e.g., My Hot Leads, Overdue Follow-ups"
+              value={viewName}
+              onChange={(e) => setViewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              data-testid="save-view-name-input"
+            />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isDefault}
+              onChange={(e) => setIsDefault(e.target.checked)}
+              className="w-4 h-4 rounded border-zinc-300"
+            />
+            <span className="text-sm text-zinc-600">Set as default view</span>
+          </label>
+          <div className="p-3 bg-zinc-50 rounded-lg text-xs text-zinc-500">
+            <p className="font-medium text-zinc-700 mb-1">This view will save:</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              <li>Active filters ({Object.keys(currentConfig.columnFilters || {}).length} filters)</li>
+              <li>Search term: {currentConfig.globalSearch || '(none)'}</li>
+              <li>Sort: {currentConfig.sortField} ({currentConfig.sortDirection})</li>
+              <li>Page size: {currentConfig.pageSize}</li>
+            </ul>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} data-testid="save-view-confirm-btn">
+            <Save className="w-4 h-4 mr-2" />
+            Save View
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// EXPORT DIALOG COMPONENT
+// ═══════════════════════════════════════════════════════════════════
+
+const ExportDialog = ({ 
+  open, 
+  onOpenChange, 
+  columns, 
+  currentPageData,
+  endpoint,
+  queryParams,
+  queryKey,
+  totalItems
+}) => {
+  const [exportType, setExportType] = useState('current'); // 'current' | 'all'
+  const [isExporting, setIsExporting] = useState(false);
+  
+  const handleExport = async () => {
+    setIsExporting(true);
+    
+    try {
+      let dataToExport = currentPageData;
+      
+      // If exporting all, fetch all data
+      if (exportType === 'all' && totalItems > currentPageData.length) {
+        const token = localStorage.getItem('token');
+        const allDataParams = { ...queryParams, page: 1, page_size: 10000 }; // Fetch up to 10k records
+        
+        const response = await axios.get(`${API}${endpoint}`, {
+          params: allDataParams,
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        dataToExport = response.data?.data || response.data?.items || response.data || [];
+      }
+      
+      if (!dataToExport.length) {
+        toast.error('No data to export');
+        return;
+      }
+      
+      // Build CSV
+      const headers = columns.map(c => c.label).join(',');
+      const rows = dataToExport.map(row => 
+        columns.map(c => {
+          let value = row[c.key];
+          
+          // Format dates
+          if (c.type === 'date' || c.key.includes('date') || c.key.includes('_at')) {
+            if (value) {
+              try {
+                value = new Date(value).toLocaleDateString('en-IN');
+              } catch {}
+            }
+          }
+          
+          // Format currency
+          if (c.type === 'currency' || c.key.includes('value') || c.key.includes('amount')) {
+            if (value !== null && value !== undefined) {
+              value = Number(value);
+            }
+          }
+          
+          // Escape commas and quotes for CSV
+          if (typeof value === 'string') {
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+          }
+          
+          return value ?? '';
+        }).join(',')
+      ).join('\n');
+      
+      const csv = `${headers}\n${rows}`;
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); // BOM for Excel
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${queryKey}_export_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Exported ${dataToExport.length} records to CSV`);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export data');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileDown className="w-5 h-5 text-green-500" />
+            Export to CSV
+          </DialogTitle>
+          <DialogDescription>
+            Download your data as a CSV file that can be opened in Excel.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-3">
+            <Label>What to export?</Label>
+            
+            <label className={cn(
+              "flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors",
+              exportType === 'current' ? "border-blue-500 bg-blue-50" : "border-zinc-200 hover:bg-zinc-50"
+            )}>
+              <input
+                type="radio"
+                name="exportType"
+                value="current"
+                checked={exportType === 'current'}
+                onChange={() => setExportType('current')}
+                className="w-4 h-4"
+              />
+              <div>
+                <p className="font-medium text-sm">Current Page</p>
+                <p className="text-xs text-zinc-500">{currentPageData.length} records</p>
+              </div>
+            </label>
+            
+            <label className={cn(
+              "flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors",
+              exportType === 'all' ? "border-blue-500 bg-blue-50" : "border-zinc-200 hover:bg-zinc-50"
+            )}>
+              <input
+                type="radio"
+                name="exportType"
+                value="all"
+                checked={exportType === 'all'}
+                onChange={() => setExportType('all')}
+                className="w-4 h-4"
+              />
+              <div>
+                <p className="font-medium text-sm">All Matching Records</p>
+                <p className="text-xs text-zinc-500">
+                  {totalItems} records {totalItems > 10000 && '(max 10,000)'}
+                </p>
+              </div>
+            </label>
+          </div>
+          
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+            <p className="font-medium">Columns included:</p>
+            <p className="mt-1">{columns.map(c => c.label).join(', ')}</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleExport} 
+            disabled={isExporting}
+            className="bg-green-600 hover:bg-green-700"
+            data-testid="export-confirm-btn"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -321,6 +651,7 @@ export const SalesDataTable = ({
   showQuickViews = true,
   showExport = true,
   showGlobalSearch = true,
+  showSavedViews = true, // NEW: Enable saved views feature
   onRowClick,
   rowActions,
   emptyMessage = 'No data found',
@@ -346,6 +677,40 @@ export const SalesDataTable = ({
   const [globalSearch, setGlobalSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState({});
   const [activeQuickView, setActiveQuickView] = useState('all');
+  
+  // NEW: Saved Views state
+  const [showSaveViewDialog, setShowSaveViewDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const { savedViews, saveView, deleteView, setDefaultView, getDefaultView } = useSavedViews(queryKey);
+  
+  // Load default saved view on mount
+  useEffect(() => {
+    const defaultView = getDefaultView();
+    if (defaultView?.config) {
+      applyViewConfig(defaultView.config);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Apply a saved view configuration
+  const applyViewConfig = useCallback((config) => {
+    if (config.columnFilters) setColumnFilters(config.columnFilters);
+    if (config.globalSearch !== undefined) setGlobalSearch(config.globalSearch);
+    if (config.sortField) setSortField(config.sortField);
+    if (config.sortDirection) setSortDirection(config.sortDirection);
+    if (config.pageSize) setPageSize(config.pageSize);
+    if (config.activeQuickView) setActiveQuickView(config.activeQuickView);
+    setPage(1);
+  }, []);
+  
+  // Get current view configuration
+  const getCurrentConfig = useCallback(() => ({
+    columnFilters,
+    globalSearch,
+    sortField,
+    sortDirection,
+    pageSize,
+    activeQuickView,
+  }), [columnFilters, globalSearch, sortField, sortDirection, pageSize, activeQuickView]);
   
   // Debounced search
   const debouncedSearch = useDebounce(globalSearch, 300);
@@ -451,32 +816,6 @@ export const SalesDataTable = ({
     setPage(1);
   }, []);
   
-  // Export to CSV
-  const handleExport = useCallback(() => {
-    if (!tableData.length) return;
-    
-    const headers = columns.map(c => c.label).join(',');
-    const rows = tableData.map(row => 
-      columns.map(c => {
-        const value = row[c.key];
-        // Escape commas and quotes
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-          return `"${value.replace(/"/g, '""')}"`;
-        }
-        return value ?? '';
-      }).join(',')
-    ).join('\n');
-    
-    const csv = `${headers}\n${rows}`;
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${queryKey}_export_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }, [tableData, columns, queryKey]);
-  
   // Active filters count
   const activeFiltersCount = Object.values(columnFilters).filter(v => v !== '' && v !== null).length;
   
@@ -566,6 +905,94 @@ export const SalesDataTable = ({
               </div>
             )}
             
+            {/* Saved Views Dropdown */}
+            {showSavedViews && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 px-2 gap-1"
+                    data-testid="saved-views-dropdown"
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                    <span className="text-xs hidden sm:inline">Views</span>
+                    {savedViews.length > 0 && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-1">
+                        {savedViews.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-xs text-zinc-500">
+                    Saved Views
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  {savedViews.length === 0 ? (
+                    <div className="px-2 py-3 text-center text-xs text-zinc-400">
+                      No saved views yet
+                    </div>
+                  ) : (
+                    savedViews.map(view => (
+                      <DropdownMenuItem
+                        key={view.id}
+                        className="flex items-center justify-between group"
+                        onClick={() => {
+                          applyViewConfig(view.config);
+                          toast.success(`Applied view: ${view.name}`);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          {view.isDefault && (
+                            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                          )}
+                          <span className="text-sm">{view.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDefaultView(view.id);
+                              toast.success(`"${view.name}" set as default`);
+                            }}
+                            className="p-1 hover:bg-zinc-100 rounded"
+                            title="Set as default"
+                          >
+                            <Star className={cn(
+                              "w-3 h-3",
+                              view.isDefault ? "text-amber-500 fill-amber-500" : "text-zinc-400"
+                            )} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteView(view.id);
+                              toast.success(`Deleted view: ${view.name}`);
+                            }}
+                            className="p-1 hover:bg-red-50 rounded text-zinc-400 hover:text-red-500"
+                            title="Delete view"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => setShowSaveViewDialog(true)}
+                    className="text-blue-600"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Current View
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
             {/* Refresh */}
             <Button 
               variant="ghost" 
@@ -573,18 +1000,21 @@ export const SalesDataTable = ({
               onClick={() => refetch()}
               disabled={isFetching}
               className="h-8 px-2"
+              title="Refresh"
             >
               <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
             </Button>
             
-            {/* Export */}
+            {/* Export - Enhanced with dialog */}
             {showExport && (
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={handleExport}
+                onClick={() => setShowExportDialog(true)}
                 disabled={!tableData.length}
                 className="h-8 px-2"
+                title="Export to CSV"
+                data-testid="export-csv-btn"
               >
                 <Download className="w-4 h-4" />
               </Button>
@@ -838,6 +1268,26 @@ export const SalesDataTable = ({
           </div>
         </div>
       )}
+      
+      {/* Save View Dialog */}
+      <SaveViewDialog
+        open={showSaveViewDialog}
+        onOpenChange={setShowSaveViewDialog}
+        onSave={saveView}
+        currentConfig={getCurrentConfig()}
+      />
+      
+      {/* Export Dialog */}
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        columns={columns}
+        currentPageData={tableData}
+        endpoint={endpoint}
+        queryParams={queryParams}
+        queryKey={queryKey}
+        totalItems={totalItems}
+      />
     </div>
   );
 };
