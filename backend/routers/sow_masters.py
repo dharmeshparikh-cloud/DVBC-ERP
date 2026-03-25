@@ -346,6 +346,109 @@ async def delete_sow_scope_template(scope_id: str):
     return {"message": "Scope template deactivated successfully"}
 
 
+# ============== AI Deliverables Suggestion ==============
+
+class AIDeliverablesRequest(BaseModel):
+    scope_name: str
+    category_code: Optional[str] = None
+    description: Optional[str] = None
+
+
+@router.post("/ai-suggest-deliverables")
+async def suggest_deliverables(request: AIDeliverablesRequest):
+    """
+    AI-powered deliverables suggestion for a scope.
+    Returns top 3 prioritized deliverables based on scope name and category.
+    """
+    import os
+    
+    scope_name = request.scope_name.strip()
+    category = request.category_code or "general"
+    description = request.description or ""
+    
+    # First check if we have a matching template with deliverables
+    existing = await get_db().sow_scope_templates.find_one({
+        "name": {"$regex": f"^{scope_name}$", "$options": "i"},
+        "is_active": True
+    }, {"_id": 0})
+    
+    if existing and existing.get("deliverables"):
+        return {
+            "source": "library",
+            "deliverables": existing["deliverables"][:3]
+        }
+    
+    # Use AI to generate deliverables
+    try:
+        from emergentintegrations.llm.chat import chat, UserMessage
+        
+        prompt = f"""You are a business consultant. For the following consulting scope, suggest exactly 3 key deliverables.
+
+Scope Name: {scope_name}
+Category: {category}
+Description: {description if description else 'N/A'}
+
+Rules:
+- Return ONLY 3 deliverables, one per line
+- Each deliverable should be 3-6 words max
+- Be specific and actionable
+- No numbering, bullets, or formatting
+- Examples: "Process Flow Diagrams", "Training Manual", "Gap Analysis Report"
+
+Deliverables:"""
+
+        emergent_key = os.environ.get("EMERGENT_LLM_KEY")
+        if not emergent_key:
+            # Fallback to generic deliverables
+            return {
+                "source": "default",
+                "deliverables": [
+                    f"{scope_name} Report",
+                    "Implementation Guide",
+                    "Progress Dashboard"
+                ]
+            }
+        
+        response = await chat(
+            emergent_key,
+            [UserMessage(content=prompt)],
+            model="gpt-4o-mini"
+        )
+        
+        # Parse response - split by newlines, clean up
+        lines = [line.strip() for line in response.response.strip().split('\n') if line.strip()]
+        # Remove any numbering or bullets
+        deliverables = []
+        for line in lines[:3]:
+            # Remove leading numbers, bullets, dashes
+            clean = line.lstrip('0123456789.-•) ').strip()
+            if clean:
+                deliverables.append(clean)
+        
+        if len(deliverables) < 3:
+            # Pad with defaults
+            defaults = [f"{scope_name} Report", "Implementation Guide", "Progress Dashboard"]
+            while len(deliverables) < 3:
+                deliverables.append(defaults[len(deliverables)])
+        
+        return {
+            "source": "ai",
+            "deliverables": deliverables[:3]
+        }
+        
+    except Exception as e:
+        # Fallback
+        return {
+            "source": "default",
+            "deliverables": [
+                f"{scope_name} Report",
+                "Implementation Guide", 
+                "Progress Dashboard"
+            ],
+            "error": str(e)
+        }
+
+
 # ============== Seed Default Data ==============
 
 @router.post("/seed-defaults")

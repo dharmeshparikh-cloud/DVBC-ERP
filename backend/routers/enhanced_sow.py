@@ -161,6 +161,204 @@ async def request_manager_approval(
 
 # ============== Sales Team Endpoints ==============
 
+# Simple SOW Create/Update for SOWBuilder
+class SimpleScopeItem(BaseModel):
+    id: Optional[str] = None
+    category_code: str
+    category_name: Optional[str] = None
+    name: str
+    deliverables: str = ""  # Comma-separated deliverables text
+    
+class SimpleSOWCreate(BaseModel):
+    pricing_plan_id: str
+    lead_id: Optional[str] = None
+    scopes: List[SimpleScopeItem] = []
+
+
+@router.post("/simple-create")
+async def create_simple_sow(
+    data: SimpleSOWCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Simple SOW creation from SOWBuilder.
+    Creates enhanced_sow with scopes (Category, Name, Deliverables).
+    """
+    allowed = ADMIN_ROLES + SALES_ROLES + ["principal_consultant"]
+    if current_user.role not in allowed:
+        raise HTTPException(status_code=403, detail="Not authorized to create SOW")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    user_name = f"{current_user.first_name} {current_user.last_name}"
+    
+    # Verify pricing plan exists
+    plan = await db.pricing_plans.find_one({"id": data.pricing_plan_id}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Pricing plan not found")
+    
+    # Check if SOW already exists
+    existing = await db.enhanced_sow.find_one({"pricing_plan_id": data.pricing_plan_id}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="SOW already exists for this pricing plan. Use update endpoint.")
+    
+    # Get lead info
+    lead = None
+    lead_id = data.lead_id or plan.get("lead_id")
+    if lead_id:
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    
+    # Build scopes array
+    scopes = []
+    for scope_data in data.scopes:
+        # Parse deliverables from comma-separated string
+        deliverables_list = [d.strip() for d in scope_data.deliverables.split(',') if d.strip()]
+        
+        scope = {
+            "id": scope_data.id or str(uuid.uuid4()),
+            "category_code": scope_data.category_code,
+            "category_name": scope_data.category_name or scope_data.category_code.replace('_', ' ').title(),
+            "name": scope_data.name,
+            "deliverables": deliverables_list,
+            "deliverables_text": scope_data.deliverables,  # Keep original text
+            "source": "sales_original",
+            "is_inherited": True,  # Will be inherited by project_sow
+            "added_by": current_user.id,
+            "added_by_name": user_name,
+            "added_at": now.isoformat(),
+            "status": "not_started",
+            "start_date": None,
+            "end_date": None,
+            "days_taken": None,
+            "progress_percentage": 0
+        }
+        scopes.append(scope)
+    
+    # Generate SOW number
+    count = await db.enhanced_sow.count_documents({})
+    sow_number = f"SOW-{now.strftime('%Y%m%d')}-{str(count + 1).zfill(3)}"
+    
+    # Create enhanced SOW document
+    enhanced_sow = {
+        "id": str(uuid.uuid4()),
+        "sow_number": sow_number,
+        "pricing_plan_id": data.pricing_plan_id,
+        "lead_id": lead_id,
+        "client_name": lead.get("company") if lead else plan.get("client_name", ""),
+        "scopes": scopes,
+        "status": "draft",
+        "is_locked": False,
+        "sales_handover_complete": False,
+        "created_by": current_user.id,
+        "created_by_name": user_name,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
+    }
+    
+    await db.enhanced_sow.insert_one(enhanced_sow)
+    
+    # Link to pricing plan
+    await db.pricing_plans.update_one(
+        {"id": data.pricing_plan_id},
+        {"$set": {"enhanced_sow_id": enhanced_sow["id"]}}
+    )
+    
+    # Remove _id before returning
+    enhanced_sow.pop("_id", None)
+    
+    return {
+        "message": "SOW created successfully",
+        "sow": enhanced_sow
+    }
+
+
+@router.put("/{sow_id}/simple-update")
+async def update_simple_sow(
+    sow_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update SOW scopes from SOWBuilder.
+    Allows adding/updating/removing scopes before handover.
+    """
+    allowed = ADMIN_ROLES + SALES_ROLES + ["principal_consultant"]
+    if current_user.role not in allowed:
+        raise HTTPException(status_code=403, detail="Not authorized to update SOW")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    user_name = f"{current_user.first_name} {current_user.last_name}"
+    
+    # Get existing SOW
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    if sow.get("is_locked"):
+        raise HTTPException(status_code=400, detail="SOW is locked and cannot be modified")
+    
+    # Build updated scopes
+    scopes = []
+    for scope_data in data.get("scopes", []):
+        deliverables_text = scope_data.get("deliverables", "")
+        deliverables_list = [d.strip() for d in deliverables_text.split(',') if d.strip()]
+        
+        scope = {
+            "id": scope_data.get("id") or str(uuid.uuid4()),
+            "category_code": scope_data.get("category_code"),
+            "category_name": scope_data.get("category_name") or scope_data.get("category_code", "").replace('_', ' ').title(),
+            "name": scope_data.get("name"),
+            "deliverables": deliverables_list,
+            "deliverables_text": deliverables_text,
+            "source": "sales_original",
+            "is_inherited": True,
+            "added_by": current_user.id,
+            "added_by_name": user_name,
+            "added_at": now.isoformat(),
+            "status": scope_data.get("status", "not_started"),
+            "start_date": scope_data.get("start_date"),
+            "end_date": scope_data.get("end_date"),
+            "days_taken": scope_data.get("days_taken"),
+            "progress_percentage": scope_data.get("progress_percentage", 0)
+        }
+        scopes.append(scope)
+    
+    # Update SOW
+    await db.enhanced_sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "scopes": scopes,
+            "updated_at": now.isoformat(),
+            "updated_by": current_user.id,
+            "updated_by_name": user_name
+        }}
+    )
+    
+    # Get updated SOW
+    updated_sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    
+    return {
+        "message": "SOW updated successfully",
+        "sow": updated_sow
+    }
+
+
+@router.get("/by-pricing-plan-simple/{pricing_plan_id}")
+async def get_sow_by_pricing_plan_simple(
+    pricing_plan_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get SOW by pricing plan ID - simple format for SOWBuilder"""
+    db = get_db()
+    sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan_id}, {"_id": 0})
+    
+    if not sow:
+        return {"sow": None, "exists": False}
+    
+    return {"sow": sow, "exists": True}
+
+
 @router.post("/{pricing_plan_id}/sales-selection")
 async def create_sow_from_sales_selection(
     pricing_plan_id: str,
