@@ -40,7 +40,13 @@
 - `follow_ups.assigned_to`, `follow_ups.due_date`, `follow_ups.status`
 - `quotations.status`, `quotations.created_at`, `quotations.total_value`
 
-**Test Report**: `/app/test_reports/iteration_215.json` - 100% backend pass (35/35 tests)
+**Phase 4: Migration Complete** [March 25, Session 7]:
+| Page | Before | After |
+|------|--------|-------|
+| `Leads.js` (List view) | Manual `<table>` with `.map()` | `LeadsTable` (SalesDataTable) |
+| `ManagerLeadsDashboard.js` | Manual leads table | `LeadsTable` with external filters |
+
+**Test Report**: `/app/test_reports/iteration_216.json` - 100% frontend pass
 
 ---
 
@@ -331,6 +337,7 @@ All P0 governance fixes have been implemented and tested.
 
 ## Testing Status
 
+- **Iteration 216**: Phase 4 Migration (Leads.js, ManagerLeadsDashboard.js) - 100% frontend pass
 - **Iteration 215**: Sales Module Governance APIs - 100% backend pass (35/35 tests)
 - **Iteration 214**: Data Governance Phase 2 - 100% frontend pass rate (GovernedDropdown across all modules)
 - **Iteration 213**: MOM SLA Reminder & Meeting-Expense Link - 100% backend pass rate (12/12 tests)
