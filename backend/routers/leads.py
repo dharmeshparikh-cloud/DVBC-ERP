@@ -1419,29 +1419,34 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
             "requirements": [
                 {"item": "SOW document created", "completed": sow is not None, "required": True},
                 {"item": "At least one scope item with title", "completed": any(i.get("title") for i in (sow.get("scope_items") or [])) if sow else False, "required": True},
-                {"item": "Deliverables listed", "completed": bool(sow.get("deliverables")) if sow else False, "required": False},
-                {"item": "Exclusions mentioned", "completed": bool(sow.get("exclusions")) if sow else False, "required": False}
+                {"item": "Scope item category assigned", "completed": any(i.get("category") for i in (sow.get("scope_items") or [])) if sow else False, "required": False},
+                {"item": "Timeline estimated (weeks)", "completed": any(i.get("timeline_weeks") for i in (sow.get("scope_items") or [])) if sow else False, "required": False},
+                {"item": "Consultant assigned to scope item", "completed": any(i.get("assigned_consultant_id") for i in (sow.get("scope_items") or [])) if sow else False, "required": False}
             ],
-            "tips": ["Be specific about what's included and excluded", "Reference client expectations from meetings", "Set clear milestones"],
+            "tips": ["Be specific about what's included and excluded", "Reference client expectations from meetings", "Set clear milestones and timelines"],
             "completed": sow is not None and any(i.get("title") for i in (sow.get("scope_items") or []))
         },
         "quotation": {
-            "title": "Quotation",
+            "title": "Quotation / Proforma Invoice",
             "description": "Generate formal quote for client approval",
             "requirements": [
-                {"item": "Quotation generated from pricing plan", "completed": quotation is not None, "required": True},
-                {"item": "Quotation number assigned", "completed": bool(quotation.get("quotation_number")) if quotation else False, "required": True},
-                {"item": "Terms included", "completed": bool(quotation.get("terms")) if quotation else False, "required": False}
+                {"item": "Lead selected", "completed": bool(quotation.get("lead_id")) if quotation else False, "required": True},
+                {"item": "Pricing plan linked", "completed": bool(quotation.get("pricing_plan_id")) if quotation else False, "required": True},
+                {"item": "Quotation number generated", "completed": bool(quotation.get("quotation_number")) if quotation else False, "required": True},
+                {"item": "Payment terms defined", "completed": bool(quotation.get("payment_terms")) if quotation else False, "required": False},
+                {"item": "Validity period set", "completed": bool(quotation.get("validity_days")) if quotation else False, "required": False}
             ],
-            "tips": ["Double-check all amounts before sending", "Include payment terms", "Set validity period"],
-            "completed": quotation is not None
+            "tips": ["Double-check all amounts before sending", "Include payment terms", "Set validity period (default 30 days)"],
+            "completed": quotation is not None and bool(quotation.get("quotation_number"))
         },
         "agreement": {
             "title": "Agreement",
             "description": "Prepare and get service agreement signed",
             "requirements": [
-                {"item": "Agreement created", "completed": agreement is not None, "required": True},
-                {"item": "Milestones added with amounts", "completed": bool(agreement.get("milestones")) if agreement else False, "required": True},
+                {"item": "Lead with quotation selected", "completed": bool(agreement.get("lead_id")) if agreement else False, "required": True},
+                {"item": "Quotation linked", "completed": bool(agreement.get("quotation_id")) if agreement else False, "required": True},
+                {"item": "Agreement type selected", "completed": bool(agreement.get("agreement_type")) if agreement else False, "required": True},
+                {"item": "Start date set", "completed": bool(agreement.get("start_date")) if agreement else False, "required": False},
                 {"item": "Agreement signed by client", "completed": agreement.get("status") in ["signed", "active"] if agreement else False, "required": True}
             ],
             "tips": ["Ensure all stakeholders review before sending", "Follow up if not signed within a week", "Keep signed copy for records"],

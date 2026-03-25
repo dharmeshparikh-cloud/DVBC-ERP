@@ -2,6 +2,18 @@
 
 ## Latest Updates - March 25, 2026
 
+### P1 - Funnel Checklist Alignment & Governance Linting (Session 11 continued)
+- **Funnel Checklists Aligned**: Updated backend `/api/leads/{id}/funnel-checklist` endpoint to match actual mandatory fields:
+  - **SOW**: SOW created + scope item with title (required), category/timeline/consultant (optional)
+  - **Quotation**: Lead selected + pricing plan linked + quotation number (required), payment terms/validity (optional)
+  - **Agreement**: Lead with quotation + quotation linked + agreement type (required), start date (optional), signed status (required for completion)
+- **Governance Linting Implemented (Phase 5)**:
+  - Created `/app/frontend/scripts/check-sales-governance.js` - automated checker for sales table governance
+  - Created `/app/frontend/docs/GOVERNANCE.md` - comprehensive documentation of governance rules
+  - Created `/app/frontend/eslint.config.mjs` - ESLint flat config for the project
+  - Added `yarn governance:check` npm script to run the checker
+  - All primary sales listing pages now use SalesDataTable variants
+
 ### P0 Bug Fixes - MeetingRecord.js Crash & DraftSelector (Session 11)
 - **MeetingRecord.js Crash Fixed**: The page was crashing with a TypeError due to `.some()` being called on string values instead of arrays. The MOM form fields (discussion_points, decisions_made, etc.) had been converted from arrays to simple textareas, but the auto-save logic still expected arrays.
   - **Fix Applied**: 
