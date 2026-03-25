@@ -14,7 +14,7 @@ import {
   ArrowLeft, Calendar, Users, Clock, Video, MapPin, Plus, Trash2, 
   Save, CheckCircle, FileText, AlertCircle, ChevronRight, Eye,
   MessageSquare, Target, Handshake, ListChecks, Upload, Image, Mic,
-  Download, X, File, RefreshCw, Rocket, Route
+  Download, X, File, RefreshCw, Rocket, Route, DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
