@@ -753,7 +753,7 @@ export const SalesDataTable = ({
                     </td>
                   ))}
                   {(rowActions || renderActions) && (
-                    <td className="px-3 py-2.5 text-center">
+                    <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                       {renderActions ? renderActions(row) : (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

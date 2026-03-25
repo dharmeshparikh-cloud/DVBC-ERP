@@ -8,8 +8,30 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SalesDataTable, FILTER_TYPES } from './SalesDataTable';
-import { Eye, Edit, Phone, Mail, Pause, Play, MoreHorizontal } from 'lucide-react';
+import { Eye, Edit, Phone, Mail, Pause, Play, ExternalLink } from 'lucide-react';
 import { Badge } from '../ui/badge';
+
+// Funnel stage mapping for visual indicator
+const FUNNEL_STAGES = [
+  { key: 'new', label: 'Lead', color: 'bg-zinc-400' },
+  { key: 'meeting', label: 'Meeting', color: 'bg-orange-500' },
+  { key: 'pricing_plan', label: 'Pricing', color: 'bg-amber-500' },
+  { key: 'sow', label: 'SOW', color: 'bg-teal-500' },
+  { key: 'quotation', label: 'Quote', color: 'bg-cyan-500' },
+  { key: 'agreement', label: 'Agreement', color: 'bg-blue-500' },
+  { key: 'payment', label: 'Payment', color: 'bg-indigo-500' },
+  { key: 'kickoff_request', label: 'Kickoff', color: 'bg-purple-500' },
+  { key: 'closed', label: 'Complete', color: 'bg-emerald-500' },
+];
+
+const getFunnelStageIndex = (status) => {
+  const idx = FUNNEL_STAGES.findIndex(s => s.key === status);
+  return idx >= 0 ? idx : 0;
+};
+
+const getFunnelStageInfo = (status) => {
+  return FUNNEL_STAGES.find(s => s.key === status) || FUNNEL_STAGES[0];
+};
 
 // Column configuration for leads table
 const LEADS_COLUMNS = [
@@ -75,6 +97,51 @@ const LEADS_COLUMNS = [
       { value: 'lost', label: 'Lost' },
     ],
     type: 'status'
+  },
+  {
+    key: 'funnel_progress',
+    label: 'Funnel',
+    filterable: false,
+    sortable: false,
+    width: '140px',
+    render: (value, row) => {
+      const stageInfo = getFunnelStageInfo(row.status);
+      const stageIdx = getFunnelStageIndex(row.status);
+      const totalStages = FUNNEL_STAGES.length;
+      const percentage = Math.round(((stageIdx + 1) / totalStages) * 100);
+      
+      if (row.status === 'paused') {
+        return (
+          <span className="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">
+            Paused
+          </span>
+        );
+      }
+      if (row.status === 'lost') {
+        return (
+          <span className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-700 font-medium">
+            Lost
+          </span>
+        );
+      }
+      
+      return (
+        <div className="flex flex-col gap-1 min-w-[110px]">
+          <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${stageInfo.color} transition-all duration-300`}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-medium ${stageInfo.color.replace('bg-', 'text-').replace('-500', '-600').replace('-400', '-500')}`}>
+              {stageInfo.label}
+            </span>
+            <span className="text-[10px] text-zinc-400">{stageIdx + 1}/{totalStages}</span>
+          </div>
+        </div>
+      );
+    }
   },
   {
     key: 'deal_value',
@@ -161,7 +228,7 @@ export const LeadsTable = ({
     if (onRowClick) {
       onRowClick(row);
     } else {
-      navigate(`/sales-funnel/lead/${row.id}`);
+      navigate(`/sales-funnel-onboarding?leadId=${row.id}`);
     }
   };
   
@@ -169,7 +236,7 @@ export const LeadsTable = ({
     {
       label: 'View Pipeline',
       icon: Eye,
-      onClick: (row) => navigate(`/sales-funnel/lead/${row.id}`)
+      onClick: (row) => navigate(`/sales-funnel-onboarding?leadId=${row.id}`)
     },
     {
       label: 'Edit Lead',

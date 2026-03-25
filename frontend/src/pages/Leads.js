@@ -149,6 +149,7 @@ const Leads = () => {
   const [timelineFilter, setTimelineFilter] = useState('all');
   const [suggestions, setSuggestions] = useState({});
   const [viewMode, setViewMode] = useState('list'); // Default to list view
+  const [editLead, setEditLead] = useState(null);
   
   // Auto-switch to card view on mobile
   useEffect(() => {
@@ -343,36 +344,14 @@ const Leads = () => {
     queryClient.invalidateQueries({ queryKey: leadKeys.progressBulk() });
   };
 
-  // Navigate to current stage when clicking on lead
-  const handleLeadClick = async (lead) => {
+  // Navigate to funnel onboarding when clicking on lead
+  const handleLeadClick = (lead) => {
     // Don't navigate if lead is paused
     if (lead.status === 'paused') {
       toast.info('This lead is paused. Resume it to continue the sales flow.');
       return;
     }
-    // Use prefetched progress or navigate to default
-    const cachedProgress = queryClient.getQueryData(leadKeys.progress(lead.id));
-    if (cachedProgress?.next_url) {
-      navigate(cachedProgress.next_url);
-    } else {
-      // Fetch progress if not cached
-      try {
-        const API = process.env.REACT_APP_BACKEND_URL;
-        const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`${API}/api/leads/${lead.id}/progress`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.next_url) {
-            navigate(data.next_url);
-            return;
-          }
-        }
-      } catch {
-        // Fallback on error
-      }
-      navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`);
-    }
+    navigate(`/sales-funnel-onboarding?leadId=${lead.id}`);
   };
 
   // Pause/Resume lead functions (for managers)
@@ -418,13 +397,23 @@ const Leads = () => {
       if (!payload.follow_up_notes) {
         delete payload.follow_up_notes;
       }
-      const newLead = await createLeadMutation.mutateAsync(payload);
-      toast.success('Lead created successfully! Redirecting to Sales Funnel...');
+      
+      if (editLead) {
+        // Update existing lead
+        await updateLeadMutation.mutateAsync({ id: editLead.id, ...payload });
+        toast.success('Lead updated successfully!');
+        setEditLead(null);
+      } else {
+        // Create new lead
+        const newLead = await createLeadMutation.mutateAsync(payload);
+        toast.success('Lead created successfully! Redirecting to Sales Funnel...');
+        // Mark draft as converted
+        await convertDraft();
+        // Auto-redirect to Sales Funnel with the new lead
+        navigate(`/sales-funnel-onboarding?leadId=${newLead.id}`);
+      }
+      
       setDialogOpen(false);
-      
-      // Mark draft as converted
-      await convertDraft();
-      
       setFormData({
         first_name: '',
         last_name: '',
@@ -438,18 +427,13 @@ const Leads = () => {
         next_follow_up: '',
         follow_up_notes: '',
       });
-      
-      // Auto-redirect to Sales Funnel with the new lead
-      // Lead step will be ticked, Meeting step will be current
-      navigate(`/sales-funnel-onboarding?leadId=${newLead.id}`);
     } catch (error) {
       // Handle validation errors which may be an array or object
       const detail = error.response?.data?.detail;
-      let errorMessage = 'Failed to create lead';
+      let errorMessage = editLead ? 'Failed to update lead' : 'Failed to create lead';
       if (typeof detail === 'string') {
         errorMessage = detail;
       } else if (Array.isArray(detail) && detail.length > 0) {
-        // Validation errors are usually in format [{loc: [...], msg: '...', type: '...'}]
         errorMessage = (detail || []).map(d => d.msg || d.message || String(d)).join(', ');
       } else if (detail && typeof detail === 'object') {
         errorMessage = detail.msg || detail.message || JSON.stringify(detail);
@@ -656,15 +640,15 @@ const Leads = () => {
           </>)}
         </>}
       />
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditLead(null); }}>
               <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 flex items-center justify-between">
-                    <span>Add New Lead</span>
-                    <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={handleSaveDraft} />
+                    <span>{editLead ? 'Edit Lead' : 'Add New Lead'}</span>
+                    {!editLead && <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={handleSaveDraft} />}
                   </DialogTitle>
                   <DialogDescription className="text-zinc-500">
-                    Enter lead information to add to your pipeline
+                    {editLead ? 'Update lead information' : 'Enter lead information to add to your pipeline'}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -925,7 +909,7 @@ const Leads = () => {
                   data-testid="submit-lead-button"
                   className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
                 >
-                  Create Lead
+                  {editLead ? 'Update Lead' : 'Create Lead'}
                 </Button>
               </form>
             </DialogContent>
