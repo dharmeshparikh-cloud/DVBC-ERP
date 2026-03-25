@@ -204,6 +204,22 @@ async def list_follow_ups(
     total = await db.follow_ups.count_documents(query)
     follow_ups = await db.follow_ups.find(query, {"_id": 0}).sort(sort_field, sort_order).skip(skip).limit(page_size).to_list(page_size)
     
+    # Enrich with lead email for linked leads
+    lead_ids = list(set(f["lead_id"] for f in follow_ups if f.get("lead_id")))
+    if lead_ids:
+        leads_data = await db.leads.find(
+            {"id": {"$in": lead_ids}},
+            {"_id": 0, "id": 1, "email": 1, "company": 1, "first_name": 1, "last_name": 1}
+        ).to_list(len(lead_ids))
+        lead_map = {l["id"]: l for l in leads_data}
+        for fu in follow_ups:
+            if fu.get("lead_id") and fu["lead_id"] in lead_map:
+                lead = lead_map[fu["lead_id"]]
+                fu["lead_email"] = lead.get("email", "")
+                fu["lead_company"] = lead.get("company", "")
+                if not fu.get("client_name"):
+                    fu["client_name"] = lead.get("company") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+    
     return {
         "data": serialize_list(follow_ups),
         "total": total,
@@ -598,3 +614,206 @@ async def reassign_follow_up(follow_up_id: str, data: ReassignFollowUp, current_
             f". All funnel stages for this lead have been transferred." if data.transfer_all_stages else ""
         ),
     }
+
+
+
+class FollowUpEmailRequest(BaseModel):
+    subject: str
+    body: str
+    recipient_email: Optional[str] = None  # Override lead email if needed
+
+
+@router.post("/{follow_up_id}/send-email")
+async def send_follow_up_email(
+    follow_up_id: str,
+    data: FollowUpEmailRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Send a follow-up email to the lead's contact.
+    Pre-fills with follow-up details, user can edit before sending."""
+    db = get_db()
+    
+    fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
+    if not fu:
+        raise HTTPException(status_code=404, detail="Follow-up not found")
+    
+    # Get lead email
+    recipient_email = data.recipient_email
+    if not recipient_email and fu.get("lead_id"):
+        lead = await db.leads.find_one({"id": fu["lead_id"]}, {"_id": 0, "email": 1, "first_name": 1, "last_name": 1, "company": 1})
+        if lead:
+            recipient_email = lead.get("email")
+    
+    if not recipient_email:
+        raise HTTPException(status_code=400, detail="No recipient email found. Please provide one or ensure the lead has an email.")
+    
+    # Send email using existing email infrastructure
+    import smtplib
+    import os
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    try:
+        smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+        smtp_user = os.environ.get("SMTP_USER")
+        smtp_password = os.environ.get("SMTP_PASSWORD")
+        sender_name = os.environ.get("SENDER_NAME", "DVBC NETRA")
+        
+        if not smtp_user or not smtp_password:
+            raise HTTPException(status_code=500, detail="SMTP not configured. Contact admin to set up email.")
+        
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = data.subject
+        msg["From"] = f"{sender_name} <{smtp_user}>"
+        msg["To"] = recipient_email
+        
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            {data.body.replace(chr(10), '<br>')}
+            <br><br>
+            <p style="color: #666; font-size: 12px;">
+                Sent via NETRA CRM by {current_user.full_name}
+            </p>
+        </div>
+        """
+        
+        html_part = MIMEText(html_content, "html")
+        msg.attach(html_part)
+        
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, recipient_email, msg.as_string())
+        
+        # Log email in follow-up history
+        now = datetime.now(timezone.utc).isoformat()
+        await db.follow_ups.update_one(
+            {"id": follow_up_id},
+            {"$push": {"history": {
+                "action": "email_sent",
+                "date": now,
+                "by": current_user.full_name,
+                "by_id": current_user.id,
+                "notes": f"Email sent to {recipient_email}: {data.subject}",
+            }},
+            "$set": {"updated_at": now}}
+        )
+        
+        return {
+            "message": f"Email sent to {recipient_email}",
+            "recipient": recipient_email,
+            "subject": data.subject,
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+
+@router.get("/{follow_up_id}/email-template")
+async def get_follow_up_email_template(
+    follow_up_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a pre-filled email template for a follow-up."""
+    db = get_db()
+    
+    fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
+    if not fu:
+        raise HTTPException(status_code=404, detail="Follow-up not found")
+    
+    # Get lead details
+    lead = None
+    if fu.get("lead_id"):
+        lead = await db.leads.find_one({"id": fu["lead_id"]}, {"_id": 0})
+    
+    client_name = fu.get("client_name") or (f"{lead.get('first_name', '')} {lead.get('last_name', '')}" if lead else "Client")
+    company = lead.get("company", "") if lead else ""
+    recipient_email = lead.get("email", "") if lead else ""
+    sender_name = current_user.full_name
+    
+    # Build prefilled subject and body
+    stage_labels = {
+        "lead": "our conversation",
+        "meeting": "our recent meeting",
+        "pricing_plan": "the pricing plan",
+        "sow": "the scope of work",
+        "quotation": "the quotation",
+        "agreement": "the agreement",
+        "payment": "the payment details",
+    }
+    stage_text = stage_labels.get(fu.get("entity_type", ""), "our discussion")
+    
+    subject = f"Follow-up: {stage_text} — {company}" if company else f"Follow-up: {stage_text}"
+    
+    notes = fu.get('notes', '')
+    body = (
+        f"Dear {client_name.strip()},\n\n"
+        f"I hope this email finds you well. I wanted to follow up regarding {stage_text}"
+        f"{f' for {company}' if company else ''}.\n\n"
+        f"{notes}\n\n"
+        f"Please let me know if you have any questions or need additional information. "
+        f"I'd be happy to schedule a call at your convenience.\n\n"
+        f"Best regards,\n{sender_name}"
+    )
+    
+    return {
+        "subject": subject,
+        "body": body,
+        "recipient_email": recipient_email,
+        "client_name": client_name.strip(),
+        "company": company,
+    }
+
+
+@router.get("/{follow_up_id}/client-action")
+async def client_follow_up_action(
+    follow_up_id: str,
+    action: str = "view",
+    response_text: Optional[str] = None,
+):
+    """Public endpoint for client CTA buttons in emails.
+    No auth required - uses follow_up_id as token."""
+    db = get_db()
+    
+    fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
+    if not fu:
+        raise HTTPException(status_code=404, detail="Follow-up not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    if action == "close":
+        await db.follow_ups.update_one(
+            {"id": follow_up_id},
+            {"$set": {"status": "closed", "closed_at": now, "updated_at": now, "client_response": "Confirmed closure via email"},
+             "$push": {"history": {
+                "action": "client_closed",
+                "date": now,
+                "by": "Client (via email)",
+                "notes": response_text or "Client confirmed closure via email CTA",
+            }}}
+        )
+        return {"message": "Follow-up closed successfully. Thank you for confirming!", "action": "closed"}
+    
+    elif action == "reschedule":
+        await db.follow_ups.update_one(
+            {"id": follow_up_id},
+            {"$set": {"status": "open", "updated_at": now, "client_response": "Requested reschedule via email"},
+             "$push": {"history": {
+                "action": "client_reschedule",
+                "date": now,
+                "by": "Client (via email)",
+                "notes": response_text or "Client requested reschedule via email CTA",
+            }}}
+        )
+        return {"message": "Reschedule request received. Our team will contact you shortly.", "action": "reschedule_requested"}
+    
+    else:
+        return {"message": "Follow-up acknowledged", "action": "viewed", "follow_up": {
+            "client_name": fu.get("client_name"),
+            "due_date": fu.get("due_date"),
+            "notes": fu.get("notes"),
+            "status": fu.get("status"),
+        }}

@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import {
   CalendarCheck, DollarSign, Users, Clock, AlertTriangle,
   CheckCircle, Phone, RefreshCw, ChevronRight, X,
-  MessageSquare, UserCheck, ArrowRightLeft, History, Plus, Send
+  MessageSquare, UserCheck, ArrowRightLeft, History, Plus, Send, Mail
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -66,7 +66,12 @@ const FollowUps = () => {
   const [reassignReason, setReassignReason] = useState('');
   const [transferAll, setTransferAll] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createForm, setCreateForm] = useState({ entity_type: 'lead', entity_id: '', lead_id: '', client_name: '', due_date: '', notes: '', priority: 'medium' });
+  const [createForm, setCreateForm] = useState({ entity_type: 'lead', entity_id: '', lead_id: '', client_name: '', due_date: '', due_time: '', notes: '', priority: 'medium' });
+  
+  // Email state
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailData, setEmailData] = useState({ subject: '', body: '', recipient_email: '', follow_up_id: '' });
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const isManager = checkIsManager(user);
 
@@ -181,13 +186,52 @@ const FollowUps = () => {
       const res = await axios.post(`${API}/follow-ups`, data);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['follow-ups'] });
       toast.success('Follow-up created');
       setShowCreateDialog(false);
-      setCreateForm({ entity_type: 'lead', entity_id: '', lead_id: '', client_name: '', due_date: '', notes: '', priority: 'medium' });
+      setCreateForm({ entity_type: 'lead', entity_id: '', lead_id: '', client_name: '', due_date: '', due_time: '', notes: '', priority: 'medium' });
+      
+      // Fetch email template and show Send Email dialog
+      if (data?.id) {
+        try {
+          const templateRes = await axios.get(`${API}/follow-ups/${data.id}/email-template`);
+          setEmailData({
+            follow_up_id: data.id,
+            subject: templateRes.data.subject || '',
+            body: templateRes.data.body || '',
+            recipient_email: templateRes.data.recipient_email || '',
+            client_name: templateRes.data.client_name || '',
+            company: templateRes.data.company || '',
+            notes: data.notes || '',
+          });
+          setShowEmailDialog(true);
+        } catch {
+          // Email template not available, just skip
+        }
+      }
     },
   });
+  
+  // Send email handler
+  const handleSendEmail = async () => {
+    if (!emailData.follow_up_id || !emailData.recipient_email) return;
+    setSendingEmail(true);
+    try {
+      const res = await axios.post(`${API}/follow-ups/${emailData.follow_up_id}/send-email`, {
+        subject: emailData.subject,
+        body: emailData.body,
+        recipient_email: emailData.recipient_email,
+      });
+      toast.success(res.data.message || 'Email sent');
+      setShowEmailDialog(false);
+      setEmailData({ subject: '', body: '', recipient_email: '', follow_up_id: '' });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to send email');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   const refreshDetail = async () => {
     if (!selectedFollowUp) return;
@@ -447,6 +491,22 @@ const FollowUps = () => {
                 <span className="font-semibold text-sm">Funnel Stage: {ENTITY_LABELS[selectedFollowUp.entity_type] || selectedFollowUp.entity_type}</span>
               </div>
 
+              {/* Lead Info (linked lead details) */}
+              {selectedFollowUp.lead_id && (
+                <div className="p-3 rounded-lg border border-blue-200 bg-blue-50" data-testid="follow-up-lead-info">
+                  <p className="text-xs font-medium text-blue-600 mb-1">Linked Lead</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-zinc-900">{selectedFollowUp.client_name || 'Unknown'}</p>
+                      {selectedFollowUp.lead_email && <p className="text-xs text-zinc-500">{selectedFollowUp.lead_email}</p>}
+                    </div>
+                    <Button variant="outline" size="sm" className="text-xs h-7 border-blue-300 text-blue-700" onClick={() => { setDetailOpen(false); window.location.href = `/sales-funnel-onboarding?leadId=${selectedFollowUp.lead_id}`; }}>
+                      View Pipeline
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Current Info */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-zinc-400">Priority:</span> <span className={`ml-1 font-medium ${selectedFollowUp.priority === 'high' ? 'text-red-600' : selectedFollowUp.priority === 'low' ? 'text-green-600' : 'text-yellow-600'}`}>{selectedFollowUp.priority}</span></div>
@@ -694,6 +754,82 @@ const FollowUps = () => {
                 createMutation.mutate(payload);
               }} disabled={!createForm.due_date || !createForm.lead_id || createMutation.isPending} className="flex-1 bg-zinc-950 text-white" data-testid="confirm-create-btn">
                 {createMutation.isPending ? 'Creating...' : 'Create Follow-up'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={(open) => { setShowEmailDialog(open); if (!open) setEmailData({ subject: '', body: '', recipient_email: '', follow_up_id: '' }); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Mail className="w-5 h-5" /> Send Follow-up Email</DialogTitle>
+            <DialogDescription>Choose a template and customize before sending. Includes action buttons for client response.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {/* Template Selection */}
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Choose Template</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'formal', label: 'Formal', desc: 'Professional follow-up' },
+                  { id: 'meeting', label: 'Meeting', desc: 'Post-meeting recap' },
+                  { id: 'reminder', label: 'Reminder', desc: 'Gentle nudge' },
+                ].map(t => (
+                  <button key={t.id} onClick={() => {
+                    const baseUrl = process.env.REACT_APP_BACKEND_URL;
+                    const fuId = emailData.follow_up_id;
+                    const closeLink = `${baseUrl}/api/follow-ups/${fuId}/client-action?action=close`;
+                    const rescheduleLink = `${baseUrl}/api/follow-ups/${fuId}/client-action?action=reschedule`;
+                    const clientName = emailData.client_name || 'Sir/Madam';
+                    const senderName = user?.full_name || 'Our Team';
+                    const company = emailData.company || '';
+                    
+                    const templates = {
+                      formal: {
+                        subject: `Follow-up: ${company || 'Our Discussion'}`,
+                        body: `Dear ${clientName},\n\nI hope this email finds you well. I wanted to follow up on our recent discussion${company ? ` regarding ${company}` : ''}.\n\n${emailData.notes || 'Please find below the details of our follow-up schedule.'}\n\nWe look forward to hearing from you at your earliest convenience.\n\nIf everything is aligned, please confirm by clicking the link below:\nConfirm & Close: ${closeLink}\n\nIf you need to reschedule, please use this link:\nReschedule: ${rescheduleLink}\n\nBest regards,\n${senderName}`
+                      },
+                      meeting: {
+                        subject: `Meeting Follow-up: ${company || 'Next Steps'}`,
+                        body: `Dear ${clientName},\n\nThank you for taking the time to meet with us. Here is a brief recap of our discussion and the agreed next steps:\n\n${emailData.notes || '- Review the proposal\n- Schedule a follow-up call\n- Share feedback'}\n\nPlease let us know if you have any questions.\n\nTo confirm you are aligned with the next steps:\nConfirm & Close: ${closeLink}\n\nTo request a new meeting time:\nReschedule: ${rescheduleLink}\n\nWarm regards,\n${senderName}`
+                      },
+                      reminder: {
+                        subject: `Gentle Reminder: ${company || 'Pending Follow-up'}`,
+                        body: `Dear ${clientName},\n\nI hope you are doing well. This is a gentle reminder regarding our pending discussion${company ? ` about ${company}` : ''}.\n\n${emailData.notes || 'We would appreciate your feedback at your earliest convenience.'}\n\nPlease take a moment to respond:\nAll Good - Close: ${closeLink}\nNeed More Time - Reschedule: ${rescheduleLink}\n\nLooking forward to your response.\n\nBest regards,\n${senderName}`
+                      },
+                    };
+                    const tmpl = templates[t.id];
+                    setEmailData(p => ({ ...p, subject: tmpl.subject, body: tmpl.body }));
+                  }} className={`p-2 rounded border text-left hover:bg-zinc-50 transition-colors ${emailData.subject?.includes(t.id === 'formal' ? 'Our Discussion' : t.id === 'meeting' ? 'Next Steps' : 'Pending') ? 'border-blue-400 bg-blue-50' : 'border-zinc-200'}`} data-testid={`template-${t.id}`}>
+                    <p className="text-xs font-medium text-zinc-900">{t.label}</p>
+                    <p className="text-[10px] text-zinc-500">{t.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">To *</Label>
+              <Input data-testid="email-to" value={emailData.recipient_email} onChange={(e) => setEmailData(p => ({ ...p, recipient_email: e.target.value }))} placeholder="client@example.com" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Subject</Label>
+              <Input data-testid="email-subject" value={emailData.subject} onChange={(e) => setEmailData(p => ({ ...p, subject: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Message</Label>
+              <textarea data-testid="email-body" value={emailData.body} onChange={(e) => setEmailData(p => ({ ...p, body: e.target.value }))} rows={10} className="w-full px-3 py-2 rounded border border-zinc-200 text-sm resize-y font-mono" />
+            </div>
+            <div className="p-2 bg-blue-50 rounded border border-blue-200 text-xs text-blue-700">
+              <p className="font-medium mb-1">CTA Buttons Included:</p>
+              <p>The email includes "Confirm & Close" and "Reschedule" links. When the client clicks them, the action is logged automatically in the follow-up history.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowEmailDialog(false)} className="flex-1">Skip</Button>
+              <Button onClick={handleSendEmail} disabled={!emailData.recipient_email || sendingEmail} className="flex-1 bg-blue-600 text-white hover:bg-blue-700" data-testid="send-email-btn">
+                <Send className="w-4 h-4 mr-2" />
+                {sendingEmail ? 'Sending...' : 'Send Email'}
               </Button>
             </div>
           </div>

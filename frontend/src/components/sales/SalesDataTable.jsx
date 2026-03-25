@@ -653,8 +653,8 @@ export const SalesDataTable = ({
       </div>
       
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto min-w-0">
+        <table className="w-full text-sm min-w-[800px]">
           <thead className={cn(
             "bg-zinc-50 border-b border-zinc-200",
             stickyHeader && "sticky top-0 z-10"

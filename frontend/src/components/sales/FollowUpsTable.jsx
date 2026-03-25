@@ -20,8 +20,11 @@ const FOLLOWUPS_COLUMNS = [
     width: '180px',
     render: (value, row) => (
       <div>
-        <span className="font-medium text-zinc-900">{value || row.client_name || 'N/A'}</span>
-        <span className="text-xs text-zinc-500 block capitalize">{row.entity_type || ''}</span>
+        <span className="font-medium text-zinc-900">{row.lead_company || row.client_name || value || 'N/A'}</span>
+        <div className="flex items-center gap-1 mt-0.5">
+          <span className="text-[10px] text-zinc-400 capitalize">{row.entity_type || ''}</span>
+          {row.lead_id && <span className="text-[10px] text-blue-500">Linked</span>}
+        </div>
       </div>
     )
   },
@@ -117,6 +120,26 @@ const FOLLOWUPS_COLUMNS = [
           {value || 'Medium'}
         </span>
       );
+    }
+  },
+  {
+    key: 'client_response',
+    label: 'Client',
+    filterable: false,
+    sortable: false,
+    width: '90px',
+    render: (value, row) => {
+      if (!value && !row.history?.some(h => h.action?.startsWith('client_'))) {
+        return <span className="text-[10px] text-zinc-400">—</span>;
+      }
+      const clientAction = (row.history || []).filter(h => h.action?.startsWith('client_')).pop();
+      if (clientAction?.action === 'client_closed') {
+        return <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 font-medium">Confirmed</span>;
+      }
+      if (clientAction?.action === 'client_reschedule') {
+        return <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">Reschedule</span>;
+      }
+      return <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{value?.substring(0, 15) || 'Responded'}</span>;
     }
   },
   {

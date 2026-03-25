@@ -8,7 +8,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SalesDataTable, FILTER_TYPES } from './SalesDataTable';
-import { Eye, Edit, Phone, Mail, Pause, Play, ExternalLink } from 'lucide-react';
+import { Eye, Edit, Phone, Mail, Pause, Play, ExternalLink, ArrowRightLeft } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
 // Funnel stage mapping - uses LEAD DB STATUS values (not funnel step IDs)
@@ -219,6 +219,7 @@ export const LeadsTable = ({
   onEdit, 
   onPause,
   onResume,
+  onReassign,
   className,
   externalFilters = {}
 }) => {
@@ -242,6 +243,12 @@ export const LeadsTable = ({
       label: 'Edit Lead',
       icon: Edit,
       onClick: (row) => onEdit?.(row)
+    },
+    {
+      label: 'Reassign Lead',
+      icon: ArrowRightLeft,
+      onClick: (row) => onReassign?.(row),
+      className: 'text-blue-600'
     },
     {
       label: 'Pause Lead',

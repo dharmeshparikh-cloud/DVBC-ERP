@@ -12,6 +12,7 @@ GOVERNANCE: March 2026
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
+from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 import uuid
@@ -821,6 +822,190 @@ async def delete_lead(lead_id: str, current_user: User = Depends(get_current_use
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Lead not found")
     return {"message": "Lead deleted successfully"}
+
+
+class ReassignLeadRequest(BaseModel):
+    new_owner_id: str
+    reason: Optional[str] = None
+    transfer_all_data: bool = True  # Transfer meetings, pricing, SOW, etc.
+
+class BulkReassignRequest(BaseModel):
+    from_user_id: str
+    to_user_id: str
+    reason: Optional[str] = None
+
+
+@router.post("/{lead_id}/reassign")
+async def reassign_lead(
+    lead_id: str,
+    data: ReassignLeadRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Reassign a lead (and all associated data) to another sales person.
+    Access: managers/admins can reassign directly, sales can initiate."""
+    db = get_db()
+    
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Get new owner info
+    new_owner = await db.users.find_one({"id": data.new_owner_id}, {"_id": 0, "id": 1, "full_name": 1, "email": 1})
+    if not new_owner:
+        raise HTTPException(status_code=404, detail="New owner not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    old_owner_name = lead.get("assigned_to_name", lead.get("lead_owner_name", "Unknown"))
+    new_owner_name = new_owner.get("full_name", "Unknown")
+    
+    # Update lead ownership
+    await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "assigned_to": data.new_owner_id,
+            "lead_owner": data.new_owner_id,
+            "assigned_to_name": new_owner_name,
+            "updated_at": now,
+        },
+        "$push": {"activity_log": {
+            "action": "reassigned",
+            "date": now,
+            "by": current_user.full_name,
+            "by_id": current_user.id,
+            "details": f"Lead reassigned from {old_owner_name} to {new_owner_name}. Reason: {data.reason or 'N/A'}",
+        }}}
+    )
+    
+    transfer_results = {"lead": True}
+    
+    if data.transfer_all_data:
+        # Transfer all associated data
+        collections_to_transfer = [
+            ("follow_ups", "assigned_to"),
+            ("meetings", "created_by"),
+            ("pricing_plans", "created_by"),
+            ("sows", "created_by"),
+            ("enhanced_sows", "created_by"),
+            ("quotations", "created_by"),
+            ("agreements", "created_by"),
+        ]
+        
+        for collection_name, owner_field in collections_to_transfer:
+            collection = db[collection_name]
+            r = await collection.update_many(
+                {"lead_id": lead_id},
+                {"$set": {owner_field: data.new_owner_id, "updated_at": now}}
+            )
+            transfer_results[collection_name] = r.modified_count
+        
+        # Also update assigned_to_name in follow_ups
+        await db.follow_ups.update_many(
+            {"lead_id": lead_id},
+            {"$set": {"assigned_to_name": new_owner_name}}
+        )
+    
+    return {
+        "message": f"Lead reassigned to {new_owner_name}",
+        "transfer_results": transfer_results,
+        "lead_id": lead_id,
+        "new_owner": new_owner_name,
+    }
+
+
+@router.post("/bulk-reassign")
+async def bulk_reassign_leads(
+    data: BulkReassignRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Bulk reassign ALL leads from one user to another.
+    Use case: sales person resignation/role change.
+    Access: managers and admins only."""
+    db = get_db()
+    
+    # Only managers/admins can bulk reassign
+    manager_roles = ["sales_manager", "manager", "principal_consultant", "admin"]
+    if current_user.role not in manager_roles:
+        raise HTTPException(status_code=403, detail="Only managers/admins can bulk reassign leads")
+    
+    # Validate users
+    from_user = await db.users.find_one({"id": data.from_user_id}, {"_id": 0, "id": 1, "full_name": 1})
+    to_user = await db.users.find_one({"id": data.to_user_id}, {"_id": 0, "id": 1, "full_name": 1})
+    
+    if not from_user:
+        raise HTTPException(status_code=404, detail="Source user not found")
+    if not to_user:
+        raise HTTPException(status_code=404, detail="Target user not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    from_name = from_user.get("full_name", "Unknown")
+    to_name = to_user.get("full_name", "Unknown")
+    
+    # Find all leads owned by from_user
+    leads = await db.leads.find(
+        {"$or": [
+            {"assigned_to": data.from_user_id},
+            {"lead_owner": data.from_user_id},
+            {"created_by": data.from_user_id},
+        ]},
+        {"_id": 0, "id": 1}
+    ).to_list(10000)
+    
+    lead_ids = [l["id"] for l in leads]
+    
+    if not lead_ids:
+        return {"message": f"No leads found for {from_name}", "transferred_count": 0}
+    
+    # Transfer all leads
+    r = await db.leads.update_many(
+        {"id": {"$in": lead_ids}},
+        {"$set": {
+            "assigned_to": data.to_user_id,
+            "lead_owner": data.to_user_id,
+            "assigned_to_name": to_name,
+            "updated_at": now,
+        },
+        "$push": {"activity_log": {
+            "action": "bulk_reassigned",
+            "date": now,
+            "by": current_user.full_name,
+            "by_id": current_user.id,
+            "details": f"Bulk reassigned from {from_name} to {to_name}. Reason: {data.reason or 'Migration'}",
+        }}}
+    )
+    
+    transfer_results = {"leads": r.modified_count}
+    
+    # Transfer all associated data for these leads
+    collections_to_transfer = [
+        ("follow_ups", "assigned_to"),
+        ("meetings", "created_by"),
+        ("pricing_plans", "created_by"),
+        ("sows", "created_by"),
+        ("enhanced_sows", "created_by"),
+        ("quotations", "created_by"),
+        ("agreements", "created_by"),
+    ]
+    
+    for collection_name, owner_field in collections_to_transfer:
+        collection = db[collection_name]
+        r2 = await collection.update_many(
+            {"lead_id": {"$in": lead_ids}},
+            {"$set": {owner_field: data.to_user_id, "updated_at": now}}
+        )
+        transfer_results[collection_name] = r2.modified_count
+    
+    # Update follow-up names
+    await db.follow_ups.update_many(
+        {"lead_id": {"$in": lead_ids}},
+        {"$set": {"assigned_to_name": to_name}}
+    )
+    
+    return {
+        "message": f"Successfully transferred {len(lead_ids)} leads from {from_name} to {to_name}",
+        "transferred_count": len(lead_ids),
+        "transfer_results": transfer_results,
+    }
+
 
 
 @router.get("/{lead_id}/suggestions")

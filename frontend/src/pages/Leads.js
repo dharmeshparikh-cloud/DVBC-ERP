@@ -8,7 +8,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Plus, Mail, Phone, Briefcase, ExternalLink, TrendingUp, DollarSign, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Pause, Play, CheckCircle, Circle, Building2 } from 'lucide-react';
+import { Plus, Mail, Phone, Briefcase, ExternalLink, TrendingUp, DollarSign, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Pause, Play, CheckCircle, Circle, Building2, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import FollowUpActionButton from '../components/FollowUpActionButton';
@@ -180,6 +180,81 @@ const Leads = () => {
   const pauseLeadMutation = usePauseLead();
   const resumeLeadMutation = useResumeLead();
   const bulkCreateLeadsMutation = useBulkCreateLeads();
+  
+  // Reassign state
+  const [reassignLead, setReassignLead] = useState(null);
+  const [showReassignDialog, setShowReassignDialog] = useState(false);
+  const [showBulkReassign, setShowBulkReassign] = useState(false);
+  const [reassignUserId, setReassignUserId] = useState('');
+  const [bulkFromUserId, setBulkFromUserId] = useState('');
+  const [bulkToUserId, setBulkToUserId] = useState('');
+  const [reassignReason, setReassignReason] = useState('');
+  const [salesUsers, setSalesUsers] = useState([]);
+  
+  // Fetch sales team users for reassign dropdowns
+  useEffect(() => {
+    const fetchSalesUsers = async () => {
+      try {
+        const API = process.env.REACT_APP_BACKEND_URL;
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API}/api/users`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          const users = Array.isArray(data) ? data : (data?.data || data?.users || []);
+          setSalesUsers(users.filter(u => ['sales', 'sales_manager', 'admin', 'principal_consultant'].includes(u.role)));
+        }
+      } catch { /* silent */ }
+    };
+    fetchSalesUsers();
+  }, []);
+
+  // Reassign mutation
+  const handleReassign = async () => {
+    if (!reassignLead || !reassignUserId) return;
+    try {
+      const API = process.env.REACT_APP_BACKEND_URL;
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/api/leads/${reassignLead.id}/reassign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ new_owner_id: reassignUserId, reason: reassignReason, transfer_all_data: true }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
+      const result = await res.json();
+      toast.success(result.message);
+      setShowReassignDialog(false);
+      setReassignLead(null);
+      setReassignUserId('');
+      setReassignReason('');
+      refetchLeads();
+    } catch (e) {
+      toast.error(e.message || 'Failed to reassign lead');
+    }
+  };
+  
+  // Bulk reassign mutation
+  const handleBulkReassign = async () => {
+    if (!bulkFromUserId || !bulkToUserId) return;
+    try {
+      const API = process.env.REACT_APP_BACKEND_URL;
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/api/leads/bulk-reassign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ from_user_id: bulkFromUserId, to_user_id: bulkToUserId, reason: reassignReason }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
+      const result = await res.json();
+      toast.success(result.message);
+      setShowBulkReassign(false);
+      setBulkFromUserId('');
+      setBulkToUserId('');
+      setReassignReason('');
+      refetchLeads();
+    } catch (e) {
+      toast.error(e.message || 'Failed to bulk reassign');
+    }
+  };
 
   // Suggestions are now fetched via prefetching in a controlled way
   // We prefetch suggestions for high-scoring leads when the leads list loads
@@ -650,6 +725,11 @@ const Leads = () => {
             <Button variant="outline" onClick={() => setCsvDialogOpen(true)} className="border-zinc-200" data-testid="csv-upload-btn">
               <Upload className="w-4 h-4 mr-2" /> Import CSV
             </Button>
+            {isManagerOrAbove && (
+              <Button variant="outline" onClick={() => setShowBulkReassign(true)} className="border-zinc-200 text-blue-700" data-testid="bulk-reassign-btn">
+                <ArrowRightLeft className="w-4 h-4 mr-2" /> Migrate Leads
+              </Button>
+            )}
             <Button onClick={() => setDialogOpen(true)} data-testid="add-lead-button" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
               <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Add Lead
             </Button>
@@ -1151,6 +1231,10 @@ const Leads = () => {
           }}
           onPause={(lead) => handlePauseLead(lead.id)}
           onResume={(lead) => handleResumeLead(lead.id)}
+          onReassign={(lead) => {
+            setReassignLead(lead);
+            setShowReassignDialog(true);
+          }}
           className="border border-zinc-200 rounded-sm"
         />
       ) : (
@@ -1284,6 +1368,95 @@ const Leads = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Reassign Lead Dialog */}
+      <Dialog open={showReassignDialog} onOpenChange={(open) => { setShowReassignDialog(open); if (!open) { setReassignLead(null); setReassignUserId(''); setReassignReason(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reassign Lead</DialogTitle>
+            <DialogDescription>
+              Transfer {reassignLead?.company || 'this lead'} and all associated data to another team member.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="p-3 bg-zinc-50 rounded border border-zinc-200 text-sm">
+              <p className="font-medium">{reassignLead?.company || `${reassignLead?.first_name} ${reassignLead?.last_name}`}</p>
+              <p className="text-zinc-500 text-xs mt-0.5">Current: {reassignLead?.assigned_to_name || 'Unassigned'}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Assign To *</Label>
+              <Select value={reassignUserId} onValueChange={setReassignUserId}>
+                <SelectTrigger data-testid="reassign-user-select"><SelectValue placeholder="Select team member" /></SelectTrigger>
+                <SelectContent>
+                  {salesUsers.filter(u => u.id !== reassignLead?.assigned_to && u.id !== reassignLead?.lead_owner).map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.role})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">Reason</Label>
+              <Input data-testid="reassign-reason" value={reassignReason} onChange={(e) => setReassignReason(e.target.value)} placeholder="e.g., Role change, territory realignment" />
+            </div>
+            <p className="text-xs text-zinc-500">This will transfer the lead along with all meetings, pricing plans, SOWs, quotations, agreements, and follow-ups.</p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowReassignDialog(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleReassign} disabled={!reassignUserId} className="flex-1 bg-blue-600 text-white hover:bg-blue-700" data-testid="confirm-reassign-btn">
+                Reassign Lead
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Reassign Dialog (Managers only) */}
+      {isManagerOrAbove && (
+        <Dialog open={showBulkReassign} onOpenChange={(open) => { setShowBulkReassign(open); if (!open) { setBulkFromUserId(''); setBulkToUserId(''); setReassignReason(''); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Bulk Lead Migration</DialogTitle>
+              <DialogDescription>
+                Transfer ALL leads from one team member to another. Used for resignations or role changes.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Transfer From *</Label>
+                <Select value={bulkFromUserId} onValueChange={setBulkFromUserId}>
+                  <SelectTrigger data-testid="bulk-from-select"><SelectValue placeholder="Select source user" /></SelectTrigger>
+                  <SelectContent>
+                    {salesUsers.map(u => (
+                      <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.role})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Transfer To *</Label>
+                <Select value={bulkToUserId} onValueChange={setBulkToUserId}>
+                  <SelectTrigger data-testid="bulk-to-select"><SelectValue placeholder="Select target user" /></SelectTrigger>
+                  <SelectContent>
+                    {salesUsers.filter(u => u.id !== bulkFromUserId).map(u => (
+                      <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.role})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Reason</Label>
+                <Input data-testid="bulk-reason" value={reassignReason} onChange={(e) => setReassignReason(e.target.value)} placeholder="e.g., Resignation, team restructure" />
+              </div>
+              <p className="text-xs text-amber-600 font-medium">Warning: This will transfer ALL leads, meetings, pricing plans, SOWs, quotations, agreements, and follow-ups.</p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowBulkReassign(false)} className="flex-1">Cancel</Button>
+                <Button onClick={handleBulkReassign} disabled={!bulkFromUserId || !bulkToUserId} className="flex-1 bg-red-600 text-white hover:bg-red-700" data-testid="confirm-bulk-reassign-btn">
+                  Transfer All Leads
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
