@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import MeetingLocationPicker from '../../components/MeetingLocationPicker';
+import AISuggestButton from '../../components/AISuggestButton';
 
 // Draft storage key prefix
 const DRAFT_KEY_PREFIX = 'mom_draft_';
@@ -953,9 +954,19 @@ const MeetingRecord = () => {
           <div className="space-y-5 py-4">
             {/* Meeting Notes */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-zinc-500" />
-                Meeting Notes
+              <Label className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-zinc-500" />
+                  Meeting Notes
+                </span>
+                <AISuggestButton
+                  contextType="notes"
+                  currentText={momData.notes}
+                  clientName={lead?.company || ''}
+                  company={lead?.company || ''}
+                  meetingType={formData.meeting_type}
+                  onAccept={(text) => setMomData({...momData, notes: text})}
+                />
               </Label>
               <Textarea
                 value={momData.notes}
@@ -969,10 +980,21 @@ const MeetingRecord = () => {
 
             {/* MOM Summary - Required */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-red-500" />
-                MOM Summary *
-                <Badge variant="destructive" className="text-xs">Required</Badge>
+              <Label className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-red-500" />
+                  MOM Summary *
+                  <Badge variant="destructive" className="text-xs">Required</Badge>
+                </span>
+                <AISuggestButton
+                  contextType="mom"
+                  currentText={momData.mom}
+                  clientName={lead?.company || ''}
+                  company={lead?.company || ''}
+                  meetingType={formData.meeting_type}
+                  additionalContext={momData.notes ? `Meeting notes: ${momData.notes}` : ''}
+                  onAccept={(text) => setMomData({...momData, mom: text})}
+                />
               </Label>
               <Textarea
                 value={momData.mom}
@@ -1098,9 +1120,19 @@ const MeetingRecord = () => {
 
             {/* Next Steps */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <ChevronRight className="w-4 h-4 text-zinc-500" />
-                Next Steps
+              <Label className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <ChevronRight className="w-4 h-4 text-zinc-500" />
+                  Next Steps
+                </span>
+                <AISuggestButton
+                  contextType="next_steps"
+                  currentText={momData.next_steps}
+                  clientName={lead?.company || ''}
+                  company={lead?.company || ''}
+                  additionalContext={momData.mom ? `MOM: ${momData.mom}` : ''}
+                  onAccept={(text) => setMomData({...momData, next_steps: text})}
+                />
               </Label>
               <Textarea
                 value={momData.next_steps}

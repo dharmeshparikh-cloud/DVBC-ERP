@@ -1373,17 +1373,18 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
                 {"item": "Lead source identified", "completed": bool(lead.get("source")), "required": False}
             ],
             "tips": ["Verify email validity", "Research company on LinkedIn before meeting", "Note any referral source"],
-            "completed": True  # Always true if lead exists
+            "completed": True
         },
         "record_meeting": {
             "title": "Record Meeting",
             "description": "Document all client interactions with Minutes of Meeting (MOM)",
             "requirements": [
-                {"item": "At least one meeting recorded", "completed": len(meetings) > 0, "required": True},
-                {"item": "Minutes of Meeting (MOM) filled", "completed": any(m.get("mom") for m in meetings), "required": True},
+                {"item": "Meeting date & time set", "completed": any(m.get("meeting_date") and m.get("meeting_time") for m in meetings) if meetings else False, "required": True},
+                {"item": "MOM summary filled", "completed": any(m.get("mom") for m in meetings), "required": True},
+                {"item": "Discussion points captured", "completed": any(m.get("discussion_points") for m in meetings), "required": False},
                 {"item": "Client expectations documented", "completed": any(m.get("client_expectations") for m in meetings), "required": False},
                 {"item": "Key commitments noted", "completed": any(m.get("key_commitments") for m in meetings), "required": False},
-                {"item": "Offline meeting has photo/voice attachment", "completed": has_offline_attachment if offline_meetings else True, "required": bool(offline_meetings)}
+                {"item": "Offline meeting photo/voice attached", "completed": has_offline_attachment if offline_meetings else True, "required": bool(offline_meetings)}
             ],
             "tips": ["Always fill MOM immediately after meeting", "Capture client pain points", "Document any budget discussions"],
             "completed": len(meetings) > 0 and any(m.get("mom") for m in meetings)
@@ -1392,31 +1393,32 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
             "title": "Pricing Plan",
             "description": "Create detailed pricing breakdown for client review",
             "requirements": [
-                {"item": "Pricing plan created", "completed": pricing is not None, "required": True},
-                {"item": "Project type selected", "completed": bool(pricing.get("project_type")) if pricing else False, "required": True},
-                {"item": "Duration estimated", "completed": bool(pricing.get("project_duration_months")) if pricing else False, "required": False},
-                {"item": "Services itemized", "completed": bool(pricing.get("services")) if pricing else False, "required": False}
+                {"item": "At least one team member added", "completed": bool(pricing.get("team_deployment")) if pricing else False, "required": True},
+                {"item": "Total investment entered (> 0)", "completed": (pricing.get("total_investment", 0) or 0) > 0 if pricing else False, "required": True},
+                {"item": "Payment start date set", "completed": bool(pricing.get("payment_plan", {}).get("start_date")) if pricing else False, "required": True},
+                {"item": "Project type selected", "completed": bool(pricing.get("project_type")) if pricing else False, "required": False},
+                {"item": "Duration estimated", "completed": bool(pricing.get("project_duration_months")) if pricing else False, "required": False}
             ],
             "tips": ["Review similar past projects for pricing reference", "Include all potential costs", "Consider phased pricing"],
-            "completed": pricing is not None
+            "completed": pricing is not None and (pricing.get("total_investment", 0) or 0) > 0
         },
         "scope_of_work": {
             "title": "Scope of Work",
             "description": "Define deliverables, milestones, and project boundaries",
             "requirements": [
                 {"item": "SOW document created", "completed": sow is not None, "required": True},
-                {"item": "Scope items defined", "completed": bool(sow.get("scope_items")) if sow else False, "required": True},
+                {"item": "At least one scope item with title", "completed": any(i.get("title") for i in (sow.get("scope_items") or [])) if sow else False, "required": True},
                 {"item": "Deliverables listed", "completed": bool(sow.get("deliverables")) if sow else False, "required": False},
                 {"item": "Exclusions mentioned", "completed": bool(sow.get("exclusions")) if sow else False, "required": False}
             ],
             "tips": ["Be specific about what's included and excluded", "Reference client expectations from meetings", "Set clear milestones"],
-            "completed": sow is not None
+            "completed": sow is not None and any(i.get("title") for i in (sow.get("scope_items") or []))
         },
         "quotation": {
             "title": "Quotation",
             "description": "Generate formal quote for client approval",
             "requirements": [
-                {"item": "Quotation generated", "completed": quotation is not None, "required": True},
+                {"item": "Quotation generated from pricing plan", "completed": quotation is not None, "required": True},
                 {"item": "Quotation number assigned", "completed": bool(quotation.get("quotation_number")) if quotation else False, "required": True},
                 {"item": "Terms included", "completed": bool(quotation.get("terms")) if quotation else False, "required": False}
             ],
@@ -1428,7 +1430,7 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
             "description": "Prepare and get service agreement signed",
             "requirements": [
                 {"item": "Agreement created", "completed": agreement is not None, "required": True},
-                {"item": "Agreement sent to client", "completed": agreement.get("status") in ["sent", "signed", "active"] if agreement else False, "required": True},
+                {"item": "Milestones added with amounts", "completed": bool(agreement.get("milestones")) if agreement else False, "required": True},
                 {"item": "Agreement signed by client", "completed": agreement.get("status") in ["signed", "active"] if agreement else False, "required": True}
             ],
             "tips": ["Ensure all stakeholders review before sending", "Follow up if not signed within a week", "Keep signed copy for records"],
@@ -1448,8 +1450,8 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
             "title": "Kickoff Request",
             "description": "Submit project kickoff for PM approval",
             "requirements": [
+                {"item": "Senior/Principal Consultant assigned", "completed": bool(kickoff.get("assigned_pm_id")) if kickoff else False, "required": True},
                 {"item": "Kickoff request submitted", "completed": kickoff is not None, "required": True},
-                {"item": "PM assigned", "completed": bool(kickoff.get("assigned_pm_id")) if kickoff else False, "required": True},
                 {"item": "Kickoff approved", "completed": kickoff.get("status") == "approved" if kickoff else False, "required": True}
             ],
             "tips": ["Include all meeting history and client expectations", "Brief PM on key commitments", "Set realistic start date"],

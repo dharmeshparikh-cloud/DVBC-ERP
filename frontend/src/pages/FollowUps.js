@@ -20,6 +20,7 @@ import axios from 'axios';
 import { isManager as checkIsManager } from '../utils/roles';
 import { FollowUpsTable } from '../components/sales';
 import { cn } from '../lib/utils';
+import AISuggestButton from '../components/AISuggestButton';
 
 const ENTITY_LABELS = {
   lead: 'Lead',
@@ -731,6 +732,15 @@ const FollowUps = () => {
               {selectedFollowUp.status === 'open' && (
                 <div className="space-y-3 p-4 border border-zinc-200 rounded-lg">
                   <Label className="text-sm font-medium">Add Update</Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium">Add Update</span>
+                    <AISuggestButton
+                      contextType="follow_up"
+                      currentText={updateNotes}
+                      clientName={selectedFollowUp?.client_name || ''}
+                      onAccept={(text) => setUpdateNotes(text)}
+                    />
+                  </div>
                   <textarea data-testid="follow-up-update-notes" value={updateNotes} onChange={(e) => setUpdateNotes(e.target.value)} placeholder="What happened? E.g., 'Client asked for revised pricing...'" rows={2} className="w-full px-3 py-2 rounded border border-zinc-200 text-sm" />
                   <Input data-testid="follow-up-update-outcome" value={updateOutcome} onChange={(e) => setUpdateOutcome(e.target.value)} placeholder="Outcome (e.g., client interested, needs time)" className="border-zinc-200" />
                   <Button onClick={() => addUpdateMutation.mutate({ id: selectedFollowUp.id, notes: updateNotes, outcome: updateOutcome })} disabled={!updateNotes || addUpdateMutation.isPending} size="sm" data-testid="submit-follow-up-update">
@@ -789,6 +799,16 @@ const FollowUps = () => {
             <DialogDescription>Add a closing summary for this follow-up.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-sm">Closing Summary</Label>
+              <AISuggestButton
+                contextType="follow_up"
+                currentText={closeNotes}
+                clientName={selectedFollowUp?.client_name || ''}
+                additionalContext="This is a closing summary for a completed follow-up."
+                onAccept={(text) => setCloseNotes(text)}
+              />
+            </div>
             <textarea data-testid="close-notes" value={closeNotes} onChange={(e) => setCloseNotes(e.target.value)} placeholder="Closing summary..." rows={3} className="w-full px-3 py-2 rounded border border-zinc-200 text-sm" />
             <Input data-testid="close-outcome" value={closeOutcome} onChange={(e) => setCloseOutcome(e.target.value)} placeholder="Outcome (e.g., deal closed, client not interested)" />
             <div className="flex gap-2">
@@ -920,7 +940,17 @@ const FollowUps = () => {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-sm">Notes</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Notes</Label>
+                <AISuggestButton
+                  contextType="follow_up"
+                  currentText={createForm.notes}
+                  clientName={leads?.find(l => l.id === createForm.lead_id)?.company || ''}
+                  company={leads?.find(l => l.id === createForm.lead_id)?.company || ''}
+                  meetingType={createForm.entity_type}
+                  onAccept={(text) => setCreateForm(p => ({ ...p, notes: text }))}
+                />
+              </div>
               <textarea data-testid="create-notes" value={createForm.notes} onChange={(e) => setCreateForm(p => ({ ...p, notes: e.target.value }))} placeholder="Follow-up details..." rows={2} className="w-full px-3 py-2 rounded border border-zinc-200 text-sm" />
             </div>
             <div className="space-y-1">
