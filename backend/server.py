@@ -399,6 +399,7 @@ from routers import expenses as expenses_router
 from routers import sales as sales_router
 from routers import enhanced_sow as enhanced_sow_router
 from routers import sow_masters as sow_masters_router
+from routers import project_sow_delivery as project_sow_delivery_router
 from routers import masters as masters_router
 from routers import kickoff as kickoff_router
 
@@ -573,6 +574,7 @@ async def bank_verify_alias(employee_id: str, current_user = Depends(get_current
 api_router.include_router(sales_router.router)
 api_router.include_router(enhanced_sow_router.router)
 api_router.include_router(sow_masters_router.router)
+api_router.include_router(project_sow_delivery_router.router)  # NEW: Delivery layer
 api_router.include_router(masters_router.router)
 api_router.include_router(kickoff_router.router)
 api_router.include_router(pricing_plans_router.router)

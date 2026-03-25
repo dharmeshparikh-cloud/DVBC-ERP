@@ -64,6 +64,7 @@ class SOWScopeTemplate(BaseModel):
     name: str  # Scope name/title
     description: Optional[str] = None
     default_timeline_weeks: Optional[int] = None
+    deliverables: List[str] = []  # NEW: Expected deliverables for this scope
     is_custom: bool = False  # True if added by sales (not from master)
     is_active: bool = True
     created_by: Optional[str] = None
@@ -76,6 +77,7 @@ class SOWScopeTemplateCreate(BaseModel):
     name: str
     description: Optional[str] = None
     default_timeline_weeks: Optional[int] = None
+    deliverables: Optional[List[str]] = []  # NEW
     is_custom: Optional[bool] = False
 
 
@@ -83,6 +85,7 @@ class SOWScopeTemplateUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     default_timeline_weeks: Optional[int] = None
+    deliverables: Optional[List[str]] = None  # NEW
     is_active: Optional[bool] = None
 
 

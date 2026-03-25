@@ -2,6 +2,36 @@
 
 ## Latest Updates - March 25, 2026
 
+### SOW Delivery Layer Architecture - Phase 1 Complete (Session 11)
+**Architecture Implementation:**
+- **SOW_MASTER** = `enhanced_sow` collection (extended with `is_locked`, `domains[]` fields)
+- **PROJECT_SOW** = New `project_sow` collection (delivery layer, inherits from master on kickoff)
+- **TASKS** = New `sow_tasks` collection (execution units under scopes)
+- **PROOFS** = New `sow_proofs` collection (entity_type + entity_id pattern)
+
+**Backend Changes:**
+- Created `/app/backend/routers/project_sow_delivery.py` (~650 lines) with full CRUD for PROJECT_SOW, Tasks, Proofs
+- Added `is_locked` and `domains[]` fields to `enhanced_sow` model
+- Added `deliverables[]` field to `sow_scope_templates`
+- Lock mechanism: SOW_MASTER locked automatically on kickoff
+
+**Frontend Changes:**
+- Created `/app/frontend/src/components/ProjectSOWDelivery.jsx` (~450 lines)
+- Added "SOW Delivery" tab to ProjectTasks.js page
+- Features: Scope cards with status, progress bars, tasks management, deliverables display
+
+**Governance:**
+- Duplication check: `/api/project-sow-delivery/governance/check-duplicate` (title + domain)
+- Lock check: `/api/project-sow-delivery/governance/sow-master/{id}/is-locked`
+- RBAC: PM roles can customize scopes, Consultants can manage tasks
+
+**API Endpoints:**
+- `POST /api/project-sow-delivery/create-from-kickoff` - Creates PROJECT_SOW from SOW_MASTER
+- `GET /api/project-sow-delivery/project/{id}` - Get PROJECT_SOW with tasks and proofs
+- `PATCH /api/project-sow-delivery/{id}/status` - Update SOW status (including reopen)
+- `PATCH /api/project-sow-delivery/{id}/scope/{id}/status` - Update scope status
+- CRUD for tasks and proofs
+
 ### Global Export Permission (RBAC) - Session 11 continued
 - **Permission Added**: `system.can_export_data` - Global toggle controlling ALL downloads/exports across ERP
 - **Implementation**:

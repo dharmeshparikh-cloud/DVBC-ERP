@@ -9,12 +9,15 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import PageHeader from '../components/ui/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { 
   Plus, ArrowLeft, CheckCircle, Clock, AlertCircle, 
-  Users, Calendar, GripVertical, ChevronRight, Filter 
+  Users, Calendar, GripVertical, ChevronRight, Filter,
+  ClipboardList, ListTodo
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, addDays } from 'date-fns';
+import ProjectSOWDelivery from '../components/ProjectSOWDelivery';
 
 const TASK_STATUSES = [
   { value: 'to_do', label: 'To Do', color: 'bg-zinc-100 text-zinc-700' },
@@ -52,6 +55,7 @@ const ProjectTasks = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // list, gantt
   const [filterStatus, setFilterStatus] = useState('all');
+  const [activeMainTab, setActiveMainTab] = useState('tasks'); // tasks, sow-delivery
   
   const [formData, setFormData] = useState({
     title: '',
@@ -240,16 +244,37 @@ const ProjectTasks = () => {
           Back to Projects
         </Button>
         <PageHeader
-          title={`${project?.name || 'Project'} Tasks`}
+          title={`${project?.name || 'Project'}`}
           subtitle={project?.client_name}
           onRefresh={() => refetchTasks()}
           loading={loading}
-          actions={<Button onClick={() => { resetForm(); setEditingTask(null); setDialogOpen(true); }} data-testid="add-task-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"><Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Add Task</Button>}
         />
       </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+      {/* Main Tabs: Tasks vs SOW Delivery */}
+      <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-4">
+        <TabsList className="bg-zinc-100 p-1">
+          <TabsTrigger value="tasks" className="text-sm data-[state=active]:bg-white">
+            <ListTodo className="w-4 h-4 mr-2" />
+            Project Tasks
+          </TabsTrigger>
+          <TabsTrigger value="sow-delivery" className="text-sm data-[state=active]:bg-white">
+            <ClipboardList className="w-4 h-4 mr-2" />
+            SOW Delivery
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tasks Tab */}
+        <TabsContent value="tasks" className="space-y-6">
+          {/* Add Task Button */}
+          <div className="flex justify-end">
+            <Button onClick={() => { resetForm(); setEditingTask(null); setDialogOpen(true); }} data-testid="add-task-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+              <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Add Task
+            </Button>
+          </div>
+
+          {/* Stats Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {TASK_STATUSES.slice(0, 5).map(status => (
           <Card key={status.value} className="border-zinc-200 shadow-none rounded-sm">
             <CardContent className="py-3 px-4">
@@ -554,6 +579,13 @@ const ProjectTasks = () => {
           </form>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        {/* SOW Delivery Tab */}
+        <TabsContent value="sow-delivery">
+          <ProjectSOWDelivery projectId={projectId} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

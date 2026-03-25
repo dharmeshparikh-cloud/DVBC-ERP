@@ -205,6 +205,14 @@ class EnhancedSOW(BaseModel):
     lead_id: str
     project_id: Optional[str] = None  # Linked after kickoff
     
+    # Domain support (backward compatible with category)
+    domains: List[str] = []  # NEW: Multi-select domains e.g., ["sales", "hr"]
+    
+    # Lock mechanism
+    is_locked: bool = False  # NEW: True after kickoff - SOW becomes immutable
+    locked_at: Optional[datetime] = None
+    locked_by: Optional[str] = None
+    
     # Original snapshot from sales (locked)
     original_scope_snapshot: Optional[OriginalScopeSnapshot] = None
     
