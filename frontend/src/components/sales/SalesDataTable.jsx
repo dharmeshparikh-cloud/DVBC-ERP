@@ -762,7 +762,7 @@ export const SalesDataTable = ({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {rowActions.map((action, i) => (
+                            {rowActions.filter(action => !action.hidden || !action.hidden(row)).map((action, i) => (
                               <DropdownMenuItem
                                 key={i}
                                 onClick={(e) => {

@@ -200,12 +200,14 @@ export const FollowUpsTable = ({
       label: 'Mark Complete',
       icon: CheckCircle,
       onClick: (row) => onComplete?.(row),
-      className: 'text-green-600'
+      className: 'text-green-600',
+      hidden: (row) => row.status === 'closed'
     },
     {
       label: 'Reschedule',
       icon: Calendar,
-      onClick: (row) => onReschedule?.(row)
+      onClick: (row) => onReschedule?.(row),
+      hidden: (row) => row.status === 'closed'
     },
   ];
   
