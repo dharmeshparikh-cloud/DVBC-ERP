@@ -13,7 +13,7 @@ import os
 from .deps import get_db
 from .deps import get_current_user
 from .models import User
-from fastapi import Response
+from fastapi import Response, Request
 
 router = APIRouter(prefix="/follow-ups", tags=["Follow-ups"])
 
@@ -700,7 +700,7 @@ async def send_follow_up_email(
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
         <!-- Logo Header - White Background -->
         <div style="padding: 28px 32px 20px 32px; text-align: center; border-bottom: 1px solid #f0f0f0;">
-            <img src="{logo_url}" alt="D&V Business Consulting" style="max-height: 52px; width: auto;" />
+            <img src="{logo_url}" alt="D&V Business Consulting" style="max-height: 64px; max-width: 240px; width: auto;" />
         </div>
         
         <!-- Body -->
@@ -886,7 +886,6 @@ async def client_follow_up_action(
 @router.post("/{follow_up_id}/client-reschedule")
 async def client_reschedule_submit(follow_up_id: str, request: Request):
     """Handle reschedule form submission from client."""
-    from fastapi import Request
     db = get_db()
     
     fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
@@ -969,7 +968,7 @@ def _build_action_page(title: str, message: str, action_type: str) -> str:
         body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #f4f5f7; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }}
         .card {{ background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 480px; width: 100%; overflow: hidden; }}
         .header {{ padding: 28px 32px 20px; text-align: center; border-bottom: 1px solid #f0f0f0; }}
-        .header img {{ max-height: 48px; width: auto; }}
+        .header img {{ max-height: 64px; max-width: 240px; width: auto; }}
         .body {{ padding: 40px 32px; text-align: center; }}
         .icon {{ width: 72px; height: 72px; border-radius: 50%; background: {c['accent']}; border: 2px solid {c['border']}; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 32px; color: {c['bg']}; }}
         .body h1 {{ font-size: 24px; color: #111827; margin-bottom: 14px; font-weight: 700; }}
@@ -987,6 +986,84 @@ def _build_action_page(title: str, message: str, action_type: str) -> str:
             <div class="icon">{c['icon']}</div>
             <h1>{title}</h1>
             <p>{message}</p>
+        </div>
+        <div class="footer">
+            <p>D&amp;V Business Consulting &bull; Powered by NETRA</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+
+def _build_reschedule_page(client_name: str, current_schedule: str, submit_url: str) -> str:
+    """Build a branded HTML page with a date/time picker for client to reschedule."""
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-email-cta.preview.emergentagent.com").rstrip("/")
+    logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
+    
+    # Calculate min date (tomorrow)
+    from datetime import date
+    min_date = (date.today() + timedelta(days=1)).isoformat()
+    
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reschedule — D&V Business Consulting</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #f4f5f7; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }}
+        .card {{ background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 520px; width: 100%; overflow: hidden; }}
+        .header {{ padding: 28px 32px 20px; text-align: center; border-bottom: 1px solid #f0f0f0; }}
+        .header img {{ max-height: 64px; max-width: 240px; width: auto; }}
+        .body {{ padding: 32px; }}
+        .body h1 {{ font-size: 22px; color: #111827; margin-bottom: 8px; font-weight: 700; text-align: center; }}
+        .body .subtitle {{ color: #6b7280; font-size: 14px; text-align: center; margin-bottom: 24px; line-height: 1.6; }}
+        .current {{ background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; }}
+        .current p.label {{ font-size: 12px; color: #92400e; font-weight: 600; margin-bottom: 4px; }}
+        .current p.value {{ font-size: 14px; color: #b45309; }}
+        .form-group {{ margin-bottom: 18px; }}
+        .form-group label {{ display: block; font-size: 13px; color: #374151; font-weight: 600; margin-bottom: 6px; }}
+        .form-group input, .form-group textarea {{ width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; color: #111827; background: #fff; outline: none; transition: border-color 0.2s; }}
+        .form-group input:focus, .form-group textarea:focus {{ border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.1); }}
+        .form-group textarea {{ resize: vertical; min-height: 70px; font-family: inherit; }}
+        .row {{ display: flex; gap: 12px; }}
+        .row .form-group {{ flex: 1; }}
+        .submit-btn {{ width: 100%; padding: 13px; background: #d97706; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 6px; }}
+        .submit-btn:hover {{ background: #b45309; }}
+        .submit-btn:disabled {{ background: #d1d5db; cursor: not-allowed; }}
+        .footer {{ padding: 16px 32px; background: #f9fafb; border-top: 1px solid #f0f0f0; text-align: center; }}
+        .footer p {{ color: #b0b7c3; font-size: 11px; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <img src="{logo_url}" alt="D&V Business Consulting" />
+        </div>
+        <div class="body">
+            <h1>Reschedule Follow-up</h1>
+            <p class="subtitle">Hi {client_name}, please pick a new date and time that works best for you.</p>
+            
+            {"<div class='current'><p class='label'>Current Schedule</p><p class='value'>" + current_schedule + "</p></div>" if current_schedule else ""}
+            
+            <form method="POST" action="{submit_url}" onsubmit="document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').textContent='Submitting...';">
+                <div class="row">
+                    <div class="form-group">
+                        <label for="preferred_date">Preferred Date *</label>
+                        <input type="date" id="preferred_date" name="preferred_date" min="{min_date}" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="preferred_time">Preferred Time *</label>
+                        <input type="time" id="preferred_time" name="preferred_time" required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="message">Message (optional)</label>
+                    <textarea id="message" name="message" placeholder="Any additional notes or preferences..."></textarea>
+                </div>
+                <button type="submit" id="submitBtn" class="submit-btn">Request Reschedule</button>
+            </form>
         </div>
         <div class="footer">
             <p>D&amp;V Business Consulting &bull; Powered by NETRA</p>
