@@ -12,7 +12,7 @@ import {
   FileCheck, CreditCard, Rocket, CheckCircle, 
   ChevronRight, ArrowLeft, Building2, Phone, Mail,
   Clock, AlertCircle, ExternalLink, Lock, Lightbulb,
-  Circle, CheckCircle2, Info, AlertTriangle
+  Circle, CheckCircle2, Info, AlertTriangle, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -632,6 +632,59 @@ const SalesFunnelOnboarding = () => {
                         )}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Record Meeting Step - Meeting List + Add New */}
+                {currentStep === 1 && (
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        {funnelStatus.meeting_count > 0
+                          ? <span><strong>{funnelStatus.meeting_count}</strong> meeting{funnelStatus.meeting_count !== 1 ? 's' : ''} recorded</span>
+                          : 'No meetings recorded yet.'}
+                      </p>
+                      <Button
+                        onClick={() => navigate(`/sales-funnel/meeting/record?leadId=${leadId}`)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        data-testid="record-new-meeting-btn"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Record Meeting ({(funnelStatus.meeting_count || 0) + 1})
+                      </Button>
+                    </div>
+                    {funnelStatus.meetings && funnelStatus.meetings.length > 0 && (
+                      <div className="space-y-2">
+                        {funnelStatus.meetings.map((m, idx) => (
+                          <div key={m.id || idx}
+                            className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            onClick={() => navigate(`/sales-funnel/meeting/record?meetingId=${m.id}&leadId=${leadId}`)}
+                            data-testid={`meeting-item-${idx}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-semibold text-blue-700 dark:text-blue-300">
+                                {idx + 1}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{m.title || `Meeting ${idx + 1}`}</p>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                  {m.meeting_date ? new Date(m.meeting_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No date'}
+                                  {m.meeting_type && <span className="ml-2 px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-[10px]">{m.meeting_type}</span>}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {m.mom ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">MOM Filled</span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">MOM Pending</span>
+                              )}
+                              <ChevronRight className="w-4 h-4 text-zinc-400" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

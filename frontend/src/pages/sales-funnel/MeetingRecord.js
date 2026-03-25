@@ -392,11 +392,11 @@ const MeetingRecord = () => {
         // MOM data
         notes: momData.notes,
         mom: momData.mom,
-        discussion_points: (momData?.discussion_points || []).filter(d => d.trim()),
-        decisions_made: (momData?.decisions_made || []).filter(d => d.trim()),
-        client_expectations: (momData?.client_expectations || []).filter(c => c.trim()),
-        key_commitments: (momData?.key_commitments || []).filter(k => k.trim()),
-        action_items: (momData?.action_items || []).filter(a => a.trim()),
+        discussion_points: (typeof momData.discussion_points === 'string' ? momData.discussion_points.split('\n') : (momData.discussion_points || [])).filter(d => d.trim()),
+        decisions_made: (typeof momData.decisions_made === 'string' ? momData.decisions_made.split('\n') : (momData.decisions_made || [])).filter(d => d.trim()),
+        client_expectations: (typeof momData.client_expectations === 'string' ? momData.client_expectations.split('\n') : (momData.client_expectations || [])).filter(c => c.trim()),
+        key_commitments: (typeof momData.key_commitments === 'string' ? momData.key_commitments.split('\n') : (momData.key_commitments || [])).filter(k => k.trim()),
+        action_items: (typeof momData.action_items === 'string' ? momData.action_items.split('\n') : (momData.action_items || [])).filter(a => a.trim()),
         next_steps: momData.next_steps,
         // Travel data for offline meetings
         ...(formData.meeting_type === 'Offline' && travelData.startLocation ? {
@@ -1013,25 +1013,23 @@ const MeetingRecord = () => {
                   <ListChecks className="w-4 h-4 text-zinc-500" />
                   Discussion Points
                 </span>
-                <Button variant="ghost" size="sm" onClick={() => handleAddListItem('discussion_points')} className="h-7">
-                  <Plus className="w-3 h-3 mr-1" /> Add
-                </Button>
+                <AISuggestButton
+                  contextType="discussion_points"
+                  currentText={momData.discussion_points?.join?.('\n') || (typeof momData.discussion_points === 'string' ? momData.discussion_points : '')}
+                  clientName={lead?.company || ''}
+                  company={lead?.company || ''}
+                  meetingType={formData.meeting_type}
+                  onAccept={(text) => setMomData({...momData, discussion_points: text})}
+                />
               </Label>
-              {(momData?.discussion_points || []).map((point, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={point}
-                    onChange={(e) => handleListItemChange('discussion_points', index, e.target.value)}
-                    placeholder="What was discussed..."
-                    className="rounded-sm"
-                  />
-                  {momData.discussion_points.length > 1 && (
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveListItem('discussion_points', index)} className="text-red-500">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              <Textarea
+                value={Array.isArray(momData.discussion_points) ? momData.discussion_points.filter(d => d.trim()).join('\n') : (momData.discussion_points || '')}
+                onChange={(e) => setMomData({...momData, discussion_points: e.target.value})}
+                placeholder="What was discussed... (one point per line)"
+                rows={3}
+                className="rounded-sm"
+                data-testid="mom-discussion-points"
+              />
             </div>
 
             {/* Decisions Made */}
@@ -1041,25 +1039,23 @@ const MeetingRecord = () => {
                   <CheckCircle className="w-4 h-4 text-green-500" />
                   Decisions Made
                 </span>
-                <Button variant="ghost" size="sm" onClick={() => handleAddListItem('decisions_made')} className="h-7">
-                  <Plus className="w-3 h-3 mr-1" /> Add
-                </Button>
+                <AISuggestButton
+                  contextType="notes"
+                  currentText={momData.decisions_made?.join?.('\n') || (typeof momData.decisions_made === 'string' ? momData.decisions_made : '')}
+                  clientName={lead?.company || ''}
+                  company={lead?.company || ''}
+                  additionalContext="These are decisions/agreements reached during the meeting."
+                  onAccept={(text) => setMomData({...momData, decisions_made: text})}
+                />
               </Label>
-              {(momData?.decisions_made || []).map((decision, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={decision}
-                    onChange={(e) => handleListItemChange('decisions_made', index, e.target.value)}
-                    placeholder="Decision or agreement reached..."
-                    className="rounded-sm"
-                  />
-                  {momData.decisions_made.length > 1 && (
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveListItem('decisions_made', index)} className="text-red-500">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              <Textarea
+                value={Array.isArray(momData.decisions_made) ? momData.decisions_made.filter(d => d.trim()).join('\n') : (momData.decisions_made || '')}
+                onChange={(e) => setMomData({...momData, decisions_made: e.target.value})}
+                placeholder="Decisions or agreements reached... (one per line)"
+                rows={2}
+                className="rounded-sm"
+                data-testid="mom-decisions-made"
+              />
             </div>
 
             {/* Client Expectations */}
@@ -1069,25 +1065,22 @@ const MeetingRecord = () => {
                   <Target className="w-4 h-4 text-amber-500" />
                   Client Expectations & Concerns
                 </span>
-                <Button variant="ghost" size="sm" onClick={() => handleAddListItem('client_expectations')} className="h-7">
-                  <Plus className="w-3 h-3 mr-1" /> Add
-                </Button>
+                <AISuggestButton
+                  contextType="client_expectations"
+                  currentText={momData.client_expectations?.join?.('\n') || (typeof momData.client_expectations === 'string' ? momData.client_expectations : '')}
+                  clientName={lead?.company || ''}
+                  company={lead?.company || ''}
+                  onAccept={(text) => setMomData({...momData, client_expectations: text})}
+                />
               </Label>
-              {(momData?.client_expectations || []).map((expectation, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={expectation}
-                    onChange={(e) => handleListItemChange('client_expectations', index, e.target.value)}
-                    placeholder="Client's expectation or concern..."
-                    className="rounded-sm"
-                  />
-                  {momData.client_expectations.length > 1 && (
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveListItem('client_expectations', index)} className="text-red-500">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              <Textarea
+                value={Array.isArray(momData.client_expectations) ? momData.client_expectations.filter(d => d.trim()).join('\n') : (momData.client_expectations || '')}
+                onChange={(e) => setMomData({...momData, client_expectations: e.target.value})}
+                placeholder="Client expectations or concerns... (one per line)"
+                rows={2}
+                className="rounded-sm"
+                data-testid="mom-client-expectations"
+              />
             </div>
 
             {/* Key Commitments */}
@@ -1097,25 +1090,22 @@ const MeetingRecord = () => {
                   <Handshake className="w-4 h-4 text-blue-500" />
                   Key Commitments Made
                 </span>
-                <Button variant="ghost" size="sm" onClick={() => handleAddListItem('key_commitments')} className="h-7">
-                  <Plus className="w-3 h-3 mr-1" /> Add
-                </Button>
+                <AISuggestButton
+                  contextType="key_commitments"
+                  currentText={momData.key_commitments?.join?.('\n') || (typeof momData.key_commitments === 'string' ? momData.key_commitments : '')}
+                  clientName={lead?.company || ''}
+                  company={lead?.company || ''}
+                  onAccept={(text) => setMomData({...momData, key_commitments: text})}
+                />
               </Label>
-              {(momData?.key_commitments || []).map((commitment, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={commitment}
-                    onChange={(e) => handleListItemChange('key_commitments', index, e.target.value)}
-                    placeholder="Commitment or promise made to client..."
-                    className="rounded-sm"
-                  />
-                  {momData.key_commitments.length > 1 && (
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveListItem('key_commitments', index)} className="text-red-500">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              <Textarea
+                value={Array.isArray(momData.key_commitments) ? momData.key_commitments.filter(d => d.trim()).join('\n') : (momData.key_commitments || '')}
+                onChange={(e) => setMomData({...momData, key_commitments: e.target.value})}
+                placeholder="Commitments or promises made... (one per line)"
+                rows={2}
+                className="rounded-sm"
+                data-testid="mom-key-commitments"
+              />
             </div>
 
             {/* Next Steps */}

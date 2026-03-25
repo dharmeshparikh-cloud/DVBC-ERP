@@ -1188,6 +1188,17 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
         linked_data["meeting_count"] = len(meetings)
         if meetings[0].get("meeting_date"):
             linked_data["last_meeting_date"] = meetings[0]["meeting_date"][:10] if isinstance(meetings[0]["meeting_date"], str) else str(meetings[0]["meeting_date"])[:10]
+        # Compact meetings list for funnel display
+        linked_data["meetings"] = [
+            {
+                "id": m.get("id"),
+                "title": m.get("title", ""),
+                "meeting_date": m.get("meeting_date", ""),
+                "meeting_type": m.get("meeting_type", ""),
+                "mom": bool(m.get("mom")),
+            }
+            for m in meetings
+        ]
     
     # Step 3: Pricing Plan - check if pricing exists
     pricing = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
