@@ -2,6 +2,34 @@
 
 ## Latest Updates - March 25, 2026
 
+### Projects UI Flow Improvements (Session 13)
+**User Feedback Addressed:**
+1. ✅ **Company Name as Title**: Project cards now show `client_name` (e.g., "Auto Client Corp") as the main title
+2. ✅ **Project Name as Subtitle**: Project name (e.g., "ERP Implementation") shown below the title
+3. ✅ **SOW Button Added**: Primary action button on project cards - takes user directly to SOW
+4. ✅ **Card Click Opens SOW**: Clicking anywhere on project card navigates to Project Detail with SOW tab active
+5. ✅ **Kick-off Button Removed**: Confusing button removed from project cards (projects are already created via kickoff)
+6. ✅ **Project Detail Page**: Created new `/app/frontend/src/pages/ProjectDetail.js` with SOW as default tab
+
+**Files Changed:**
+- `/app/frontend/src/pages/Projects.js` - Updated card layout, added SOW button, made card clickable
+- `/app/frontend/src/pages/ProjectDetail.js` - NEW: Project detail page with tabs (SOW, Tasks, Info)
+- `/app/frontend/src/App.js` - Added route `/projects/:projectId` for ProjectDetail
+- `/app/frontend/src/pages/KickoffRequests.js` - Updated SOW tab to show enhanced_sow scopes format
+- `/app/backend/routers/kickoff.py` - Fixed collection name `enhanced_sow` (was `enhanced_sows`)
+
+**Testing**: 100% pass rate (iteration_228.json) - All 9 UI features verified
+
+### Bug Fixes (Session 13)
+1. ✅ **Kickoff DateTime Bug Fixed**: `/api/kickoff-requests/client-approve/{token}/confirm` was failing with `time data 'None' does not match format '%Y-%m-%d'` 
+   - Root cause: `start_date` parameter wasn't using `Form()` annotation to capture form data from HTML POST
+   - Fix: Added `Form(None)` annotation and robust date validation with fallbacks
+2. ✅ **NA Approval Flow Implemented**: Full manager approval workflow for "Not Applicable" status
+   - Consultant requests NA → scope becomes `na_pending`
+   - Manager approves → scope becomes `not_applicable`
+   - Manager rejects → scope reverts to `wip`
+   - Frontend shows pending approvals section for managers
+
 ### SOW Delivery Architecture - Phase 2 & 3 Complete (Session 12)
 **Phase 2: AI Task Generation (COMPLETE)**
 - **Backend Endpoint**: `POST /api/project-sow-delivery/{sow_id}/scope/{scope_id}/ai-generate-tasks`
