@@ -2,6 +2,11 @@
 
 ## Latest Updates - March 25, 2026
 
+### AI-Powered Note Suggestions (Session 10)
+- **Backend**: Created `/api/ai/suggest` endpoint using GPT-5.2 via emergentintegrations library. Supports context types: `mom`, `notes`, `follow_up`, `discussion_points`, `next_steps`, `email_body`, `action_items`, `client_expectations`, `key_commitments`.
+- **Frontend**: Created reusable `AISuggestButton` component. Integrated into MeetingRecord (MOM Notes, MOM Summary, Next Steps), FollowUps (Create notes, Update notes, Close summary).
+- **Funnel Checklist Fix**: Updated all 9 step checklists to match actual mandatory fields (e.g., Pricing Plan now requires "team member added", "total investment > 0", "payment start date" instead of incorrect "project type selected").
+
 ### P0 Bug Fixes - Email CTA Flow (Session 9)
 - **Reschedule CTA Page**: Built a branded client-facing reschedule form with date/time picker, current schedule display, optional message field, and form submission. Replaced the previous instant confirmation behavior.
 - **Close Confirmation Page**: Added the scheduled follow-up date/time display to the "Confirmed!" page so clients see what they've agreed to.
