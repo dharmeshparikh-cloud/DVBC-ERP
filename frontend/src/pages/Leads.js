@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Plus, Mail, Phone, Briefcase, ExternalLink, TrendingUp, DollarSign, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Pause, Play, CheckCircle, Circle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
@@ -399,8 +400,23 @@ const Leads = () => {
       }
       
       if (editLead) {
-        // Update existing lead
-        await updateLeadMutation.mutateAsync({ id: editLead.id, ...payload });
+        // Update existing lead - only send fields that LeadUpdate accepts
+        const updatePayload = {};
+        const allowedFields = ['first_name', 'last_name', 'company', 'job_title', 'email', 'phone', 
+          'linkedin_url', 'source', 'notes', 'industry', 'city', 'state', 'country', 'website'];
+        for (const key of allowedFields) {
+          if (payload[key] !== undefined && payload[key] !== '') {
+            updatePayload[key] = payload[key];
+          }
+        }
+        // Handle follow-up date conversion
+        if (payload.next_follow_up) {
+          updatePayload.next_follow_up = new Date(payload.next_follow_up).toISOString();
+        }
+        if (payload.follow_up_notes) {
+          updatePayload.follow_up_notes = payload.follow_up_notes;
+        }
+        await updateLeadMutation.mutateAsync({ id: editLead.id, ...updatePayload });
         toast.success('Lead updated successfully!');
         setEditLead(null);
       } else {
@@ -737,31 +753,28 @@ const Leads = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="linkedin_url" className="text-sm font-medium text-zinc-950">
-                    LinkedIn URL
-                  </Label>
-                  <Input
-                    id="linkedin_url"
-                    data-testid="lead-linkedin"
-                    value={formData.linkedin_url}
-                    onChange={(e) => updateFormData('linkedin_url', e.target.value)}
-                    placeholder="https://linkedin.com/in/..."
-                    className="rounded-sm border-zinc-200"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="source" className="text-sm font-medium text-zinc-950">
-                    Lead Source
+                    Lead Source *
                   </Label>
-                  <Input
-                    id="source"
-                    data-testid="lead-source"
-                    value={formData.source}
-                    onChange={(e) => updateFormData('source', e.target.value)}
-                    placeholder="e.g., Website, Referral, RocketReach"
-                    className="rounded-sm border-zinc-200"
-                  />
+                  <Select value={formData.source || ''} onValueChange={(val) => updateFormData('source', val)}>
+                    <SelectTrigger className="rounded-sm border-zinc-200" data-testid="lead-source">
+                      <SelectValue placeholder="Select lead source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Website">Website</SelectItem>
+                      <SelectItem value="Referral">Referral</SelectItem>
+                      <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                      <SelectItem value="Cold Call">Cold Call</SelectItem>
+                      <SelectItem value="Email Campaign">Email Campaign</SelectItem>
+                      <SelectItem value="Conference/Event">Conference/Event</SelectItem>
+                      <SelectItem value="Partner">Partner</SelectItem>
+                      <SelectItem value="RocketReach">RocketReach</SelectItem>
+                      <SelectItem value="Social Media">Social Media</SelectItem>
+                      <SelectItem value="Google Ads">Google Ads</SelectItem>
+                      <SelectItem value="Direct">Direct</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Company Details Section */}
@@ -1125,6 +1138,14 @@ const Leads = () => {
               industry: lead.industry || '',
               linkedin_url: lead.linkedin_url || '',
               address: lead.address || '',
+              source: lead.source || lead.lead_source || '',
+              notes: lead.notes || '',
+              next_follow_up: lead.next_follow_up ? new Date(lead.next_follow_up).toISOString().split('T')[0] : '',
+              follow_up_notes: lead.follow_up_notes || '',
+              website: lead.website || '',
+              city: lead.city || '',
+              state: lead.state || '',
+              country: lead.country || '',
             });
             setDialogOpen(true);
           }}

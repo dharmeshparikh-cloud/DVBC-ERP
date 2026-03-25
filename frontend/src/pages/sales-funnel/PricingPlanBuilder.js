@@ -411,7 +411,7 @@ const PricingPlanBuilder = () => {
   const calculateTotals = () => {
     const totalMeetings = (teamDeployment || []).reduce((sum, m) => sum + (m.committed_meetings || 0), 0);
     const subtotal = totalInvestment;
-    const discount = subtotal * (formData.discount_percentage / 100);
+    const discount = Math.round(subtotal * formData.discount_percentage) / 100;
     const afterDiscount = subtotal - discount;
     
     // Calculate GST based on selection
@@ -1140,9 +1140,13 @@ const PricingPlanBuilder = () => {
                 type="number"
                 min="0"
                 max="100"
-                step="0.1"
-                value={formData.discount_percentage}
-                onChange={(e) => setFormData({ ...formData, discount_percentage: parseFloat(e.target.value) || 0 })}
+                step="1"
+                value={formData.discount_percentage === 0 ? '' : formData.discount_percentage}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({ ...formData, discount_percentage: val === '' ? 0 : Math.round(parseFloat(val) * 100) / 100 });
+                }}
+                placeholder="0"
                 className="rounded-sm border-zinc-200 bg-white"
                 data-testid="discount-input"
               />
@@ -1607,14 +1611,23 @@ const PricingPlanBuilder = () => {
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={loading || teamDeployment.length === 0 || totalInvestment <= 0 || !paymentPlan.start_date}
-            className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
-            data-testid="create-pricing-plan-btn"
-          >
-            {loading ? 'Creating...' : 'Save & Continue to Scope Selection →'}
-          </Button>
+          <div className="flex-1 space-y-1">
+            <Button
+              type="submit"
+              disabled={loading || teamDeployment.length === 0 || totalInvestment <= 0 || !paymentPlan.start_date}
+              className="w-full bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
+              data-testid="create-pricing-plan-btn"
+            >
+              {loading ? 'Creating...' : 'Save & Continue to Scope Selection'}
+            </Button>
+            {(teamDeployment.length === 0 || totalInvestment <= 0 || !paymentPlan.start_date) && (
+              <p className="text-xs text-amber-600 text-center" data-testid="pricing-validation-msg">
+                {teamDeployment.length === 0 ? 'Add at least one team member' : 
+                 totalInvestment <= 0 ? 'Enter total investment amount' :
+                 'Select a project start date'}
+              </p>
+            )}
+          </div>
         </div>
       </form>
     </div>

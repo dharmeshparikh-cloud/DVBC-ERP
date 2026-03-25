@@ -627,9 +627,24 @@ const FollowUps = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>New Follow-up</DialogTitle>
-            <DialogDescription>Create a follow-up for any funnel stage.</DialogDescription>
+            <DialogDescription>Create a follow-up linked to a lead.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Lead Selection - Always required */}
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Select Lead *</Label>
+              <Select value={createForm.lead_id || ''} onValueChange={(v) => {
+                const lead = (leads || []).find(l => l.id === v);
+                setCreateForm(p => ({ ...p, lead_id: v, entity_id: v, client_name: lead?.company || `${lead?.first_name} ${lead?.last_name}` }));
+              }}>
+                <SelectTrigger data-testid="create-lead-select"><SelectValue placeholder="Choose a lead" /></SelectTrigger>
+                <SelectContent>
+                  {(leads || []).map(l => (
+                    <SelectItem key={l.id} value={l.id}>{l.company || `${l.first_name} ${l.last_name}`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1">
               <Label className="text-sm">Stage *</Label>
               <Select value={createForm.entity_type} onValueChange={(v) => setCreateForm(p => ({ ...p, entity_type: v }))}>
@@ -641,37 +656,15 @@ const FollowUps = () => {
                 </SelectContent>
               </Select>
             </div>
-            {createForm.entity_type === 'lead' && leads.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-sm">Select Lead</Label>
-                <Select value={createForm.entity_id} onValueChange={(v) => {
-                  const lead = (leads || []).find(l => l.id === v);
-                  setCreateForm(p => ({ ...p, entity_id: v, lead_id: v, client_name: lead?.company || `${lead?.first_name} ${lead?.last_name}` }));
-                }}>
-                  <SelectTrigger data-testid="create-lead-select"><SelectValue placeholder="Choose a lead" /></SelectTrigger>
-                  <SelectContent>
-                    {(leads || []).map(l => (
-                      <SelectItem key={l.id} value={l.id}>{l.company || `${l.first_name} ${l.last_name}`}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-sm">Due Date *</Label>
+                <Input data-testid="create-due-date" type="date" value={createForm.due_date} onChange={(e) => setCreateForm(p => ({ ...p, due_date: e.target.value }))} />
               </div>
-            )}
-            {createForm.entity_type !== 'lead' && (
-              <>
-                <div className="space-y-1">
-                  <Label className="text-sm">Client Name *</Label>
-                  <Input data-testid="create-client-name" value={createForm.client_name} onChange={(e) => setCreateForm(p => ({ ...p, client_name: e.target.value }))} placeholder="Client/company name" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm">Entity ID</Label>
-                  <Input data-testid="create-entity-id" value={createForm.entity_id} onChange={(e) => setCreateForm(p => ({ ...p, entity_id: e.target.value }))} placeholder="Optional reference ID" />
-                </div>
-              </>
-            )}
-            <div className="space-y-1">
-              <Label className="text-sm">Due Date *</Label>
-              <Input data-testid="create-due-date" type="date" value={createForm.due_date} onChange={(e) => setCreateForm(p => ({ ...p, due_date: e.target.value }))} />
+              <div className="space-y-1">
+                <Label className="text-sm">Time</Label>
+                <Input data-testid="create-due-time" type="time" value={createForm.due_time || ''} onChange={(e) => setCreateForm(p => ({ ...p, due_time: e.target.value }))} />
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-sm">Notes</Label>
@@ -691,10 +684,15 @@ const FollowUps = () => {
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="flex-1">Cancel</Button>
               <Button onClick={() => {
-                const payload = { ...createForm, due_date: new Date(createForm.due_date).toISOString() };
+                let dueDateStr = createForm.due_date;
+                if (createForm.due_time) {
+                  dueDateStr = `${createForm.due_date}T${createForm.due_time}`;
+                }
+                const payload = { ...createForm, due_date: new Date(dueDateStr).toISOString() };
+                delete payload.due_time;
                 if (!payload.entity_id) payload.entity_id = payload.lead_id || 'manual';
                 createMutation.mutate(payload);
-              }} disabled={!createForm.due_date || createMutation.isPending} className="flex-1 bg-zinc-950 text-white" data-testid="confirm-create-btn">
+              }} disabled={!createForm.due_date || !createForm.lead_id || createMutation.isPending} className="flex-1 bg-zinc-950 text-white" data-testid="confirm-create-btn">
                 {createMutation.isPending ? 'Creating...' : 'Create Follow-up'}
               </Button>
             </div>

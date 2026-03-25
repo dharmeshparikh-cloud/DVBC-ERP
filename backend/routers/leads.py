@@ -454,6 +454,49 @@ async def get_leads(
         if lead.get('enriched_at') and isinstance(lead['enriched_at'], str):
             lead['enriched_at'] = datetime.fromisoformat(lead['enriched_at'])
     
+    # Auto-sync funnel stage with lead status for accurate display
+    FUNNEL_STATUS_MAP = {
+        "lead_capture": LeadStatus.NEW,
+        "record_meeting": LeadStatus.CONTACTED,
+        "pricing_plan": LeadStatus.QUALIFIED,
+        "scope_of_work": LeadStatus.QUALIFIED,
+        "quotation": LeadStatus.PROPOSAL,
+        "agreement": LeadStatus.AGREEMENT,
+    }
+    for lead in leads:
+        lead_id = lead.get("id")
+        current_status = lead.get("status", LeadStatus.NEW)
+        # Skip if already in terminal state
+        if current_status in ["won", "lost", "closed_won", "closed_lost", "paused"]:
+            continue
+        
+        # Quick check for furthest completed step
+        expected_status = LeadStatus.NEW
+        if lead_id:
+            has_meeting = await db.meetings.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
+            if has_meeting:
+                expected_status = LeadStatus.CONTACTED
+                has_pricing = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
+                if has_pricing:
+                    expected_status = LeadStatus.QUALIFIED
+                    has_sow = await db.enhanced_sows.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
+                    if not has_sow:
+                        has_sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
+                    if has_sow:
+                        has_quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
+                        if has_quotation:
+                            expected_status = LeadStatus.PROPOSAL
+                            has_agreement = await db.agreements.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
+                            if has_agreement:
+                                expected_status = LeadStatus.AGREEMENT
+            
+            if current_status != expected_status:
+                await db.leads.update_one(
+                    {"id": lead_id},
+                    {"$set": {"status": expected_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                lead["status"] = expected_status
+    
     # Return standardized response for SalesDataTable
     return {
         "data": leads,
