@@ -17,6 +17,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { isManager as checkIsManager } from '../utils/roles';
+import { FollowUpsTable } from '../components/sales';
 
 const ENTITY_LABELS = {
   lead: 'Lead',
@@ -48,8 +49,7 @@ const FollowUps = () => {
   const dk = theme === 'dark';
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('open');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedFollowUp, setSelectedFollowUp] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [updateNotes, setUpdateNotes] = useState('');
@@ -70,17 +70,19 @@ const FollowUps = () => {
 
   const isManager = checkIsManager(user);
 
-  // Fetch follow-ups from the dedicated collection
-  const { data: followUps = [], isLoading, refetch } = useQuery({
+  // Fetch follow-ups from the dedicated collection (for stats)
+  const { data: followUpsRaw = { data: [] }, isLoading, refetch } = useQuery({
     queryKey: ['follow-ups', statusFilter, filter],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (statusFilter) params.append('status', statusFilter);
+      if (statusFilter && statusFilter !== 'all' && statusFilter !== 'escalated') params.append('status', statusFilter);
       if (filter !== 'all') params.append('entity_type', filter);
+      params.append('page_size', '500');
       const res = await axios.get(`${API}/follow-ups?${params}`);
-      return Array.isArray(res.data) ? res.data : [];
+      return res.data;
     },
   });
+  const followUps = Array.isArray(followUpsRaw) ? followUpsRaw : (followUpsRaw?.data || []);
 
   // Fetch escalations for managers
   const { data: escalations } = useQuery({
@@ -220,28 +222,8 @@ const FollowUps = () => {
     return counts;
   }, [followUps]);
 
-  // Filter and search
-  const filteredFollowUps = useMemo(() => {
-    let result = followUps;
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      result = (result || []).filter(f =>
-        f.client_name?.toLowerCase().includes(q) ||
-        f.notes?.toLowerCase().includes(q) ||
-        f.last_follow_up_summary?.toLowerCase().includes(q) ||
-        f.assigned_to_name?.toLowerCase().includes(q)
-      );
-    }
-    // Sort: overdue first, then by due_date
-    result.sort((a, b) => {
-      const aOverdue = new Date(a.due_date) < new Date(new Date().setHours(0, 0, 0, 0));
-      const bOverdue = new Date(b.due_date) < new Date(new Date().setHours(0, 0, 0, 0));
-      if (aOverdue && !bOverdue) return -1;
-      if (!aOverdue && bOverdue) return 1;
-      return new Date(a.due_date) - new Date(b.due_date);
-    });
-    return result;
-  }, [followUps, searchTerm]);
+  // Filter and search - still used for stats
+  const filteredFollowUps = followUps;
 
   const getDaysLabel = (dateStr) => {
     const due = new Date(dateStr);
@@ -398,16 +380,18 @@ const FollowUps = () => {
         </Card>
       )}
 
-      {/* Filters */}
+      {/* Filters - Passed as externalFilters to FollowUpsTable */}
       <div className="flex gap-3 flex-wrap">
-        <Input placeholder="Search by client, notes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-xs border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-search" />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-32 border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-status-filter">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
+            {isManager && <SelectItem value="escalated">Escalated</SelectItem>}
           </SelectContent>
         </Select>
         <Select value={filter} onValueChange={setFilter}>
@@ -423,76 +407,24 @@ const FollowUps = () => {
         </Select>
       </div>
 
-      {/* Follow-ups List */}
-      <Card className={`${dk ? 'bg-[#1A1A1C] border-[#2A2A2E]' : 'bg-white border-zinc-200'}`}>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarCheck className="w-5 h-5" />
-            Follow-ups ({filteredFollowUps.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-zinc-500">Loading...</div>
-          ) : filteredFollowUps.length === 0 ? (
-            <div className="text-center py-8 text-zinc-400">
-              <CheckCircle className="w-10 h-10 mx-auto mb-2 text-green-400" />
-              <p className="text-sm">No follow-ups found</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {(filteredFollowUps || []).map(fu => {
-                const isOverdue = new Date(fu.due_date) < new Date(new Date().setHours(0, 0, 0, 0)) && fu.status === 'open';
-                return (
-                  <div
-                    key={fu.id}
-                    data-testid={`follow-up-item-${fu.id}`}
-                    className={`p-4 rounded-lg border cursor-pointer hover:shadow-sm transition-shadow ${
-                      isOverdue
-                        ? dk ? 'bg-red-950/20 border-red-900/30' : 'bg-red-50 border-red-200'
-                        : fu.status === 'closed'
-                        ? dk ? 'bg-[#131314] border-[#2A2A2E] opacity-70' : 'bg-zinc-50 border-zinc-200 opacity-70'
-                        : dk ? 'bg-[#222226] border-[#2A2A2E]' : 'bg-white border-zinc-200'
-                    }`}
-                    onClick={() => openDetail(fu)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className={`w-2 h-2 rounded-full mt-2 ${fu.priority === 'high' ? 'bg-red-500' : fu.priority === 'low' ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-zinc-800">{fu.client_name}</span>
-                            <span className={`px-2 py-0.5 text-xs rounded font-semibold ${ENTITY_COLORS[fu.entity_type] || 'bg-zinc-100 text-zinc-600'}`} data-testid={`stage-badge-${fu.id}`}>{ENTITY_LABELS[fu.entity_type] || fu.entity_type}</span>
-                            {fu.priority === 'high' && <Badge variant="destructive" className="text-[10px] px-1.5">High</Badge>}
-                            {fu.status === 'closed' && <Badge variant="secondary" className="text-[10px]">Closed</Badge>}
-                            {isOverdue && fu.status === 'open' && (() => {
-                              const days = Math.abs(Math.floor((new Date(fu.due_date).setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / (1000*60*60*24)));
-                              return days >= 2 ? <Badge variant="destructive" className="text-[10px] px-1.5">Escalated</Badge> : null;
-                            })()}
-                          </div>
-                          <p className="text-sm text-zinc-500 mt-0.5 truncate">{fu.last_follow_up_summary || fu.notes || 'No notes'}</p>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400">
-                            {fu.assigned_to_name && (
-                              <span className="flex items-center gap-1"><UserCheck className="w-3 h-3" />{fu.assigned_to_name}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right ml-4 shrink-0">
-                        <p className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-zinc-500'}`}>{getDaysLabel(fu.due_date)}</p>
-                        <p className="text-[10px] text-zinc-400">{new Date(fu.due_date).toLocaleDateString()}</p>
-                        {fu.history?.length > 1 && (
-                          <p className="text-[10px] text-zinc-400 flex items-center gap-0.5 justify-end mt-1"><History className="w-3 h-3" />{fu.history.length} updates</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Follow-ups List - Using SalesDataTable (GOVERNANCE: No manual tables) */}
+      <FollowUpsTable
+        onRowClick={(fu) => openDetail(fu)}
+        onComplete={(fu) => {
+          setSelectedFollowUp(fu);
+          setShowCloseDialog(true);
+        }}
+        onReschedule={(fu) => {
+          setSelectedFollowUp(fu);
+          setShowNextDialog(true);
+        }}
+        externalFilters={{
+          ...(statusFilter && statusFilter !== 'all' && statusFilter !== 'escalated' && statusFilter !== 'overdue' ? { status: statusFilter } : {}),
+          ...(statusFilter === 'overdue' ? { overdue_only: true } : {}),
+          ...(filter !== 'all' ? { entity_type: filter } : {}),
+        }}
+        className="border border-zinc-200 rounded-sm"
+      />
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
