@@ -719,6 +719,7 @@ async def get_lead(lead_id: str, current_user: User = Depends(get_current_user))
 
 
 @router.put("/{lead_id}", response_model=Lead)
+@router.patch("/{lead_id}", response_model=Lead)
 async def update_lead(
     lead_id: str,
     lead_update: LeadUpdate,

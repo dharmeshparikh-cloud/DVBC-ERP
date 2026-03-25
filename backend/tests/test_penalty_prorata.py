@@ -8,7 +8,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sales-table-refactor.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sales-email-cta.preview.emergentagent.com')
 
 class TestPenaltyManagementAPIs:
     """Tests for Penalty Management APIs - 5 categories, 21 violation types"""

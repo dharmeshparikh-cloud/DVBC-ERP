@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://sales-table-refactor.preview.emergentagent.com",
+      "value": "https://sales-email-cta.preview.emergentagent.com",
       "type": "string"
     },
     {

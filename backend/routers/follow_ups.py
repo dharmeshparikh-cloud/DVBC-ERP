@@ -675,7 +675,7 @@ async def send_follow_up_email(
     # Build branded HTML email with D&V logo and styled CTA buttons
     base_url = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
     if not base_url:
-        base_url = "https://sales-table-refactor.preview.emergentagent.com"
+        base_url = "https://sales-email-cta.preview.emergentagent.com"
     close_link = f"{base_url}/api/follow-ups/{follow_up_id}/client-action?action=close"
     reschedule_link = f"{base_url}/api/follow-ups/{follow_up_id}/client-action?action=reschedule"
     logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
@@ -841,47 +841,109 @@ async def client_follow_up_action(
     
     now = datetime.now(timezone.utc).isoformat()
     client_name = fu.get("client_name", "Client")
+    due_date = fu.get("due_date", "")
+    
+    # Format due date nicely
+    due_display = ""
+    if due_date:
+        try:
+            dt = datetime.fromisoformat(due_date.replace("Z", "+00:00")) if isinstance(due_date, str) else due_date
+            due_display = dt.strftime("%A, %B %d, %Y at %I:%M %p")
+        except Exception:
+            due_display = str(due_date)
     
     if action == "close":
         await db.follow_ups.update_one(
             {"id": follow_up_id},
-            {"$set": {"status": "closed", "closed_at": now, "updated_at": now, "client_response": "Confirmed closure via email"},
+            {"$set": {"status": "closed", "closed_at": now, "updated_at": now, "client_response": "Confirmed via email"},
              "$push": {"history": {
                 "action": "client_closed",
                 "date": now,
                 "by": "Client (via email)",
-                "notes": response_text or "Client confirmed closure via email CTA",
+                "notes": response_text or "Client confirmed via email CTA",
             }}}
         )
-        return HTMLResponse(content=_build_action_page(
-            "Confirmed!",
-            f"Thank you, {client_name}. Your confirmation has been recorded and the follow-up has been closed. Our team has been notified.",
-            "success"
-        ))
+        details = f"Thank you for confirming, {client_name}! Your response has been recorded."
+        if due_display:
+            details += f"<br><br><div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin-top:8px;text-align:left;'><p style='margin:0 0 4px;color:#166534;font-size:13px;font-weight:600;'>Scheduled Follow-up</p><p style='margin:0;color:#15803d;font-size:15px;'>{due_display}</p></div>"
+        details += "<br>Our team has been notified and will be in touch."
+        return HTMLResponse(content=_build_action_page("Confirmed!", details, "success"))
     
     elif action == "reschedule":
-        await db.follow_ups.update_one(
-            {"id": follow_up_id},
-            {"$set": {"status": "open", "updated_at": now, "client_response": "Requested reschedule via email"},
-             "$push": {"history": {
-                "action": "client_reschedule",
-                "date": now,
-                "by": "Client (via email)",
-                "notes": response_text or "Client requested reschedule via email CTA",
-            }}}
-        )
-        return HTMLResponse(content=_build_action_page(
-            "Reschedule Requested",
-            f"Thank you, {client_name}. Your request to reschedule has been received. Our team will reach out to you shortly with new available times.",
-            "reschedule"
-        ))
+        # Show a date/time picker form instead of instant confirmation
+        base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-email-cta.preview.emergentagent.com").rstrip("/")
+        submit_url = f"{base_url}/api/follow-ups/{follow_up_id}/client-reschedule"
+        return HTMLResponse(content=_build_reschedule_page(client_name, due_display, submit_url))
     
     else:
         return HTMLResponse(content=_build_action_page(
             "Follow-up Details",
-            f"Client: {client_name}<br>Status: {fu.get('status', 'open').title()}<br>Notes: {fu.get('notes', '-')}",
+            f"Client: {client_name}<br>Status: {fu.get('status', 'open').title()}",
             "info"
         ))
+
+
+@router.post("/{follow_up_id}/client-reschedule")
+async def client_reschedule_submit(follow_up_id: str, request: Request):
+    """Handle reschedule form submission from client."""
+    from fastapi import Request
+    db = get_db()
+    
+    fu = await db.follow_ups.find_one({"id": follow_up_id}, {"_id": 0})
+    if not fu:
+        return HTMLResponse(content=_build_action_page("Not Found", "This follow-up could not be found.", "error"), status_code=404)
+    
+    # Parse form data
+    form = await request.form()
+    new_date = form.get("preferred_date", "")
+    new_time = form.get("preferred_time", "")
+    client_message = form.get("message", "")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    client_name = fu.get("client_name", "Client")
+    
+    reschedule_note = f"Client requested reschedule"
+    if new_date:
+        reschedule_note += f" to {new_date}"
+    if new_time:
+        reschedule_note += f" at {new_time}"
+    if client_message:
+        reschedule_note += f". Message: {client_message}"
+    
+    await db.follow_ups.update_one(
+        {"id": follow_up_id},
+        {"$set": {
+            "status": "open",
+            "updated_at": now,
+            "client_response": reschedule_note,
+            "client_preferred_date": new_date,
+            "client_preferred_time": new_time,
+        },
+        "$push": {"history": {
+            "action": "client_reschedule",
+            "date": now,
+            "by": "Client (via email)",
+            "notes": reschedule_note,
+        }}}
+    )
+    
+    # Build confirmation display
+    date_display = ""
+    if new_date:
+        try:
+            dt = datetime.strptime(new_date, "%Y-%m-%d")
+            date_display = dt.strftime("%A, %B %d, %Y")
+            if new_time:
+                date_display += f" at {new_time}"
+        except Exception:
+            date_display = f"{new_date} {new_time}".strip()
+    
+    msg = f"Thank you, {client_name}! Your reschedule request has been received."
+    if date_display:
+        msg += f"<br><br><div style='background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-top:8px;text-align:left;'><p style='margin:0 0 4px;color:#92400e;font-size:13px;font-weight:600;'>Preferred Time</p><p style='margin:0;color:#b45309;font-size:15px;'>{date_display}</p></div>"
+    msg += "<br>Our team will confirm the new schedule shortly."
+    
+    return HTMLResponse(content=_build_action_page("Reschedule Requested", msg, "reschedule"))
 
 
 def _build_action_page(title: str, message: str, action_type: str) -> str:
@@ -893,7 +955,7 @@ def _build_action_page(title: str, message: str, action_type: str) -> str:
         "info": {"bg": "#2563eb", "icon": "&#8505;", "accent": "#eff6ff", "border": "#bfdbfe"},
     }
     c = colors.get(action_type, colors["info"])
-    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-table-refactor.preview.emergentagent.com").rstrip("/")
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-email-cta.preview.emergentagent.com").rstrip("/")
     logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
     
     return f"""<!DOCTYPE html>

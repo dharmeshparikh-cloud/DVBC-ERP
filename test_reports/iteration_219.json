@@ -46,7 +46,7 @@
       {
         "feature": "4. View Pipeline action navigates to /sales-funnel-onboarding?leadId=<lead_id>",
         "status": "PASSED",
-        "details": "Navigated to https://sales-table-refactor.preview.emergentagent.com/sales-funnel-onboarding?leadId=329d1060-3147-46a2-98a8-dad93f95a371"
+        "details": "Navigated to https://sales-email-cta.preview.emergentagent.com/sales-funnel-onboarding?leadId=sales-email-cta"
       },
       {
         "feature": "5. Edit Lead action opens the edit dialog with lead data pre-filled",

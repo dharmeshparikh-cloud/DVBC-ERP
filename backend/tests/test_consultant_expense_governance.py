@@ -22,7 +22,7 @@ import os
 from datetime import datetime, timezone
 import uuid
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-table-refactor.preview.emergentagent.com")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sales-email-cta.preview.emergentagent.com")
 
 # Test credentials
 TEST_USERS = {

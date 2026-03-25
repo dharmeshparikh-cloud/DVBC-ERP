@@ -14,7 +14,7 @@ from typing import Dict, List, Any
 import calendar
 
 # Configuration
-API_BASE = "https://sales-table-refactor.preview.emergentagent.com/api"
+API_BASE = "https://sales-email-cta.preview.emergentagent.com/api"
 
 # Test credentials
 CREDENTIALS = {
