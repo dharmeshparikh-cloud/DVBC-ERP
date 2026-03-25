@@ -204,6 +204,7 @@ const FollowUps = () => {
             client_name: templateRes.data.client_name || '',
             company: templateRes.data.company || '',
             notes: data.notes || '',
+            schedule_display: templateRes.data.schedule_display || '',
           });
           setShowEmailDialog(true);
         } catch {
@@ -785,19 +786,21 @@ const FollowUps = () => {
                     const clientName = emailData.client_name || 'Sir/Madam';
                     const senderName = user?.full_name || 'Our Team';
                     const company = emailData.company || '';
+                    const schedule = emailData.schedule_display || '';
+                    const scheduleText = schedule ? `\nScheduled: ${schedule}\n` : '';
                     
                     const templates = {
                       formal: {
                         subject: `Follow-up: ${company || 'Our Discussion'}`,
-                        body: `Dear ${clientName},\n\nI hope this email finds you well. I wanted to follow up on our recent discussion${company ? ` regarding ${company}` : ''}.\n\n${emailData.notes || 'Please find below the details of our follow-up schedule.'}\n\nWe look forward to hearing from you at your earliest convenience.\n\nIf everything is aligned, please confirm by clicking the link below:\nConfirm & Close: ${closeLink}\n\nIf you need to reschedule, please use this link:\nReschedule: ${rescheduleLink}\n\nBest regards,\n${senderName}`
+                        body: `Dear ${clientName},\n\nI hope this email finds you well. I wanted to follow up on our recent discussion${company ? ` regarding ${company}` : ''}.\n\n${emailData.notes || 'Please find below the details of our follow-up schedule.'}${scheduleText}\n\nWe look forward to hearing from you at your earliest convenience.\n\nBest regards,\n${senderName}`
                       },
                       meeting: {
                         subject: `Meeting Follow-up: ${company || 'Next Steps'}`,
-                        body: `Dear ${clientName},\n\nThank you for taking the time to meet with us. Here is a brief recap of our discussion and the agreed next steps:\n\n${emailData.notes || '- Review the proposal\n- Schedule a follow-up call\n- Share feedback'}\n\nPlease let us know if you have any questions.\n\nTo confirm you are aligned with the next steps:\nConfirm & Close: ${closeLink}\n\nTo request a new meeting time:\nReschedule: ${rescheduleLink}\n\nWarm regards,\n${senderName}`
+                        body: `Dear ${clientName},\n\nThank you for taking the time to meet with us. Here is a brief recap of our discussion and the agreed next steps:\n\n${emailData.notes || '- Review the proposal\n- Schedule a follow-up call\n- Share feedback'}${scheduleText}\n\nPlease let us know if you have any questions.\n\nWarm regards,\n${senderName}`
                       },
                       reminder: {
                         subject: `Gentle Reminder: ${company || 'Pending Follow-up'}`,
-                        body: `Dear ${clientName},\n\nI hope you are doing well. This is a gentle reminder regarding our pending discussion${company ? ` about ${company}` : ''}.\n\n${emailData.notes || 'We would appreciate your feedback at your earliest convenience.'}\n\nPlease take a moment to respond:\nAll Good - Close: ${closeLink}\nNeed More Time - Reschedule: ${rescheduleLink}\n\nLooking forward to your response.\n\nBest regards,\n${senderName}`
+                        body: `Dear ${clientName},\n\nI hope you are doing well. This is a gentle reminder regarding our pending discussion${company ? ` about ${company}` : ''}.\n\n${emailData.notes || 'We would appreciate your feedback at your earliest convenience.'}${scheduleText}\n\nLooking forward to your response.\n\nBest regards,\n${senderName}`
                       },
                     };
                     const tmpl = templates[t.id];

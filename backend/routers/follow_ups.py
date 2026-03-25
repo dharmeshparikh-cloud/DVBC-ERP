@@ -715,6 +715,24 @@ async def send_follow_up_email(
     body_html = '\n'.join(body_html_parts)
     sender_name = current_user.full_name
     
+    # Format the follow-up due date/time for display in email
+    due_date = fu.get("due_date", "")
+    schedule_html = ""
+    if due_date:
+        try:
+            dt = datetime.fromisoformat(due_date.replace("Z", "+00:00")) if isinstance(due_date, str) else due_date
+            schedule_display = dt.strftime("%A, %B %d, %Y at %I:%M %p")
+            schedule_html = f"""
+        <!-- Scheduled Date/Time Block -->
+        <div style="padding: 0 36px 24px 36px;">
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px 20px;">
+                <p style="margin: 0 0 4px 0; color: #166534; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Scheduled Follow-up</p>
+                <p style="margin: 0; color: #15803d; font-size: 16px; font-weight: 600;">{schedule_display}</p>
+            </div>
+        </div>"""
+        except Exception:
+            pass
+    
     html_content = f"""
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
         <!-- Logo Header - White Background -->
@@ -726,6 +744,8 @@ async def send_follow_up_email(
         <div style="padding: 32px 36px 20px 36px;">
             {body_html}
         </div>
+        
+        {schedule_html}
         
         <!-- CTA Buttons -->
         <div style="padding: 8px 36px 36px 36px; text-align: center;">
@@ -824,11 +844,23 @@ async def get_follow_up_email_template(
     subject = f"Follow-up: {stage_text} — {company}" if company else f"Follow-up: {stage_text}"
     
     notes = fu.get('notes', '')
+    
+    # Format the due date/time for display
+    due_date = fu.get("due_date", "")
+    schedule_display = ""
+    if due_date:
+        try:
+            dt = datetime.fromisoformat(due_date.replace("Z", "+00:00")) if isinstance(due_date, str) else due_date
+            schedule_display = dt.strftime("%A, %B %d, %Y at %I:%M %p")
+        except Exception:
+            schedule_display = str(due_date)
+    
     body = (
         f"Dear {client_name.strip()},\n\n"
         f"I hope this email finds you well. I wanted to follow up regarding {stage_text}"
         f"{f' for {company}' if company else ''}.\n\n"
         f"{notes}\n\n"
+        f"{f'Scheduled: {schedule_display}' if schedule_display else ''}\n\n"
         f"Please let me know if you have any questions or need additional information. "
         f"I'd be happy to schedule a call at your convenience.\n\n"
         f"Best regards,\n{sender_name}"
@@ -840,6 +872,7 @@ async def get_follow_up_email_template(
         "recipient_email": recipient_email,
         "client_name": client_name.strip(),
         "company": company,
+        "schedule_display": schedule_display,
     }
 
 
