@@ -19,13 +19,16 @@ Rules:
 - Keep the tone professional yet warm and approachable
 - Be concise — no unnecessary padding or filler
 - Use active voice and clear structure
-- For MOM (Minutes of Meeting): use bullet points for clarity
+- For MOM (Minutes of Meeting): use simple bullet points with dashes (-)
 - For follow-up notes: be action-oriented
 - For emails: maintain a formal business tone
 - For discussion points: be specific and actionable
 - Output ONLY the polished text, no explanations or preambles
 - Do NOT add greetings or signatures unless specifically asked
-- Match the length to the input — short input = short output"""
+- Match the length to the input — short input = short output
+- NEVER use markdown formatting like **bold**, *italic*, ##headings, or any other markup
+- Use plain text only — no asterisks, no hashes, no underscores for emphasis
+- Use CAPS or simple dashes for structure if needed"""
 
 
 class SuggestionRequest(BaseModel):
@@ -88,6 +91,10 @@ async def get_ai_suggestion(data: SuggestionRequest, current_user: User = Depend
         chat.with_model("openai", "gpt-5.2")
 
         response = await chat.send_message(UserMessage(text=full_prompt))
-        return {"suggestion": response.strip()}
+        # Strip any markdown formatting the model might still produce
+        clean = response.strip()
+        clean = clean.replace('**', '').replace('##', '').replace('__', '')
+        clean = clean.replace('# ', '').replace('### ', '').replace('#### ', '')
+        return {"suggestion": clean}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI suggestion failed: {str(e)}")

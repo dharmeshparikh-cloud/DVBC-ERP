@@ -392,10 +392,11 @@ const MeetingRecord = () => {
         // MOM data
         notes: momData.notes,
         mom: momData.mom,
-        discussion_points: (typeof momData.discussion_points === 'string' ? momData.discussion_points.split('\n') : (momData.discussion_points || [])).filter(d => d.trim()),
-        decisions_made: (typeof momData.decisions_made === 'string' ? momData.decisions_made.split('\n') : (momData.decisions_made || [])).filter(d => d.trim()),
-        client_expectations: (typeof momData.client_expectations === 'string' ? momData.client_expectations.split('\n') : (momData.client_expectations || [])).filter(c => c.trim()),
-        key_commitments: (typeof momData.key_commitments === 'string' ? momData.key_commitments.split('\n') : (momData.key_commitments || [])).filter(k => k.trim()),
+        price_discussion: momData.price_discussion || '',
+        discussion_points: [],
+        decisions_made: [],
+        client_expectations: [],
+        key_commitments: [],
         action_items: (typeof momData.action_items === 'string' ? momData.action_items.split('\n') : (momData.action_items || [])).filter(a => a.trim()),
         next_steps: momData.next_steps,
         // Travel data for offline meetings
@@ -1006,105 +1007,29 @@ const MeetingRecord = () => {
               />
             </div>
 
-            {/* Discussion Points */}
+            {/* Price Discussion */}
             <div className="space-y-2">
               <Label className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <ListChecks className="w-4 h-4 text-zinc-500" />
-                  Discussion Points
-                </span>
-                <AISuggestButton
-                  contextType="discussion_points"
-                  currentText={momData.discussion_points?.join?.('\n') || (typeof momData.discussion_points === 'string' ? momData.discussion_points : '')}
-                  clientName={lead?.company || ''}
-                  company={lead?.company || ''}
-                  meetingType={formData.meeting_type}
-                  onAccept={(text) => setMomData({...momData, discussion_points: text})}
-                />
-              </Label>
-              <Textarea
-                value={Array.isArray(momData.discussion_points) ? momData.discussion_points.filter(d => d.trim()).join('\n') : (momData.discussion_points || '')}
-                onChange={(e) => setMomData({...momData, discussion_points: e.target.value})}
-                placeholder="What was discussed... (one point per line)"
-                rows={3}
-                className="rounded-sm"
-                data-testid="mom-discussion-points"
-              />
-            </div>
-
-            {/* Decisions Made */}
-            <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  Decisions Made
+                  <DollarSign className="w-4 h-4 text-green-500" />
+                  Price Discussion
                 </span>
                 <AISuggestButton
                   contextType="notes"
-                  currentText={momData.decisions_made?.join?.('\n') || (typeof momData.decisions_made === 'string' ? momData.decisions_made : '')}
+                  currentText={momData.price_discussion || ''}
                   clientName={lead?.company || ''}
                   company={lead?.company || ''}
-                  additionalContext="These are decisions/agreements reached during the meeting."
-                  onAccept={(text) => setMomData({...momData, decisions_made: text})}
+                  additionalContext="This covers budget, pricing expectations, and financial discussions from the meeting."
+                  onAccept={(text) => setMomData({...momData, price_discussion: text})}
                 />
               </Label>
               <Textarea
-                value={Array.isArray(momData.decisions_made) ? momData.decisions_made.filter(d => d.trim()).join('\n') : (momData.decisions_made || '')}
-                onChange={(e) => setMomData({...momData, decisions_made: e.target.value})}
-                placeholder="Decisions or agreements reached... (one per line)"
-                rows={2}
+                value={momData.price_discussion || ''}
+                onChange={(e) => setMomData({...momData, price_discussion: e.target.value})}
+                placeholder="Budget discussed, pricing expectations, payment terms..."
+                rows={3}
                 className="rounded-sm"
-                data-testid="mom-decisions-made"
-              />
-            </div>
-
-            {/* Client Expectations */}
-            <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-amber-500" />
-                  Client Expectations & Concerns
-                </span>
-                <AISuggestButton
-                  contextType="client_expectations"
-                  currentText={momData.client_expectations?.join?.('\n') || (typeof momData.client_expectations === 'string' ? momData.client_expectations : '')}
-                  clientName={lead?.company || ''}
-                  company={lead?.company || ''}
-                  onAccept={(text) => setMomData({...momData, client_expectations: text})}
-                />
-              </Label>
-              <Textarea
-                value={Array.isArray(momData.client_expectations) ? momData.client_expectations.filter(d => d.trim()).join('\n') : (momData.client_expectations || '')}
-                onChange={(e) => setMomData({...momData, client_expectations: e.target.value})}
-                placeholder="Client expectations or concerns... (one per line)"
-                rows={2}
-                className="rounded-sm"
-                data-testid="mom-client-expectations"
-              />
-            </div>
-
-            {/* Key Commitments */}
-            <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Handshake className="w-4 h-4 text-blue-500" />
-                  Key Commitments Made
-                </span>
-                <AISuggestButton
-                  contextType="key_commitments"
-                  currentText={momData.key_commitments?.join?.('\n') || (typeof momData.key_commitments === 'string' ? momData.key_commitments : '')}
-                  clientName={lead?.company || ''}
-                  company={lead?.company || ''}
-                  onAccept={(text) => setMomData({...momData, key_commitments: text})}
-                />
-              </Label>
-              <Textarea
-                value={Array.isArray(momData.key_commitments) ? momData.key_commitments.filter(d => d.trim()).join('\n') : (momData.key_commitments || '')}
-                onChange={(e) => setMomData({...momData, key_commitments: e.target.value})}
-                placeholder="Commitments or promises made... (one per line)"
-                rows={2}
-                className="rounded-sm"
-                data-testid="mom-key-commitments"
+                data-testid="mom-price-discussion"
               />
             </div>
 

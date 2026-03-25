@@ -717,18 +717,38 @@ async def send_follow_up_email(
     reschedule_link = f"{base_url}/api/follow-ups/{follow_up_id}/client-action?action=reschedule"
     logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
     
-    # Convert plain text body to clean paragraphs, strip CTA/link lines
+    # Convert plain text body to clean HTML with table format for structured content
     body_lines = data.body.strip().split('\n')
     body_html_parts = []
+    table_rows = []
     skip_keywords = ['client-action?action=', 'Confirm & Close', 'Reschedule Follow-up:', 'All Good - Close:', 'Need More Time -', 'To confirm', 'To request', 'If everything is aligned', 'If you need to reschedule']
+    
+    def flush_table():
+        nonlocal table_rows
+        if table_rows:
+            rows_html = ''.join(f'<tr><td style="padding: 8px 14px; border-bottom: 1px solid #f0f0f0; color: #374151; font-size: 14px; line-height: 1.6;">{r}</td></tr>' for r in table_rows)
+            body_html_parts.append(f'<table style="width: 100%; border-collapse: collapse; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; margin: 10px 0; overflow: hidden;"><tbody>{rows_html}</tbody></table>')
+            table_rows = []
+    
     for line in body_lines:
         stripped = line.strip()
         if any(kw in stripped for kw in skip_keywords):
             continue
-        if stripped == '':
-            body_html_parts.append('<br>')
+        # Detect bullet/list lines and add to table
+        if stripped.startswith('-') or stripped.startswith('•') or stripped.startswith('*'):
+            table_rows.append(stripped.lstrip('-•* ').strip())
+        elif ':' in stripped and len(stripped.split(':')[0]) < 30 and not stripped.startswith('Dear') and not stripped.startswith('Best') and not stripped.startswith('Warm'):
+            # Key: Value pairs → table rows
+            flush_table()
+            key, val = stripped.split(':', 1)
+            table_rows.append(f'<strong style="color: #111827;">{key.strip()}</strong>: {val.strip()}')
         else:
-            body_html_parts.append(f'<p style="margin: 0 0 6px 0; color: #374151; font-size: 15px; line-height: 1.7;">{stripped}</p>')
+            flush_table()
+            if stripped == '':
+                body_html_parts.append('<br>')
+            else:
+                body_html_parts.append(f'<p style="margin: 0 0 6px 0; color: #374151; font-size: 15px; line-height: 1.7;">{stripped}</p>')
+    flush_table()
     
     body_html = '\n'.join(body_html_parts)
     sender_name = current_user.full_name

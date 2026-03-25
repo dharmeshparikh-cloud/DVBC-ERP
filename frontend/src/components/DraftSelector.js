@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -42,7 +41,7 @@ const DraftSelector = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FolderOpen className="w-5 h-5 text-orange-500" />
@@ -62,12 +61,19 @@ const DraftSelector = ({
             </div>
           ) : (
             (drafts || []).map((draft) => (
-              <Card 
+              <div
                 key={draft.id} 
-                className="cursor-pointer hover:border-orange-300 transition-colors"
-                onClick={() => onSelect(draft)}
+                role="button"
+                tabIndex={0}
+                className="cursor-pointer rounded-xl border bg-card text-card-foreground shadow hover:border-orange-300 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(draft);
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') onSelect(draft); }}
+                data-testid={`draft-card-${draft.id}`}
               >
-                <CardContent className="p-4">
+                <div className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -90,14 +96,15 @@ const DraftSelector = ({
                       className="text-red-500 hover:text-red-700 hover:bg-red-50"
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         onDelete(draft.id);
                       }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))
           )}
         </div>
