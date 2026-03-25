@@ -115,6 +115,14 @@ export const PermissionProvider = ({ children }) => {
   const canSubmitRequests = () => can('can_submit_requests');
   const canEditOwnProfile = () => can('can_edit_own_profile');
   const canManageUsers = () => can('can_manage_users') || rbacData?.can_manage_users;
+  
+  // GLOBAL EXPORT PERMISSION - Controls all downloads/exports across the ERP
+  const canExportData = () => {
+    // Admin always has export permission
+    if (user?.role === 'admin' || rbacData?.level === 100) return true;
+    // Check the specific permission
+    return can('system.can_export_data') || can('admin.can_export_data');
+  };
 
   // Check if user is manager or above (using RBAC level)
   const isManagerOrAbove = () => {
@@ -157,6 +165,7 @@ export const PermissionProvider = ({ children }) => {
       canSubmitRequests,
       canEditOwnProfile,
       canManageUsers,
+      canExportData,
       isManagerOrAbove,
       isLeader,
       isAdmin,

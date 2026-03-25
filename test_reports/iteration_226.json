@@ -1,0 +1,89 @@
+{
+  "summary": "Tested global RBAC-controlled export permission (system.can_export_data) across the ERP. All tests PASSED. Admin (EMP001) has export permission with Download icon enabled. Sales Executive (EMP003) does NOT have export permission - shows Lock icon and button is disabled.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rbac_export_permission.py",
+    "/app/test_reports/pytest/pytest_rbac_export_permission.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_rbac_export_permission.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "admin": {"employee_id": "EMP001", "password": "admin123", "has_export": true},
+    "hr_manager": {"employee_id": "EMP002", "password": "hr123", "has_export": true},
+    "sales_executive": {"employee_id": "EMP003", "password": "sales123", "has_export": false}
+  },
+  "seed_data_creation": "None - used existing users",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Global RBAC export permission (system.can_export_data) is working correctly. Admin and manager-level roles have export permission. Sales Executive does NOT have export permission. Export buttons show Lock icon and are disabled for unauthorized users.",
+  "test_results": {
+    "backend_api_tests": {
+      "admin_has_wildcard_permission": "PASSED - Admin has '*' permission (level 100)",
+      "admin_can_export_data": "PASSED - Admin can export via wildcard permission",
+      "sales_exec_no_export_permission": "PASSED - Sales exec does NOT have system.can_export_data",
+      "sales_exec_limited_permissions": "PASSED - Sales exec has only leads.own, meetings.own, quotations.create, agreements.create",
+      "hr_manager_has_export_permission": "PASSED - HR Manager has system.can_export_data",
+      "permission_check_endpoint_admin": "PASSED - /api/permissions/check returns has_permission=true for admin",
+      "permission_check_endpoint_sales_exec": "PASSED - /api/permissions/check returns has_permission=false for sales exec",
+      "rbac_seeder_config": "PASSED - RBAC seeder correctly defines export permission for manager roles",
+      "feature_flags_config": "PASSED - system.can_export_data is properly defined in FEATURE_FLAGS"
+    },
+    "frontend_ui_tests": {
+      "leads_page_sales_exec": {
+        "export_button_found": "PASSED - data-testid='export-csv-btn' found",
+        "button_disabled": "PASSED - Button has opacity-50 and cursor-not-allowed classes",
+        "lock_icon_shown": "PASSED - Button shows Lock icon (not Download)",
+        "click_blocked": "PASSED - Button click was blocked (timeout)"
+      },
+      "leads_page_admin": {
+        "export_button_found": "PASSED - data-testid='export-csv-btn' found",
+        "button_enabled": "PASSED - Button is enabled (is_enabled=true)",
+        "download_icon_shown": "PASSED - Button shows Download icon (not Lock)",
+        "export_dialog_opens": "PASSED - Export dialog opens with Current Page and All Matching Records options"
+      },
+      "reports_page_sales_exec": {
+        "no_reports_available": "PASSED - Sales exec sees 'No reports available for your role' (expected behavior)"
+      },
+      "reports_page_admin": {
+        "reports_available": "PASSED - Admin sees 14 reports (HR, Sales, Operations categories)",
+        "excel_buttons_enabled": "PASSED - All 14 Excel buttons are enabled (no Lock icon)",
+        "pdf_buttons_enabled": "PASSED - All 14 PDF buttons are enabled (no Lock icon)"
+      }
+    }
+  },
+  "permission_matrix": {
+    "admin": {
+      "role": "admin",
+      "level": 100,
+      "permissions": ["*"],
+      "can_export": true
+    },
+    "hr_manager": {
+      "role": "hr_manager",
+      "level": 80,
+      "permissions": ["hr.*", "employees.*", "attendance.*", "leaves.*", "payroll.view", "system.can_export_data"],
+      "can_export": true
+    },
+    "sales_executive": {
+      "role": "executive",
+      "level": 40,
+      "permissions": ["leads.own", "meetings.own", "quotations.create", "agreements.create"],
+      "can_export": false
+    }
+  }
+}

@@ -51,7 +51,7 @@ ROLE_DEFINITIONS = {
         "can_approve": True,
         "can_manage_users": True,
         "inherits_from": ["hr_executive"],
-        "permissions": ["hr.*", "employees.*", "attendance.*", "leaves.*", "payroll.view"],
+        "permissions": ["hr.*", "employees.*", "attendance.*", "leaves.*", "payroll.view", "system.can_export_data"],
     },
     "hr_executive": {
         "name": "HR Executive",
@@ -71,7 +71,7 @@ ROLE_DEFINITIONS = {
         "can_approve": True,
         "can_manage_users": False,
         "inherits_from": ["sales_executive"],
-        "permissions": ["sales.*", "leads.*", "agreements.view", "quotations.*", "reports.sales"],
+        "permissions": ["sales.*", "leads.*", "agreements.view", "quotations.*", "reports.sales", "system.can_export_data"],
     },
     "sales_executive": {
         "name": "Sales Executive",
@@ -101,7 +101,7 @@ ROLE_DEFINITIONS = {
         "can_approve": True,
         "can_manage_users": False,
         "inherits_from": [],
-        "permissions": ["team.*", "reports.*", "approvals.*"],
+        "permissions": ["team.*", "reports.*", "approvals.*", "system.can_export_data"],
     },
     "sr_manager": {
         "name": "Senior Manager",
@@ -121,7 +121,7 @@ ROLE_DEFINITIONS = {
         "can_approve": True,
         "can_manage_users": False,
         "inherits_from": ["senior_consultant"],
-        "permissions": ["consulting.*", "projects.*", "kickoff.approve", "agreements.approve", "sow.*"],
+        "permissions": ["consulting.*", "projects.*", "kickoff.approve", "agreements.approve", "sow.*", "system.can_export_data"],
     },
     "senior_consultant": {
         "name": "Senior Consultant",

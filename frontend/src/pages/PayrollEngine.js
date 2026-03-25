@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePermissions } from '../contexts/PermissionContext';
 import { API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -12,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import { Separator } from '../components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { toast } from 'sonner';
 import {
   Calculator,
@@ -59,6 +61,8 @@ import {
 
 export default function PayrollEngine() {
   const { theme } = useTheme();
+  const { canExportData } = usePermissions();
+  const hasExportPermission = canExportData();
   const isDark = theme === 'dark';
   const [activeTab, setActiveTab] = useState('test-mode');
   const [registerViewMode, setRegisterViewMode] = useState('detailed'); // 'detailed', 'table', or 'excel'
@@ -1288,20 +1292,22 @@ export default function PayrollEngine() {
                       Full Excel View
                     </button>
                   </div>
-                  <Button variant="outline" onClick={handleExport} data-testid="btn-export">
-                    <Download className="w-4 h-4 mr-2" />
+                  <Button variant="outline" onClick={hasExportPermission ? handleExport : undefined} disabled={!hasExportPermission} data-testid="btn-export">
+                    {hasExportPermission ? <Download className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
                     Export CSV
                   </Button>
                   <Button 
                     variant="outline" 
-                    onClick={handleDownloadExcel}
-                    disabled={isDownloadingExcel}
+                    onClick={hasExportPermission ? handleDownloadExcel : undefined}
+                    disabled={isDownloadingExcel || !hasExportPermission}
                     data-testid="btn-download-excel"
                   >
                     {isDownloadingExcel ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
+                    ) : hasExportPermission ? (
                       <FileDown className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Lock className="w-4 h-4 mr-2" />
                     )}
                     Download Excel
                   </Button>

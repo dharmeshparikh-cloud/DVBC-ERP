@@ -27,7 +27,7 @@ import {
   ChevronUp, ChevronDown, Search, X, Filter, RefreshCw, 
   ChevronLeft, ChevronRight, Download, Loader2, AlertCircle,
   Calendar, SlidersHorizontal, Eye, MoreHorizontal, Save, 
-  FolderOpen, Trash2, Star, Check, FileDown
+  FolderOpen, Trash2, Star, Check, FileDown, Lock
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -39,8 +39,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Label } from '../ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
+import { usePermissions } from '../../contexts/PermissionContext';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -669,6 +671,10 @@ export const SalesDataTable = ({
   onDataLoad,
   onError,
 }) => {
+  // Get export permission from context
+  const { canExportData } = usePermissions();
+  const hasExportPermission = canExportData();
+  
   // State
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(defaultPageSize);
@@ -1005,19 +1011,39 @@ export const SalesDataTable = ({
               <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
             </Button>
             
-            {/* Export - Enhanced with dialog */}
+            {/* Export - Enhanced with dialog, RBAC controlled */}
             {showExport && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowExportDialog(true)}
-                disabled={!tableData.length}
-                className="h-8 px-2"
-                title="Export to CSV"
-                data-testid="export-csv-btn"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => hasExportPermission && setShowExportDialog(true)}
+                        disabled={!tableData.length || !hasExportPermission}
+                        className={cn(
+                          "h-8 px-2",
+                          !hasExportPermission && "opacity-50 cursor-not-allowed"
+                        )}
+                        title={hasExportPermission ? "Export to CSV" : "Export permission required"}
+                        data-testid="export-csv-btn"
+                      >
+                        {hasExportPermission ? (
+                          <Download className="w-4 h-4" />
+                        ) : (
+                          <Lock className="w-4 h-4 text-zinc-400" />
+                        )}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!hasExportPermission && (
+                    <TooltipContent>
+                      <p>You don't have permission to export data</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
         </div>

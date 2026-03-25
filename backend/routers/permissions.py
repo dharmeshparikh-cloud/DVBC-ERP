@@ -88,6 +88,9 @@ FEATURE_FLAGS = {
     "admin.manage_masters": {"category": "admin", "label": "Manage Master Data", "default_roles": ["admin"]},
     "admin.view_all_data": {"category": "admin", "label": "View All Data", "default_roles": ["admin"]},
     
+    # System-Wide Data Export Permission (Global Toggle)
+    "system.can_export_data": {"category": "admin", "label": "Export/Download Data", "default_roles": ["admin", "hr_manager", "sales_manager", "principal_consultant", "manager"], "description": "Controls ability to export/download data across all modules (CSV, Excel, PDF exports)"},
+    
     # Personal/Self-Service (always enabled for self)
     "personal.view_own_attendance": {"category": "personal", "label": "View Own Attendance", "default_roles": ["*"]},
     "personal.view_own_leaves": {"category": "personal", "label": "View Own Leaves", "default_roles": ["*"]},

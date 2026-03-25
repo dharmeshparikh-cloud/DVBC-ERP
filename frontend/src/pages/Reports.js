@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { 
   FileSpreadsheet, FileText, Download, Eye, Search, 
   BarChart3, Users, Building2, DollarSign, Briefcase,
-  TrendingUp, Clock, CheckCircle, Filter, ChevronDown
+  TrendingUp, Clock, CheckCircle, Filter, ChevronDown, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -18,6 +19,7 @@ import {
   useReportPreview,
   useGenerateReport 
 } from '../hooks/useReports';
+import { usePermissions } from '../contexts/PermissionContext';
 
 const CATEGORY_ICONS = {
   'Sales': TrendingUp,
@@ -35,6 +37,8 @@ const CATEGORY_COLORS = {
 
 const Reports = () => {
   const { user } = useContext(AuthContext);
+  const { canExportData } = usePermissions();
+  const hasExportPermission = canExportData();
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -266,26 +270,56 @@ const Reports = () => {
                         <Eye className="w-4 h-4 mr-1" />
                         Preview
                       </Button>
-                      <Button 
-                        onClick={() => handleDownload(report.id, 'excel')}
-                        disabled={downloading[`${report.id}_excel`]}
-                        variant="ghost" 
-                        size="sm" 
-                        className="rounded-sm text-emerald-600 hover:text-emerald-700"
-                      >
-                        <FileSpreadsheet className="w-4 h-4 mr-1" />
-                        {downloading[`${report.id}_excel`] ? '...' : 'Excel'}
-                      </Button>
-                      <Button 
-                        onClick={() => handleDownload(report.id, 'pdf')}
-                        disabled={downloading[`${report.id}_pdf`]}
-                        variant="ghost" 
-                        size="sm" 
-                        className="rounded-sm text-red-600 hover:text-red-700"
-                      >
-                        <FileText className="w-4 h-4 mr-1" />
-                        {downloading[`${report.id}_pdf`] ? '...' : 'PDF'}
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button 
+                                onClick={() => hasExportPermission && handleDownload(report.id, 'excel')}
+                                disabled={downloading[`${report.id}_excel`] || !hasExportPermission}
+                                variant="ghost" 
+                                size="sm" 
+                                className={`rounded-sm ${hasExportPermission ? 'text-emerald-600 hover:text-emerald-700' : 'text-zinc-400'}`}
+                              >
+                                {hasExportPermission ? (
+                                  <FileSpreadsheet className="w-4 h-4 mr-1" />
+                                ) : (
+                                  <Lock className="w-4 h-4 mr-1" />
+                                )}
+                                {downloading[`${report.id}_excel`] ? '...' : 'Excel'}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {!hasExportPermission && (
+                            <TooltipContent>Export permission required</TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button 
+                                onClick={() => hasExportPermission && handleDownload(report.id, 'pdf')}
+                                disabled={downloading[`${report.id}_pdf`] || !hasExportPermission}
+                                variant="ghost" 
+                                size="sm" 
+                                className={`rounded-sm ${hasExportPermission ? 'text-red-600 hover:text-red-700' : 'text-zinc-400'}`}
+                              >
+                                {hasExportPermission ? (
+                                  <FileText className="w-4 h-4 mr-1" />
+                                ) : (
+                                  <Lock className="w-4 h-4 mr-1" />
+                                )}
+                                {downloading[`${report.id}_pdf`] ? '...' : 'PDF'}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {!hasExportPermission && (
+                            <TooltipContent>Export permission required</TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </CardContent>
                 </Card>
@@ -377,22 +411,31 @@ const Reports = () => {
               
               {/* Download buttons */}
               <div className="flex gap-3 mt-4 pt-4 border-t border-zinc-100">
-                <Button 
-                  onClick={() => handleDownload(previewData.report_id, 'excel')}
-                  disabled={downloading[`${previewData.report_id}_excel`]}
-                  className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm"
-                >
-                  <FileSpreadsheet className="w-4 h-4 mr-2" />
-                  Download Excel
-                </Button>
-                <Button 
-                  onClick={() => handleDownload(previewData.report_id, 'pdf')}
-                  disabled={downloading[`${previewData.report_id}_pdf`]}
-                  className="bg-red-600 text-white hover:bg-red-700 rounded-sm"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Download PDF
-                </Button>
+                {hasExportPermission ? (
+                  <>
+                    <Button 
+                      onClick={() => handleDownload(previewData.report_id, 'excel')}
+                      disabled={downloading[`${previewData.report_id}_excel`]}
+                      className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 mr-2" />
+                      Download Excel
+                    </Button>
+                    <Button 
+                      onClick={() => handleDownload(previewData.report_id, 'pdf')}
+                      disabled={downloading[`${previewData.report_id}_pdf`]}
+                      className="bg-red-600 text-white hover:bg-red-700 rounded-sm"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 text-zinc-500">
+                    <Lock className="w-4 h-4" />
+                    <span className="text-sm">You don't have permission to download reports</span>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
