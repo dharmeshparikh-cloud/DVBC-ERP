@@ -2,6 +2,15 @@
 
 ## Latest Updates - March 25, 2026
 
+### P0 Bug Fixes - MeetingRecord.js Crash & DraftSelector (Session 11)
+- **MeetingRecord.js Crash Fixed**: The page was crashing with a TypeError due to `.some()` being called on string values instead of arrays. The MOM form fields (discussion_points, decisions_made, etc.) had been converted from arrays to simple textareas, but the auto-save logic still expected arrays.
+  - **Fix Applied**: 
+    1. Simplified `momData` state to use string fields only (notes, mom, price_discussion, next_steps, action_items)
+    2. Removed `.some()` calls from auto-save `hasContent` check
+    3. Removed unused list handler functions (handleAddListItem, handleRemoveListItem, handleListItemChange)
+- **DraftSelector Component Verified**: The refactored component supporting both dialog and inline modes is working correctly on Quotations and PricingPlanBuilder pages.
+- **Testing**: 100% frontend test pass rate verified via testing agent (iteration_224.json)
+
 ### AI-Powered Note Suggestions (Session 10)
 - **Backend**: Created `/api/ai/suggest` endpoint using GPT-5.2 via emergentintegrations library. Supports context types: `mom`, `notes`, `follow_up`, `discussion_points`, `next_steps`, `email_body`, `action_items`, `client_expectations`, `key_commitments`.
 - **Frontend**: Created reusable `AISuggestButton` component. Integrated into MeetingRecord (MOM Notes, MOM Summary, Next Steps), FollowUps (Create notes, Update notes, Close summary).
