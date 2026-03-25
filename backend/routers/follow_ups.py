@@ -717,6 +717,19 @@ async def send_follow_up_email(
     
     # Format the follow-up due date/time for display in email
     due_date = fu.get("due_date", "")
+    entity_type = fu.get("entity_type", "")
+    schedule_labels = {
+        "lead": "Follow-up Scheduled",
+        "meeting": "Meeting Scheduled",
+        "pricing_plan": "Pricing Discussion Scheduled",
+        "sow": "SOW Review Scheduled",
+        "quotation": "Quotation Review Scheduled",
+        "agreement": "Agreement Discussion Scheduled",
+        "payment": "Payment Follow-up Scheduled",
+        "kickoff": "Kickoff Scheduled",
+        "project": "Project Review Scheduled",
+    }
+    schedule_label = schedule_labels.get(entity_type, "Follow-up Scheduled")
     schedule_html = ""
     if due_date:
         try:
@@ -726,7 +739,7 @@ async def send_follow_up_email(
         <!-- Scheduled Date/Time Block -->
         <div style="padding: 0 36px 24px 36px;">
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px 20px;">
-                <p style="margin: 0 0 4px 0; color: #166534; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Scheduled Follow-up</p>
+                <p style="margin: 0 0 4px 0; color: #166534; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">{schedule_label}</p>
                 <p style="margin: 0; color: #15803d; font-size: 16px; font-weight: 600;">{schedule_display}</p>
             </div>
         </div>"""
@@ -847,6 +860,19 @@ async def get_follow_up_email_template(
     
     # Format the due date/time for display
     due_date = fu.get("due_date", "")
+    entity_type = fu.get("entity_type", "")
+    schedule_text_labels = {
+        "lead": "Follow-up Scheduled",
+        "meeting": "Meeting Scheduled",
+        "pricing_plan": "Pricing Discussion Scheduled",
+        "sow": "SOW Review Scheduled",
+        "quotation": "Quotation Review Scheduled",
+        "agreement": "Agreement Discussion Scheduled",
+        "payment": "Payment Follow-up Scheduled",
+        "kickoff": "Kickoff Scheduled",
+        "project": "Project Review Scheduled",
+    }
+    schedule_label = schedule_text_labels.get(entity_type, "Follow-up Scheduled")
     schedule_display = ""
     if due_date:
         try:
@@ -860,7 +886,7 @@ async def get_follow_up_email_template(
         f"I hope this email finds you well. I wanted to follow up regarding {stage_text}"
         f"{f' for {company}' if company else ''}.\n\n"
         f"{notes}\n\n"
-        f"{f'Scheduled: {schedule_display}' if schedule_display else ''}\n\n"
+        f"{f'{schedule_label}: {schedule_display}' if schedule_display else ''}\n\n"
         f"Please let me know if you have any questions or need additional information. "
         f"I'd be happy to schedule a call at your convenience.\n\n"
         f"Best regards,\n{sender_name}"
@@ -873,6 +899,7 @@ async def get_follow_up_email_template(
         "client_name": client_name.strip(),
         "company": company,
         "schedule_display": schedule_display,
+        "schedule_label": schedule_label,
     }
 
 
