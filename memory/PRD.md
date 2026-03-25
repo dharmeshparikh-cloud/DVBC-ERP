@@ -2,6 +2,33 @@
 
 ## Latest Updates - March 25, 2026
 
+### SOW Delivery Architecture - Phase 2 & 3 Complete (Session 12)
+**Phase 2: AI Task Generation (COMPLETE)**
+- **Backend Endpoint**: `POST /api/project-sow-delivery/{sow_id}/scope/{scope_id}/ai-generate-tasks`
+- **Integration**: Uses GPT-5.2 via `emergentintegrations` library with Emergent LLM Key
+- **Features**:
+  - Generates 3-5 actionable tasks per scope based on scope name, description, deliverables, and timeline
+  - Tasks are created with `is_ai_generated=True` flag
+  - Frontend shows purple "AI" badge on AI-generated tasks
+  - AI Suggest button with loading spinner while generating
+
+**Phase 3: Proof Management (COMPLETE)**
+- **Storage Integration**: Created `/app/backend/utils/storage.py` - Reusable Emergent Object Storage utility
+- **Storage Router**: Created `/app/backend/routers/storage.py` - File upload/download endpoints
+- **Proof Endpoints**:
+  - `POST /api/storage/upload?folder=proofs` - Upload file to storage
+  - `POST /api/project-sow-delivery/proofs` - Register proof for task or SOW
+  - `GET /api/project-sow-delivery/proofs/{entity_type}/{entity_id}` - Get proofs
+  - `DELETE /api/project-sow-delivery/proofs/{proof_id}` - Delete proof
+- **Frontend Features**:
+  - Task-level upload button (cloud icon) next to each task
+  - SOW-level "Upload Proof" button in Proofs tab
+  - Proof count badge (emerald) on tasks with proofs
+  - Proofs tab shows file name, version, uploader, and download link
+  - Version tracking for re-uploaded files with same name
+
+**Testing**: 100% pass rate (iteration_227.json) - 13/13 backend tests, all frontend UI tests passed
+
 ### SOW Delivery Layer Architecture - Phase 1 Complete (Session 11)
 **Architecture Implementation:**
 - **SOW_MASTER** = `enhanced_sow` collection (extended with `is_locked`, `domains[]` fields)
