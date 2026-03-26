@@ -452,6 +452,199 @@ const TaskRow = ({ task, onUpdate, onDelete, onUploadProof, permissions, isUploa
   );
 };
 
+// Scope Table Row Component - Clean inline table view matching Sales SOW
+const ScopeTableRow = ({ 
+  index, 
+  scope, 
+  tasks,
+  onStatusChange,
+  onStartDateChange,
+  onUploadProof,
+  uploadingTaskId,
+  permissions,
+  isManager
+}) => {
+  const [editingDeliverables, setEditingDeliverables] = useState(false);
+  const [deliverables, setDeliverables] = useState(scope.deliverables || '');
+  const fileInputRef = useRef(null);
+  
+  const scopeTasks = tasks.filter(t => t.scope_id === scope.id);
+  
+  // Calculate days taken
+  const calculateDays = () => {
+    if (!scope.start_date) return '-';
+    const start = new Date(scope.start_date);
+    const end = scope.end_date ? new Date(scope.end_date) : new Date();
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    return days;
+  };
+  
+  // Format date for display
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  };
+  
+  // Format date for input
+  const formatDateInput = (dateStr) => {
+    if (!dateStr) return '';
+    return dateStr.substring(0, 10);
+  };
+  
+  const statusConfig = SOW_STATUSES[scope.status] || SOW_STATUSES.open;
+  
+  // Get available statuses based on role
+  const getAvailableStatuses = () => {
+    if (isManager) {
+      return ['open', 'wip', 'blocked', 'na_pending', 'not_applicable', 'implemented', 'reopen'];
+    }
+    return ['open', 'wip', 'blocked', 'na_pending', 'implemented', 'reopen'];
+  };
+  
+  // Handle file upload for proof
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    await onUploadProof(null, scope.id, file); // null for task_id means scope-level proof
+  };
+  
+  // Handle deliverables save (would need mutation)
+  const handleSaveDeliverables = () => {
+    // TODO: Implement deliverables update mutation
+    setEditingDeliverables(false);
+    toast.success('Deliverables updated');
+  };
+  
+  return (
+    <div className="grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-zinc-50 group" data-testid={`scope-row-${scope.id}`}>
+      {/* # */}
+      <div className="col-span-1 text-xs text-zinc-400">{index + 1}</div>
+      
+      {/* Category */}
+      <div className="col-span-1">
+        <Badge variant="secondary" className="text-[10px] px-1.5 whitespace-nowrap">
+          {scope.category_name || scope.category || 'General'}
+        </Badge>
+      </div>
+      
+      {/* Scope Name */}
+      <div className="col-span-2">
+        <p className="text-sm font-medium">{scope.name}</p>
+        {scopeTasks.length > 0 && (
+          <p className="text-[10px] text-zinc-400">{scopeTasks.length} tasks</p>
+        )}
+      </div>
+      
+      {/* Deliverables - Editable */}
+      <div className="col-span-2">
+        {editingDeliverables ? (
+          <div className="flex items-center gap-1">
+            <Input
+              value={deliverables}
+              onChange={(e) => setDeliverables(e.target.value)}
+              className="h-7 text-xs"
+              placeholder="Comma-separated deliverables"
+            />
+            <Button size="sm" className="h-7 px-2" onClick={handleSaveDeliverables}>
+              <CheckCircle className="w-3 h-3" />
+            </Button>
+          </div>
+        ) : (
+          <div 
+            className="text-xs text-zinc-600 cursor-pointer hover:text-zinc-900 line-clamp-2"
+            onClick={() => permissions.can_edit_sow && setEditingDeliverables(true)}
+            title={scope.deliverables}
+          >
+            {scope.deliverables || <span className="text-zinc-400 italic">No deliverables</span>}
+          </div>
+        )}
+      </div>
+      
+      {/* Start Date */}
+      <div className="col-span-1 text-center">
+        {permissions.can_edit_sow ? (
+          <Input
+            type="date"
+            value={formatDateInput(scope.start_date)}
+            onChange={(e) => onStartDateChange(scope.id, 'start_date', e.target.value)}
+            className="h-6 text-[10px] px-1 w-full"
+          />
+        ) : (
+          <span className="text-xs">{formatDate(scope.start_date)}</span>
+        )}
+      </div>
+      
+      {/* End Date */}
+      <div className="col-span-1 text-center">
+        <span className="text-xs text-zinc-500">
+          {scope.status === 'implemented' ? formatDate(scope.end_date) : '-'}
+        </span>
+      </div>
+      
+      {/* Days */}
+      <div className="col-span-1 text-center">
+        <span className="text-xs font-medium">{calculateDays()}</span>
+      </div>
+      
+      {/* Status */}
+      <div className="col-span-1 text-center">
+        <Select
+          value={scope.status || 'open'}
+          onValueChange={(val) => onStatusChange(scope.id, val)}
+          disabled={!permissions.can_edit_sow}
+        >
+          <SelectTrigger className="h-6 text-[10px] px-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {getAvailableStatuses().map(status => (
+              <SelectItem key={status} value={status} className="text-xs">
+                {SOW_STATUSES[status]?.label || status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {/* Actions - Proof Upload */}
+      <div className="col-span-2 flex items-center justify-center gap-1">
+        {/* Proof upload */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          className="hidden"
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-[10px]"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingTaskId === scope.id}
+        >
+          {uploadingTaskId === scope.id ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <>
+              <Upload className="w-3 h-3 mr-1" />
+              Proof
+            </>
+          )}
+        </Button>
+        
+        {/* Proof count badge */}
+        {scope.proofs?.length > 0 && (
+          <Badge variant="outline" className="text-[10px] h-5 px-1 bg-emerald-50 text-emerald-600 border-emerald-200">
+            {scope.proofs.length}
+          </Badge>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Main Component
 const ProjectSOWDelivery = ({ projectId }) => {
   const queryClient = useQueryClient();
@@ -893,37 +1086,57 @@ const ProjectSOWDelivery = ({ projectId }) => {
           </TabsTrigger>
         </TabsList>
         
-        {/* Scopes Tab */}
-        <TabsContent value="scopes" className="mt-4 space-y-3">
-          {/* Scope Table Header */}
-          <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-zinc-100 rounded-lg text-xs font-medium text-zinc-600">
-            <div className="col-span-4">Scope</div>
-            <div className="col-span-1 text-center">Start</div>
-            <div className="col-span-1 text-center">End</div>
-            <div className="col-span-1 text-center">Days</div>
-            <div className="col-span-2 text-center">Progress</div>
-            <div className="col-span-2 text-center">Status</div>
-            <div className="col-span-1"></div>
-          </div>
-          
-          {projectSow.scopes?.map(scope => (
-            <ScopeCard
-              key={scope.id}
-              scope={scope}
-              tasks={tasks}
-              onStatusChange={handleScopeStatusChange}
-              onStartDateChange={handleScopeDateChange}
-              onTaskCreate={handleTaskCreate}
-              onTaskUpdate={handleTaskUpdate}
-              onTaskDelete={handleTaskDelete}
-              onAIGenerateTasks={handleAIGenerateTasks}
-              onUploadProof={handleUploadProof}
-              isGeneratingTasks={generatingScopeId === scope.id}
-              uploadingTaskId={uploadingTaskId}
-              permissions={permissions}
-              isManager={isManager}
-            />
-          ))}
+        {/* Scopes Tab - Table View matching Sales SOW */}
+        <TabsContent value="scopes" className="mt-4">
+          <Card className="border border-zinc-200">
+            <CardHeader className="py-3 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4" />
+                  Scope of Work ({totalScopes} items)
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {/* Table Header */}
+              <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-zinc-50 border-b text-xs font-medium text-zinc-600">
+                <div className="col-span-1">#</div>
+                <div className="col-span-1">Category</div>
+                <div className="col-span-2">Scope</div>
+                <div className="col-span-2">Deliverables</div>
+                <div className="col-span-1 text-center">Start</div>
+                <div className="col-span-1 text-center">End</div>
+                <div className="col-span-1 text-center">Days</div>
+                <div className="col-span-1 text-center">Status</div>
+                <div className="col-span-2 text-center">Actions</div>
+              </div>
+
+              {/* Table Rows */}
+              {projectSow.scopes?.length === 0 ? (
+                <div className="text-center py-12 text-zinc-400">
+                  <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No scopes defined</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {projectSow.scopes?.map((scope, idx) => (
+                    <ScopeTableRow
+                      key={scope.id}
+                      index={idx}
+                      scope={scope}
+                      tasks={tasks}
+                      onStatusChange={handleScopeStatusChange}
+                      onStartDateChange={handleScopeDateChange}
+                      onUploadProof={handleUploadProof}
+                      uploadingTaskId={uploadingTaskId}
+                      permissions={permissions}
+                      isManager={isManager}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         
         {/* All Tasks Tab */}

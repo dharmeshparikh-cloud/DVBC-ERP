@@ -1291,15 +1291,19 @@ const KickoffRequests = () => {
                         <div className="grid grid-cols-4 gap-4 text-sm font-medium text-zinc-500 border-b pb-2">
                           <div>Role</div>
                           <div>Meeting Type</div>
-                          <div>Frequency</div>
+                          <div>Committed Meetings</div>
                           <div>Mode</div>
                         </div>
                         {(detailData?.team_deployment || []).map((member, i) => (
                           <div key={i} className="grid grid-cols-4 gap-4 text-sm py-2 border-b border-zinc-100">
                             <div className="font-medium">{member.role}</div>
                             <div>{member.meeting_type}</div>
-                            <div>{member.frequency}</div>
-                            <div className="capitalize">{member.mode}</div>
+                            <div>{member.committed_meetings || '-'} meetings</div>
+                            <div>
+                              <Badge variant="outline" className="capitalize text-xs">
+                                {member.mode || 'Online'}
+                              </Badge>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1308,15 +1312,19 @@ const KickoffRequests = () => {
                         <div className="grid grid-cols-4 gap-4 text-sm font-medium text-zinc-500 border-b pb-2">
                           <div>Role</div>
                           <div>Meeting Type</div>
-                          <div>Frequency</div>
+                          <div>Committed Meetings</div>
                           <div>Mode</div>
                         </div>
                         {(detailData?.agreement?.team_deployment || []).map((member, i) => (
                           <div key={i} className="grid grid-cols-4 gap-4 text-sm py-2 border-b border-zinc-100">
                             <div className="font-medium">{member.role}</div>
                             <div>{member.meeting_type}</div>
-                            <div>{member.frequency}</div>
-                            <div className="capitalize">{member.mode}</div>
+                            <div>{member.committed_meetings || '-'} meetings</div>
+                            <div>
+                              <Badge variant="outline" className="capitalize text-xs">
+                                {member.mode || 'Online'}
+                              </Badge>
+                            </div>
                           </div>
                         ))}
                       </div>

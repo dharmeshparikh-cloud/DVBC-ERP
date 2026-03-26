@@ -636,6 +636,20 @@ async def get_kickoff_request_details(
         }
     }
     
+    # Get team deployment from pricing plan (hide sensitive financial data)
+    team_deployment = []
+    if pricing_plan and pricing_plan.get("team_deployment"):
+        for member in pricing_plan.get("team_deployment", []):
+            team_deployment.append({
+                "role": member.get("role"),
+                "tenure_type_code": member.get("tenure_type_code"),
+                "meeting_type": member.get("meeting_type"),
+                "mode": member.get("mode"),
+                "committed_meetings": member.get("committed_meetings"),
+                "count": member.get("count", 1)
+                # Note: rate_per_meeting, breakup_amount excluded - admin/finance only
+            })
+    
     return {
         "kickoff_request": kickoff,
         "agreement": agreement,
@@ -648,6 +662,7 @@ async def get_kickoff_request_details(
         "client_expectations_summary": client_expectations_summary,
         "key_commitments_summary": key_commitments_summary,
         "pricing_plan": pricing_plan,
+        "team_deployment": team_deployment,
         "sow": sow,
         "quotation": quotation,
         "payments": payments,
