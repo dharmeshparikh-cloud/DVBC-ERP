@@ -771,3 +771,158 @@ async def sync_all_project_assignments(
         "projects_updated": projects_updated,
         "total_projects": len(projects)
     }
+
+
+# ============================================================================
+# RESCHEDULE REQUESTS
+# ============================================================================
+
+@router.post("/{project_id}/reschedule-requests")
+async def create_reschedule_request(
+    project_id: str,
+    reason: str,
+    preferred_date: str = None,
+    preferred_time: str = None,
+    notes: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Create a reschedule request for a project.
+    PM or Consultant can request to reschedule project start/meetings.
+    This notifies sales team and client.
+    """
+    db = get_db()
+    
+    # Verify project exists
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Only consulting roles can create reschedule requests
+    consulting_roles = ['principal_consultant', 'project_manager', 'senior_consultant', 'consultant', 'admin']
+    if current_user.role not in consulting_roles:
+        raise HTTPException(status_code=403, detail="Only consulting team can request reschedule")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    request_id = str(uuid.uuid4())[:8]
+    
+    reschedule_request = {
+        "id": request_id,
+        "project_id": project_id,
+        "project_name": project.get("name", ""),
+        "client_name": project.get("client_name", ""),
+        "reason": reason,
+        "preferred_date": preferred_date,
+        "preferred_time": preferred_time,
+        "notes": notes,
+        "status": "pending",
+        "requested_by": current_user.id,
+        "requested_by_name": current_user.full_name,
+        "requested_at": now,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.reschedule_requests.insert_one(reschedule_request)
+    
+    # Log audit
+    await log_audit(
+        "RESCHEDULE_REQUEST_CREATED", "project", project_id,
+        current_user.id, metadata={"request_id": request_id, "reason": reason}
+    )
+    
+    return {"message": "Reschedule request submitted", "request_id": request_id}
+
+
+@router.get("/{project_id}/reschedule-requests")
+async def get_project_reschedule_requests(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all reschedule requests for a project."""
+    db = get_db()
+    
+    requests = await db.reschedule_requests.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return requests
+
+
+@router.get("/reschedule-requests/pending")
+async def get_pending_reschedule_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Get all pending reschedule requests (for sales/admin to review)."""
+    db = get_db()
+    
+    # Sales and admin roles can view pending requests
+    allowed_roles = ['admin', 'sales_executive', 'sales_manager', 'hr_admin']
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Only sales/admin can view pending requests")
+    
+    requests = await db.reschedule_requests.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return requests
+
+
+@router.put("/reschedule-requests/{request_id}/respond")
+async def respond_to_reschedule_request(
+    request_id: str,
+    action: str,
+    response_notes: str = None,
+    new_date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Respond to a reschedule request.
+    action: 'approve' or 'reject'
+    """
+    db = get_db()
+    
+    # Sales and admin roles can respond
+    allowed_roles = ['admin', 'sales_executive', 'sales_manager', 'hr_admin']
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Only sales/admin can respond to requests")
+    
+    request = await db.reschedule_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if request.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Request already {request.get('status')}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    if action not in ["approve", "reject"]:
+        raise HTTPException(status_code=400, detail="Invalid action. Use 'approve' or 'reject'")
+    
+    update_data = {
+        "status": "approved" if action == "approve" else "rejected",
+        "responded_by": current_user.id,
+        "responded_by_name": current_user.full_name,
+        "responded_at": now,
+        "response_notes": response_notes,
+        "updated_at": now
+    }
+    
+    if action == "approve" and new_date:
+        update_data["approved_date"] = new_date
+    
+    await db.reschedule_requests.update_one(
+        {"id": request_id},
+        {"$set": update_data}
+    )
+    
+    # Log audit
+    await log_audit(
+        f"RESCHEDULE_REQUEST_{action.upper()}", "reschedule_request", request_id,
+        current_user.id, metadata={"response_notes": response_notes}
+    )
+    
+    return {"message": f"Request {action}d successfully"}
+

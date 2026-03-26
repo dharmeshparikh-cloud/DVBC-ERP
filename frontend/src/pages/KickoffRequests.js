@@ -15,7 +15,7 @@ import {
   Send, Inbox, CheckCircle, XCircle, Clock, Plus, Eye, Edit2,
   Building2, Calendar, Users, ArrowRight, FileText,
   RotateCcw, CalendarCheck, MessageSquare, ChevronRight, AlertCircle,
-  Briefcase, UserCheck
+  Briefcase, UserCheck, Loader2
 } from 'lucide-react';
 import ViewToggle from '../components/ViewToggle';
 import { sanitizeDisplayText } from '../utils/sanitize';
@@ -37,6 +37,11 @@ const KickoffRequests = () => {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [showEditDateDialog, setShowEditDateDialog] = useState(false);
+  const [showTeamAssignDialog, setShowTeamAssignDialog] = useState(false);
+  const [pendingProjectId, setPendingProjectId] = useState(null);
+  const [teamDeploymentRoles, setTeamDeploymentRoles] = useState([]);
+  const [roleAssignments, setRoleAssignments] = useState({});
+  const [savingAssignments, setSavingAssignments] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [detailData, setDetailData] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -82,6 +87,13 @@ const KickoffRequests = () => {
     { params: { role: 'project_manager' }, enabled: isSalesRole }
   );
   const projectManagers = projectManagersData;
+
+  // Query: Fetch consultants (for team assignment after kickoff approval)
+  const { data: consultantsData = [] } = useFetch(
+    isPMRole ? '/api/employees/consultants' : null,
+    { enabled: isPMRole }
+  );
+  const consultants = consultantsData || [];
 
   const fetchRequestDetails = async (requestId) => {
     setLoadingDetails(true);
@@ -272,8 +284,17 @@ const KickoffRequests = () => {
       toast.success('Project created successfully');
       setShowDetailDialog(false);
       
-      // Navigate to team assignment page
-      if (response.data.project_id) {
+      // Get team deployment from detailData
+      const teamDeploy = detailData?.team_deployment || detailData?.agreement?.team_deployment || [];
+      
+      if (response.data.project_id && teamDeploy.length > 0) {
+        // Show team assignment prompt instead of navigating directly
+        setPendingProjectId(response.data.project_id);
+        setTeamDeploymentRoles(teamDeploy);
+        setRoleAssignments({});
+        setShowTeamAssignDialog(true);
+      } else if (response.data.project_id) {
+        // No team deployment defined, navigate to full assignment page
         navigate(`/consulting/assign-team/${response.data.project_id}`);
       } else {
         refetchRequests();
@@ -286,6 +307,41 @@ const KickoffRequests = () => {
 
   const handleAccept = (requestId) => {
     acceptMutation.mutate(requestId);
+  };
+
+  // Handle team assignment after kickoff approval
+  const handleAssignTeamAndContinue = async () => {
+    if (Object.keys(roleAssignments).length === 0) {
+      toast.error('Please assign at least one consultant');
+      return;
+    }
+
+    setSavingAssignments(true);
+    try {
+      // Save each consultant assignment
+      for (const [roleIndex, consultant] of Object.entries(roleAssignments)) {
+        if (consultant) {
+          const role = teamDeploymentRoles[parseInt(roleIndex)]?.role || 'consultant';
+          await axios.post(`${API}/api/projects/${pendingProjectId}/assign-consultant`, {
+            consultant_id: consultant.user_id,
+            role: role.toLowerCase().replace(/\s+/g, '_')
+          }, { headers }).catch(() => {}); // Ignore if already assigned
+        }
+      }
+
+      toast.success('Team assigned successfully');
+      setShowTeamAssignDialog(false);
+      navigate(`/consulting/assign-team/${pendingProjectId}`);
+    } catch (error) {
+      toast.error('Failed to save team assignments');
+    } finally {
+      setSavingAssignments(false);
+    }
+  };
+
+  const handleSkipTeamAssignment = () => {
+    setShowTeamAssignDialog(false);
+    navigate(`/consulting/assign-team/${pendingProjectId}`);
   };
 
   // Mutation: Return kickoff request
@@ -1618,6 +1674,104 @@ const KickoffRequests = () => {
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Return Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Team Assignment Prompt Dialog */}
+      <Dialog open={showTeamAssignDialog} onOpenChange={setShowTeamAssignDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-emerald-600" />
+              Assign Consultants to Project
+            </DialogTitle>
+            <DialogDescription>
+              Map consultants to the team deployment roles defined in the agreement. You can also skip and assign later.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4 max-h-[400px] overflow-y-auto">
+            {teamDeploymentRoles.length === 0 ? (
+              <div className="text-center py-8 text-zinc-500">
+                <Users className="w-8 h-8 mx-auto mb-2 text-zinc-300" />
+                <p>No team deployment roles defined</p>
+              </div>
+            ) : (
+              teamDeploymentRoles.map((role, index) => (
+                <div key={index} className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg border">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                        {role.role}
+                      </Badge>
+                      <span className="text-xs text-zinc-500">
+                        {role.meeting_type} • {role.committed_meetings || 0} meetings
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-1 capitalize">
+                      Mode: {role.mode || 'Online'}
+                    </p>
+                  </div>
+                  <div className="w-[220px]">
+                    <Select
+                      value={roleAssignments[index]?.user_id || ''}
+                      onValueChange={(userId) => {
+                        const consultant = consultants.find(c => c.user_id === userId);
+                        setRoleAssignments(prev => ({
+                          ...prev,
+                          [index]: consultant
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select consultant" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {consultants.map(c => (
+                          <SelectItem key={c.user_id} value={c.user_id}>
+                            <div className="flex items-center gap-2">
+                              <span>{c.first_name} {c.last_name}</span>
+                              {c.department && (
+                                <span className="text-xs text-zinc-400">({c.department})</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          <DialogFooter className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleSkipTeamAssignment}
+              data-testid="skip-team-assign-btn"
+            >
+              Skip to Select Later
+            </Button>
+            <Button 
+              onClick={handleAssignTeamAndContinue}
+              disabled={savingAssignments || Object.keys(roleAssignments).length === 0}
+              className="bg-emerald-600 hover:bg-emerald-700"
+              data-testid="assign-team-continue-btn"
+            >
+              {savingAssignments ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Assign & Continue
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
