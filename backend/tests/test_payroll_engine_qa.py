@@ -14,7 +14,7 @@ from typing import Dict, List, Any
 import calendar
 
 # Configuration
-API_BASE = "https://governance-erp-1.preview.emergentagent.com/api"
+API_BASE = "https://unified-erp-gov.preview.emergentagent.com/api"
 
 # Test credentials
 CREDENTIALS = {

@@ -15,7 +15,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://governance-erp-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://unified-erp-gov.preview.emergentagent.com')
 
 # Test credentials from context
 ADMIN_CREDS = {"employee_id": "EMP001", "password": "admin123"}

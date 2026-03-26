@@ -12,7 +12,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://governance-erp-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://unified-erp-gov.preview.emergentagent.com')
 
 # VVS Lead Test Data
 VVS_LEAD_ID = "329d1060-3147-46a2-98a8-dad93f95a371"
