@@ -210,7 +210,8 @@ const ConsultingMeetings = () => {
     queryKey: ['meetings', 'consulting'],
     queryFn: async () => {
       const res = await axios.get(`${API}/meetings?meeting_type=consulting`);
-      return res.data || [];
+      const body = res.data;
+      return Array.isArray(body) ? body : (body?.data || []);
     },
     staleTime: 2 * 60 * 1000,
   });
