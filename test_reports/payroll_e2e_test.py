@@ -21,7 +21,7 @@ import random
 import string
 
 # Configuration
-API_URL = "https://delivery-tracker-283.preview.emergentagent.com"
+API_URL = "https://attendance-approvals.preview.emergentagent.com"
 ADMIN_CREDENTIALS = {"employee_id": "ADMIN001", "password": "admin123"}
 
 def generate_random_string(length=6):

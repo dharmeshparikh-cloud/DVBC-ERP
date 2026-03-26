@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://delivery-tracker-283.preview.emergentagent.com",
+      "value": "https://attendance-approvals.preview.emergentagent.com",
       "type": "string"
     },
     {
