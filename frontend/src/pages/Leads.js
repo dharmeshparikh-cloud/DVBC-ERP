@@ -57,7 +57,7 @@ const FunnelProgressIndicator = ({ progress, onClick }) => {
     if (progress.project) return 'Complete';
     if (progress.kickoff) return 'Kickoff';
     if (progress.agreement) return 'Agreement';
-    if (progress.quotation) return 'Quotation';
+    if (progress.quotation) return 'Proforma';
     if (progress.sow) return 'SOW';
     if (progress.pricing) return 'Pricing';
     if (progress.meeting) return 'Meeting';
@@ -294,7 +294,7 @@ const Leads = () => {
     { value: 'meeting', label: 'Meeting' },
     { value: 'pricing_plan', label: 'Pricing Plan' },
     { value: 'sow', label: 'SOW' },
-    { value: 'quotation', label: 'Quotation' },
+    { value: 'quotation', label: 'Proforma Invoice' },
     { value: 'agreement', label: 'Agreement' },
     { value: 'payment', label: 'Payment' },
     { value: 'kickoff_request', label: 'Kickoff Request' },

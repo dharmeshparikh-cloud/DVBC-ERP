@@ -65,7 +65,7 @@ const FollowUpActionButton = ({ entityType, entityId, leadId, clientName, varian
 
   const ENTITY_LABELS = {
     lead: 'Lead', meeting: 'Meeting', pricing_plan: 'Pricing', sow: 'SOW',
-    quotation: 'Quotation', agreement: 'Agreement', payment: 'Payment',
+    quotation: 'Proforma Invoice', agreement: 'Agreement', payment: 'Payment',
     kickoff: 'Kickoff', project: 'Project',
   };
 

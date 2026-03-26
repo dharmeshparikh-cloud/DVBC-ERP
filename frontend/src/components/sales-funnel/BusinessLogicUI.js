@@ -126,7 +126,7 @@ export const StageResumeBar = ({ leadId, onResume }) => {
     'lead': 'Lead Entry',
     'meeting': 'Meeting',
     'pricing': 'Pricing Plan',
-    'quotation': 'Quotation',
+    'quotation': 'Proforma Invoice',
     'sow': 'Statement of Work',
     'agreement': 'Agreement',
     'payment': 'Payment',

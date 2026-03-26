@@ -321,7 +321,7 @@ const SalesFunnelOnboarding = () => {
         } : null;
       case 'quotation':
         return funnelStatus.quotation_id ? {
-          title: 'Quotation Generated',
+          title: 'Proforma Invoice Created',
           subtitle: `#${funnelStatus.quotation_number || 'N/A'}`
         } : null;
       case 'agreement':

@@ -19,7 +19,7 @@ const FUNNEL_STAGES = [
   { key: 'new', label: 'New Lead', color: 'bg-zinc-400' },
   { key: 'contacted', label: 'Meeting', color: 'bg-orange-500' },
   { key: 'qualified', label: 'Pricing/SOW', color: 'bg-amber-500' },
-  { key: 'proposal', label: 'Quotation', color: 'bg-cyan-500' },
+  { key: 'proposal', label: 'Proforma Invoice', color: 'bg-cyan-500' },
   { key: 'agreement', label: 'Agreement', color: 'bg-blue-500' },
   { key: 'closed', label: 'Complete', color: 'bg-emerald-500' },
 ];
@@ -87,7 +87,7 @@ const LEADS_COLUMNS = [
       { value: 'meeting', label: 'Meeting' },
       { value: 'pricing_plan', label: 'Pricing Plan' },
       { value: 'sow', label: 'SOW' },
-      { value: 'quotation', label: 'Quotation' },
+      { value: 'quotation', label: 'Proforma Invoice' },
       { value: 'agreement', label: 'Agreement' },
       { value: 'payment', label: 'Payment' },
       { value: 'kickoff_request', label: 'Kickoff Request' },

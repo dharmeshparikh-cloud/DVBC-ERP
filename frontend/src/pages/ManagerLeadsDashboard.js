@@ -47,7 +47,7 @@ const ManagerLeadsDashboard = () => {
     { value: 'meeting', label: 'Meeting' },
     { value: 'pricing_plan', label: 'Pricing Plan' },
     { value: 'sow', label: 'SOW' },
-    { value: 'quotation', label: 'Quotation' },
+    { value: 'quotation', label: 'Proforma Invoice' },
     { value: 'agreement', label: 'Agreement' },
     { value: 'payment', label: 'Payment' },
     { value: 'kickoff_request', label: 'Kickoff Request' },

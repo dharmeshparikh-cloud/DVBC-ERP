@@ -27,7 +27,7 @@ const ENTITY_LABELS = {
   meeting: 'Meeting',
   pricing_plan: 'Pricing',
   sow: 'SOW',
-  quotation: 'Quotation',
+  quotation: 'Proforma Invoice',
   agreement: 'Agreement',
   payment: 'Payment',
   kickoff: 'Kickoff',

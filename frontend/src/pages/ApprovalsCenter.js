@@ -74,7 +74,7 @@ import { sortByLatest } from '../utils/sortUtils';
 const APPROVAL_TYPE_LABELS = {
   sow_item: 'SOW Item',
   agreement: 'Agreement',
-  quotation: 'Quotation',
+  quotation: 'Proforma Invoice',
   leave_request: 'Leave Request',
   expense: 'Expense',
   client_communication: 'Client Communication',
