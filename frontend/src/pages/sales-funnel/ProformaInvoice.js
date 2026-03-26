@@ -212,147 +212,240 @@ const ProformaInvoice = () => {
     setViewDialogOpen(true);
   };
 
-  const handleDownloadPDF = () => {
-    if (!invoiceRef.current) return;
-    
-    // Clone the invoice content for print
-    const printContent = invoiceRef.current.cloneNode(true);
-    
-    // Fix image paths - convert relative to absolute
-    const images = printContent.querySelectorAll('img');
-    images.forEach(img => {
-      if (img.src.startsWith('/') || !img.src.startsWith('http')) {
-        img.src = window.location.origin + img.getAttribute('src');
-      }
-    });
+  // Generate a self-contained printable invoice HTML from data (no DOM dependency)
+  const buildInvoiceHTML = (invoice, lead, plan) => {
+    const fmtINR = (amt) => {
+      const n = Number(amt || 0);
+      return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+    const fmtDate = (d) => {
+      const dt = new Date(d || new Date());
+      return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+    };
+    const subtotal = invoice?.subtotal || 0;
+    const taxAmt = invoice?.gst_amount || invoice?.tax_amount || 0;
+    const grandTotal = invoice?.grand_total || invoice?.total || (subtotal + taxAmt);
+    const halfTax = taxAmt / 2;
+    const teamData = (plan?.team_deployment || plan?.consultants || []);
+    const totalMeetings = invoice?.total_meetings || teamData.reduce((s, m) => s + ((m.committed_meetings || m.meetings || 0) * (m.count || 1)), 0);
+    const duration = plan?.project_duration_months || 12;
+    const logoUrl = window.location.origin + '/assets/dv-logo.png';
+    const validUntil = invoice?.valid_until ? fmtDate(invoice.valid_until) : fmtDate(new Date(new Date(invoice?.created_at).getTime() + (invoice?.validity_days || 30)*86400000));
+    const clientGstin = invoice?.client_gstin || lead?.gstin || '';
 
+    // Parse terms
+    const termsText = invoice?.terms_and_conditions || '1) Payment via Bank transfer or cheques only\n2) Payment refund is not permissible\n3) Breach of information subject to agreement violation\n4) TDS to be paid regularly; submit challan to biller\n5) Disputes subject to Ahmedabad jurisdiction';
+    const termsLines = termsText.split('\n').map(t => t.replace(/^\d+\)\s*/, '').trim()).filter(Boolean);
+
+    // Team rows HTML
+    const teamRows = teamData.map(m => `
+      <tr style="border-bottom:1px solid #f4f4f5;">
+        <td style="padding:6px 0;font-weight:500;color:#09090b;">${m.role || m.consultant_type || '-'}</td>
+        <td style="padding:6px 0;color:#52525b;">${m.meeting_type || m.frequency || '-'}</td>
+        <td style="padding:6px 0;text-align:center;color:#3f3f46;">${m.count || 1}</td>
+        <td style="padding:6px 0;text-align:center;font-weight:600;color:#09090b;">${(m.committed_meetings || m.meetings || 0) * (m.count || 1)}</td>
+      </tr>
+    `).join('');
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <title>Proforma Invoice - ${invoice?.quotation_number || ''}</title>
+  <style>
+    @page { size: A4; margin: 12mm 14mm; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; font-size:10px; color:#09090b; background:#fff; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+    table { width:100%; border-collapse:collapse; }
+    img { display:block; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style="padding:20px 24px 16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <img src="${logoUrl}" alt="D&V" style="height:56px;width:auto;" />
+      <div style="text-align:right;">
+        <h2 style="font-size:16px;font-weight:900;letter-spacing:-0.025em;text-transform:uppercase;color:#09090b;">Proforma Invoice</h2>
+        <p style="font-size:10px;color:#71717a;font-family:'Courier New',monospace;margin-top:2px;">${invoice?.quotation_number || ''}${(invoice?.version || 1) > 1 ? ' v' + invoice.version : ''}</p>
+      </div>
+    </div>
+    <div style="margin-top:12px;height:1px;background:#09090b;"></div>
+  </div>
+
+  <div style="padding:0 24px 20px;">
+    <!-- 3 column: Invoice Details | Bill To | From -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;font-size:10px;">
+      <div>
+        <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:8px;">Invoice Details</h3>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">No.</span><span style="font-weight:600;color:#09090b;font-family:'Courier New',monospace;">${invoice?.quotation_number || ''}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">Date</span><span style="color:#3f3f46;">${fmtDate(invoice?.created_at)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">Terms</span><span style="font-weight:600;color:#09090b;text-transform:uppercase;">${invoice?.payment_terms || 'ADVANCE'}</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#a1a1aa;">Valid Until</span><span style="color:#3f3f46;">${validUntil}</span></div>
+      </div>
+      <div>
+        <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:8px;">Bill To</h3>
+        <div style="border-left:2px solid #09090b;padding-left:12px;">
+          <p style="font-weight:700;color:#09090b;font-size:12px;">${lead?.company || invoice?.client_name || 'Client'}</p>
+          <p style="color:#52525b;margin-top:2px;">${lead?.first_name || ''} ${lead?.last_name || ''}</p>
+          ${lead?.email ? `<p style="color:#a1a1aa;margin-top:2px;">${lead.email}</p>` : ''}
+          ${lead?.phone ? `<p style="color:#a1a1aa;">${lead.phone}</p>` : ''}
+          ${clientGstin ? `<p style="color:#71717a;font-family:'Courier New',monospace;margin-top:2px;">GSTIN: ${clientGstin}</p>` : ''}
+          <p style="color:#a1a1aa;">State: Gujarat | Code: 24</p>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:8px;">From</h3>
+        <p style="font-weight:700;color:#09090b;font-size:12px;">${companyDetails.name}</p>
+        <p style="color:#a1a1aa;margin-top:2px;">${companyDetails.address}</p>
+        <p style="color:#71717a;font-family:'Courier New',monospace;margin-top:2px;">GSTIN: ${companyDetails.gstin}</p>
+        <p style="color:#a1a1aa;">State: ${companyDetails.state} | Code: ${companyDetails.stateCode}</p>
+      </div>
+    </div>
+
+    ${teamData.length > 0 ? `
+    <!-- Team Deployment -->
+    <div style="margin-top:16px;">
+      <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:6px;">Team Deployment</h3>
+      <table style="font-size:10px;">
+        <thead>
+          <tr style="border-bottom:2px solid #09090b;">
+            <th style="text-align:left;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;">Role</th>
+            <th style="text-align:left;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Meeting Type</th>
+            <th style="text-align:center;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Count</th>
+            <th style="text-align:center;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Meetings</th>
+          </tr>
+        </thead>
+        <tbody>${teamRows}</tbody>
+        <tfoot>
+          <tr style="border-top:2px solid #09090b;">
+            <td style="padding:6px 0;font-weight:700;color:#09090b;" colspan="3">Total</td>
+            <td style="padding:6px 0;text-align:center;font-weight:700;color:#09090b;">${totalMeetings}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>` : ''}
+
+    <!-- Pricing Summary -->
+    <div style="margin-top:16px;">
+      <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:6px;">Pricing Summary</h3>
+      <table style="font-size:10px;">
+        <thead>
+          <tr style="border-bottom:2px solid #09090b;">
+            <th style="text-align:left;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Description</th>
+            <th style="text-align:center;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">HSN/SAC</th>
+            <th style="text-align:center;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Period</th>
+            <th style="text-align:right;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f4f4f5;">
+            <td style="padding:8px 0;">
+              <div style="font-weight:500;color:#09090b;">Management Consulting Services &mdash; Professional Fees</div>
+              <div style="font-size:9px;color:#a1a1aa;">${duration} months engagement</div>
+            </td>
+            <td style="padding:8px 0;text-align:center;color:#71717a;font-family:'Courier New',monospace;">998311</td>
+            <td style="padding:8px 0;text-align:center;color:#71717a;">${duration} Months</td>
+            <td style="padding:8px 0;text-align:right;font-weight:600;color:#09090b;">${fmtINR(subtotal)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <!-- Tax & Total -->
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e4e4e7;">
+        <div style="display:flex;justify-content:flex-end;">
+          <div style="width:224px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">Subtotal</span><span style="font-weight:500;color:#3f3f46;">${fmtINR(subtotal)}</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">CGST @ 9%</span><span style="color:#52525b;">${fmtINR(halfTax)}</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">SGST @ 9%</span><span style="color:#52525b;">${fmtINR(halfTax)}</span></div>
+            <div style="display:flex;justify-content:space-between;padding-bottom:4px;border-bottom:1px solid #e4e4e7;"><span style="color:#a1a1aa;">Total Tax (18%)</span><span style="font-weight:500;color:#3f3f46;">${fmtINR(taxAmt)}</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:4px;border-top:2px solid #09090b;">
+              <span style="font-weight:900;color:#09090b;font-size:12px;">GRAND TOTAL</span>
+              <span style="font-weight:900;color:#09090b;font-size:12px;">${fmtINR(grandTotal)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Amount in Words -->
+    <div style="margin-top:16px;border:1px solid #e4e4e7;padding:8px 12px;">
+      <p style="font-size:10px;"><span style="font-weight:600;color:#71717a;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;">Amount in Words:</span><span style="color:#09090b;margin-left:8px;font-weight:500;">${numberToWords(grandTotal)}</span></p>
+    </div>
+
+    <!-- HSN/SAC Summary -->
+    <div style="margin-top:16px;">
+      <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:4px;">HSN/SAC Summary</h3>
+      <table style="font-size:9px;">
+        <thead>
+          <tr style="border-bottom:1px solid #09090b;">
+            <th style="padding:4px 8px;text-align:left;font-weight:700;color:#71717a;text-transform:uppercase;">HSN/SAC</th>
+            <th style="padding:4px 8px;text-align:right;font-weight:700;color:#71717a;text-transform:uppercase;">Taxable Value</th>
+            <th style="padding:4px 8px;text-align:center;font-weight:700;color:#71717a;text-transform:uppercase;">CGST</th>
+            <th style="padding:4px 8px;text-align:right;font-weight:700;color:#71717a;text-transform:uppercase;">CGST Amt</th>
+            <th style="padding:4px 8px;text-align:center;font-weight:700;color:#71717a;text-transform:uppercase;">SGST</th>
+            <th style="padding:4px 8px;text-align:right;font-weight:700;color:#71717a;text-transform:uppercase;">SGST Amt</th>
+            <th style="padding:4px 8px;text-align:right;font-weight:700;color:#71717a;text-transform:uppercase;">Total Tax</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:4px 8px;font-family:'Courier New',monospace;">998311</td>
+            <td style="padding:4px 8px;text-align:right;">${fmtINR(subtotal)}</td>
+            <td style="padding:4px 8px;text-align:center;">9%</td>
+            <td style="padding:4px 8px;text-align:right;">${fmtINR(halfTax)}</td>
+            <td style="padding:4px 8px;text-align:center;">9%</td>
+            <td style="padding:4px 8px;text-align:right;">${fmtINR(halfTax)}</td>
+            <td style="padding:4px 8px;text-align:right;font-weight:600;">${fmtINR(taxAmt)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Payment T&C + Bank Details -->
+    <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div style="border:1px solid #d4d4d8;padding:12px;">
+        <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:6px;">Payment Terms & Conditions</h3>
+        <ol style="font-size:9px;color:#52525b;list-style:none;padding:0;">
+          ${termsLines.map((t, i) => `<li style="margin-bottom:3px;display:flex;gap:6px;"><span style="color:#a1a1aa;font-family:'Courier New',monospace;">${i+1}.</span><span>${t}</span></li>`).join('')}
+        </ol>
+      </div>
+      <div style="border:1px solid #d4d4d8;padding:12px;">
+        <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:6px;">Bank Details</h3>
+        <div style="font-size:9px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">Bank</span><span style="font-weight:500;color:#3f3f46;font-family:'Courier New',monospace;">${companyDetails.bankName}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">A/c Holder</span><span style="font-weight:500;color:#3f3f46;font-family:'Courier New',monospace;">${companyDetails.accountName}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">A/c No.</span><span style="font-weight:500;color:#3f3f46;font-family:'Courier New',monospace;">${companyDetails.accountNo}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#a1a1aa;">Branch & IFSC</span><span style="font-weight:500;color:#3f3f46;font-family:'Courier New',monospace;">${companyDetails.branch} | ${companyDetails.ifscCode}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:#a1a1aa;">SWIFT</span><span style="font-weight:500;color:#3f3f46;font-family:'Courier New',monospace;">${companyDetails.swiftCode}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signature -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:16px;margin-top:16px;border-top:1px solid #e4e4e7;">
+      <p style="font-size:9px;color:#d4d4d8;text-transform:uppercase;letter-spacing:0.05em;">Computer Generated Invoice</p>
+      <div style="text-align:right;">
+        <p style="font-size:9px;font-weight:600;color:#3f3f46;margin-bottom:24px;">For ${companyDetails.name}</p>
+        <div style="border-top:1px solid #09090b;padding-top:4px;width:160px;margin-left:auto;">
+          <p style="font-size:9px;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.05em;">Authorised Signatory</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+  };
+
+  const handleDownloadPDF = (invoiceOverride, leadOverride, planOverride) => {
+    const inv = invoiceOverride || selectedInvoice;
+    const ld = leadOverride || selectedLead;
+    const pl = planOverride || selectedPlanDetails;
+    if (!inv) return;
+
+    const html = buildInvoiceHTML(inv, ld, pl);
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Proforma Invoice - ${selectedInvoice?.quotation_number || ''}</title>
-          <style>
-            @page { size: A4; margin: 14mm 16mm; }
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-              font-size: 11px; color: #18181b; background: white;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            img { max-width: 100%; height: auto; }
-            table { width: 100%; border-collapse: collapse; }
-
-            /* Grid utilities */
-            .grid { display: grid !important; }
-            .grid-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
-            .grid-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
-
-            /* Flex utilities */
-            .flex { display: flex !important; }
-            .items-center { align-items: center !important; }
-            .items-end { align-items: flex-end !important; }
-            .justify-between { justify-content: space-between !important; }
-            .justify-end { justify-content: flex-end !important; }
-
-            /* Spacing */
-            .gap-6 { gap: 24px !important; }
-            .gap-1\\.5, .gap-1-5 { gap: 6px !important; }
-            .space-y-4 > * + * { margin-top: 16px !important; }
-            .space-y-1 > * + * { margin-top: 4px !important; }
-            .px-6 { padding-left: 24px !important; padding-right: 24px !important; }
-            .px-3 { padding-left: 12px !important; padding-right: 12px !important; }
-            .px-2 { padding-left: 8px !important; padding-right: 8px !important; }
-            .py-2 { padding-top: 8px !important; padding-bottom: 8px !important; }
-            .py-1\\.5, .py-1-5 { padding-top: 6px !important; padding-bottom: 6px !important; }
-            .py-1 { padding-top: 4px !important; padding-bottom: 4px !important; }
-            .pt-5 { padding-top: 20px !important; }
-            .pt-4 { padding-top: 16px !important; }
-            .pt-2 { padding-top: 8px !important; }
-            .pt-1 { padding-top: 4px !important; }
-            .pb-5 { padding-bottom: 20px !important; }
-            .pb-4 { padding-bottom: 16px !important; }
-            .pb-1 { padding-bottom: 4px !important; }
-            .p-3 { padding: 12px !important; }
-            .pl-3 { padding-left: 12px !important; }
-            .ml-2 { margin-left: 8px !important; }
-            .mt-0\\.5, .mt-0-5 { margin-top: 2px !important; }
-            .mt-2 { margin-top: 8px !important; }
-            .mt-3 { margin-top: 12px !important; }
-            .mb-2 { margin-bottom: 8px !important; }
-            .mb-1\\.5, .mb-1-5 { margin-bottom: 6px !important; }
-            .mb-1 { margin-bottom: 4px !important; }
-            .mb-6 { margin-bottom: 24px !important; }
-
-            /* Width */
-            .w-full { width: 100% !important; }
-            .w-56 { width: 224px !important; }
-            .w-40 { width: 160px !important; }
-            .w-auto { width: auto !important; }
-
-            /* Height */
-            .h-16 { height: 64px !important; }
-            .h-px { height: 1px !important; }
-
-            /* Text */
-            .text-right { text-align: right !important; }
-            .text-center { text-align: center !important; }
-            .text-left { text-align: left !important; }
-            .text-xl { font-size: 16px !important; }
-            .text-sm { font-size: 12px !important; }
-            .text-xs { font-size: 11px !important; }
-            .text-\\[9px\\] { font-size: 9px !important; }
-            .text-\\[10px\\] { font-size: 10px !important; }
-            .font-black { font-weight: 900 !important; }
-            .font-bold { font-weight: 700 !important; }
-            .font-semibold { font-weight: 600 !important; }
-            .font-medium { font-weight: 500 !important; }
-            .font-mono { font-family: 'Courier New', monospace !important; }
-            .uppercase { text-transform: uppercase !important; }
-            .tracking-tight { letter-spacing: -0.025em !important; }
-            .tracking-wider { letter-spacing: 0.05em !important; }
-            .tracking-\\[0\\.15em\\] { letter-spacing: 0.15em !important; }
-
-            /* Colors */
-            .text-zinc-950 { color: #09090b !important; }
-            .text-zinc-700 { color: #3f3f46 !important; }
-            .text-zinc-600 { color: #52525b !important; }
-            .text-zinc-500 { color: #71717a !important; }
-            .text-zinc-400 { color: #a1a1aa !important; }
-            .text-zinc-300 { color: #d4d4d8 !important; }
-            .text-white { color: #ffffff !important; }
-            .bg-white { background: #ffffff !important; }
-            .bg-zinc-950 { background: #09090b !important; }
-            .bg-zinc-50 { background: #fafafa !important; }
-
-            /* Borders */
-            .border { border: 1px solid #e4e4e7 !important; }
-            .border-zinc-300 { border-color: #d4d4d8 !important; }
-            .border-zinc-200 { border-color: #e4e4e7 !important; }
-            .border-zinc-100 { border-color: #f4f4f5 !important; }
-            .border-zinc-950 { border-color: #09090b !important; }
-            .border-b { border-bottom: 1px solid #e4e4e7 !important; }
-            .border-b-2 { border-bottom: 2px solid !important; }
-            .border-t { border-top: 1px solid #e4e4e7 !important; }
-            .border-t-2 { border-top: 2px solid !important; }
-            .border-l-2 { border-left: 2px solid !important; }
-
-            /* SVG icons hidden in print */
-            svg { display: none !important; }
-
-            @media print {
-              body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            }
-          </style>
-        </head>
-        <body>
-          ${printContent.innerHTML}
-        </body>
-      </html>
-    `);
+    printWindow.document.write(html);
     printWindow.document.close();
-    
-    // Wait for images to load before printing
+
     const checkImagesAndPrint = () => {
       const imgs = printWindow.document.querySelectorAll('img');
       let allLoaded = true;
@@ -363,7 +456,14 @@ const ProformaInvoice = () => {
         setTimeout(checkImagesAndPrint, 200);
       }
     };
-    setTimeout(checkImagesAndPrint, 300);
+    setTimeout(checkImagesAndPrint, 400);
+  };
+
+  // Standalone PDF from table row (no dialog needed)
+  const handleTablePDF = (invoice) => {
+    const plan = (pricingPlans || []).find(p => p.id === invoice.pricing_plan_id);
+    const lead = (leads || []).find(l => l.id === invoice.lead_id);
+    handleDownloadPDF(invoice, lead, plan);
   };
 
   const getStatusBadge = (status, isFinal) => {
@@ -759,15 +859,11 @@ const ProformaInvoice = () => {
             });
             setDialogOpen(true);
           }}
-          onDownload={(invoice) => window.print()}
+          onDownload={(invoice) => handleTablePDF(invoice)}
           onSend={(invoice) => {
-            setSelectedInvoice(invoice);
-            setEmailDialogOpen(true);
-          }}
-          onPrint={(invoice) => {
             openViewDialog(invoice);
-            setTimeout(() => window.print(), 500);
           }}
+          onPrint={(invoice) => handleTablePDF(invoice)}
           className="border border-zinc-200 rounded-sm"
         />
       ) : (
