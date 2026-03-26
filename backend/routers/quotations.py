@@ -172,6 +172,71 @@ async def create_quotation(
     return quotation_doc
 
 
+
+@router.put("/{quotation_id}")
+async def update_quotation(quotation_id: str, data: QuotationCreate, current_user: User = Depends(get_current_user)):
+    """Update an existing quotation."""
+    db = get_db()
+    
+    quotation = await db.quotations.find_one({"id": quotation_id}, {"_id": 0})
+    if not quotation:
+        raise HTTPException(status_code=404, detail="Quotation not found")
+    
+    if quotation.get("status") == "finalized":
+        raise HTTPException(status_code=400, detail="Cannot edit a finalized quotation")
+    
+    lead = await db.leads.find_one({"id": data.lead_id or quotation.get("lead_id")}, {"_id": 0})
+    
+    # Recalculate from pricing plan
+    pricing_plan = None
+    pp_id = data.pricing_plan_id or quotation.get("pricing_plan_id")
+    if pp_id:
+        pricing_plan = await db.pricing_plans.find_one({"id": pp_id}, {"_id": 0})
+    if not pricing_plan:
+        pricing_plan = await db.pricing_plans.find_one({"lead_id": data.lead_id or quotation.get("lead_id")}, {"_id": 0})
+    
+    team_data = (pricing_plan or {}).get("team_deployment") or (pricing_plan or {}).get("consultants") or []
+    total_meetings = 0
+    calculated_subtotal = 0
+    for member in team_data:
+        meetings = (member.get("committed_meetings") or member.get("meetings") or 0) * (member.get("count") or 1)
+        rate = member.get("rate_per_meeting") or data.base_rate_per_meeting or 12500
+        calculated_subtotal += meetings * rate
+        total_meetings += meetings
+    
+    subtotal = data.subtotal if data.subtotal else (calculated_subtotal or quotation.get("subtotal", 0))
+    tax_rate = data.tax_rate or quotation.get("tax_rate", 18)
+    tax_amount = data.tax_amount if data.tax_amount else round(subtotal * (tax_rate / 100), 2)
+    grand_total = subtotal + tax_amount
+    
+    client_name = data.client_name or (lead or {}).get("company", "") or quotation.get("client_name", "")
+    
+    update_data = {
+        "lead_id": data.lead_id or quotation.get("lead_id"),
+        "pricing_plan_id": pp_id,
+        "client_name": client_name,
+        "client_email": data.client_email or (lead or {}).get("email", "") or quotation.get("client_email", ""),
+        "subtotal": subtotal,
+        "tax_rate": tax_rate,
+        "tax_amount": tax_amount,
+        "gst_amount": tax_amount,
+        "total": grand_total,
+        "grand_total": grand_total,
+        "total_meetings": total_meetings,
+        "validity_days": data.validity_days,
+        "payment_terms": data.payment_terms or quotation.get("payment_terms", ""),
+        "terms_and_conditions": data.terms_and_conditions or quotation.get("terms_and_conditions", ""),
+        "base_rate_per_meeting": data.base_rate_per_meeting,
+        "version": (quotation.get("version") or 1) + 1,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.quotations.update_one({"id": quotation_id}, {"$set": update_data})
+    updated = await db.quotations.find_one({"id": quotation_id}, {"_id": 0})
+    return updated
+
+
+
 @router.get("")
 async def get_quotations(
     lead_id: Optional[str] = None,

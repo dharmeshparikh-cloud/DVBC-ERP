@@ -7,7 +7,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SalesDataTable, FILTER_TYPES } from './SalesDataTable';
-import { Eye, Download, Send, Printer, FileText } from 'lucide-react';
+import { Eye, Download, Send, Printer, FileText, Edit } from 'lucide-react';
 
 // Column configuration for proforma invoices table
 const PROFORMA_COLUMNS = [
@@ -39,13 +39,23 @@ const PROFORMA_COLUMNS = [
     )
   },
   {
-    key: 'total_amount',
+    key: 'grand_total',
     label: 'Amount',
     filterType: FILTER_TYPES.NUMBER,
     filterable: true,
     sortable: true,
     width: '130px',
-    type: 'currency'
+    render: (value, row) => {
+      const amount = value || row.total || row.total_amount || ((row.subtotal || 0) + (row.tax_amount || 0));
+      return amount ? `₹${Number(amount).toLocaleString('en-IN')}` : '-';
+    }
+  },
+  {
+    key: 'total_meetings',
+    label: 'Meetings',
+    sortable: true,
+    width: '90px',
+    render: (value) => value || '-'
   },
   {
     key: 'status',
@@ -109,6 +119,7 @@ const PROFORMA_QUICK_VIEWS = [
 export const ProformaInvoiceTable = ({ 
   onRowClick, 
   onView,
+  onEdit,
   onDownload,
   onSend,
   onPrint,
@@ -132,6 +143,12 @@ export const ProformaInvoiceTable = ({
       label: 'View',
       icon: Eye,
       onClick: (row) => onView?.(row) || handleRowClick(row)
+    },
+    {
+      label: 'Edit',
+      icon: Edit,
+      onClick: (row) => onEdit?.(row),
+      show: (row) => row.status === 'draft'
     },
     {
       label: 'Download PDF',

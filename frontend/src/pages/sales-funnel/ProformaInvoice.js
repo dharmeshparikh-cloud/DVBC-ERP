@@ -153,13 +153,19 @@ const ProformaInvoice = () => {
   // Mutation: Create proforma invoice
   const createInvoiceMutation = useMutation({
     mutationFn: async (data) => {
+      if (selectedInvoice?.id) {
+        // Update existing quotation
+        return axios.put(`${API}/api/quotations/${selectedInvoice.id}`, data);
+      }
       return axios.post(`${API}/api/quotations`, data);
     },
     onSuccess: () => {
-      toast.success('Proforma Invoice created successfully');
+      toast.success(selectedInvoice?.id ? 'Proforma Invoice updated successfully' : 'Proforma Invoice created successfully');
       setDialogOpen(false);
       setSelectedPlanDetails(null);
+      setSelectedInvoice(null);
       queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
+      refetchInvoices();
     },
     onError: (error) => {
       const detail = error.response?.data?.detail;
@@ -168,7 +174,7 @@ const ProformaInvoice = () => {
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
-        toast.error('Failed to create proforma invoice');
+        toast.error('Failed to save proforma invoice');
       }
     }
   });
@@ -741,6 +747,22 @@ const ProformaInvoice = () => {
         /* List View - Using SalesDataTable (GOVERNANCE: No manual tables) */
         <ProformaInvoiceTable
           onView={(invoice) => openViewDialog(invoice)}
+          onEdit={(invoice) => {
+            setSelectedInvoice(invoice);
+            const plan = (pricingPlans || []).find(p => p.id === invoice.pricing_plan_id);
+            setSelectedPlanDetails(plan);
+            const lead = (leads || []).find(l => l.id === invoice.lead_id);
+            setSelectedLead(lead);
+            setFormData({
+              pricing_plan_id: invoice.pricing_plan_id || '',
+              lead_id: invoice.lead_id || '',
+              base_rate_per_meeting: invoice.base_rate_per_meeting || 12500,
+              validity_days: invoice.validity_days || 30,
+              payment_terms: invoice.payment_terms || 'ADVANCE',
+              terms_and_conditions: invoice.terms_and_conditions || ''
+            });
+            setDialogOpen(true);
+          }}
           onDownload={(invoice) => window.print()}
           onSend={(invoice) => {
             setSelectedInvoice(invoice);
