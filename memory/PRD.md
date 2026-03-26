@@ -2,7 +2,38 @@
 
 ## Latest Updates - March 26, 2026
 
-### SOW Delivery Table UI Fixes (Session 14)
+### Session 15 - P1 Features Implementation
+
+**1. Post-Kickoff Employee Assignment Prompt (P1) - COMPLETE**
+When manager accepts a kickoff request:
+- Team Assignment dialog immediately appears showing team deployment roles from agreement
+- 1:1 role mapping with consultant dropdown for each role
+- "Skip to select later" button to defer assignment
+- "Assign & Continue" button to save assignments and proceed
+
+**Files Changed:**
+- `/app/frontend/src/pages/KickoffRequests.js` - Added showTeamAssignDialog state, handleAssignTeamAndContinue, handleSkipTeamAssignment
+
+**2. Reschedule Request Flow (P1) - COMPLETE**
+PM/Senior Consultant can request reschedule of project dates:
+- New "Reschedule" tab in ProjectDetail page (4th tab after Tasks)
+- Shows pending count badge when requests exist
+- "Request Reschedule" button opens dialog with:
+  - Reason dropdown (Client unavailable, Resource conflict, etc.)
+  - Preferred date & time inputs
+  - Additional notes
+- Requests tracked with status: pending/approved/rejected
+- Response notes visible after approval/rejection
+
+**Files Changed:**
+- `/app/frontend/src/pages/ProjectDetail.js` - Added Reschedule tab, dialog, API integration
+- `/app/backend/routers/projects.py` - Added reschedule-requests endpoints (POST/GET/PUT)
+
+**Testing:** 100% pass rate (iteration_230.json) - 8 backend tests + code review passed
+
+---
+
+### Session 14 - SOW Delivery Table UI Fixes
 **User Feedback Addressed:**
 1. ✅ **Standardized Status Badges**: Both Scope and Deliverable rows now use the same `StatusBadge` component with consistent green box style (was showing different styles)
 2. ✅ **Unified Date Format DD MM YYYY**: All dates now display as "26 03 2026" format (was inconsistent between rows)
