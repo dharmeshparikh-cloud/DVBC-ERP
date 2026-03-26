@@ -1385,7 +1385,7 @@ async def client_confirm_approval(
                 "state": lead_for_client.get("state", ""),
                 "country": lead_for_client.get("country", "India"),
                 "address": lead_for_client.get("address", ""),
-                "region": "West" if lead_for_client.get("state", "").lower() in ["maharashtra", "gujarat", "goa"] else "North",
+                "region": "West" if (lead_for_client.get("state") or "").lower() in ["maharashtra", "gujarat", "goa"] else "North",
                 # Sales Information
                 "lead_id": lead_for_client.get("id"),
                 "project_id": project_id,
