@@ -38,8 +38,12 @@ const fmtDate = (dateStr) => {
 
 const fmtTime = (t) => {
   if (!t) return '-';
-  try { return new Date(t).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); }
-  catch { return '-'; }
+  try {
+    return new Date(t).toLocaleTimeString('en-IN', {
+      hour: '2-digit', minute: '2-digit', hour12: true,
+      timeZone: 'Asia/Kolkata'
+    });
+  } catch { return '-'; }
 };
 
 const MyAttendance = () => {

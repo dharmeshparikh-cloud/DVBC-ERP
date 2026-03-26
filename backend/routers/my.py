@@ -86,7 +86,10 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         raise HTTPException(status_code=404, detail="Employee record not found. Please contact HR.")
     
     today = today_ist()
-    now = now_ist()
+    now = datetime.now(timezone.utc)
+    now_in_ist = to_ist(now)
+    
+    # Block check-in if approved leave exists for today
     approved_leave_today = await db.leave_requests.find_one({
         "employee_id": emp["id"],
         "status": "approved",
@@ -151,8 +154,8 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "updated_at": now.isoformat()
     }
     
-    # Calculate late arrival using business policy shift start (IST)
-    # now is already IST from now_ist()
+    # Calculate late arrival: compare IST check-in time against shift start
+    # now is UTC, now_in_ist is the IST representation for late comparison
     
     # Fetch shift start from business policy
     shift_start_str = "10:00"  # will be overridden by policy
@@ -171,7 +174,7 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     
     # Parse shift start and compare with IST check-in time
     shift_h, shift_m = int(shift_start_str.split(":")[0]), int(shift_start_str.split(":")[1])
-    checkin_total_min = now.hour * 60 + now.minute
+    checkin_total_min = now_in_ist.hour * 60 + now_in_ist.minute
     shift_total_min = shift_h * 60 + shift_m
     late_by_min = checkin_total_min - shift_total_min
     
@@ -211,7 +214,7 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
         raise HTTPException(status_code=404, detail="Employee record not found")
     
     today = today_ist()
-    now = now_ist()
+    now = datetime.now(timezone.utc)
     
     # Find today's attendance record
     record = await db.attendance.find_one({"employee_id": emp["id"], "date": today}, {"_id": 0})
@@ -226,8 +229,12 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
             "superseded_reason": "re_checkout"
         })
     
-    # Calculate working hours using IST-aware check-in time
-    check_in_time = to_ist(datetime.fromisoformat(record["check_in_time"].replace("Z", "+00:00")))
+    # Calculate working hours (both times in UTC for correct duration)
+    check_in_raw = record.get("check_in_time") or record.get("check_in")
+    check_in_time = datetime.fromisoformat(check_in_raw.replace("Z", "+00:00"))
+    # Ensure both are tz-aware for subtraction
+    if check_in_time.tzinfo is None:
+        check_in_time = check_in_time.replace(tzinfo=timezone.utc)
     working_seconds = (now - check_in_time).total_seconds()
     working_hours = round(working_seconds / 3600, 2)
     
@@ -383,6 +390,13 @@ async def get_my_attendance(
             r["check_in_time"] = r["check_in"]
         if not r.get("check_out_time") and r.get("check_out"):
             r["check_out_time"] = r["check_out"]
+        
+        # Normalize naive timestamps: append IST offset so frontend displays correctly
+        # Old records stored as "09:00:00" (IST without offset) → add "+05:30"
+        for field in ("check_in_time", "check_out_time"):
+            val = r.get(field)
+            if val and "+" not in val and "Z" not in val:
+                r[field] = val + "+05:30"
         
         # Dynamically recalculate is_late based on check-in vs shift start (IST)
         cin = r.get("check_in_time")
