@@ -1,646 +1,74 @@
 # NETRA ERP - Product Requirements Document
 
-## Latest Updates - March 26, 2026
-
-### Session 18 - Leads Management + WebSocket + Attendance OT (COMPLETE)
-
-**Changes Made:**
-1. **WebSocket "Live"** - Fixed Approvals Center WS URL to use `/api/ws/${user.id}`, added subscribe message, auto-reconnect. Shows "Live" or "Connecting..."
-2. **Pause/Resume Lead** - Added `POST /api/leads/{id}/pause` and `/resume` endpoints with status preservation, activity logging
-3. **CSV Export Leads** - Added `GET /api/leads/export/csv` with all 17 columns. Export CSV button in Leads header
-4. **Reassign Lead Fix** - Created `GET /api/leads/team-members` endpoint accessible by sales users. Fixed empty dropdown
-5. **Lead Migration Fix** - Uses same team-members endpoint for dropdown population
-6. **Dynamic Row Actions** - Updated SalesDataTable to support function-based labels/icons. Pause/Resume toggles dynamically
-7. **Attendance Overtime** - Row-wise OT calculation beyond shift hours, OT column + summary card
-8. **Leave Balance** - Real-time from leave_requests collection, shown in apply-leave dialog with preview
-9. **Leave-Attendance Conflict** - Cannot apply leave on days with marked attendance
-
-**Testing:** 100% pass (iteration_233.json) - 15/15 backend, all frontend verified
-
----
-
-### Session 17 - Attendance OT, Leave Balance & Multiple Enhancements (COMPLETE)
-
-**Changes Made:**
-1. **Overtime calculation** - Row-wise OT beyond configured shift hours (9h standard), displayed in OT column with footer total
-2. **Shift config bar** - Shows shift times (10:00-19:00), standard hours, OT threshold, grace period
-3. **Leave balance (real-time)** - Calculated from `leave_requests` collection, shown in apply-leave dialog with "After" preview
-4. **Leave-attendance conflict** - Cannot apply leave on days with attendance already marked
-5. **Re-check-in/check-out** - Archives previous record, creates fresh entry
-6. **DD/MM/YYYY dates** - All attendance and leave tables use DD/MM/YYYY format
-7. **Hours column fixed** - Now uses `working_hours` field correctly
-8. **Leave Type column** - Shows CL/SL/EL for leave days
-9. **Late penalty column** - Shows late minutes with badge
-10. **CSV download** - Exports all visible columns with monthly totals
-11. **Monthly totals footer** - Sum of hours, OT, late count
-12. **8 summary cards** - Present, Absent, Half Day, WFH, Leave, Late, Total Hrs, Overtime
-13. **Approval trail** - My Leaves table shows RM name, action, date, comments
-14. **Approval Center** - "Offline" status hidden when WebSocket disconnected
-
-**Testing:** 100% pass rate (iteration_232.json) - 16/16 backend, all frontend verified
-
----
-
-### Session 16 - Attendance GPS Reverse Geocoding (COMPLETE)
-
-**Problem:** GPS capture on attendance check-in was showing raw latitude/longitude coordinates instead of human-readable addresses.
-
-**Solution:** Added reverse geocoding using Google Maps Geocoding API to convert GPS coordinates to locality, area, and city.
-
-**Changes Made:**
-1. **Backend** - Added `GET /api/reverse-geocode?lat=X&lng=Y` endpoint in `travel.py` that uses Google Maps Geocoding API with `latlng` parameter
-2. **Backend** - Updated `POST /api/my/check-in` to store `location_address`, `location_locality`, `location_area`, `location_city`
-3. **Backend** - Updated `POST /api/my/check-out` to store `checkout_address`
-4. **Frontend** - Updated `QuickCheckInModal.js` to call `/api/reverse-geocode` on GPS capture (both check-in and check-out)
-5. **Frontend** - Added "Address" column to `MyAttendance.js` table showing resolved location
-
-**Files Changed:**
-- `/app/backend/routers/travel.py` - New reverse_geocode endpoint (lines 178-250)
-- `/app/backend/routers/my.py` - Stores address fields on check-in/check-out
-- `/app/frontend/src/components/QuickCheckInModal.js` - Calls reverse-geocode API
-- `/app/frontend/src/pages/MyAttendance.js` - New Address column in table
-
-**Testing:** 100% pass rate (iteration_231.json) - 10/10 backend tests passed, all frontend verifications passed
-
----
-
-### Session 15 - P1 Features + AI Deliverables Enhancement
-
-**1. AI Deliverables Generator - B2B Manufacturing Context (COMPLETE)**
-Updated the AI prompt to focus on:
-- B2B manufacturing companies and small-scale enterprises
-- Practical, cost-effective deliverables
-- Industry-proven best practices for limited resources
-- SOPs, process flows, checklists tailored for manufacturing
-
-**Files Changed:**
-- `/app/backend/routers/sow_masters.py` - Updated AI prompt with manufacturing context, fixed LlmChat API usage
-
-**API Test Results:**
-- "Production Line Optimization" → Value Stream Mapping, Daily Production Schedule, Workstation Layout, 5S Guide, SOPs
-- "Inventory Management System" → Inventory Tracking Spreadsheet, Reorder Level Calculator, Stock Monitoring SOP, etc.
-- "Quality Assurance Framework" → Quality Control Checklist, Root Cause Analysis Template, Inspection SOP, etc.
-
-**2. Post-Kickoff Employee Assignment Prompt (P1) - COMPLETE**
-(See previous session notes)
-
-**3. Reschedule Request Flow (P1) - COMPLETE**
-(See previous session notes)
-
----
-
-### Session 14 - SOW Delivery Table UI Fixes
-**User Feedback Addressed:**
-1. ✅ **Standardized Status Badges**: Both Scope and Deliverable rows now use the same `StatusBadge` component with consistent green box style (was showing different styles)
-2. ✅ **Unified Date Format DD MM YYYY**: All dates now display as "26 03 2026" format (was inconsistent between rows)
-3. ✅ **Collapsible Stats Cards**: Added "Hide Stats" / "Show Stats" toggle button. When collapsed, shows inline summary: "Scopes: X/Y Deliverables: X/Y WIP: X Done: X"
-4. ✅ **Implemented Status Locks Row**: When status is "Implemented":
-   - Row gets light green background
-   - "Locked" badge appears next to scope name
-   - All edit fields become read-only (Start Date, Status dropdown disabled)
-   - "Reopen" button appears to manually unlock
-5. ✅ **Validation for Implemented Status**:
-   - Frontend: Shows error toast if trying to mark Implemented without Start Date or Proof
-   - Backend: Returns 400 error with clear message preventing invalid status changes
-6. ✅ **All Buttons Wired**: Expand All, Collapse All, Export CSV, Add Scope, View, Reopen all functional
-
-**Files Changed:**
-- `/app/frontend/src/components/SOWDeliveryTable.jsx` - Updated formatDate, added StatusBadge consistency, collapsible stats, locked row behavior, validation handlers
-- `/app/backend/routers/project_sow_delivery.py` - Added backend validation for Implemented/WIP requiring Start Date and Proof
-
-**Testing**: 100% pass rate (iteration_229.json) - All 12 features verified
-
----
-
-## Previous Updates - March 25, 2026
-
-### Projects UI Flow Improvements (Session 13)
-**User Feedback Addressed:**
-1. ✅ **Company Name as Title**: Project cards now show `client_name` (e.g., "Auto Client Corp") as the main title
-2. ✅ **Project Name as Subtitle**: Project name (e.g., "ERP Implementation") shown below the title
-3. ✅ **SOW Button Added**: Primary action button on project cards - takes user directly to SOW
-4. ✅ **Card Click Opens SOW**: Clicking anywhere on project card navigates to Project Detail with SOW tab active
-5. ✅ **Kick-off Button Removed**: Confusing button removed from project cards (projects are already created via kickoff)
-6. ✅ **Project Detail Page**: Created new `/app/frontend/src/pages/ProjectDetail.js` with SOW as default tab
-
-**Files Changed:**
-- `/app/frontend/src/pages/Projects.js` - Updated card layout, added SOW button, made card clickable
-- `/app/frontend/src/pages/ProjectDetail.js` - NEW: Project detail page with tabs (SOW, Tasks, Info)
-- `/app/frontend/src/App.js` - Added route `/projects/:projectId` for ProjectDetail
-- `/app/frontend/src/pages/KickoffRequests.js` - Updated SOW tab to show enhanced_sow scopes format
-- `/app/backend/routers/kickoff.py` - Fixed collection name `enhanced_sow` (was `enhanced_sows`)
-
-**Testing**: 100% pass rate (iteration_228.json) - All 9 UI features verified
-
-### Bug Fixes (Session 13)
-1. ✅ **Kickoff DateTime Bug Fixed**: `/api/kickoff-requests/client-approve/{token}/confirm` was failing with `time data 'None' does not match format '%Y-%m-%d'` 
-   - Root cause: `start_date` parameter wasn't using `Form()` annotation to capture form data from HTML POST
-   - Fix: Added `Form(None)` annotation and robust date validation with fallbacks
-2. ✅ **NA Approval Flow Implemented**: Full manager approval workflow for "Not Applicable" status
-   - Consultant requests NA → scope becomes `na_pending`
-   - Manager approves → scope becomes `not_applicable`
-   - Manager rejects → scope reverts to `wip`
-   - Frontend shows pending approvals section for managers
-
-### SOW Delivery Architecture - Phase 2 & 3 Complete (Session 12)
-**Phase 2: AI Task Generation (COMPLETE)**
-- **Backend Endpoint**: `POST /api/project-sow-delivery/{sow_id}/scope/{scope_id}/ai-generate-tasks`
-- **Integration**: Uses GPT-5.2 via `emergentintegrations` library with Emergent LLM Key
-- **Features**:
-  - Generates 3-5 actionable tasks per scope based on scope name, description, deliverables, and timeline
-  - Tasks are created with `is_ai_generated=True` flag
-  - Frontend shows purple "AI" badge on AI-generated tasks
-  - AI Suggest button with loading spinner while generating
-
-**Phase 3: Proof Management (COMPLETE)**
-- **Storage Integration**: Created `/app/backend/utils/storage.py` - Reusable Emergent Object Storage utility
-- **Storage Router**: Created `/app/backend/routers/storage.py` - File upload/download endpoints
-- **Proof Endpoints**:
-  - `POST /api/storage/upload?folder=proofs` - Upload file to storage
-  - `POST /api/project-sow-delivery/proofs` - Register proof for task or SOW
-  - `GET /api/project-sow-delivery/proofs/{entity_type}/{entity_id}` - Get proofs
-  - `DELETE /api/project-sow-delivery/proofs/{proof_id}` - Delete proof
-- **Frontend Features**:
-  - Task-level upload button (cloud icon) next to each task
-  - SOW-level "Upload Proof" button in Proofs tab
-  - Proof count badge (emerald) on tasks with proofs
-  - Proofs tab shows file name, version, uploader, and download link
-  - Version tracking for re-uploaded files with same name
-
-**Testing**: 100% pass rate (iteration_227.json) - 13/13 backend tests, all frontend UI tests passed
-
-### SOW Delivery Layer Architecture - Phase 1 Complete (Session 11)
-**Architecture Implementation:**
-- **SOW_MASTER** = `enhanced_sow` collection (extended with `is_locked`, `domains[]` fields)
-- **PROJECT_SOW** = New `project_sow` collection (delivery layer, inherits from master on kickoff)
-- **TASKS** = New `sow_tasks` collection (execution units under scopes)
-- **PROOFS** = New `sow_proofs` collection (entity_type + entity_id pattern)
-
-**Backend Changes:**
-- Created `/app/backend/routers/project_sow_delivery.py` (~650 lines) with full CRUD for PROJECT_SOW, Tasks, Proofs
-- Added `is_locked` and `domains[]` fields to `enhanced_sow` model
-- Added `deliverables[]` field to `sow_scope_templates`
-- Lock mechanism: SOW_MASTER locked automatically on kickoff
-
-**Frontend Changes:**
-- Created `/app/frontend/src/components/ProjectSOWDelivery.jsx` (~450 lines)
-- Added "SOW Delivery" tab to ProjectTasks.js page
-- Features: Scope cards with status, progress bars, tasks management, deliverables display
-
-**Governance:**
-- Duplication check: `/api/project-sow-delivery/governance/check-duplicate` (title + domain)
-- Lock check: `/api/project-sow-delivery/governance/sow-master/{id}/is-locked`
-- RBAC: PM roles can customize scopes, Consultants can manage tasks
-
-**API Endpoints:**
-- `POST /api/project-sow-delivery/create-from-kickoff` - Creates PROJECT_SOW from SOW_MASTER
-- `GET /api/project-sow-delivery/project/{id}` - Get PROJECT_SOW with tasks and proofs
-- `PATCH /api/project-sow-delivery/{id}/status` - Update SOW status (including reopen)
-- `PATCH /api/project-sow-delivery/{id}/scope/{id}/status` - Update scope status
-- CRUD for tasks and proofs
-
-### Global Export Permission (RBAC) - Session 11 continued
-- **Permission Added**: `system.can_export_data` - Global toggle controlling ALL downloads/exports across ERP
-- **Implementation**:
-  - Backend: Added to `FEATURE_FLAGS` in `/app/backend/routers/permissions.py`
-  - RBAC Seeder: Added to `hr_manager`, `sales_manager`, `manager`, `principal_consultant` roles
-  - Frontend Context: Added `canExportData()` function to `PermissionContext.js`
-  - UI Components Updated:
-    - `SalesDataTable.jsx` - Export button shows Lock icon when disabled
-    - `Reports.js` - Excel/PDF download buttons show Lock icon when disabled
-    - `PayrollEngine.js` - Export CSV/Excel buttons show Lock icon when disabled
-- **Permission Matrix**:
-  | Role | Has Export Permission |
-  |------|----------------------|
-  | Admin | ✅ (via wildcard *) |
-  | HR Manager | ✅ |
-  | Sales Manager | ✅ |
-  | Manager | ✅ |
-  | Principal Consultant | ✅ |
-  | Sales Executive | ❌ |
-  | Employee | ❌ |
-- **Testing**: 100% backend (9/9) and frontend pass rate (iteration_226.json)
-
-### P2 - Saved Views & Export to CSV for SalesDataTable (Session 11 continued)
-- **Saved Views Feature**:
-  - Added `useSavedViews` hook that persists custom views to localStorage per table
-  - Created `SaveViewDialog` component showing view name input, "Set as default" checkbox, and summary of what will be saved (filters, sort, page size)
-  - Dropdown menu in table header shows saved views with star indicator for default, delete option, and "Save Current View" button
-  - Views are restored on page load if marked as default
-- **Export to CSV Feature**:
-  - Created `ExportDialog` component with two export options: "Current Page" or "All Matching Records"
-  - Shows record counts for each option and list of columns that will be exported
-  - Fetches all data from API when exporting all records (up to 10,000)
-  - CSV includes BOM for proper Excel compatibility
-- **Testing**: 100% frontend pass rate on Leads and Follow-ups pages (iteration_225.json)
-
-### P1 - Funnel Checklist Alignment & Governance Linting (Session 11 continued)
-- **Funnel Checklists Aligned**: Updated backend `/api/leads/{id}/funnel-checklist` endpoint to match actual mandatory fields:
-  - **SOW**: SOW created + scope item with title (required), category/timeline/consultant (optional)
-  - **Quotation**: Lead selected + pricing plan linked + quotation number (required), payment terms/validity (optional)
-  - **Agreement**: Lead with quotation + quotation linked + agreement type (required), start date (optional), signed status (required for completion)
-- **Governance Linting Implemented (Phase 5)**:
-  - Created `/app/frontend/scripts/check-sales-governance.js` - automated checker for sales table governance
-  - Created `/app/frontend/docs/GOVERNANCE.md` - comprehensive documentation of governance rules
-  - Created `/app/frontend/eslint.config.mjs` - ESLint flat config for the project
-  - Added `yarn governance:check` npm script to run the checker
-  - All primary sales listing pages now use SalesDataTable variants
-
-### P0 Bug Fixes - MeetingRecord.js Crash & DraftSelector (Session 11)
-- **MeetingRecord.js Crash Fixed**: The page was crashing with a TypeError due to `.some()` being called on string values instead of arrays. The MOM form fields (discussion_points, decisions_made, etc.) had been converted from arrays to simple textareas, but the auto-save logic still expected arrays.
-  - **Fix Applied**: 
-    1. Simplified `momData` state to use string fields only (notes, mom, price_discussion, next_steps, action_items)
-    2. Removed `.some()` calls from auto-save `hasContent` check
-    3. Removed unused list handler functions (handleAddListItem, handleRemoveListItem, handleListItemChange)
-- **DraftSelector Component Verified**: The refactored component supporting both dialog and inline modes is working correctly on Quotations and PricingPlanBuilder pages.
-- **Testing**: 100% frontend test pass rate verified via testing agent (iteration_224.json)
-
-### AI-Powered Note Suggestions (Session 10)
-- **Backend**: Created `/api/ai/suggest` endpoint using GPT-5.2 via emergentintegrations library. Supports context types: `mom`, `notes`, `follow_up`, `discussion_points`, `next_steps`, `email_body`, `action_items`, `client_expectations`, `key_commitments`.
-- **Frontend**: Created reusable `AISuggestButton` component. Integrated into MeetingRecord (MOM Notes, MOM Summary, Next Steps), FollowUps (Create notes, Update notes, Close summary).
-- **Funnel Checklist Fix**: Updated all 9 step checklists to match actual mandatory fields (e.g., Pricing Plan now requires "team member added", "total investment > 0", "payment start date" instead of incorrect "project type selected").
-
-### P0 Bug Fixes - Email CTA Flow (Session 9)
-- **Reschedule CTA Page**: Built a branded client-facing reschedule form with date/time picker, current schedule display, optional message field, and form submission. Replaced the previous instant confirmation behavior.
-- **Close Confirmation Page**: Added the scheduled follow-up date/time display to the "Confirmed!" page so clients see what they've agreed to.
-- **Email Logo Size**: Increased logo from 48-52px to 64px (max-width: 240px) across email template, action pages, and reschedule page.
-- **CTA Status Tracking**: Verified that both `client_closed` and `client_reschedule` actions are correctly logged in follow-up history with proper attribution ("Client via email"). Reschedule submissions store `client_preferred_date`, `client_preferred_time`, and `client_response` fields.
-- **Bug Fix**: Fixed missing `_build_reschedule_page` function (was called but never defined, causing runtime error). Fixed `Request` import from fastapi (was imported inside function body after being used as type hint).
-
-### P1 Enhancements - Lead Reassignment, Follow-up Email, Lead Integration (Session 8)
-- **Lead Reassignment**: Single-lead reassign (any role) + Bulk migration (admin/manager only). Transfers all associated data (meetings, pricing, SOW, quotations, agreements, follow-ups). Activity log tracks all transfers with reason.
-- **Follow-up Email Trigger**: 3 templates (Formal, Meeting, Reminder) with CTA links (Close Follow-up, Reschedule). Client responses auto-logged in follow-up history. Template includes client name, company, follow-up notes.
-- **Follow-up ↔ Lead Integration**: Lead dropdown always required when creating follow-up. Linked Lead banner in detail dialog with "View Pipeline" button. Client Response column in FollowUpsTable showing Confirmed/Reschedule/—. Backend enriches follow-ups with lead email and company.
-
-### Bug Fixes - Leads, Follow-ups, Pricing (Session 8 continued)
-- **Follow-up Create**: Lead dropdown always visible and required (removed free-text client name), added time field
-- **Edit Lead**: Fixed by populating all form fields including source/notes/follow-up, stripping invalid fields on submit
-- **Funnel column**: Fixed FUNNEL_STAGES to map to actual DB statuses (new→New Lead, contacted→Meeting, qualified→Pricing/SOW, proposal→Quotation, agreement→Agreement, closed→Complete)
-- **Backend auto-sync**: Leads list API now auto-syncs lead status with funnel progress on each list fetch
-- **Discount field**: Fixed prefilled 0 (shows empty, placeholder "0"), fixed float precision (Math.round for accurate %)
-- **Pricing Save button**: Added validation messages below button ("Add at least one team member" / "Enter total investment" / "Select start date")
-- **Add Lead dialog**: Lead Source now a governed dropdown (Website, Referral, LinkedIn, etc.), removed LinkedIn URL field
-- **Actions stopPropagation**: Fixed action column click not triggering row navigation
-
-### Bug Fixes - Leads Page (Session 8)
-- Fixed "View Pipeline" action: now navigates to `/sales-funnel-onboarding?leadId=X` (was pointing to non-existent route)
-- Fixed "Edit Lead" action: added missing `editLead` state, dialog now pre-fills with lead data
-- Fixed lead row click: navigates to funnel onboarding page (was going directly to pricing)
-- Added **Funnel Progress column** to LeadsTable showing visual progress bar with stage label and step count (e.g., "Lead 1/9")
-- Fixed `stopPropagation` on actions column to prevent row click interference
-
-### Sales Module Governance System (COMPLETE) [March 24, Session 6]
-
-**Excel-like SalesDataTable Component** (`/app/frontend/src/components/sales/`):
-- Column filters (Excel-style dropdown, text, number range, date range)
-- Global search with 300ms debounce
-- Sorting (ASC/DESC) with visual indicators
-- Multi-filter support (AND logic)
-- Server-side pagination
-- Filter chips with clear functionality
-- Sticky header
-- Color coding (Red=overdue, Yellow=due, Green=progressing)
-- Quick views (My Leads, Today Follow-ups, Hot Deals, Stuck Deals)
-
-**Specialized Sales Tables Created**:
-| Component | Purpose |
-|-----------|---------|
-| `SalesDataTable.jsx` | Core reusable component |
-| `LeadsTable.jsx` | Lead management with pipeline filters |
-| `MeetingsTable.jsx` | Meeting tracking with MOM status |
-| `FollowUpsTable.jsx` | Follow-up management with priority colors |
-| `QuotationsTable.jsx` | Quotation tracking with value filters |
-
-**Backend API Enhancements** (Standardized Response Format):
-```json
-{ "data": [], "total": N, "page": N, "page_size": N, "total_pages": N }
-```
-
-| API | New Filters Added |
-|-----|-------------------|
-| `/api/leads` | search, deal_value_min/max, created_from/to, days_since_activity |
-| `/api/meetings` | date_from/to, search, status, assigned_to |
-| `/api/follow-ups` | due_date=TODAY, priority, due_from/to |
-| `/api/quotations` | value_min/max, created_from/to, search |
-
-**Database Indexes Added**:
-- `follow_ups.assigned_to`, `follow_ups.due_date`, `follow_ups.status`
-- `quotations.status`, `quotations.created_at`, `quotations.total_value`
-
-**Phase 4: Migration Complete** [March 25, Session 7-8]:
-| Page | Before | After |
-|------|--------|-------|
-| `Leads.js` (List view) | Manual `<table>` with `.map()` | `LeadsTable` (SalesDataTable) with Funnel column |
-| `ManagerLeadsDashboard.js` | Manual leads table | `LeadsTable` with external filters |
-| `Agreements.js` | Manual list/card | `AgreementsTable` (SalesDataTable) |
-| `ProformaInvoice.js` | Manual list | `ProformaInvoiceTable` (SalesDataTable) |
-| `SalesSOWList.js` | Manual `<table>` | `SOWTable` (SalesDataTable) |
-| `FollowUps.js` | Card-based `.map()` list | `FollowUpsTable` (SalesDataTable) |
-
-**Bug Fixes** [March 25, Session 8]:
-- Leads page: View Pipeline, Edit Lead actions, row click navigation, Funnel column added
-- Agreements API: standardized to paginated response
-- Enhanced SOW API: standardized to paginated response  
-- SOWTable: fixed endpoint from `/api/sow` to `/api/enhanced-sow/list`
-
----
-
-### Data Governance Phase 2 (COMPLETE) [March 24, Session 5]
-
-**GovernedDropdown expanded to all modules:**
-
-| Module | Dropdowns Governed | Status |
-|--------|-------------------|--------|
-| **MyExpenses** | Category (line items) | ✅ |
-| **Leads** | Stage filter, Industry | ✅ |
-| **Payroll** | Employee, Component Type, Calculation Type | ✅ |
-| **MyLeaves** | Leave Type, Half Day Type | ✅ |
-
-**New Normalized Hooks** (`useSOWsByProject.js`):
-- `useNormalizedEmployees` - Employee dropdown data
-- `useNormalizedClients` - Client dropdown data  
-- `useExpenseCategories` - Expense category options
-- `useLeaveTypes` - Leave type options
-- `useIndustryOptions` - Industry dropdown options
-- `useLeadSources` - Lead source options
-- `useLeadStatusOptions` - Lead status filter options
-- `useProjectStatusOptions` - Project status options
-
-**Test Report**: `/app/test_reports/iteration_214.json` - 100% frontend pass rate
-
----
-
-### P0 Governance Fixes (COMPLETE) [March 24, Session 4]
-
-**Fixes Implemented**:
-
-1. **Fixed bare `except:` blocks in analytics.py**
-   - Replaced all bare `except:` blocks with specific exception types `(ValueError, TypeError, AttributeError)`
-   - Lines 855, 867, 878, 1113, 1140, 1225
-   - Improves debuggability and prevents swallowing unknown errors
-
-2. **Added `/my` endpoint for Approvals module** (`approvals.py` line 75)
-   - Returns user's pending approvals they need to action
-   - Returns user's submitted requests
-   - Includes summary counts (pending_to_action, my_approved, my_rejected, my_pending)
-
-3. **Added `/my` endpoint for Payroll module** (`payroll.py` line 243)
-   - Returns user's salary slips with month filter support
-   - Returns pending reimbursements
-   - Returns leave encashments
-   - Returns LOP leaves
-   - Includes summary (total_slips, total_net_paid, pending_reimbursement_amount, etc.)
-
-4. **Made `budget` mandatory for Project creation** (`models.py` line 273)
-   - Changed from `Optional[float]` to `Field(..., gt=0)`
-   - Projects cannot be created without budget
-   - Budget must be greater than 0
-
-5. **Added receipt validation on expense approval** (`expenses.py` line 545)
-   - Defense in depth: validates receipts on both submission AND approval
-   - Expenses ≥ ₹500 require receipt attachment
-   - Returns governance message if receipt missing on approval attempt
-
-6. **MOM SLA Reminder System** (`business_governance.py`)
-   - `POST /api/governance/mom-sla/run-reminders` - Automated reminder system
-   - Creates high-priority notifications for meetings past 24-hour MOM SLA
-   - Escalates to reporting manager for meetings >36 hours overdue
-   - Skips recently notified meetings (within 12 hours) to prevent spam
-   - `GET /api/governance/mom-sla/pending-reminders` - Preview endpoint
-
-7. **Meeting-Expense Link Auto-Prompt** (`meetings.py`, `business_governance.py`)
-   - Auto-prompts users to file travel expense after in-person meeting
-   - Triggers on meeting creation (if mode=offline without travel_details)
-   - Triggers on MOM recording (if in-person meeting has no expense)
-   - Creates `expense_prompt` notification with action path to /my-expenses
-
-**Test Reports**: 
-- `/app/test_reports/iteration_212.json` - P0 Fixes (100% pass)
-- `/app/test_reports/iteration_213.json` - MOM SLA & Expense Link (100% pass)
-
----
-
-### Business Governance Engine (COMPLETE) [March 24, Session 3]
-
-**Feature**: Self-auditing ERP system with comprehensive business validation across all modules.
-
-**APIs Implemented** (`/app/backend/routers/business_governance.py`):
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/governance/health-score` | Business health scorecard (Sales, Cost, Team, Data) |
-| `GET /api/governance/mom-sla` | MOM SLA compliance monitoring (24-hour threshold) |
-| `GET /api/governance/expense-compliance` | Receipt & travel-meeting linkage compliance |
-| `GET /api/governance/operational-discipline` | Team discipline metrics (attendance, tasks) |
-| `GET /api/governance/leakage-alerts` | Revenue/cost leakage detection |
-| `POST /api/governance/mom-sla/escalate/{id}` | Escalate MOM breach to manager |
-
-**Expense Governance Rules** (in `expenses.py`):
-- Receipt required for expenses ≥₹500
-- Travel expenses flagged if no meeting linkage
-- High value expenses (≥₹5,000) require admin approval
-- Duplicate prevention (same date/amount)
-- Consultant expenses must link to active project
-
----
-
-### Smart Suggestions Feature (COMPLETE) [March 24, Session 3]
-
-**Feature**: AI-powered recommendations that suggest next actions based on consultant's workflow data.
-
-**Implementation**:
-- Backend generates contextual suggestions in `/api/my-day/summary`
-- Suggestions are prioritized: high → medium → low → info
-- Maximum 5 suggestions shown, top 2 visible by default
-- Each suggestion includes: icon, title, description, action button, navigation path
-
-**Suggestion Types**:
-| Priority | Suggestion | Trigger |
-|----------|------------|---------|
-| High | Start your day | Attendance not marked |
-| High | Prepare for meeting | Meeting within 2 hours |
-| High | Record MOM | Overdue MOMs exist |
-| Medium | Send MOM to client | MOM recorded but not sent |
-| Medium | Complete action items | Open tasks assigned |
-| Medium | File travel expense | In-person meetings without expense |
-| Low | Follow up on expenses | 3+ expenses pending approval |
-| Low | Upcoming meeting prep | Meeting in 1-2 days |
-| Info | Great week! | All meetings delivered |
-| Info | Almost there! | 80%+ delivery rate |
-
-**UI Features**:
-- Purple gradient section header with sparkles icon
-- Color-coded left borders by priority
-- Expandable to show all suggestions
-- Click to navigate to relevant page
-
----
-
-### "My Day" Smart Bar for Consultants (COMPLETE) [March 24, Session 3]
-
-**Feature**: A personalized daily workflow tracker for consultants displayed on the Consulting Meetings page.
-
-**Implementation**:
-- Backend API `/api/my-day/summary` returns all daily workflow data in single call
-- Frontend component `MyDayBar.jsx` with 4 clickable action cards:
-  1. **Attendance Card**: Shows check-in status, navigates to `/my-attendance`
-  2. **Today Card**: Shows meeting count, navigates to `/consulting-meetings`
-  3. **MOM Status Card**: Shows overdue MOMs count, navigates to `/consulting-meetings`
-  4. **Expenses Card**: Shows pending expenses, navigates to `/my-expenses`
-- Cards show "Done" badge when task is completed (isComplete=true)
-- Contextual reminder chips shown when actions are needed (e.g., "Mark attendance")
-- Greeting with user's name and date badge
-- Weekly progress bar showing delivery completion percentage
-
-**Data Returned by API**:
-- attendance: { is_checked_in, check_in_time, check_out_time, needs_action }
-- today: { total_meetings, meetings[], next_meeting }
-- action_required: { overdue_moms, pending_client_send, missing_expenses, open_tasks, pending_expenses }
-- upcoming: { count, next_3[] }
-- weekly_progress: { total_meetings, delivered, mom_recorded, completion_pct }
-
----
-
-### Global "Latest First" Sorting (COMPLETE) [March 24, Session 3]
-
-**Requirement**: Apply consistent "Latest First" sorting to all major list views across the ERP.
-
-**Implementation**:
-- Created `/app/frontend/src/utils/sortUtils.js` with reusable sorting utilities:
-  - `sortByLatest(items, dateField)` - Sort by single date field, descending
-  - `sortByFields(items, dateFields[])` - Sort by multiple date fields with fallback
-  - `sortMeetingsForDaily(meetings)` - Smart sorting: today first, then future, then past
-  
-**Pages Updated**:
-| Page | Import | Usage |
-|------|--------|-------|
-| Meetings.js | sortByFields | `sortByFields(meetings, ['meeting_date', 'created_at'])` |
-| Notifications.js | sortByLatest | `sortByLatest(filteredNotifications, 'created_at')` |
-| Invoices.js | sortByLatest | `sortByLatest(filteredInvoices, 'created_at')` |
-| LeaveManagement.js | sortByLatest | `sortByLatest(displayRequests, 'created_at')` |
-| MyLeaves.js | sortByLatest | `sortByLatest(requests, 'created_at')` |
-| MyExpenses.js | sortByLatest | `sortByLatest(data.expenses, 'created_at')` |
-| ApprovalsCenter.js | sortByLatest | `sortByLatest(pendingApprovals, 'created_at')` |
-
-**Note**: Several pages (Employees.js, Clients.js, AllProjects.js, Leads.js, KickoffRequests.js) already had inline sorting implemented.
-
----
-
-### Previous Session Work (COMPLETE)
-
-**Consulting Meeting Travel Expense** [March 24, Session 2]:
-- Full `MeetingLocationPicker` with Google Maps integration
-- Auto-created expense records on meeting submit
-
-**Consultant Meeting Flow Fix** [March 24, Session 2]:
-- Backend RBAC fix in projects.py
-- Past date validation fix
-- Status override for delivered meetings
-
-**Data Governance Phase 1** [March 24, Session 2]:
-- `GovernedDropdown.jsx` - Reusable dropdown with states
-- `useSOWsByProject.js` - Server-filtered SOW hook
-- Applied in ConsultingMeetings module
-
-**P0 System-Level Governance Fixes** [March 24, Session 2]:
-- Payroll Approval Dialog actions
-- Approvals Center stale state fix
-- Penalty Dashboard server-side filters
-
----
+## Original Problem Statement
+Establish a unified and strict governance model for the SOW module, alongside comprehensive tracking for Attendance, Leaves, Expenses, and Leads. The system features real-time Approvals Center via WebSockets, GPS reverse geocoding, dynamic overtime calculation, HR regularization, and a full Sales Funnel.
 
 ## Architecture
+- **Frontend**: React + Shadcn/UI + TanStack Query
+- **Backend**: FastAPI + MongoDB
+- **Timezone**: IST (UTC+5:30) — centralized via `/app/backend/utils/timezone.py`
+- **Auth**: JWT-based with role-based access control (RBAC)
 
-```
-/app/
-├── backend/
-│   ├── routers/
-│   │   ├── my_day.py                 # "My Day" aggregation endpoint
-│   │   ├── approvals.py
-│   │   ├── meetings.py
-│   │   ├── penalties.py
-│   │   ├── projects.py
-│   │   └── users.py
-│   └── tests/
-│       └── test_my_day_sorting.py    # Test file for My Day and Sorting
-├── frontend/
-│   └── src/
-│       ├── components/
-│       │   ├── MyDayBar.jsx          # Consultant's daily workflow tracker
-│       │   ├── GovernedDropdown.jsx
-│       │   └── MeetingLocationPicker.js
-│       ├── hooks/
-│       │   └── useSOWsByProject.js
-│       ├── utils/
-│       │   └── sortUtils.js          # Global sorting utilities
-│       └── pages/
-│           ├── ConsultingMeetings.js # Uses MyDayBar
-│           ├── Meetings.js           # Uses sortByFields
-│           ├── Notifications.js      # Uses sortByLatest
-│           ├── Invoices.js           # Uses sortByLatest
-│           ├── LeaveManagement.js    # Uses sortByLatest
-│           ├── MyLeaves.js           # Uses sortByLatest
-│           ├── MyExpenses.js         # Uses sortByLatest
-│           └── ApprovalsCenter.js    # Uses sortByLatest
-```
+## Core Modules
+1. **Attendance** — Self-service check-in/out with GPS, late detection (IST), overtime calc, HR regularization
+2. **Leaves** — Dynamic balance from approved leave_requests, leave application blocked if attendance marked
+3. **Expenses** — Draft support, E2E tracking, sent-back resubmission, meeting context
+4. **Leads** — Pause/resume, CSV export, role-based reassignment
+5. **Sales Funnel** — SOW delivery, agreements, proforma invoices
+6. **Approvals Center** — Real-time WebSocket, collapsible sections, expense tabs
 
----
+## What's Been Implemented
 
-## API Endpoints
+### Session 1 (Previous)
+- GPS Reverse Geocoding for Attendance Check-in
+- Attendance table overhaul (DD/MM/YYYY, OT/Late calculations, re-check-in, CSV download)
+- Real-time Leave Balance from approved leave_requests
+- Backend validation blocking leave if attendance already marked
+- Approvals Center WebSocket fix
+- Leads Pause/Resume + CSV Export
+- Sales Team reassign fix
+- HR Attendance Regularization API + UI
+- Approvals Center restructure (CollapsibleSection, Expense Tabs)
+- Expense Meeting Context API + slide-out
+- Sent-back expense edit/resubmit
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/my-day/summary` | GET | Aggregates daily workflow data for logged-in user |
-| `/api/employees-dropdown` | GET | Lightweight endpoint for employee dropdowns |
-| `/api/meetings` | POST | Create meeting (auto-creates linked expense) |
-| `/api/projects` | GET | RBAC-filtered project listing |
-| `/api/project-pnl/invoices` | GET | Get invoices list |
+### Session 2 (March 26, 2026) — IST Timezone & Late Detection Fix
+- **Created centralized IST timezone utility** (`/app/backend/utils/timezone.py`)
+- **Fixed late detection** — was using UTC, hardcoded to 9AM; now uses IST + business policy shift start (10:00)
+- **Fixed late_minutes calculation** — now correctly calculates from configured shift start
+- **Blocked check-in on approved leave days** — returns 400 error if approved leave exists
+- **Fixed leave_type display** — no longer shows CL/SL on "present" status rows
+- **Dynamic late recalculation** — all records (old + new) are recalculated server-side using IST
+- **Normalized field names** — handles both `check_in`/`check_in_time` field variants
+- **IST for check-out** — working hours calculated using IST-aware timestamps
+- **IST for regularization** — late status recalculated using IST when HR regularizes records
+- Tested: iteration_235.json — 100% pass rate (13/13 backend, all frontend)
 
----
+## P0 Issues (Still Open)
+1. **Sales Funnel Agreement step not loading** — `/sales-funnel/agreement/${id}` renders blank
+2. **Proforma Invoice "Save & Create Invoice" button not working** — form validation/pricing plan issue
 
-## Backlog (Prioritized)
+## P1 Upcoming Tasks
+- Late Penalty Workflow (HR review with Confirm/Reject)
+- Consultant Notifications (assignment alerts)
 
-### P0 — All Complete
-All P0 governance fixes and email CTA flow fixes have been implemented and tested.
+## P2 Future/Backlog
+- Delete legacy `SOWBuilder.js` and `sow_legacy.py`
+- Refactor `ConsultingMeetings.js` (2300+ lines)
+- Deliverables master admin page UI
+- Governance Dashboard UI
 
-### P1 — Upcoming
-- Phase 5: Strict Sales Governance — Linting rules to prevent manual tables in sales module
-- Phase 7: Full Sales Module E2E Test — Comprehensive test suite for entire sales module
-- Appraisals Integration: Auto-reflect salary revisions in payroll engine
+## Key API Endpoints
+| Endpoint | Description |
+|---|---|
+| `GET /api/my/attendance?month=YYYY-MM` | User's attendance with IST late calc |
+| `POST /api/my/check-in` | Self check-in (blocks if leave exists) |
+| `POST /api/my/check-out` | Self check-out with OT calc |
+| `PUT /api/attendance/{id}/regularize` | HR regularization with IST late recalc |
+| `GET /api/my/leave-balance` | Dynamic leave balance |
 
-### P2 — Future
-- Phase 8: Advanced Sales Features (Saved Views, Export to CSV for SalesDataTable)
-- HR Dashboard Frontend UI (backend API `/api/hr/dashboard` exists)
-- Bank Details Management UI
-- Salary Slip PDF generation
-- Arrears resolution tracking view for HR
-
-### P3 — Backlog
-- Refactor ConsultingMeetings.js (technical debt, 2300+ lines)
-- Governance Dashboard UI (frontend page for `/api/governance/*` endpoints)
-- Naming standardization (forward-only approach)
-
----
-
-## Key Credentials
-
+## Credentials
 | Role | Employee ID | Password |
-|------|-------------|----------|
+|---|---|---|
 | Admin | EMP001 | admin123 |
-| HR Manager | EMP002 | hr123 |
-| Sales Executive | EMP003 | sales123 |
-| Consultant | EMP004 | consultant123 |
-| Employee | EMP005 | employee123 |
-
----
-
-## Testing Status
-
-- **Iteration 222**: P0 Email CTA Fixes - 100% backend + frontend pass (Reschedule page, Close confirmation, Logo size, Status tracking)
-- **Iteration 216**: Phase 4 Migration (Leads.js, ManagerLeadsDashboard.js) - 100% frontend pass
-- **Iteration 215**: Sales Module Governance APIs - 100% backend pass (35/35 tests)
-- **Iteration 214**: Data Governance Phase 2 - 100% frontend pass rate (GovernedDropdown across all modules)
-- **Iteration 213**: MOM SLA Reminder & Meeting-Expense Link - 100% backend pass rate (12/12 tests)
-- **Iteration 212**: P0 Governance Fixes - 100% backend pass rate (17/17 tests)
-- **Iteration 210**: My Day Bar & Global Sorting - 92% backend, 100% frontend pass rate
-- **Iteration 209**: Consulting Meeting Travel Expense
-- **Iteration 208**: Data Governance - Governed Dropdown
+| Sales | EMP003 | sales123 |
