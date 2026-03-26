@@ -36,6 +36,7 @@ import {
   ListTodo, ClipboardList, User, Calendar, FileUp, Loader2,
   ThumbsUp, ThumbsDown, AlertTriangle, Eye
 } from 'lucide-react';
+import SOWDeliveryTable from './SOWDeliveryTable';
 
 // Manager roles that can approve NA requests
 const MANAGER_ROLES = ['admin', 'hr_admin', 'principal_consultant', 'manager'];
@@ -1095,6 +1096,131 @@ const ProjectSOWDelivery = ({ projectId }) => {
     uploadSOWProofMutation.mutate(file);
   };
   
+  // === Deliverable Mutations for SOWDeliveryTable ===
+  const addDeliverableMutation = useMutation({
+    mutationFn: async ({ scopeId, name }) => {
+      const response = await axios.post(
+        `${API}/project-sow-delivery/${projectSow.id}/scope/${scopeId}/deliverable`,
+        { name }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success('Deliverable added');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to add deliverable');
+    }
+  });
+  
+  const updateDeliverableMutation = useMutation({
+    mutationFn: async ({ scopeId, deliverableId, updates }) => {
+      await axios.patch(
+        `${API}/project-sow-delivery/${projectSow.id}/scope/${scopeId}/deliverable/${deliverableId}`,
+        updates
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to update deliverable');
+    }
+  });
+  
+  const deleteDeliverableMutation = useMutation({
+    mutationFn: async ({ scopeId, deliverableId }) => {
+      await axios.delete(
+        `${API}/project-sow-delivery/${projectSow.id}/scope/${scopeId}/deliverable/${deliverableId}`
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success('Deliverable deleted');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to delete deliverable');
+    }
+  });
+  
+  const addScopeMutation = useMutation({
+    mutationFn: async ({ name, category }) => {
+      const response = await axios.post(
+        `${API}/project-sow-delivery/${projectSow.id}/scope`,
+        { name, category }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success('Scope added');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed to add scope');
+    }
+  });
+  
+  // Handlers for SOWDeliveryTable
+  const handleUpdateScope = (scopeId, updates) => {
+    if (updates.status) {
+      updateScopeMutation.mutate({ scopeId, status: updates.status });
+    }
+    if (updates.start_date !== undefined) {
+      updateScopeDateMutation.mutate({ scopeId, field: 'start_date', value: updates.start_date });
+    }
+  };
+  
+  const handleAddScope = (data) => {
+    addScopeMutation.mutate(data);
+  };
+  
+  const handleUpdateDeliverable = (scopeId, deliverableId, updates) => {
+    updateDeliverableMutation.mutate({ scopeId, deliverableId, updates });
+  };
+  
+  const handleAddDeliverable = (scopeId, name) => {
+    addDeliverableMutation.mutate({ scopeId, name });
+  };
+  
+  const handleDeleteDeliverable = (scopeId, deliverableId) => {
+    if (window.confirm('Delete this deliverable?')) {
+      deleteDeliverableMutation.mutate({ scopeId, deliverableId });
+    }
+  };
+  
+  const handleDeliverableProofUpload = async (scopeId, deliverableId, file) => {
+    // Upload to storage and register
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const uploadResponse = await axios.post(
+        `${API}/storage/upload?folder=proofs`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      const fileData = uploadResponse.data.file;
+      
+      await axios.post(`${API}/project-sow-delivery/proofs`, {
+        entity_type: 'deliverable',
+        entity_id: deliverableId,
+        project_sow_id: projectSow.id,
+        scope_id: scopeId,
+        file_url: fileData.file_url,
+        file_name: fileData.original_filename,
+        file_type: fileData.content_type,
+        file_size: fileData.size
+      });
+      
+      queryClient.invalidateQueries(['project-sow', projectId]);
+      toast.success('Proof uploaded');
+    } catch (err) {
+      toast.error('Failed to upload proof');
+    }
+  };
+  
   // Loading state
   if (isLoading) {
     return (
@@ -1265,58 +1391,19 @@ const ProjectSOWDelivery = ({ projectId }) => {
           </TabsTrigger>
         </TabsList>
         
-        {/* Scopes Tab - Table View matching Sales SOW */}
+        {/* Scopes Tab - Using new SOWDeliveryTable */}
         <TabsContent value="scopes" className="mt-4">
-          <Card className="border border-zinc-200">
-            <CardHeader className="py-3 border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4" />
-                  Scope of Work ({totalScopes} items)
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {/* Table Header */}
-              <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-zinc-50 border-b text-xs font-medium text-zinc-600">
-                <div className="col-span-1">#</div>
-                <div className="col-span-1">Category</div>
-                <div className="col-span-2">Scope</div>
-                <div className="col-span-2">Deliverables</div>
-                <div className="col-span-1 text-center">Start</div>
-                <div className="col-span-1 text-center">End</div>
-                <div className="col-span-1 text-center">Days</div>
-                <div className="col-span-1 text-center">Status</div>
-                <div className="col-span-2 text-center">Actions</div>
-              </div>
-
-              {/* Table Rows */}
-              {projectSow.scopes?.length === 0 ? (
-                <div className="text-center py-12 text-zinc-400">
-                  <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>No scopes defined</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-zinc-100">
-                  {projectSow.scopes?.map((scope, idx) => (
-                    <ScopeTableRow
-                      key={scope.id}
-                      index={idx}
-                      scope={scope}
-                      tasks={tasks}
-                      proofs={proofs}
-                      onStatusChange={handleScopeStatusChange}
-                      onStartDateChange={handleScopeDateChange}
-                      onUploadProof={handleUploadProof}
-                      uploadingTaskId={uploadingTaskId}
-                      permissions={permissions}
-                      isManager={isManager}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <SOWDeliveryTable
+            scopes={projectSow?.scopes || []}
+            onUpdateScope={handleUpdateScope}
+            onAddScope={handleAddScope}
+            onUpdateDeliverable={handleUpdateDeliverable}
+            onAddDeliverable={handleAddDeliverable}
+            onDeleteDeliverable={handleDeleteDeliverable}
+            onUploadProof={handleDeliverableProofUpload}
+            permissions={{ can_edit: permissions.can_edit_sow }}
+            isLoading={isLoading}
+          />
         </TabsContent>
         
         {/* All Tasks Tab */}

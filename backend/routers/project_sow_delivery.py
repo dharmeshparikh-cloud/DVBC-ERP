@@ -60,6 +60,18 @@ class ProofEntityType(str, Enum):
 
 # ============== Models ==============
 
+class Deliverable(BaseModel):
+    """Individual deliverable within a scope - each has own status/dates/proofs"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    status: ProjectSOWStatus = ProjectSOWStatus.OPEN
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    notes: Optional[str] = None
+    # Proofs are stored in sow_proofs collection with deliverable_id reference
+
+
 class ProjectSOWScope(BaseModel):
     """Scope item in PROJECT_SOW (copied from master, customizable by PM)"""
     model_config = ConfigDict(extra="ignore")
@@ -78,7 +90,11 @@ class ProjectSOWScope(BaseModel):
     progress_percentage: float = 0.0
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    deliverables: List[str] = []  # Expected deliverables
+    
+    # Deliverables - now structured objects with own status/dates
+    deliverables: Optional[str] = None  # Legacy: comma-separated string
+    deliverables_list: List[Deliverable] = []  # New: structured deliverables
+    
     notes: Optional[str] = None
     is_customized: bool = False  # True if PM modified from original
     customized_by: Optional[str] = None
@@ -373,6 +389,30 @@ async def get_project_sow(
                     "message": "SOW Master exists but PROJECT_SOW not yet created. Trigger kickoff to create."
                 }
         raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
+    
+    # Convert legacy deliverables string to deliverables_list for each scope
+    scopes = project_sow.get("scopes", [])
+    for scope in scopes:
+        deliverables_list = scope.get("deliverables_list", [])
+        
+        # If deliverables_list is empty but deliverables string exists, convert
+        if not deliverables_list and scope.get("deliverables"):
+            deliverables_str = scope.get("deliverables", "")
+            if isinstance(deliverables_str, str) and deliverables_str.strip():
+                for item in deliverables_str.split(","):
+                    item = item.strip()
+                    if item:
+                        deliverables_list.append({
+                            "id": str(uuid.uuid4()),
+                            "name": item,
+                            "status": "open",
+                            "start_date": None,
+                            "end_date": None,
+                            "notes": None
+                        })
+            scope["deliverables_list"] = deliverables_list
+    
+    project_sow["scopes"] = scopes
     
     # Get tasks for this PROJECT_SOW
     tasks = await db.sow_tasks.find(
@@ -1221,3 +1261,255 @@ async def check_sow_locked(
         "is_locked": is_locked,
         "can_edit": not is_locked
     }
+
+
+
+# ============== Deliverable Management ==============
+
+class DeliverableCreate(BaseModel):
+    """Create a new deliverable within a scope"""
+    name: str
+    status: Optional[str] = "open"
+
+
+class DeliverableUpdate(BaseModel):
+    """Update a deliverable"""
+    name: Optional[str] = None
+    status: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.post("/{project_sow_id}/scope/{scope_id}/deliverable")
+async def add_deliverable(
+    project_sow_id: str,
+    scope_id: str,
+    data: DeliverableCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Add a new deliverable to a scope"""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0})
+    if not project_sow:
+        raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
+    
+    scopes = project_sow.get("scopes", [])
+    scope_found = False
+    
+    for scope in scopes:
+        if scope.get("id") == scope_id:
+            scope_found = True
+            deliverables_list = scope.get("deliverables_list", [])
+            
+            new_deliverable = {
+                "id": str(uuid.uuid4()),
+                "name": data.name,
+                "status": data.status or "open",
+                "start_date": None,
+                "end_date": None,
+                "notes": None,
+                "created_at": now.isoformat()
+            }
+            
+            deliverables_list.append(new_deliverable)
+            scope["deliverables_list"] = deliverables_list
+            scope["is_customized"] = True
+            scope["customized_by"] = current_user.id
+            scope["customized_at"] = now.isoformat()
+            break
+    
+    if not scope_found:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    
+    await db.project_sow.update_one(
+        {"id": project_sow_id},
+        {
+            "$set": {
+                "scopes": scopes,
+                "updated_at": now.isoformat(),
+                "updated_by": current_user.id,
+                "updated_by_name": current_user.full_name
+            }
+        }
+    )
+    
+    return {"message": "Deliverable added", "deliverable": new_deliverable}
+
+
+@router.patch("/{project_sow_id}/scope/{scope_id}/deliverable/{deliverable_id}")
+async def update_deliverable(
+    project_sow_id: str,
+    scope_id: str,
+    deliverable_id: str,
+    data: DeliverableUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a deliverable within a scope"""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0})
+    if not project_sow:
+        raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
+    
+    scopes = project_sow.get("scopes", [])
+    deliverable_found = False
+    
+    for scope in scopes:
+        if scope.get("id") == scope_id:
+            deliverables_list = scope.get("deliverables_list", [])
+            for deliverable in deliverables_list:
+                if deliverable.get("id") == deliverable_id:
+                    deliverable_found = True
+                    
+                    # Update fields if provided
+                    if data.name is not None:
+                        deliverable["name"] = data.name
+                    if data.status is not None:
+                        old_status = deliverable.get("status")
+                        deliverable["status"] = data.status
+                        # Auto-set end_date when marked as implemented
+                        if data.status == "implemented" and old_status != "implemented":
+                            deliverable["end_date"] = now.isoformat()
+                    if data.start_date is not None:
+                        deliverable["start_date"] = data.start_date if data.start_date else None
+                    if data.end_date is not None:
+                        deliverable["end_date"] = data.end_date if data.end_date else None
+                    if data.notes is not None:
+                        deliverable["notes"] = data.notes
+                    
+                    deliverable["updated_at"] = now.isoformat()
+                    break
+            
+            scope["deliverables_list"] = deliverables_list
+            break
+    
+    if not deliverable_found:
+        raise HTTPException(status_code=404, detail="Deliverable not found")
+    
+    await db.project_sow.update_one(
+        {"id": project_sow_id},
+        {
+            "$set": {
+                "scopes": scopes,
+                "updated_at": now.isoformat(),
+                "updated_by": current_user.id
+            }
+        }
+    )
+    
+    return {"message": "Deliverable updated"}
+
+
+@router.delete("/{project_sow_id}/scope/{scope_id}/deliverable/{deliverable_id}")
+async def delete_deliverable(
+    project_sow_id: str,
+    scope_id: str,
+    deliverable_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a deliverable from a scope"""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0})
+    if not project_sow:
+        raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
+    
+    scopes = project_sow.get("scopes", [])
+    
+    for scope in scopes:
+        if scope.get("id") == scope_id:
+            deliverables_list = scope.get("deliverables_list", [])
+            scope["deliverables_list"] = [d for d in deliverables_list if d.get("id") != deliverable_id]
+            break
+    
+    await db.project_sow.update_one(
+        {"id": project_sow_id},
+        {
+            "$set": {
+                "scopes": scopes,
+                "updated_at": now.isoformat(),
+                "updated_by": current_user.id
+            }
+        }
+    )
+    
+    return {"message": "Deliverable deleted"}
+
+
+class ScopeCreate(BaseModel):
+    """Create a new scope"""
+    name: str
+    category: str = "General"
+    deliverables: Optional[str] = None  # Comma-separated
+
+
+@router.post("/{project_sow_id}/scope")
+async def add_scope(
+    project_sow_id: str,
+    data: ScopeCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Add a new scope to PROJECT_SOW"""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0})
+    if not project_sow:
+        raise HTTPException(status_code=404, detail="PROJECT_SOW not found")
+    
+    scopes = project_sow.get("scopes", [])
+    
+    # Parse deliverables from comma-separated string into list
+    deliverables_list = []
+    if data.deliverables:
+        for item in data.deliverables.split(","):
+            item = item.strip()
+            if item:
+                deliverables_list.append({
+                    "id": str(uuid.uuid4()),
+                    "name": item,
+                    "status": "open",
+                    "start_date": None,
+                    "end_date": None,
+                    "notes": None
+                })
+    
+    new_scope = {
+        "id": str(uuid.uuid4()),
+        "original_scope_id": "",  # New scope, no original
+        "name": data.name,
+        "description": None,
+        "category_id": "",
+        "category_code": data.category.lower().replace(" ", "_"),
+        "category_name": data.category,
+        "status": "open",
+        "progress_percentage": 0.0,
+        "start_date": None,
+        "end_date": None,
+        "deliverables": data.deliverables,
+        "deliverables_list": deliverables_list,
+        "is_customized": True,
+        "customized_by": current_user.id,
+        "customized_at": now.isoformat()
+    }
+    
+    scopes.append(new_scope)
+    
+    await db.project_sow.update_one(
+        {"id": project_sow_id},
+        {
+            "$set": {
+                "scopes": scopes,
+                "updated_at": now.isoformat(),
+                "updated_by": current_user.id,
+                "updated_by_name": current_user.full_name
+            }
+        }
+    )
+    
+    return {"message": "Scope added", "scope": new_scope}
