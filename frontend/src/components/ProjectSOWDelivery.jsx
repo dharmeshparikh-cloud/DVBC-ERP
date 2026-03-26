@@ -34,7 +34,7 @@ import {
   ChevronDown, ChevronRight, Upload, Download, Trash2,
   Edit2, Play, Pause, RotateCcw, Lock, Unlock,
   ListTodo, ClipboardList, User, Calendar, FileUp, Loader2,
-  ThumbsUp, ThumbsDown, AlertTriangle
+  ThumbsUp, ThumbsDown, AlertTriangle, Eye
 } from 'lucide-react';
 
 // Manager roles that can approve NA requests
@@ -44,6 +44,7 @@ const MANAGER_ROLES = ['admin', 'hr_admin', 'principal_consultant', 'manager'];
 const SOW_STATUSES = {
   open: { label: 'Open', color: 'bg-zinc-100 text-zinc-700', icon: Clock },
   wip: { label: 'Work In Progress', color: 'bg-blue-100 text-blue-700', icon: Play },
+  blocked: { label: 'Blocked', color: 'bg-red-100 text-red-700', icon: AlertCircle },
   implemented: { label: 'Implemented', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
   na_pending: { label: 'NA Pending Approval', color: 'bg-amber-100 text-amber-700', icon: Clock },
   not_applicable: { label: 'Not Applicable', color: 'bg-zinc-100 text-zinc-500', icon: Pause },
@@ -460,15 +461,21 @@ const ScopeTableRow = ({
   onStatusChange,
   onStartDateChange,
   onUploadProof,
+  onUpdateDeliverables,
   uploadingTaskId,
   permissions,
-  isManager
+  isManager,
+  proofs = []
 }) => {
   const [editingDeliverables, setEditingDeliverables] = useState(false);
   const [deliverables, setDeliverables] = useState(scope.deliverables || '');
+  const [showProofModal, setShowProofModal] = useState(false);
   const fileInputRef = useRef(null);
   
   const scopeTasks = tasks.filter(t => t.scope_id === scope.id);
+  
+  // Get scope-level proofs
+  const scopeProofs = proofs.filter(p => p.scope_id === scope.id && !p.task_id);
   
   // Calculate days taken
   const calculateDays = () => {
@@ -493,155 +500,309 @@ const ScopeTableRow = ({
   };
   
   const statusConfig = SOW_STATUSES[scope.status] || SOW_STATUSES.open;
+  const StatusIcon = statusConfig.icon;
   
-  // Get available statuses based on role
+  // Get available statuses based on role and current status
   const getAvailableStatuses = () => {
+    const baseStatuses = ['open', 'wip', 'blocked', 'na_pending', 'implemented', 'reopen'];
     if (isManager) {
-      return ['open', 'wip', 'blocked', 'na_pending', 'not_applicable', 'implemented', 'reopen'];
+      return [...baseStatuses, 'not_applicable'];
     }
-    return ['open', 'wip', 'blocked', 'na_pending', 'implemented', 'reopen'];
+    return baseStatuses;
+  };
+  
+  // Check if status change is valid
+  const handleStatusChange = (newStatus) => {
+    // Require proof for "implemented" status
+    if (newStatus === 'implemented' && scopeProofs.length === 0) {
+      toast.error('Please upload at least one proof before marking as Implemented');
+      return;
+    }
+    // Require start date for WIP or implemented
+    if ((newStatus === 'wip' || newStatus === 'implemented') && !scope.start_date) {
+      toast.error('Please set a start date first');
+      return;
+    }
+    onStatusChange(scope.id, newStatus);
   };
   
   // Handle file upload for proof
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await onUploadProof(null, scope.id, file); // null for task_id means scope-level proof
+    await onUploadProof(null, scope.id, file);
+    e.target.value = ''; // Reset input
   };
   
-  // Handle deliverables save (would need mutation)
+  // Handle deliverables save
   const handleSaveDeliverables = () => {
-    // TODO: Implement deliverables update mutation
+    if (onUpdateDeliverables) {
+      onUpdateDeliverables(scope.id, deliverables);
+    }
     setEditingDeliverables(false);
     toast.success('Deliverables updated');
   };
   
+  // Get file type icon
+  const getFileIcon = (filename) => {
+    const ext = filename?.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return '🖼️';
+    if (['pdf'].includes(ext)) return '📄';
+    if (['doc', 'docx'].includes(ext)) return '📝';
+    if (['xls', 'xlsx'].includes(ext)) return '📊';
+    return '📎';
+  };
+  
+  // Check if file is an image (for preview)
+  const isImageFile = (filename) => {
+    const ext = filename?.split('.').pop()?.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+  };
+  
   return (
-    <div className="grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-zinc-50 group" data-testid={`scope-row-${scope.id}`}>
-      {/* # */}
-      <div className="col-span-1 text-xs text-zinc-400">{index + 1}</div>
-      
-      {/* Category */}
-      <div className="col-span-1">
-        <Badge variant="secondary" className="text-[10px] px-1.5 whitespace-nowrap">
-          {scope.category_name || scope.category || 'General'}
-        </Badge>
-      </div>
-      
-      {/* Scope Name */}
-      <div className="col-span-2">
-        <p className="text-sm font-medium">{scope.name}</p>
-        {scopeTasks.length > 0 && (
-          <p className="text-[10px] text-zinc-400">{scopeTasks.length} tasks</p>
-        )}
-      </div>
-      
-      {/* Deliverables - Editable */}
-      <div className="col-span-2">
-        {editingDeliverables ? (
-          <div className="flex items-center gap-1">
-            <Input
-              value={deliverables}
-              onChange={(e) => setDeliverables(e.target.value)}
-              className="h-7 text-xs"
-              placeholder="Comma-separated deliverables"
-            />
-            <Button size="sm" className="h-7 px-2" onClick={handleSaveDeliverables}>
-              <CheckCircle className="w-3 h-3" />
-            </Button>
-          </div>
-        ) : (
-          <div 
-            className="text-xs text-zinc-600 cursor-pointer hover:text-zinc-900 line-clamp-2"
-            onClick={() => permissions.can_edit_sow && setEditingDeliverables(true)}
-            title={scope.deliverables}
-          >
-            {scope.deliverables || <span className="text-zinc-400 italic">No deliverables</span>}
-          </div>
-        )}
-      </div>
-      
-      {/* Start Date */}
-      <div className="col-span-1 text-center">
-        {permissions.can_edit_sow ? (
-          <Input
-            type="date"
-            value={formatDateInput(scope.start_date)}
-            onChange={(e) => onStartDateChange(scope.id, 'start_date', e.target.value)}
-            className="h-6 text-[10px] px-1 w-full"
-          />
-        ) : (
-          <span className="text-xs">{formatDate(scope.start_date)}</span>
-        )}
-      </div>
-      
-      {/* End Date */}
-      <div className="col-span-1 text-center">
-        <span className="text-xs text-zinc-500">
-          {scope.status === 'implemented' ? formatDate(scope.end_date) : '-'}
-        </span>
-      </div>
-      
-      {/* Days */}
-      <div className="col-span-1 text-center">
-        <span className="text-xs font-medium">{calculateDays()}</span>
-      </div>
-      
-      {/* Status */}
-      <div className="col-span-1 text-center">
-        <Select
-          value={scope.status || 'open'}
-          onValueChange={(val) => onStatusChange(scope.id, val)}
-          disabled={!permissions.can_edit_sow}
-        >
-          <SelectTrigger className="h-6 text-[10px] px-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {getAvailableStatuses().map(status => (
-              <SelectItem key={status} value={status} className="text-xs">
-                {SOW_STATUSES[status]?.label || status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {/* Actions - Proof Upload */}
-      <div className="col-span-2 flex items-center justify-center gap-1">
-        {/* Proof upload */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          className="hidden"
-          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
-        />
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-[10px]"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploadingTaskId === scope.id}
-        >
-          {uploadingTaskId === scope.id ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
-          ) : (
-            <>
-              <Upload className="w-3 h-3 mr-1" />
-              Proof
-            </>
-          )}
-        </Button>
+    <>
+      <div className="grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-zinc-50 group border-b border-zinc-100" data-testid={`scope-row-${scope.id}`}>
+        {/* # */}
+        <div className="col-span-1 text-xs text-zinc-400 font-medium">{index + 1}</div>
         
-        {/* Proof count badge */}
-        {scope.proofs?.length > 0 && (
-          <Badge variant="outline" className="text-[10px] h-5 px-1 bg-emerald-50 text-emerald-600 border-emerald-200">
-            {scope.proofs.length}
+        {/* Category */}
+        <div className="col-span-1">
+          <Badge variant="secondary" className="text-[10px] px-1.5 whitespace-nowrap">
+            {scope.category_name || scope.category || 'General'}
           </Badge>
-        )}
+        </div>
+        
+        {/* Scope Name */}
+        <div className="col-span-2">
+          <p className="text-sm font-medium text-zinc-800">{scope.name}</p>
+          {scopeTasks.length > 0 && (
+            <p className="text-[10px] text-zinc-400 mt-0.5">{scopeTasks.length} tasks</p>
+          )}
+        </div>
+        
+        {/* Deliverables - Editable */}
+        <div className="col-span-2">
+          {editingDeliverables ? (
+            <div className="flex items-center gap-1">
+              <Input
+                value={deliverables}
+                onChange={(e) => setDeliverables(e.target.value)}
+                className="h-7 text-xs"
+                placeholder="Comma-separated deliverables"
+                autoFocus
+              />
+              <Button size="sm" className="h-7 w-7 p-0" onClick={handleSaveDeliverables}>
+                <CheckCircle className="w-3 h-3" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingDeliverables(false)}>
+                <AlertCircle className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : (
+            <div 
+              className={`text-xs text-zinc-600 line-clamp-2 ${permissions.can_edit_sow ? 'cursor-pointer hover:text-zinc-900 hover:bg-zinc-100 rounded px-1 -mx-1' : ''}`}
+              onClick={() => permissions.can_edit_sow && setEditingDeliverables(true)}
+              title={scope.deliverables || 'Click to add deliverables'}
+            >
+              {scope.deliverables || <span className="text-zinc-400 italic">Click to add</span>}
+            </div>
+          )}
+        </div>
+        
+        {/* Start Date */}
+        <div className="col-span-1 text-center">
+          {permissions.can_edit_sow ? (
+            <Input
+              type="date"
+              value={formatDateInput(scope.start_date)}
+              onChange={(e) => onStartDateChange(scope.id, 'start_date', e.target.value)}
+              className="h-6 text-[10px] px-1 w-full"
+            />
+          ) : (
+            <span className="text-xs">{formatDate(scope.start_date)}</span>
+          )}
+        </div>
+        
+        {/* End Date */}
+        <div className="col-span-1 text-center">
+          <span className="text-xs text-zinc-500">
+            {scope.status === 'implemented' && scope.end_date ? formatDate(scope.end_date) : '-'}
+          </span>
+        </div>
+        
+        {/* Days */}
+        <div className="col-span-1 text-center">
+          <span className={`text-xs font-medium ${scope.status === 'implemented' ? 'text-emerald-600' : ''}`}>
+            {calculateDays()}
+          </span>
+        </div>
+        
+        {/* Status */}
+        <div className="col-span-1">
+          <Select
+            value={scope.status || 'open'}
+            onValueChange={handleStatusChange}
+            disabled={!permissions.can_edit_sow}
+          >
+            <SelectTrigger className={`h-7 text-[10px] px-2 ${statusConfig.color} border-0`}>
+              <div className="flex items-center gap-1">
+                <StatusIcon className="w-3 h-3" />
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {getAvailableStatuses().map(status => {
+                const config = SOW_STATUSES[status];
+                const Icon = config?.icon || Clock;
+                return (
+                  <SelectItem key={status} value={status} className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-3 h-3" />
+                      {config?.label || status}
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Actions - Proof Upload & View */}
+        <div className="col-span-2 flex items-center justify-end gap-1">
+          {/* View Proofs button (if proofs exist) */}
+          {scopeProofs.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-[10px] bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+              onClick={() => setShowProofModal(true)}
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              View ({scopeProofs.length})
+            </Button>
+          )}
+          
+          {/* Upload proof */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            className="hidden"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
+          />
+          {permissions.can_edit_sow && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-[10px]"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingTaskId === scope.id}
+            >
+              {uploadingTaskId === scope.id ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <>
+                  <Upload className="w-3 h-3 mr-1" />
+                  Upload
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
+      
+      {/* Proof View Modal */}
+      <Dialog open={showProofModal} onOpenChange={setShowProofModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Proofs for: {scope.name}
+            </DialogTitle>
+            <DialogDescription>
+              {scopeProofs.length} proof(s) uploaded for this scope
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {scopeProofs.map((proof, idx) => (
+              <div 
+                key={proof.id || idx} 
+                className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg border border-zinc-200"
+              >
+                {/* Preview for images */}
+                {isImageFile(proof.file_name) && proof.file_url ? (
+                  <img 
+                    src={proof.file_url} 
+                    alt={proof.file_name}
+                    className="w-16 h-16 object-cover rounded border"
+                  />
+                ) : (
+                  <div className="w-16 h-16 flex items-center justify-center bg-zinc-100 rounded border text-2xl">
+                    {getFileIcon(proof.file_name)}
+                  </div>
+                )}
+                
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{proof.file_name || 'Proof file'}</p>
+                  <p className="text-xs text-zinc-500">
+                    Uploaded {proof.uploaded_at ? new Date(proof.uploaded_at).toLocaleDateString() : 'recently'}
+                    {proof.uploaded_by_name && ` by ${proof.uploaded_by_name}`}
+                  </p>
+                  {proof.notes && (
+                    <p className="text-xs text-zinc-600 mt-1">{proof.notes}</p>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* View in new tab */}
+                  {proof.file_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => window.open(proof.file_url, '_blank')}
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1" />
+                      View
+                    </Button>
+                  )}
+                  {/* Download */}
+                  {proof.file_url && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = proof.file_url;
+                        link.download = proof.file_name || 'proof';
+                        link.click();
+                      }}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {scopeProofs.length === 0 && (
+              <div className="text-center py-8 text-zinc-400">
+                <FileUp className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>No proofs uploaded yet</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProofModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
@@ -824,10 +985,10 @@ const ProjectSOWDelivery = ({ projectId }) => {
     }
   };
   
-  // Proof Upload Mutation
+  // Proof Upload Mutation - Supports both task and scope proofs
   const [uploadingTaskId, setUploadingTaskId] = useState(null);
   const uploadProofMutation = useMutation({
-    mutationFn: async ({ taskId, file }) => {
+    mutationFn: async ({ taskId, scopeId, file }) => {
       // First upload file to storage
       const formData = new FormData();
       formData.append('file', file);
@@ -840,10 +1001,26 @@ const ProjectSOWDelivery = ({ projectId }) => {
       
       const fileData = uploadResponse.data.file;
       
-      // Then register proof with SOW
+      // Determine entity type and id based on whether taskId or scopeId is provided
+      let entity_type, entity_id;
+      if (taskId) {
+        entity_type = 'task';
+        entity_id = taskId;
+      } else if (scopeId) {
+        entity_type = 'scope';
+        entity_id = scopeId;
+      } else {
+        entity_type = 'project_sow';
+        entity_id = projectSow.id;
+      }
+      
+      // Register proof with SOW
       const proofResponse = await axios.post(`${API}/project-sow-delivery/proofs`, {
-        entity_type: 'task',
-        entity_id: taskId,
+        entity_type,
+        entity_id,
+        project_sow_id: projectSow.id,
+        scope_id: scopeId || null,
+        task_id: taskId || null,
         file_url: fileData.file_url,
         file_name: fileData.original_filename,
         file_type: fileData.content_type,
@@ -852,17 +1029,18 @@ const ProjectSOWDelivery = ({ projectId }) => {
       
       return proofResponse.data;
     },
-    onMutate: ({ taskId }) => {
-      setUploadingTaskId(taskId);
+    onMutate: ({ taskId, scopeId }) => {
+      setUploadingTaskId(taskId || scopeId); // Track which item is uploading
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['project-sow', projectId]);
       toast.success('Proof uploaded successfully');
+    },
+    onSettled: () => {
       setUploadingTaskId(null);
     },
     onError: (err) => {
       toast.error(err.response?.data?.detail || 'Failed to upload proof');
-      setUploadingTaskId(null);
     }
   });
   
@@ -908,8 +1086,9 @@ const ProjectSOWDelivery = ({ projectId }) => {
     }
   });
   
-  const handleUploadProof = (taskId, file) => {
-    uploadProofMutation.mutate({ taskId, file });
+  // Handler for uploading proofs (supports task or scope level)
+  const handleUploadProof = (taskId, scopeId, file) => {
+    uploadProofMutation.mutate({ taskId, scopeId, file });
   };
   
   const handleUploadSOWProof = (file) => {
@@ -1118,13 +1297,14 @@ const ProjectSOWDelivery = ({ projectId }) => {
                   <p>No scopes defined</p>
                 </div>
               ) : (
-                <div className="divide-y">
+                <div className="divide-y divide-zinc-100">
                   {projectSow.scopes?.map((scope, idx) => (
                     <ScopeTableRow
                       key={scope.id}
                       index={idx}
                       scope={scope}
                       tasks={tasks}
+                      proofs={proofs}
                       onStatusChange={handleScopeStatusChange}
                       onStartDateChange={handleScopeDateChange}
                       onUploadProof={handleUploadProof}
@@ -1194,24 +1374,60 @@ const ProjectSOWDelivery = ({ projectId }) => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {proofs.map(proof => (
-                    <div key={proof.id} className="flex items-center justify-between p-2 bg-zinc-50 rounded">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-emerald-500" />
-                        <div>
-                          <p className="text-sm">{proof.file_name}</p>
-                          <p className="text-xs text-zinc-500">
-                            v{proof.version} • {proof.uploaded_by_name}
-                          </p>
+                  {proofs.map(proof => {
+                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(
+                      proof.file_name?.split('.').pop()?.toLowerCase()
+                    );
+                    return (
+                      <div key={proof.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+                        <div className="flex items-center gap-3">
+                          {isImage && proof.file_url ? (
+                            <img 
+                              src={proof.file_url} 
+                              alt={proof.file_name}
+                              className="w-10 h-10 object-cover rounded border"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 rounded border">
+                              <FileText className="w-5 h-5 text-emerald-500" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-medium">{proof.file_name}</p>
+                            <p className="text-xs text-zinc-500">
+                              v{proof.version} • {proof.uploaded_by_name}
+                              {proof.scope_id && ' • Scope proof'}
+                              {proof.task_id && ' • Task proof'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {/* View Button */}
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => window.open(proof.file_url, '_blank')}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                          {/* Download Button */}
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = proof.file_url;
+                              link.download = proof.file_name;
+                              link.click();
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={proof.file_url} target="_blank" rel="noopener noreferrer">
-                          <Download className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

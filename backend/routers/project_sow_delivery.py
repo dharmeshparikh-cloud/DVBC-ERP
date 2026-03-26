@@ -54,6 +54,7 @@ class TaskStatus(str, Enum):
 class ProofEntityType(str, Enum):
     """Entity type for proof attachment"""
     PROJECT_SOW = "project_sow"
+    SCOPE = "scope"  # Scope-level proof
     TASK = "task"
 
 
@@ -150,11 +151,16 @@ class SOWTask(BaseModel):
 
 
 class SOWProof(BaseModel):
-    """Proof/Evidence attached to SOW or Task"""
+    """Proof/Evidence attached to SOW, Scope or Task"""
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     entity_type: ProofEntityType
-    entity_id: str  # project_sow.id or task.id
+    entity_id: str  # project_sow.id, scope.id, or task.id
+    
+    # Direct references for easier querying
+    project_sow_id: Optional[str] = None  # Parent PROJECT_SOW
+    scope_id: Optional[str] = None  # If scope-level proof
+    task_id: Optional[str] = None  # If task-level proof
     
     # File info
     file_url: str
@@ -168,6 +174,7 @@ class SOWProof(BaseModel):
     
     # Metadata
     description: Optional[str] = None
+    notes: Optional[str] = None
     uploaded_by: str
     uploaded_by_name: Optional[str] = None
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -222,6 +229,9 @@ class UploadProofRequest(BaseModel):
     """Upload proof metadata (file uploaded separately via Object Storage)"""
     entity_type: ProofEntityType
     entity_id: str
+    project_sow_id: Optional[str] = None  # Parent PROJECT_SOW for reference
+    scope_id: Optional[str] = None  # If scope-level proof
+    task_id: Optional[str] = None  # If task-level proof
     file_url: str
     file_name: str
     file_type: Optional[str] = None
@@ -370,26 +380,45 @@ async def get_project_sow(
         {"_id": 0}
     ).sort("created_at", 1).to_list(500)
     
-    # Get proofs for this PROJECT_SOW
-    proofs = await db.sow_proofs.find(
+    # Get ALL proofs for this PROJECT_SOW (sow-level, scope-level, task-level)
+    all_proofs = await db.sow_proofs.find(
+        {"project_sow_id": project_sow["id"]},
+        {"_id": 0}
+    ).sort("uploaded_at", -1).to_list(500)
+    
+    # Also get proofs that don't have project_sow_id set but match entity_id (legacy)
+    sow_level_proofs = await db.sow_proofs.find(
         {"entity_type": "project_sow", "entity_id": project_sow["id"]},
         {"_id": 0}
     ).sort("uploaded_at", -1).to_list(100)
     
-    # Get task-level proofs
+    # Merge unique proofs
+    proof_ids = set(p["id"] for p in all_proofs)
+    for p in sow_level_proofs:
+        if p["id"] not in proof_ids:
+            all_proofs.append(p)
+    
+    # Get task-level proofs (legacy - without project_sow_id)
     task_ids = [t["id"] for t in tasks]
     task_proofs = await db.sow_proofs.find(
         {"entity_type": "task", "entity_id": {"$in": task_ids}},
         {"_id": 0}
     ).to_list(500)
     
+    # Add any missing task proofs
+    for p in task_proofs:
+        if p["id"] not in proof_ids:
+            all_proofs.append(p)
+            proof_ids.add(p["id"])
+    
     # Map proofs to tasks
     task_proofs_map = {}
-    for proof in task_proofs:
-        tid = proof["entity_id"]
-        if tid not in task_proofs_map:
-            task_proofs_map[tid] = []
-        task_proofs_map[tid].append(proof)
+    for proof in all_proofs:
+        if proof.get("task_id") or (proof.get("entity_type") == "task"):
+            tid = proof.get("task_id") or proof.get("entity_id")
+            if tid not in task_proofs_map:
+                task_proofs_map[tid] = []
+            task_proofs_map[tid].append(proof)
     
     # Attach proofs to tasks
     for task in tasks:
@@ -402,7 +431,7 @@ async def get_project_sow(
     return {
         "project_sow": project_sow,
         "tasks": tasks,
-        "proofs": proofs,
+        "proofs": all_proofs,  # Return all proofs with scope_id, task_id fields
         "permissions": {
             "can_edit_sow": can_edit,
             "can_manage_tasks": can_work,
@@ -1035,11 +1064,33 @@ async def upload_proof(
     """Register proof after file uploaded to Object Storage"""
     db = get_db()
     
-    # Verify entity exists
+    # Determine scope_id, task_id, project_sow_id based on entity_type
+    project_sow_id = request.project_sow_id
+    scope_id = request.scope_id
+    task_id = request.task_id
+    
+    # Verify entity exists based on type
     if request.entity_type == ProofEntityType.PROJECT_SOW:
         entity = await db.project_sow.find_one({"id": request.entity_id}, {"_id": 0})
-    else:
+        project_sow_id = request.entity_id
+    elif request.entity_type == ProofEntityType.SCOPE:
+        # For scope, we need to verify the scope exists within a project_sow
+        if not project_sow_id:
+            raise HTTPException(status_code=400, detail="project_sow_id required for scope proofs")
+        project_sow = await db.project_sow.find_one({"id": project_sow_id}, {"_id": 0, "scopes": 1})
+        if not project_sow:
+            raise HTTPException(status_code=404, detail="Project SOW not found")
+        scope_found = any(s.get("id") == request.entity_id for s in project_sow.get("scopes", []))
+        if not scope_found:
+            raise HTTPException(status_code=404, detail="Scope not found in Project SOW")
+        scope_id = request.entity_id
+        entity = {"id": request.entity_id}  # Scope exists within project_sow
+    else:  # TASK
         entity = await db.sow_tasks.find_one({"id": request.entity_id}, {"_id": 0})
+        task_id = request.entity_id
+        if entity:
+            scope_id = entity.get("scope_id")
+            project_sow_id = entity.get("project_sow_id")
     
     if not entity:
         raise HTTPException(status_code=404, detail=f"{request.entity_type.value} not found")
@@ -1060,6 +1111,9 @@ async def upload_proof(
     proof = SOWProof(
         entity_type=request.entity_type,
         entity_id=request.entity_id,
+        project_sow_id=project_sow_id,
+        scope_id=scope_id,
+        task_id=task_id,
         file_url=request.file_url,
         file_name=request.file_name,
         file_type=request.file_type,
