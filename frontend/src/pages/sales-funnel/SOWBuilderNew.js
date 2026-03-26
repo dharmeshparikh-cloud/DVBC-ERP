@@ -127,6 +127,12 @@ const SOWBuilderNew = () => {
     onSuccess: () => {
       toast.success('SOW created successfully');
       queryClient.invalidateQueries(['enhanced-sow-simple', pricingPlanId]);
+      // Navigate back to funnel after successful save
+      if (leadId) {
+        navigate(`/leads/${leadId}/funnel`);
+      } else {
+        navigate(-1);
+      }
     },
     onError: (err) => {
       toast.error(err.response?.data?.detail || 'Failed to create SOW');
@@ -144,6 +150,12 @@ const SOWBuilderNew = () => {
     onSuccess: () => {
       toast.success('SOW updated successfully');
       queryClient.invalidateQueries(['enhanced-sow-simple', pricingPlanId]);
+      // Navigate back to funnel after successful save
+      if (leadId) {
+        navigate(`/leads/${leadId}/funnel`);
+      } else {
+        navigate(-1);
+      }
     },
     onError: (err) => {
       toast.error(err.response?.data?.detail || 'Failed to update SOW');

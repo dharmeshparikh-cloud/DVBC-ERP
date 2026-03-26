@@ -578,8 +578,8 @@ const SalesFunnelOnboarding = () => {
                   </div>
                 )}
 
-                {/* Agreement Blocking Banner */}
-                {funnelStatus.is_blocked && (
+                {/* Agreement Blocking Banner - Only show on steps where it blocks */}
+                {funnelStatus.is_blocked && ['agreement', 'record_payment', 'kickoff_request'].includes(FUNNEL_STEPS[currentStep]?.id) && (
                   <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
