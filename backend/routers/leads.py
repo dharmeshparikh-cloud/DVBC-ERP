@@ -1207,14 +1207,25 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
         linked_data["pricing_plan_id"] = pricing.get("id")
         linked_data["pricing_plan_total"] = pricing.get("grand_total", 0)
     
-    # Step 4: SOW - check if SOW exists (check both sows and enhanced_sows collections)
+    # Step 4: SOW - check if SOW exists (check both sows and enhanced_sow collections)
+    # enhanced_sow is linked via pricing_plan_id, not directly via lead_id
     sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0})
+    if not sow and pricing:
+        # Check enhanced_sow via pricing_plan_id
+        sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing.get("id")}, {"_id": 0})
     if not sow:
-        sow = await db.enhanced_sows.find_one({"lead_id": lead_id}, {"_id": 0})
+        # Fallback: check enhanced_sow by lead_id (in case it has lead_id field)
+        sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Get scopes from either scope_items (legacy) or scopes (enhanced_sow)
+    sow_scopes = []
     if sow:
+        sow_scopes = sow.get("scopes") or sow.get("scope_items") or []
+    
+    if sow and len(sow_scopes) > 0:
         completed_steps.append("scope_of_work")
         linked_data["sow_id"] = sow.get("id")
-        linked_data["sow_items_count"] = len(sow.get("scope_items", []))
+        linked_data["sow_items_count"] = len(sow_scopes)
     
     # Step 5: Quotation - check if quotation exists
     quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0})
@@ -1361,7 +1372,10 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
     # Get current funnel progress
     meetings = await db.meetings.find({"lead_id": lead_id}, {"_id": 0}).to_list(100)
     pricing = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
-    sow = await db.enhanced_sows.find_one({"lead_id": lead_id}, {"_id": 0})
+    # Get SOW - check via pricing_plan_id for enhanced_sow
+    sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing.get("id") if pricing else None}, {"_id": 0})
+    if not sow:
+        sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
     if not sow:
         sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0})
     quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0})
@@ -1371,6 +1385,11 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
     # Check for offline meeting attachments
     offline_meetings = [m for m in meetings if m.get("mode") == "offline" or m.get("meeting_type", "").lower() == "offline"]
     has_offline_attachment = any(m.get("has_attachments") for m in offline_meetings)
+    
+    # Get scopes from SOW (enhanced_sow uses 'scopes', legacy uses 'scope_items')
+    sow_scopes = []
+    if sow:
+        sow_scopes = sow.get("scopes") or sow.get("scope_items") or []
     
     checklist = {
         "lead_capture": {
@@ -1415,16 +1434,16 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
         },
         "scope_of_work": {
             "title": "Scope of Work",
-            "description": "Define deliverables, milestones, and project boundaries",
+            "description": "Define scopes with categories and deliverables",
             "requirements": [
                 {"item": "SOW document created", "completed": sow is not None, "required": True},
-                {"item": "At least one scope item with title", "completed": any(i.get("title") for i in (sow.get("scope_items") or [])) if sow else False, "required": True},
-                {"item": "Scope item category assigned", "completed": any(i.get("category") for i in (sow.get("scope_items") or [])) if sow else False, "required": False},
-                {"item": "Timeline estimated (weeks)", "completed": any(i.get("timeline_weeks") for i in (sow.get("scope_items") or [])) if sow else False, "required": False},
-                {"item": "Consultant assigned to scope item", "completed": any(i.get("assigned_consultant_id") for i in (sow.get("scope_items") or [])) if sow else False, "required": False}
+                {"item": "At least one scope added", "completed": len(sow_scopes) > 0 if sow else False, "required": True},
+                {"item": "All scopes have names", "completed": all(s.get("name") for s in sow_scopes) if sow_scopes else False, "required": True},
+                {"item": "All scopes have categories", "completed": all(s.get("category_code") or s.get("category") for s in sow_scopes) if sow_scopes else False, "required": False},
+                {"item": "Deliverables defined for scopes", "completed": any(s.get("deliverables") or s.get("deliverables_text") for s in sow_scopes) if sow_scopes else False, "required": False}
             ],
-            "tips": ["Be specific about what's included and excluded", "Reference client expectations from meetings", "Set clear milestones and timelines"],
-            "completed": sow is not None and any(i.get("title") for i in (sow.get("scope_items") or []))
+            "tips": ["Be specific about what's included", "Use standard scope library when available", "Add AI-suggested deliverables"],
+            "completed": sow is not None and len(sow_scopes) > 0
         },
         "quotation": {
             "title": "Quotation / Proforma Invoice",
