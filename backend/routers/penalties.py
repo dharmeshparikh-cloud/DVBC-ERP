@@ -79,14 +79,44 @@ PENALTY_CATEGORIES = {
 
 @router.get("/categories")
 async def get_penalty_categories(current_user: User = Depends(get_current_user)):
-    """Get all penalty categories and violation types for dropdown selection."""
+    """Get all penalty categories with dynamic default amounts from business_policies."""
     hr_roles = get_role_group("HR_ROLES", fail_closed=True)
     if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can view penalty categories")
     
+    db = get_db()
+    
+    # Read AT012 (late penalty amount) from business_policies for dynamic defaults
+    dynamic_amounts = {}
+    try:
+        att_policy = await db.business_policies.find_one(
+            {"policy_type": "attendance", "scope": "company", "is_active": True},
+            {"_id": 0, "rules": 1}
+        )
+        if att_policy:
+            rules = {r["rule_id"]: r for r in att_policy.get("rules", [])}
+            dynamic_amounts["AT_LATE"] = rules.get("AT012", {}).get("numeric_value", 100)
+    except Exception:
+        pass
+    
+    # Build categories with dynamic defaults
+    categories = {}
+    for cat_key, cat_data in PENALTY_CATEGORIES.items():
+        cat_copy = {"name": cat_data["name"], "violations": []}
+        for v in cat_data["violations"]:
+            v_copy = {**v}
+            if v_copy["code"] in dynamic_amounts:
+                v_copy["default_amount"] = dynamic_amounts[v_copy["code"]]
+                v_copy["amount_source"] = "business_rules"
+            else:
+                v_copy["amount_source"] = "system_default"
+            cat_copy["violations"].append(v_copy)
+        categories[cat_key] = cat_copy
+    
     return {
-        "categories": PENALTY_CATEGORIES,
-        "total_violation_types": sum(len(cat["violations"]) for cat in PENALTY_CATEGORIES.values())
+        "categories": categories,
+        "total_violation_types": sum(len(cat["violations"]) for cat in categories.values()),
+        "dynamic_amounts": dynamic_amounts
     }
 
 
@@ -370,6 +400,118 @@ async def get_month_penalties(
         "arrears_count": len(arrears)
     }
 
+
+# ==================== RULE CONFIGURATION (must be before /{penalty_id} routes) ====================
+
+@router.get("/rule-config")
+async def get_penalty_rule_config(current_user: User = Depends(get_current_user)):
+    """Get penalty-related rules from business_policies for the Rule Configuration tab."""
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR can view rule configuration")
+    
+    db = get_db()
+    
+    att_policy = await db.business_policies.find_one(
+        {"policy_type": "attendance", "scope": "company", "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not att_policy:
+        return {"rules": [], "policy_id": None, "message": "No attendance policy found"}
+    
+    rules = att_policy.get("rules", [])
+    rules_map = {r["rule_id"]: r for r in rules}
+    
+    # Extract only penalty-relevant rules
+    penalty_rules = [
+        {
+            "rule_id": "AT004",
+            "name": "Grace Period (Minutes)",
+            "description": "Minutes after shift start before check-in is considered late",
+            "value": rules_map.get("AT004", {}).get("numeric_value", 10),
+            "type": "number",
+            "unit": "minutes",
+            "impact": "Employees arriving within this window are not marked late"
+        },
+        {
+            "rule_id": "AT011",
+            "name": "Grace Days per Month",
+            "description": "Number of late days allowed per month before penalties apply",
+            "value": rules_map.get("AT011", {}).get("numeric_value", 3),
+            "type": "number",
+            "unit": "days",
+            "impact": "Late arrivals within this limit use grace days, no penalty"
+        },
+        {
+            "rule_id": "AT012",
+            "name": "Late Penalty Amount",
+            "description": "Penalty amount per late day beyond grace limit",
+            "value": rules_map.get("AT012", {}).get("numeric_value", 100),
+            "type": "currency",
+            "unit": "₹/day",
+            "impact": "Deducted from payroll for each excess late day"
+        }
+    ]
+    
+    return {
+        "rules": penalty_rules,
+        "policy_id": att_policy.get("id"),
+        "policy_name": att_policy.get("name", "Attendance Policy"),
+        "last_updated": att_policy.get("updated_at"),
+        "updated_by": att_policy.get("updated_by_name")
+    }
+
+
+@router.put("/rule-config")
+async def update_penalty_rule_config(data: dict, current_user: User = Depends(get_current_user)):
+    """Update penalty-related rules in business_policies."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can update rule configuration")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    updates = data.get("rules", {})  # {"AT004": 10, "AT011": 3, "AT012": 100}
+    allowed_rules = {"AT004", "AT011", "AT012"}
+    
+    att_policy = await db.business_policies.find_one(
+        {"policy_type": "attendance", "scope": "company", "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not att_policy:
+        raise HTTPException(status_code=404, detail="No attendance policy found")
+    
+    rules = att_policy.get("rules", [])
+    updated_count = 0
+    
+    for i, rule in enumerate(rules):
+        rid = rule.get("rule_id")
+        if rid in allowed_rules and rid in updates:
+            rules[i]["numeric_value"] = updates[rid]
+            rules[i]["updated_at"] = now
+            updated_count += 1
+    
+    await db.business_policies.update_one(
+        {"policy_type": "attendance", "scope": "company", "is_active": True},
+        {"$set": {
+            "rules": rules,
+            "updated_at": now,
+            "updated_by": current_user.id,
+            "updated_by_name": current_user.full_name
+        }}
+    )
+    
+    return {
+        "message": f"Updated {updated_count} penalty rules",
+        "updated_rules": {k: v for k, v in updates.items() if k in allowed_rules},
+        "note": "Changes apply to future penalties only. Existing approved penalties are not affected."
+    }
+
+
+# ==================== PENALTY CRUD (parameterized routes) ====================
 
 @router.delete("/{penalty_id}")
 async def revoke_penalty(penalty_id: str, current_user: User = Depends(get_current_user)):

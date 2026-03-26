@@ -2362,6 +2362,9 @@ const BusinessRules = () => {
                     and ₹{attendanceConfig.late_penalty_amount || 100}/day penalty for violations.
                   </p>
                 </div>
+                <a href="/penalty-management" className={`mt-3 flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg border transition-colors ${isDark ? 'border-amber-700 bg-amber-900/20 text-amber-300 hover:bg-amber-900/40' : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'}`}>
+                  Penalty rules also managed in Penalty & Compliance page &rarr;
+                </a>
               </div>
               
               {/* Role-wise & Employee-wise Overrides */}

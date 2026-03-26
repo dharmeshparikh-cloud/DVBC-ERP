@@ -238,45 +238,61 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         await db.leave_requests.insert_one(half_day_leave)
         half_day_leave.pop("_id", None)
     
-    # ── GOVERNANCE: Late Penalty — ₹100 flat per late day (unified collection) ──
+    # ── GOVERNANCE: Late Penalty — dynamic amount from AT012 rule (unified collection) ──
     if late_by > 0:
+        # Read penalty amount from business rules (AT012), fallback ₹100
         penalty_amount = 100
+        try:
+            if att_policy:
+                rules_map = {r["rule_id"]: r for r in att_policy.get("rules", [])}
+                penalty_amount = rules_map.get("AT012", {}).get("numeric_value", 100)
+        except Exception:
+            pass
         month_prefix = today[:7]
         monthly_late_count = await db.attendance.count_documents({
             "employee_id": emp["id"],
             "date": {"$regex": f"^{month_prefix}"},
             "is_late": True
         })
-        # Write to unified employee_penalties collection
-        penalty_record = {
-            "id": str(uuid.uuid4()),
+        # Dedup: check if penalty already exists for this date
+        existing_penalty = await db.employee_penalties.find_one({
             "employee_id": emp["id"],
-            "employee_code": emp.get("employee_id", ""),
-            "employee_name": attendance["employee_name"],
-            "department": emp.get("department", ""),
-            "month": month_prefix,
-            "category": "attendance",
-            "category_name": "Attendance Penalty",
-            "violation_code": "AT_LATE",
-            "violation_name": "Late Arrival",
-            "source": "auto_attendance",
-            "name": "Late Arrival",
-            "amount": penalty_amount,
-            "reason": f"Late by {late_by} min on {today} (late #{monthly_late_count + 1} this month)",
-            "description": f"Late by {late_by} min on {today}",
-            "reference_id": attendance["id"],
             "reference_date": today,
-            "late_minutes": late_by,
-            "late_count_this_month": monthly_late_count + 1,
-            "apply_to_payroll": True,
-            "status": "pending_review",
-            "is_arrears": False,
-            "created_at": now.isoformat(),
-            "created_by": "system",
-            "created_by_name": "Auto-Detection"
-        }
-        await db.employee_penalties.insert_one(penalty_record)
-        penalty_record.pop("_id", None)
+            "violation_code": "AT_LATE",
+            "source": "auto_attendance"
+        })
+        if not existing_penalty:
+            penalty_record = {
+                "id": str(uuid.uuid4()),
+                "employee_id": emp["id"],
+                "employee_code": emp.get("employee_id", ""),
+                "employee_name": attendance["employee_name"],
+                "department": emp.get("department", ""),
+                "month": month_prefix,
+                "category": "attendance",
+                "category_name": "Attendance Penalty",
+                "violation_code": "AT_LATE",
+                "violation_name": "Late Arrival",
+                "source": "auto_attendance",
+                "name": "Late Arrival",
+                "amount": penalty_amount,
+                "reason": f"Late by {late_by} min on {today} (late #{monthly_late_count + 1} this month, grace limit: {grace_days_per_month} days). Rule AT012: ₹{penalty_amount}/day",
+                "description": f"Late by {late_by} min on {today}",
+                "reference_id": attendance["id"],
+                "reference_date": today,
+                "late_minutes": late_by,
+                "late_count_this_month": monthly_late_count + 1,
+                "grace_days_allowed": grace_days_per_month,
+                "rule_reference": "AT012",
+                "apply_to_payroll": True,
+                "status": "pending_review",
+                "is_arrears": False,
+                "created_at": now.isoformat(),
+                "created_by": "system",
+                "created_by_name": "Auto-Detection"
+            }
+            await db.employee_penalties.insert_one(penalty_record)
+            penalty_record.pop("_id", None)
     
     await db.attendance.insert_one(attendance)
     
