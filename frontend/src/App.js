@@ -51,7 +51,7 @@ const EmailTemplates = lazy(() => import('./pages/EmailTemplates'));
 const PricingPlanBuilder = lazy(() => import('./pages/sales-funnel/PricingPlanBuilder'));
 const MeetingRecord = lazy(() => import('./pages/sales-funnel/MeetingRecord'));
 const SOWBuilder = lazy(() => import('./pages/sales-funnel/SOWBuilderNew'));
-const SalesScopeSelection = lazy(() => import('./pages/sales-funnel/SalesScopeSelection'));
+const SalesScopeSelection = lazy(() => import('./pages/sales-funnel/SOWBuilderNew'));
 const ConsultingScopeView = lazy(() => import('./pages/sales-funnel/ConsultingScopeView'));
 const SalesSOWList = lazy(() => import('./pages/sales-funnel/SalesSOWList'));
 const ProformaInvoice = lazy(() => import('./pages/sales-funnel/ProformaInvoice'));

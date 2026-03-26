@@ -49,7 +49,7 @@ export const SalesNavigationProvider = ({ children }) => {
     
     // Dynamic route patterns
     const patterns = [
-      { from: /^\/sales-funnel\/scope-selection\/(.+)$/, to: '/sales/scope-selection/$1' },
+      { from: /^\/sales-funnel\/scope-selection\/(.+)$/, to: '/sales/sow/$1' },
       { from: /^\/sales-funnel\/sow-review\/(.+)$/, to: '/sales/sow-review/$1' },
       { from: /^\/sales-funnel\/sow\/(.+)$/, to: '/sales/sow/$1' },
       { from: /^\/sales-funnel\/agreement\/(.+)$/, to: '/sales/agreement/$1' },

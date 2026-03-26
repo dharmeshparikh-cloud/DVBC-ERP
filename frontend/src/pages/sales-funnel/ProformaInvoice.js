@@ -406,8 +406,10 @@ const ProformaInvoice = () => {
 
   // Navigate back to previous step in flow
   const handleBackToFlow = () => {
-    if (pricingPlanIdFromUrl) {
-      navigate(`/sales-funnel/scope-selection/${pricingPlanIdFromUrl}`);
+    if (currentLeadId) {
+      navigate(`/sales-funnel-onboarding?leadId=${currentLeadId}`);
+    } else if (pricingPlanIdFromUrl) {
+      navigate(`/sales-funnel/sow/${pricingPlanIdFromUrl}`);
     } else {
       navigate('/sales-funnel/pricing-plans');
     }
@@ -528,7 +530,7 @@ const ProformaInvoice = () => {
           actions={<>
             <ViewToggle viewMode={viewMode} onChange={setViewMode} />
             <Button onClick={handleBackToFlow} variant="outline" className="rounded-sm border-zinc-300" data-testid="back-to-flow-btn">
-              <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} /> Back to SOW
+              <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} /> Back to Funnel
             </Button>
             {canEdit && (
               <TooltipProvider>
@@ -678,7 +680,7 @@ const ProformaInvoice = () => {
                           <div className="grid grid-cols-4 gap-4 mb-3">
                             <div>
                               <div className="text-xs text-zinc-500">Meetings</div>
-                              <div className="font-semibold">{invoice.total_meetings}</div>
+                              <div className="font-semibold">{invoice.total_meetings || '-'}</div>
                             </div>
                             <div>
                               <div className="text-xs text-zinc-500">Subtotal</div>
@@ -686,11 +688,11 @@ const ProformaInvoice = () => {
                             </div>
                             <div>
                               <div className="text-xs text-zinc-500">GST</div>
-                              <div className="font-semibold">{formatINR(invoice.gst_amount)}</div>
+                              <div className="font-semibold">{formatINR(invoice.gst_amount || invoice.tax_amount || 0)}</div>
                             </div>
                             <div>
                               <div className="text-xs text-zinc-500">Total</div>
-                              <div className="font-semibold text-emerald-600">{formatINR(invoice.grand_total)}</div>
+                              <div className="font-semibold text-emerald-600">{formatINR(invoice.grand_total || invoice.total || ((invoice.subtotal || 0) + (invoice.tax_amount || 0)))}</div>
                             </div>
                           </div>
                           
@@ -779,7 +781,7 @@ const ProformaInvoice = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <div className="text-xs text-zinc-500 uppercase tracking-wide">Meetings</div>
-                    <div className="text-lg font-semibold text-zinc-950">{invoice.total_meetings}</div>
+                    <div className="text-lg font-semibold text-zinc-950">{invoice.total_meetings || '-'}</div>
                   </div>
                   <div>
                     <div className="text-xs text-zinc-500 uppercase tracking-wide">Subtotal</div>
@@ -787,11 +789,11 @@ const ProformaInvoice = () => {
                   </div>
                   <div>
                     <div className="text-xs text-zinc-500 uppercase tracking-wide">GST (18%)</div>
-                    <div className="text-lg font-semibold text-zinc-950">{formatINR(invoice.gst_amount)}</div>
+                    <div className="text-lg font-semibold text-zinc-950">{formatINR(invoice.gst_amount || invoice.tax_amount || 0)}</div>
                   </div>
                   <div>
                     <div className="text-xs text-zinc-500 uppercase tracking-wide">Grand Total</div>
-                    <div className="text-lg font-semibold text-emerald-600">{formatINR(invoice.grand_total)}</div>
+                    <div className="text-lg font-semibold text-emerald-600">{formatINR(invoice.grand_total || invoice.total || ((invoice.subtotal || 0) + (invoice.tax_amount || 0)))}</div>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">

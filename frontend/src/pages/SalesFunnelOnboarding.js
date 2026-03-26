@@ -11,8 +11,8 @@ import {
   User, Calendar, DollarSign, FileText, Receipt, 
   FileCheck, CreditCard, Rocket, CheckCircle, 
   ChevronRight, ArrowLeft, Building2, Phone, Mail,
-  Clock, AlertCircle, ExternalLink, Lock, Lightbulb,
-  Circle, CheckCircle2, Info, AlertTriangle, Plus, Edit2
+  Clock, AlertCircle, ExternalLink, Lock,
+  AlertTriangle, Plus, Edit2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -101,7 +101,6 @@ const SalesFunnelOnboarding = () => {
   const leadId = searchParams.get('leadId');
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [showTips, setShowTips] = useState(false);
 
   // Check if user can approve agreements (Sales Manager, Sr. Manager, Principal Consultant, Admin)
   const canApproveAgreement = ['admin', 'sales_manager', 'sr_manager', 'manager', 'principal_consultant'].includes(user?.role);
@@ -110,10 +109,9 @@ const SalesFunnelOnboarding = () => {
   const { data: funnelData, isLoading: loading, refetch: refetchFunnel } = useQuery({
     queryKey: ['funnel', leadId],
     queryFn: async () => {
-      const [leadRes, progressRes, checklistRes] = await Promise.all([
+      const [leadRes, progressRes] = await Promise.all([
         axios.get(`${API}/leads/${leadId}`),
-        axios.get(`${API}/leads/${leadId}/funnel-progress`),
-        axios.get(`${API}/leads/${leadId}/funnel-checklist`)
+        axios.get(`${API}/leads/${leadId}/funnel-progress`)
       ]);
       
       const progress = progressRes.data || {};
@@ -128,7 +126,6 @@ const SalesFunnelOnboarding = () => {
       return {
         lead: leadRes.data,
         funnelStatus: progress,
-        checklist: checklistRes.data,
         currentStep: newStep
       };
     },
@@ -142,7 +139,6 @@ const SalesFunnelOnboarding = () => {
 
   const lead = funnelData?.lead || null;
   const funnelStatus = funnelData?.funnelStatus || {};
-  const checklist = funnelData?.checklist || null;
 
   // Mutation for approving agreement
   const approveAgreementMutation = useMutation({
@@ -201,8 +197,7 @@ const SalesFunnelOnboarding = () => {
 
   // Check if a step is blocked due to agreement status
   const isStepBlockedByAgreement = (stepId) => {
-    // Steps that should be blocked if agreement is pending/rejected
-    const blockedSteps = ['payment', 'kickoff', 'complete'];
+    const blockedSteps = ['record_payment', 'kickoff_request', 'project_created'];
     if (!blockedSteps.includes(stepId)) return false;
     return funnelStatus.is_blocked === true;
   };
@@ -272,6 +267,8 @@ const SalesFunnelOnboarding = () => {
         route = `${step.route}/${funnelStatus.pricing_plan_id}`;
       } else if (step.id === 'quotation' && funnelStatus.pricing_plan_id) {
         route = `/sales-funnel/quotation?pricingPlanId=${funnelStatus.pricing_plan_id}`;
+      } else if (step.id === 'agreement' && funnelStatus.agreement_id) {
+        route = `/sales-funnel/agreement/${funnelStatus.agreement_id}`;
       } else if (step.id === 'agreement' && funnelStatus.quotation_id) {
         route = `/sales-funnel/agreement?quotationId=${funnelStatus.quotation_id}`;
       }
@@ -653,7 +650,7 @@ const SalesFunnelOnboarding = () => {
                               variant="outline"
                               size="sm"
                               className="border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
-                              onClick={() => navigate(`/sales-funnel/agreement?id=${funnelStatus.agreement_id}`)}
+                              onClick={() => navigate(`/sales-funnel/agreement/${funnelStatus.agreement_id}`)}
                               data-testid="review-agreement-btn"
                             >
                               <FileCheck className="w-4 h-4 mr-2" />
@@ -739,98 +736,6 @@ const SalesFunnelOnboarding = () => {
                         ))}
                       </div>
                     )}
-                  </div>
-                )}
-
-                {/* Progress Checklist for Current Step */}
-                {checklist && (
-                  <div className="mb-6">
-                    {(() => {
-                      const stepKey = getChecklistKey(FUNNEL_STEPS[currentStep].id);
-                      const stepChecklist = checklist[stepKey];
-                      if (!stepChecklist) return null;
-                      
-                      const requirements = stepChecklist.requirements || [];
-                      const tips = stepChecklist.tips || [];
-                      const completedReqs = (requirements || []).filter(r => r.completed).length;
-                      const totalReqs = requirements.length;
-                      const reqProgress = totalReqs > 0 ? (completedReqs / totalReqs) * 100 : 0;
-                      
-                      return (
-                        <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                              <h4 className="font-semibold text-zinc-800 dark:text-zinc-200">
-                                Completion Checklist
-                              </h4>
-                            </div>
-                            <Badge 
-                              variant={completedReqs === totalReqs ? "default" : "secondary"}
-                              className={completedReqs === totalReqs ? "bg-emerald-500" : ""}
-                            >
-                              {completedReqs}/{totalReqs} Done
-                            </Badge>
-                          </div>
-                          
-                          {/* Progress Bar */}
-                          <div className="mb-4">
-                            <Progress value={reqProgress} className="h-2" />
-                          </div>
-                          
-                          {/* Requirements List */}
-                          <div className="space-y-2 mb-4">
-                            {(requirements || []).map((req, idx) => (
-                              <div 
-                                key={idx}
-                                className={`flex items-center gap-2 text-sm ${
-                                  req.completed 
-                                    ? 'text-emerald-600 dark:text-emerald-400' 
-                                    : 'text-zinc-600 dark:text-zinc-400'
-                                }`}
-                              >
-                                {req.completed ? (
-                                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                                ) : (
-                                  <Circle className="w-4 h-4 flex-shrink-0" />
-                                )}
-                                <span className={req.completed ? 'line-through opacity-70' : ''}>
-                                  {req.item}
-                                </span>
-                                {req.required && !req.completed && (
-                                  <Badge variant="destructive" className="text-xs px-1.5 py-0">Required</Badge>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {/* Tips Section */}
-                          {tips.length > 0 && (
-                            <div className="border-t border-zinc-200 dark:border-zinc-600 pt-3">
-                              <button
-                                onClick={() => setShowTips(!showTips)}
-                                className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
-                              >
-                                <Lightbulb className="w-4 h-4" />
-                                <span className="font-medium">Tips for New Salespeople</span>
-                                <ChevronRight className={`w-4 h-4 transition-transform ${showTips ? 'rotate-90' : ''}`} />
-                              </button>
-                              
-                              {showTips && (
-                                <ul className="mt-2 ml-6 space-y-1">
-                                  {(tips || []).map((tip, idx) => (
-                                    <li key={idx} className="text-xs text-zinc-500 dark:text-zinc-400 flex items-start gap-2">
-                                      <Info className="w-3 h-3 mt-0.5 flex-shrink-0 text-amber-500" />
-                                      {tip}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
                   </div>
                 )}
 

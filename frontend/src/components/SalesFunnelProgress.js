@@ -28,7 +28,7 @@ const SalesFunnelProgress = ({
       name: 'Scope Selection',
       shortName: 'SOW',
       description: 'Select scope of work',
-      href: pricingPlanId ? `/sales-funnel/scope-selection/${pricingPlanId}` : null,
+      href: pricingPlanId ? `/sales-funnel/sow/${pricingPlanId}` : null,
       completed: sowCompleted,
       enabled: !!pricingPlanId
     },

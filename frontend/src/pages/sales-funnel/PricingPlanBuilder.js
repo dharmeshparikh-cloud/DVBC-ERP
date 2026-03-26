@@ -659,7 +659,7 @@ const PricingPlanBuilder = () => {
       const response = await axios.post(`${API}/pricing-plans`, pricingPlan);
       toast.success('Pricing plan created successfully');
       // Navigate to new scope selection flow
-      navigate(`/sales-funnel/scope-selection/${response.data.id}?lead_id=${leadId}`);
+      navigate(`/sales-funnel/sow/${response.data.id}?lead_id=${leadId}`);
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {

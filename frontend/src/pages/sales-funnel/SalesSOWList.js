@@ -269,7 +269,7 @@ const SalesSOWList = () => {
                       
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
-                          onClick={() => navigate(`/sales-funnel/scope-selection/${sow.pricing_plan_id}`)}
+                          onClick={() => navigate(`/sales-funnel/sow/${sow.pricing_plan_id}`)}
                           variant="ghost"
                           size="sm"
                           className="text-zinc-600 hover:text-zinc-900"

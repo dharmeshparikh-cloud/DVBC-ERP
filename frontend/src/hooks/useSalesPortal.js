@@ -34,7 +34,7 @@ export const useSalesPortal = () => {
     
     // Handle dynamic routes
     if (mainPath.startsWith('/sales-funnel/scope-selection/')) {
-      return mainPath.replace('/sales-funnel/scope-selection/', '/sales/scope-selection/');
+      return mainPath.replace('/sales-funnel/scope-selection/', '/sales/sow/');
     }
     if (mainPath.startsWith('/sales-funnel/sow-review/')) {
       return mainPath.replace('/sales-funnel/sow-review/', '/sales/sow-review/');

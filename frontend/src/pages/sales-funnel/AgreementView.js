@@ -486,12 +486,19 @@ const AgreementView = () => {
       {/* Header */}
       <div className="mb-6">
         <Button
-          onClick={() => navigate('/sales-funnel/proforma-invoice')}
+          onClick={() => {
+            const backLeadId = lead?.id || agreement?.lead_id;
+            if (backLeadId) {
+              navigate(`/sales-funnel-onboarding?leadId=${backLeadId}`);
+            } else {
+              navigate('/sales-funnel/agreements');
+            }
+          }}
           variant="ghost"
           className="mb-4 hover:bg-zinc-100 rounded-sm"
         >
           <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
-          Back to Proforma Invoice
+          Back to Funnel
         </Button>
         <div className="flex items-center justify-between">
           <div>

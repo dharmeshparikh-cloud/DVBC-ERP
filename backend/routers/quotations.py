@@ -248,6 +248,62 @@ async def get_quotations(
     }
 
 
+@router.patch("/{quotation_id}/recalculate")
+async def recalculate_quotation(quotation_id: str, current_user: User = Depends(get_current_user)):
+    """Recalculate quotation financials from linked pricing plan.
+    Fixes old quotations that were created before auto-calculation was added."""
+    db = get_db()
+    
+    quotation = await db.quotations.find_one({"id": quotation_id}, {"_id": 0})
+    if not quotation:
+        raise HTTPException(status_code=404, detail="Quotation not found")
+    
+    # Find pricing plan
+    pricing_plan_id = quotation.get("pricing_plan_id")
+    lead_id = quotation.get("lead_id")
+    
+    pricing_plan = None
+    if pricing_plan_id:
+        pricing_plan = await db.pricing_plans.find_one({"id": pricing_plan_id}, {"_id": 0})
+    if not pricing_plan and lead_id:
+        pricing_plan = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    if not pricing_plan:
+        raise HTTPException(status_code=404, detail="No pricing plan found for recalculation")
+    
+    team_data = pricing_plan.get("team_deployment") or pricing_plan.get("consultants") or []
+    total_meetings = 0
+    calculated_subtotal = 0
+    
+    for member in team_data:
+        meetings = (member.get("committed_meetings") or member.get("meetings") or 0) * (member.get("count") or 1)
+        rate = member.get("rate_per_meeting") or member.get("default_rate") or 12500
+        calculated_subtotal += meetings * rate
+        total_meetings += meetings
+    
+    subtotal = quotation.get("subtotal") or calculated_subtotal or pricing_plan.get("total_amount") or pricing_plan.get("total_investment") or 0
+    tax_rate = quotation.get("tax_rate") or 18
+    tax_amount = quotation.get("tax_amount") or round(subtotal * (tax_rate / 100), 2)
+    grand_total = subtotal + tax_amount
+    
+    update_data = {
+        "subtotal": subtotal,
+        "tax_amount": tax_amount,
+        "gst_amount": tax_amount,
+        "total": grand_total,
+        "grand_total": grand_total,
+        "total_meetings": total_meetings,
+        "pricing_plan_id": pricing_plan.get("id"),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.quotations.update_one({"id": quotation_id}, {"$set": update_data})
+    
+    updated = await db.quotations.find_one({"id": quotation_id}, {"_id": 0})
+    return updated
+
+
+
 @router.patch("/{quotation_id}/finalize")
 async def finalize_quotation(quotation_id: str, current_user: User = Depends(get_current_user)):
     """

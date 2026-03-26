@@ -78,7 +78,7 @@ export const SalesPortalRedirect = () => {
   
   if (salesPath.startsWith('scope-selection/')) {
     const id = salesPath.replace('scope-selection/', '');
-    return <Navigate to={`/sales-funnel/scope-selection/${id}${location.search}`} replace />;
+    return <Navigate to={`/sales-funnel/sow/${id}${location.search}`} replace />;
   }
   
   if (salesPath.startsWith('sow-review/')) {
