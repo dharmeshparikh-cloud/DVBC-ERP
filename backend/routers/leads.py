@@ -1440,7 +1440,7 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
             
             if payments:
                 linked_data["payment_count"] = len(payments)
-                linked_data["total_paid"] = sum(p.get("amount", 0) for p in payments)
+                linked_data["total_paid"] = sum(p.get("received_amount", 0) for p in payments)
                 completed_steps.append("record_payment")
             elif agreement.get("payment_status") == "paid" or agreement.get("payment_received"):
                 completed_steps.append("record_payment")
