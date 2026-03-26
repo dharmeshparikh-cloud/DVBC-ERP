@@ -6,43 +6,58 @@ Establish a unified and strict governance model for the SOW module, alongside co
 ## Architecture
 - **Frontend**: React + Shadcn/UI + TanStack Query
 - **Backend**: FastAPI + MongoDB
-- **Timezone**: IST (UTC+5:30) — centralized via `/app/backend/utils/timezone.py`
+- **Timezone**: IST (UTC+5:30) — centralized via `/app/backend/utils/timezone.py` and `/app/frontend/src/utils/dateTimeIST.js`
 - **Auth**: JWT-based with role-based access control (RBAC)
 
-## Core Modules
-1. **Attendance** — Self-service check-in/out with GPS, late detection (IST), overtime calc, HR regularization
-2. **Leaves** — Dynamic balance from approved leave_requests, leave application blocked if attendance marked
-3. **Expenses** — Draft support, E2E tracking, sent-back resubmission, meeting context
-4. **Leads** — Pause/resume, CSV export, role-based reassignment
-5. **Sales Funnel** — SOW delivery, agreements, proforma invoices
-6. **Approvals Center** — Real-time WebSocket, collapsible sections, expense tabs
+## Attendance Governance Model (FINAL)
+
+### Core Formulas
+```
+Late           = max(0, in_time - shift_start)
+Early Login    = max(0, shift_start - in_time)
+Late Checkout  = max(0, out_time - shift_end)
+Overtime       = Early Login + Late Checkout (capped, informational only)
+```
+
+### Rules
+| Rule | Value |
+|---|---|
+| Shift | 10:00 AM - 7:00 PM (configurable) |
+| Grace | 10 min noise filter, 3 days/month |
+| OT Cap | 120 min/day |
+| Half Day Cutoff | 3:00 PM |
+| Penalty | ₹100 flat per late day |
+| Penalty Status | pending_review (HR approves/rejects) |
+| Monthly Reset | Late counter resets each month |
+| OT blocked | If half-day or on leave |
+| Leave Block | Check-in blocked if approved leave exists |
+
+### Half Day Logic
+- Check-in after 3:00 PM → status=half_day, half_day_type=first_half, auto-creates approved CL (0.5 day)
+- Check-out before 3:00 PM → status=half_day, half_day_type=second_half, auto-creates approved CL (0.5 day)
+
+### Data Display Rules
+- All table cell values are PURE NUMBERS (no "m", "h" suffixes)
+- Column headers indicate units: "Late (min)", "Hours (h)", "OT (min)"
+- Summary card labels kept as-is
+- All times displayed in IST (Asia/Kolkata) regardless of browser timezone
 
 ## What's Been Implemented
 
 ### Session 1 (Previous)
-- GPS Reverse Geocoding for Attendance Check-in
-- Attendance table overhaul (DD/MM/YYYY, OT/Late calculations, re-check-in, CSV download)
-- Real-time Leave Balance from approved leave_requests
-- Backend validation blocking leave if attendance already marked
-- Approvals Center WebSocket fix
-- Leads Pause/Resume + CSV Export
-- Sales Team reassign fix
-- HR Attendance Regularization API + UI
-- Approvals Center restructure (CollapsibleSection, Expense Tabs)
-- Expense Meeting Context API + slide-out
-- Sent-back expense edit/resubmit
+- GPS Reverse Geocoding, Attendance table overhaul, Leave Balance, Approvals Center, Leads features, HR Regularization, Expense features
 
-### Session 2 (March 26, 2026) — IST Timezone & Late Detection Fix
-- **Created centralized IST timezone utility** (`/app/backend/utils/timezone.py`)
-- **Fixed late detection** — was using UTC, hardcoded to 9AM; now uses IST + business policy shift start (10:00)
-- **Fixed late_minutes calculation** — now correctly calculates from configured shift start
-- **Blocked check-in on approved leave days** — returns 400 error if approved leave exists
-- **Fixed leave_type display** — no longer shows CL/SL on "present" status rows
-- **Dynamic late recalculation** — all records (old + new) are recalculated server-side using IST
-- **Normalized field names** — handles both `check_in`/`check_in_time` field variants
-- **IST for check-out** — working hours calculated using IST-aware timestamps
-- **IST for regularization** — late status recalculated using IST when HR regularizes records
-- Tested: iteration_235.json — 100% pass rate (13/13 backend, all frontend)
+### Session 2 (March 26, 2026)
+- **IST Timezone Fix** — 28+ files across frontend and backend
+- **Centralized IST utilities** — `utils/timezone.py` (backend), `utils/dateTimeIST.js` (frontend)
+- **Attendance Governance Model** — Full implementation per rules above
+- **Half Day Auto-Detection** — 3 PM cutoff, auto-leave creation
+- **Late Penalty System** — ₹100 flat, pending_review for HR, monthly reset
+- **Grace Period** — 10 min noise filter, 3 days/month tracking
+- **Pure Numeric Tables** — Removed all "m"/"h" suffixes, headers show units
+- **Leave Block on Check-in** — Returns 400 if approved leave exists
+- **Dynamic Late Recalculation** — All records recalculated server-side using IST
+- Tested: iteration_235 (IST fix 100%), iteration_236 (governance 100%)
 
 ## P0 Issues (Still Open)
 1. **Sales Funnel Agreement step not loading** — `/sales-funnel/agreement/${id}` renders blank
@@ -58,17 +73,18 @@ Establish a unified and strict governance model for the SOW module, alongside co
 - Deliverables master admin page UI
 - Governance Dashboard UI
 
-## Key API Endpoints
-| Endpoint | Description |
+## Key DB Collections
+| Collection | Purpose |
 |---|---|
-| `GET /api/my/attendance?month=YYYY-MM` | User's attendance with IST late calc |
-| `POST /api/my/check-in` | Self check-in (blocks if leave exists) |
-| `POST /api/my/check-out` | Self check-out with OT calc |
-| `PUT /api/attendance/{id}/regularize` | HR regularization with IST late recalc |
-| `GET /api/my/leave-balance` | Dynamic leave balance |
+| `attendance` | Daily records with governance fields |
+| `attendance_penalties` | ₹100 flat penalties, pending_review |
+| `attendance_history` | Archived re-checkins/re-checkouts |
+| `leave_requests` | Includes auto_generated half-day leaves |
+| `business_policies` | Shift config, grace rules |
 
 ## Credentials
 | Role | Employee ID | Password |
 |---|---|---|
 | Admin | EMP001 | admin123 |
 | Sales | EMP003 | sales123 |
+| Consultant | EMP004 | consultant123 |
