@@ -8,6 +8,7 @@ import {
   Clock, Send, User
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { fmtTimeIST, fmtTime24IST } from '../utils/dateTimeIST';
 
 const WORK_LOCATIONS = [
   { value: 'in_office', label: 'Office', icon: Building2, color: 'blue' },
@@ -311,11 +312,11 @@ const QuickCheckInModal = ({ isOpen, onClose, user }) => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-black/50">Check-in</p>
-                    <p className="font-semibold text-emerald-600">{checkInStatus?.check_in_time?.split('T')[1]?.slice(0,5) || '-'}</p>
+                    <p className="font-semibold text-emerald-600">{fmtTimeIST(checkInStatus?.check_in_time)}</p>
                   </div>
                   <div>
                     <p className="text-black/50">Check-out</p>
-                    <p className="font-semibold text-red-600">{checkInStatus?.check_out_time?.split('T')[1]?.slice(0,5) || '-'}</p>
+                    <p className="font-semibold text-red-600">{fmtTimeIST(checkInStatus?.check_out_time)}</p>
                   </div>
                 </div>
               </div>
@@ -327,7 +328,7 @@ const QuickCheckInModal = ({ isOpen, onClose, user }) => {
                 <LogIn className="w-10 h-10 text-emerald-600" />
               </div>
               <h3 className="text-2xl font-bold text-black mb-2">You're Checked In</h3>
-              <p className="text-black/60 mb-2">Since {checkInStatus?.check_in_time?.split('T')[1]?.slice(0,5) || '-'}</p>
+              <p className="text-black/60 mb-2">Since {fmtTimeIST(checkInStatus?.check_in_time)}</p>
               {checkInStatus?.work_location && (
                 <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
                   checkInStatus.work_location === 'onsite' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'

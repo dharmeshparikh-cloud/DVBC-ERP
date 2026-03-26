@@ -22,6 +22,7 @@ BENEFITS:
 
 from typing import Dict, Optional, List
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 from uuid import uuid4
 import logging
 
@@ -42,7 +43,7 @@ async def get_current_ctc(db, employee_id: str) -> Optional[Dict]:
         Dict with current CTC structure or None
     """
     try:
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = today_ist()
         
         # Find the latest structure where effective_date <= today
         # and either no end_date or end_date > today

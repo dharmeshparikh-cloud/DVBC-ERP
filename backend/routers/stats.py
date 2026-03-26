@@ -14,6 +14,7 @@ PERFORMANCE OPTIMIZATION: December 2025
 
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone, timedelta
+from utils.timezone import today_ist, current_month_ist, now_ist
 from typing import List, Optional
 import logging
 
@@ -179,7 +180,7 @@ async def get_hr_stats(current_user: User = Depends(get_current_user)):
     pending_onboarding = await db.employees.count_documents({"is_active": True, "go_live_status": {"$in": [None, "pending", "in_progress"]}})
     
     # Today's attendance
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = today_ist()
     present_today = await db.attendance.count_documents({"date": today, "status": {"$in": ["present", "work_from_home"]}})
     
     # Pending leave requests

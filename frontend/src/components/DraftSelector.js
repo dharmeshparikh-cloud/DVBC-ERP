@@ -149,7 +149,7 @@ export const DraftIndicator = ({ saving, lastSaved, onSave }) => {
     const diff = Date.now() - lastSaved.getTime();
     if (diff < 60000) return 'Saved just now';
     if (diff < 3600000) return `Saved ${Math.floor(diff / 60000)} min ago`;
-    return `Saved at ${lastSaved.toLocaleTimeString()}`;
+    return `Saved at ${lastSaved.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}`;
   };
 
   return (

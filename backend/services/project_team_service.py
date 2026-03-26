@@ -21,6 +21,7 @@ BENEFITS:
 
 from typing import Dict, Optional, List
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 from uuid import uuid4
 import logging
 
@@ -43,7 +44,7 @@ async def get_project_team(db, project_id: str, include_inactive: bool = False) 
         query = {"project_id": project_id}
         
         if not include_inactive:
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = today_ist()
             query["$or"] = [
                 {"end_date": None},
                 {"end_date": ""},
@@ -246,7 +247,7 @@ async def get_consultant_projects(db, consultant_id: str, include_inactive: bool
         query = {"consultant_id": consultant_id}
         
         if not include_inactive:
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = today_ist()
             query["$or"] = [
                 {"end_date": None},
                 {"end_date": ""},

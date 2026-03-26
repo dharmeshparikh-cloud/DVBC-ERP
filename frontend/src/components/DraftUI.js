@@ -40,7 +40,7 @@ export const DraftSaveIndicator = ({
   const formatTime = (date) => {
     if (!date) return '';
     const d = date instanceof Date ? date : new Date(date);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
   };
 
   const getStatusContent = () => {

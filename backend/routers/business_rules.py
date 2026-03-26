@@ -15,6 +15,7 @@ Employees: View-only access
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, date
+from utils.timezone import today_ist, current_month_ist, now_ist
 import uuid
 from pydantic import BaseModel
 from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, get_role_group, has_role
@@ -1345,7 +1346,7 @@ async def create_attendance_override(data: dict, current_user: User = Depends(ge
         override_rules.append(updated_rule)
     
     now = datetime.now(timezone.utc).isoformat()
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = today_ist()
     
     policy_name = data.get("name", f"Attendance Policy - {scope.title()}: {scope_value}")
     
@@ -1430,7 +1431,7 @@ async def get_effective_policy(policy_type: str, employee_id: str, current_user:
         raise HTTPException(status_code=404, detail="Employee not found")
     
     # Policy hierarchy: Employee > Role > Department > Company
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = today_ist()
     
     # Try employee-specific
     policy = await db.business_policies.find_one({
@@ -1479,7 +1480,7 @@ async def get_effective_policy(policy_type: str, employee_id: str, current_user:
 async def initialize_default_policies(db, user_id: str):
     """Initialize default policies if none exist"""
     now = datetime.now(timezone.utc).isoformat()
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = today_ist()
     
     defaults = [
         DEFAULT_TRAVEL_POLICY,

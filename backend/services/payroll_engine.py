@@ -13,6 +13,7 @@ CRITICAL: All payroll calculations MUST go through this engine.
 
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import calendar
 import uuid
@@ -79,7 +80,7 @@ class PayrollCalculationEngine:
         Returns rules indexed by component key.
         """
         if not effective_date:
-            effective_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            effective_date = today_ist()
         
         # Get from business_policies (payroll type)
         payroll_policy = await self.db.business_policies.find_one(

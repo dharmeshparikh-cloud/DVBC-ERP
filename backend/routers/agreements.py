@@ -6,6 +6,7 @@ Sends email notification when agreement is created.
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from typing import Optional, List
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 import uuid
 import os
 from pydantic import BaseModel, Field
@@ -115,7 +116,7 @@ async def create_agreement(
         )
     
     agreement_id = str(uuid.uuid4())
-    agreement_number = f"AGR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+    agreement_number = f"AGR-{now_ist().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
     
     # All agreements start as 'draft' - must be submitted for PC/Admin approval
     # Only after approval can they be sent to client
@@ -433,7 +434,7 @@ async def sign_agreement(agreement_id: str, data: AgreementSignatureData, curren
                 "signature_image": data.signature_image,
                 "signed_by_name": data.signed_by_name,
                 "signed_by_designation": data.signed_by_designation,
-                "signed_date": data.signed_date or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "signed_date": data.signed_date or today_ist(),
                 "signed_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }

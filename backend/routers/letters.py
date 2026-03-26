@@ -4,6 +4,7 @@ Letter Management Router - Offer Letters, Appointment Letters, Templates with Ap
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, EmailStr
 import uuid
@@ -481,7 +482,7 @@ async def accept_offer_letter(acceptance: LetterAcceptance):
             "accepted_at": datetime.now(timezone.utc).isoformat(),
             "accepted_by_name": letter["candidate_name"],
             "employee_id_assigned": employee_id,
-            "acceptance_signature": f"Digitally signed by {letter['candidate_name']} on {datetime.now(timezone.utc).strftime('%d-%b-%Y %H:%M UTC')}"
+            "acceptance_signature": f"Digitally signed by {letter['candidate_name']} on {now_ist().strftime('%d-%b-%Y %H:%M IST')}"
         }}
     )
     
@@ -662,7 +663,7 @@ async def accept_appointment_letter(acceptance: LetterAcceptance):
             "status": "accepted",
             "accepted_at": datetime.now(timezone.utc).isoformat(),
             "accepted_by_name": letter["employee_name"],
-            "acceptance_signature": f"Digitally signed by {letter['employee_name']} on {datetime.now(timezone.utc).strftime('%d-%b-%Y %H:%M UTC')}"
+            "acceptance_signature": f"Digitally signed by {letter['employee_name']} on {now_ist().strftime('%d-%b-%Y %H:%M IST')}"
         }}
     )
     

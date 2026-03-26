@@ -57,7 +57,8 @@ export const AttendanceCard = ({
                   {checkInStatus.check_in_time ? 
                     new Date(checkInStatus.check_in_time).toLocaleTimeString('en-IN', {
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
+                      timeZone: 'Asia/Kolkata'
                     }) : '--:--'}
                 </p>
               </div>
@@ -70,7 +71,8 @@ export const AttendanceCard = ({
                   {checkInStatus.check_out_time ? 
                     new Date(checkInStatus.check_out_time).toLocaleTimeString('en-IN', {
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
+                      timeZone: 'Asia/Kolkata'
                     }) : '--:--'}
                 </p>
               </div>

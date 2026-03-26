@@ -4,6 +4,7 @@ HR Router - Bank Change Requests, HR-specific Approvals
 
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 from typing import Optional, List
 import uuid
 
@@ -308,7 +309,7 @@ async def get_hr_dashboard(current_user: User = Depends(get_current_user)):
     pending_attendance = await db.attendance.count_documents({"status": "pending_approval"})
     
     # Today's attendance
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = today_ist()
     today_attendance = await db.attendance.count_documents({"date": today})
     
     return {
@@ -349,7 +350,7 @@ async def get_payroll_dashboard_summary(
     
     # Default to current month
     if not month:
-        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        month = current_month_ist()
     
     year = month.split("-")[0]
     

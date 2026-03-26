@@ -340,7 +340,7 @@ const Chat = () => {
     const diff = now - date;
     
     if (diff < 86400000) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
     }
     if (diff < 604800000) {
       return date.toLocaleDateString([], { weekday: 'short' });

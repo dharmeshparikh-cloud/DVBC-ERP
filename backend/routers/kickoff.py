@@ -11,6 +11,7 @@ DUAL APPROVAL FLOW:
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form
 from fastapi.responses import HTMLResponse
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 from dateutil.relativedelta import relativedelta
 from typing import List, Optional
 import uuid
@@ -146,7 +147,7 @@ async def auto_create_project_sow(db, project_id: str, lead_id: str, approved_by
 
 async def generate_project_id(db) -> str:
     """Generate Project ID in format: PROJ-YYYYMMDD-XXXX"""
-    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    today = now_ist().strftime("%Y%m%d")
     prefix = f"PROJ-{today}-"
     
     # Find highest sequence for today

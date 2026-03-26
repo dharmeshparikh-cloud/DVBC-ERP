@@ -4,6 +4,7 @@ Generates comprehensive ERP documentation in PDF and DOCX formats
 """
 import os
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -20,7 +21,7 @@ class HRDocumentationGenerator:
         self.company_name = "DVBC Consulting"
         self.system_name = "NETRA ERP"
         self.version = "2.0"
-        self.generated_date = datetime.now(timezone.utc).strftime("%B %d, %Y")
+        self.generated_date = now_ist().strftime("%B %d, %Y")
         
     def get_hr_documentation_content(self):
         """Get all HR module documentation content"""

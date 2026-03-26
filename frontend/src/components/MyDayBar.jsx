@@ -73,7 +73,7 @@ const MyDayBar = () => {
         <div className="flex items-center gap-2">
           <Badge className="bg-zinc-100 text-zinc-600 text-xs font-normal">
             <Calendar className="w-3 h-3 mr-1" />
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}
           </Badge>
           {weekly_progress.completion_pct > 0 && (
             <Badge className="bg-emerald-50 text-emerald-700 text-xs font-normal">
@@ -415,7 +415,7 @@ const formatTime = (time) => {
   try {
     if (time.includes('T') || time.includes(':')) {
       const d = new Date(time.includes('T') ? time : `2000-01-01T${time}`);
-      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
     }
     return time;
   } catch {

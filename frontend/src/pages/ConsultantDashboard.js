@@ -102,7 +102,7 @@ const ConsultantDashboard = () => {
                 {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out 
                   ? 'Completed for today' 
                   : attendanceStatus?.has_checked_in 
-                    ? `Checked in at ${attendanceStatus?.check_in_time?.split('T')[1]?.slice(0,5) || '-'}` 
+                    ? `Checked in at ${attendanceStatus?.check_in_time ? new Date(attendanceStatus.check_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }) : '-'}` 
                     : 'Tap to check in'}
               </p>
             </div>

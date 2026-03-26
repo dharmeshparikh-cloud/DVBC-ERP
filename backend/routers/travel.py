@@ -6,6 +6,7 @@ Extracted from server.py for better modularity and load performance.
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 import uuid
 import os
 import math
@@ -337,7 +338,7 @@ async def create_travel_reimbursement(
         "id": str(uuid.uuid4()),
         "employee_id": employee["id"],
         "employee_name": f"{employee['first_name']} {employee['last_name']}",
-        "travel_date": data.get("travel_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+        "travel_date": data.get("travel_date", today_ist()),
         "travel_type": data.get("travel_type", "manual"),
         "attendance_id": data.get("attendance_id"),
         "start_location": start_location,
@@ -529,7 +530,7 @@ async def convert_travel_to_expense(
     if record["status"] != "approved":
         raise HTTPException(status_code=400, detail="Only approved requests can be converted")
     
-    expense_id = f"TRV{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}{str(uuid.uuid4())[:4].upper()}"
+    expense_id = f"TRV{now_ist().strftime('%Y%m%d%H%M%S')}{str(uuid.uuid4())[:4].upper()}"
     
     expense_doc = {
         "id": expense_id,

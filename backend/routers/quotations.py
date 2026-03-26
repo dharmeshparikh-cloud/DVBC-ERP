@@ -6,6 +6,7 @@ Sends email notification when proforma is generated.
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
+from utils.timezone import today_ist, current_month_ist, now_ist
 import uuid
 import os
 from pydantic import BaseModel
@@ -61,7 +62,7 @@ async def create_quotation(
         )
     
     quotation_id = str(uuid.uuid4())
-    quotation_number = f"QT-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+    quotation_number = f"QT-{now_ist().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
     valid_until = (datetime.now(timezone.utc) + timedelta(days=data.validity_days)).strftime("%Y-%m-%d")
     
     quotation_doc = {

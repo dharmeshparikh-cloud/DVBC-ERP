@@ -23,7 +23,8 @@ export const MobileHeader = memo(({
     weekday: 'long',
     day: 'numeric',
     month: 'short',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata'
   }), [currentTime]);
 
   const getGreetingIcon = () => {

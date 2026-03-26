@@ -232,7 +232,7 @@ async def get_attendance_status(
     employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1, "employee_id": 1})
     employee_id = employee.get("id") or employee.get("employee_id") if employee else current_user.id
     
-    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    target_date = date or today_ist()
     
     # Find today's attendance record
     record = await db.attendance.find_one(
@@ -471,7 +471,7 @@ async def get_attendance_analytics(
     if not date_from:
         date_from = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
     if not date_to:
-        date_to = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date_to = today_ist()
     
     query = {"date": {"$gte": date_from, "$lte": date_to}}
     
@@ -517,8 +517,8 @@ async def get_mobile_attendance_stats(current_user: User = Depends(get_current_u
     if not employee:
         employee = {"id": current_user.id}
     
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    month_start = datetime.now(timezone.utc).strftime("%Y-%m-01")
+    today = today_ist()
+    month_start = today_ist()[:8] + "01"
     
     # Today's attendance
     today_attendance = await db.attendance.find_one(
@@ -893,7 +893,7 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
     
     month = data.get("month")  # Format: YYYY-MM
     if not month:
-        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        month = current_month_ist()
     
     year, month_num = int(month.split("-")[0]), int(month.split("-")[1])
     

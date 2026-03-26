@@ -7,6 +7,7 @@ Integrated with Payroll for LOP deductions and leave encashment
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List
 from datetime import datetime, timezone, date
+from utils.timezone import today_ist, current_month_ist, now_ist
 from dateutil.relativedelta import relativedelta
 import uuid
 from pydantic import BaseModel
@@ -167,7 +168,7 @@ async def get_leave_policies(
         default["id"] = str(uuid.uuid4())
         default["created_at"] = datetime.now(timezone.utc).isoformat()
         default["created_by"] = current_user.id
-        default["effective_from"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        default["effective_from"] = today_ist()
         default["is_active"] = True
         await db.leave_policies.insert_one(default)
         policies = [default]
@@ -189,7 +190,7 @@ async def get_effective_policy_for_employee(
         raise HTTPException(status_code=404, detail="Employee not found")
     
     # Policy precedence: Employee > Role > Department > Company
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = today_ist()
     
     # 1. Check employee-specific policy
     emp_policy = await db.leave_policies.find_one({
@@ -827,7 +828,7 @@ async def approve_encashment_request(
         )
     
     now = datetime.now(timezone.utc).isoformat()
-    payroll_period = datetime.now(timezone.utc).strftime("%Y-%m")
+    payroll_period = current_month_ist()
     
     # Get employee details for payroll calculation
     employee = await db.employees.find_one({"id": request.get("employee_id")}, {"_id": 0})

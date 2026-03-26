@@ -11,6 +11,7 @@ STRESS TEST VALIDATIONS (March 2026):
 
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
+from utils.timezone import today_ist, current_month_ist, now_ist
 from typing import Optional, List
 import uuid
 
@@ -166,7 +167,7 @@ async def create_quick_expense(data: dict, current_user: User = Depends(get_curr
         "amount": data.get("amount", 0),
         "currency": "INR",
         "description": sanitize_text(data.get("description", "")),
-        "expense_date": data.get("expense_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+        "expense_date": data.get("expense_date", today_ist()),
         "receipts": [],
         "status": "draft",
         "is_billable": False,
@@ -1261,7 +1262,7 @@ async def approve_expense_with_modification(expense_id: str, data: dict, current
             }
         else:
             # Final approval for small expenses
-            payroll_period = datetime.now(timezone.utc).strftime("%Y-%m")
+            payroll_period = current_month_ist()
             
             await db.expenses.update_one(
                 {"id": expense_id},
@@ -1349,7 +1350,7 @@ async def approve_expense_with_modification(expense_id: str, data: dict, current
                 step["approved_amount"] = approved_amount
                 step["remarks"] = data.get("remarks", "")
         
-        payroll_period = datetime.now(timezone.utc).strftime("%Y-%m")
+        payroll_period = current_month_ist()
         
         await db.expenses.update_one(
             {"id": expense_id},
@@ -1757,7 +1758,7 @@ async def get_monthly_meeting_expense_report(
     
     # Default to current month
     if not month:
-        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        month = current_month_ist()
     
     # Parse month for date range
     try:
