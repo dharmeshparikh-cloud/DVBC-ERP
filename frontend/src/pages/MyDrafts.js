@@ -32,10 +32,10 @@ const DRAFT_TYPES = {
     continueUrl: (draft) => draft.entity_id ? `/sales-funnel/sow/${draft.entity_id}?draft=${draft.id}` : `/sales-funnel/sow`,
   },
   quotation: {
-    label: 'Quotation',
+    label: 'Proforma Invoice',
     icon: FileCheck,
     color: 'text-orange-600 bg-orange-100',
-    continueUrl: (draft) => draft.route || `/sales-funnel/quotations?draft=${draft.id}`,
+    continueUrl: (draft) => draft.route || `/sales-funnel/proforma-invoices?draft=${draft.id}`,
   },
   agreement: {
     label: 'Agreement',

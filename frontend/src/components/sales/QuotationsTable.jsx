@@ -110,7 +110,7 @@ export const QuotationsTable = ({
     if (onRowClick) {
       onRowClick(row);
     } else {
-      navigate(`/sales-funnel/quotation/${row.id}`);
+      navigate(`/sales-funnel/proforma-invoices?id=${row.id}`);
     }
   };
   

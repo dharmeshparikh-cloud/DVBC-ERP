@@ -26,7 +26,7 @@ const FULL_SALES_ITEMS = [
   { key: 'meetings', name: 'Sales Meetings', path: '/sales-funnel/meetings', icon: CalendarCheck, stage: 'MEETING' },
   { key: 'pricing-plans', name: 'SOW & Pricing', path: '/sales-funnel/pricing-plans', icon: FileText, stage: 'PRICING' },
   { key: 'sow', name: 'SOW Generator', path: '/sales-funnel/sow', icon: FileText, stage: 'SOW' },
-  { key: 'quotations', name: 'Quotations', path: '/sales-funnel/quotations', icon: Receipt, stage: 'QUOTATION' },
+  { key: 'proforma-invoices', name: 'Proforma Invoices', path: '/sales-funnel/proforma-invoices', icon: Receipt, stage: 'QUOTATION' },
   { key: 'agreements', name: 'Agreements', path: '/agreements', icon: FileCheck, stage: 'AGREEMENT' },
   { key: 'payment-verification', name: 'Payment Verification', path: '/sales-funnel/payment-verification', icon: CreditCard, stage: 'PAYMENT' },
   { key: 'kickoff-requests', name: 'Kickoff Requests', path: '/kickoff-requests', icon: Briefcase, stage: 'KICKOFF' },

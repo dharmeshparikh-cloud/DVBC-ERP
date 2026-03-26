@@ -304,13 +304,13 @@ const Dashboard = () => {
             </TooltipProvider>
             
             <button
-              onClick={() => navigate('/sales-funnel/quotations')}
-              data-testid="quick-action-view-quotations"
+              onClick={() => navigate('/sales-funnel/proforma-invoices')}
+              data-testid="quick-action-view-proforma-invoices"
               className="w-full text-left px-4 py-3 rounded-sm border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 transition-colors text-sm text-zinc-950 flex items-center justify-between group"
             >
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-zinc-500" strokeWidth={1.5} />
-                View Quotations
+                View Proforma Invoices
               </div>
               <ArrowRight className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
             </button>

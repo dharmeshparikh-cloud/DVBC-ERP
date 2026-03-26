@@ -95,7 +95,7 @@ export const StageResumeBar = ({ leadId, onResume }) => {
           'lead': `/leads/${leadId}`,
           'meeting': `/sales-funnel/meetings?leadId=${leadId}`,
           'pricing': `/sales-funnel/pricing-plans?leadId=${leadId}`,
-          'quotation': `/sales-funnel/quotations?leadId=${leadId}`,
+          'quotation': `/sales-funnel/proforma-invoices?leadId=${leadId}`,
           'sow': `/sales-funnel/sow/${leadId}`,
           'agreement': `/sales-funnel/agreements?leadId=${leadId}`,
           'payment': `/sales-funnel/payments?leadId=${leadId}`,

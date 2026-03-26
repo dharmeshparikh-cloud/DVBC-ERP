@@ -299,7 +299,7 @@ const SalesSOWList = () => {
                           </Button>
                         )}
                         <Button
-                          onClick={() => navigate(`/sales-funnel/quotations?sow_id=${sow.id}`)}
+                          onClick={() => navigate(`/sales-funnel/proforma-invoices?sow_id=${sow.id}`)}
                           size="sm"
                           className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
                           data-testid={`quotation-sow-${sow.id}`}

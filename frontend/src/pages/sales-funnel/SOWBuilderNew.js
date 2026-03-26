@@ -311,7 +311,7 @@ const SOWBuilderNew = () => {
 
   // Navigate to quotation
   const goToQuotation = () => {
-    navigate(`/sales-funnel/quotations?pricing_plan_id=${pricingPlanId}&leadId=${leadId || plan?.lead_id}`);
+    navigate(`/sales-funnel/proforma-invoices?pricing_plan_id=${pricingPlanId}&leadId=${leadId || plan?.lead_id}`);
   };
 
   // Filter library by category

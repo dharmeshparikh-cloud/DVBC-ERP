@@ -18,7 +18,7 @@ export const SALES_STAGES = {
   MEETING: { id: 2, name: 'Meeting', path: '/sales-funnel/meetings', prerequisite: 'LEAD' },
   PRICING: { id: 3, name: 'Pricing Plan', path: '/sales-funnel/pricing-plans', prerequisite: 'MEETING' },
   SOW: { id: 4, name: 'SOW', path: '/sales-funnel/sow', prerequisite: 'PRICING' },
-  QUOTATION: { id: 5, name: 'Quotation', path: '/sales-funnel/quotations', prerequisite: 'SOW' },
+  QUOTATION: { id: 5, name: 'Proforma Invoice', path: '/sales-funnel/proforma-invoices', prerequisite: 'SOW' },
   AGREEMENT: { id: 6, name: 'Agreement', path: '/agreements', prerequisite: 'QUOTATION' },
   PAYMENT: { id: 7, name: 'Payment', path: '/sales-funnel/payment-verification', prerequisite: 'AGREEMENT' },
   KICKOFF: { id: 8, name: 'Kickoff', path: '/kickoff-requests', prerequisite: 'PAYMENT' },

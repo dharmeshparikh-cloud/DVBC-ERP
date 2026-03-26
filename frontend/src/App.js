@@ -308,9 +308,11 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/scope-selection/:pricingPlanId" element={<SalesScopeSelection />} />
         <Route path="sales-funnel/sow-review/:pricingPlanId" element={<ConsultingScopeView />} />
         <Route path="sales-funnel/sow-list" element={<SalesSOWList />} />
-        <Route path="sales-funnel/quotations" element={<ProformaInvoice />} />
-        <Route path="sales-funnel/proforma-invoice" element={<Navigate to="/sales-funnel/quotations" replace />} />
-        <Route path="sales-funnel/quotation" element={<ProformaInvoice />} />
+        <Route path="sales-funnel/proforma-invoices" element={<ProformaInvoice />} />
+        {/* Redirects for old routes */}
+        <Route path="sales-funnel/quotations" element={<Navigate to="/sales-funnel/proforma-invoices" replace />} />
+        <Route path="sales-funnel/quotation" element={<Navigate to="/sales-funnel/proforma-invoices" replace />} />
+        <Route path="sales-funnel/proforma-invoice" element={<Navigate to="/sales-funnel/proforma-invoices" replace />} />
         <Route path="sales-funnel/agreements" element={<Agreements />} />
         <Route path="sales-funnel/agreement/:agreementId" element={<AgreementView />} />
         <Route path="sales-funnel/agreement" element={<AgreementView />} />

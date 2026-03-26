@@ -416,7 +416,7 @@ const Agreements = () => {
     <div className="max-w-6xl mx-auto" data-testid="agreements-page">
       <div className="mb-6">
         <Button
-          onClick={() => navigate('/sales-funnel/quotations')}
+          onClick={() => navigate('/sales-funnel/proforma-invoices')}
           variant="ghost"
           className="mb-4 hover:bg-zinc-100 rounded-sm"
         >
