@@ -419,8 +419,9 @@ export default function PenaltyManagement() {
 
       {/* View Detail Dialog */}
       <Dialog open={!!viewPenalty} onOpenChange={() => setViewPenalty(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg" aria-describedby="view-penalty-desc">
           <DialogHeader><DialogTitle>Penalty Details</DialogTitle></DialogHeader>
+          <p id="view-penalty-desc" className="sr-only">View details of the selected penalty record</p>
           {viewPenalty && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
@@ -449,8 +450,9 @@ export default function PenaltyManagement() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editPenalty} onOpenChange={() => setEditPenalty(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="edit-penalty-desc">
           <DialogHeader><DialogTitle>Edit Penalty</DialogTitle></DialogHeader>
+          <p id="edit-penalty-desc" className="sr-only">Edit the amount and reason for this penalty</p>
           {editPenalty && (
             <div className="space-y-3">
               <p className="text-sm text-zinc-600"><span className="font-medium">{editPenalty.employee_name}</span> — {editPenalty.violation_name}</p>
@@ -473,8 +475,9 @@ export default function PenaltyManagement() {
 
       {/* Reject Reason Dialog */}
       <Dialog open={!!rejectPenaltyId} onOpenChange={() => setRejectPenaltyId(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="reject-penalty-desc">
           <DialogHeader><DialogTitle>Reject Penalty</DialogTitle></DialogHeader>
+          <p id="reject-penalty-desc" className="sr-only">Provide a reason for rejecting this penalty</p>
           <div className="space-y-3">
             <Label className="text-sm">Reason for rejection (optional)</Label>
             <Input value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Enter reason..." data-testid="reject-reason-input" />

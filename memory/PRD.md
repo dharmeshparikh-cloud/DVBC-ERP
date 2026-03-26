@@ -10,7 +10,7 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Maps**: Google Maps API (Places Autocomplete)
 
 ## Core Modules
-1. **HR Module** - Attendance, Leaves, Salary Slips, Expenses
+1. **HR Module** - Attendance, Leaves, Salary Slips, Expenses, Penalty Management
 2. **Consulting Module** - Meetings, Consultant Management
 3. **Sales Module** - Full E2E Sales Funnel, Proforma Invoices, Agreements
 
@@ -22,17 +22,23 @@ Establish a unified and strict governance model across the ERP. Build customized
 - SOW Builder (SOWBuilderNew.js is the primary handler)
 - Agreement creation and approval workflow
 
-### Proforma Invoice (COMPLETE - Last Updated: 26 Mar 2026)
+### Proforma Invoice (COMPLETE - 26 Mar 2026)
 - B&W minimalist design with D&V logo
-- "Management Consulting Services — Professional Fees" as description
-- No role-wise rates shown in team deployment table
 - Client GSTIN field in create/edit dialog
 - Payment Terms & Conditions box at bottom (replaced Amount Due black box)
-- Bank Details alongside T&C in 2-column layout
 - Data-driven PDF export (self-contained HTML, inline styles, no DOM cloning)
-- Table actions (Download PDF, Print) use proper PDF generator
 - Amount, Meetings, Version columns in table
-- Edit action with PUT endpoint
+
+### Unified Penalty Management (COMPLETE - 26 Mar 2026)
+- **Single collection**: `employee_penalties` (deprecated: `attendance_penalties`, `payroll_inputs.penalty`)
+- **Single UI**: `/penalty-management` with 4 tabs (Pending Review | Approved | Rejected | Apply Manual)
+- **Backend endpoints**: approve, reject, send-back, bulk-action, edit, summary-by-employees
+- **Auto-detection**: Late check-in auto-creates penalty with `status: pending_review`, `source: auto_attendance`
+- **Attendance validation**: Creates `pending_review` penalties, navigates HR to Penalty Management
+- **Payroll engine**: Simplified from 4 sources to 1 — reads ONLY `employee_penalties` where `status: approved`
+- **No double-counting**: Single collection + status-based filtering
+- **21 violation types** across 5 categories (Attendance, Leave, Travel, Expense, General HR)
+- **Testing**: 100% pass rate — 16/16 backend, all frontend flows verified (iteration_239)
 
 ### Pagination (FIXED)
 - All list APIs return `{data: [], total, page}` format
@@ -46,16 +52,17 @@ Establish a unified and strict governance model across the ERP. Build customized
 | Consultant | EMP004 | consultant123 |
 
 ## Key Files
+- `/app/frontend/src/pages/PenaltyManagement.js` - Unified penalty UI
+- `/app/backend/routers/penalties.py` - All penalty CRUD + approve/reject/bulk
+- `/app/backend/services/payroll_engine.py` - Simplified penalty deduction logic
 - `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js`
-- `/app/frontend/src/components/sales/ProformaInvoiceTable.jsx`
 - `/app/backend/routers/quotations.py`
-- `/app/backend/routers/pricing_plans.py`
 
 ## P1 - Upcoming Tasks
-- Late Penalty Workflow: HR UI to review auto-generated penalty records (₹100 flat) approve/reject before payroll
 - Consultant Notifications: System notifications when assigned to project/SOW
 
 ## P2 - Future/Backlog
 - Delete legacy SOWBuilder.js and sow_legacy.py
 - Refactor ConsultingMeetings.js (>2300 lines)
 - Governance Dashboard UI for /api/governance/* endpoints
+- Realtime penalty badges in attendance/leave tables (GET /api/penalties/summary-by-employees already built)
