@@ -643,7 +643,7 @@ async def approve_go_live_request(
             reporting_manager_name = manager.get("full_name") if manager else "To be assigned"
         
         # ERP Login URL
-        erp_login_url = os.environ.get("FRONTEND_URL", "https://attendance-approvals.preview.emergentagent.com") + "/login"
+        erp_login_url = os.environ.get("FRONTEND_URL", "https://sales-funnel-fix.preview.emergentagent.com") + "/login"
         
         # Prepare password section for email
         password_section = ""
@@ -741,7 +741,7 @@ async def approve_go_live_request(
                                 {'<div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;"><h4 style="margin-top: 0; color: #92400e;">Login Credentials (For HR Reference)</h4><p style="margin: 0;"><strong>Employee ID:</strong> ' + str(employee_full.get('employee_id')) + '</p><p style="margin: 5px 0 0;"><strong>Temporary Password:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">' + str(temp_password) + '</code></p><p style="margin-top: 10px; font-size: 12px; color: #78350f;">Share these credentials with the employee if they did not receive the welcome email.</p></div>' if temp_password else ''}
                                 
                                 <p>The employee can now login to NETRA ERP using their Employee ID.</p>
-                                <p>You can view their details in the <a href="https://attendance-approvals.preview.emergentagent.com/employees?edit={employee_full.get('id')}">Employee Directory</a>.</p>
+                                <p>You can view their details in the <a href="https://sales-funnel-fix.preview.emergentagent.com/employees?edit={employee_full.get('id')}">Employee Directory</a>.</p>
                             </div>
                         </div>
                         """
@@ -966,7 +966,7 @@ async def generate_portal_access(
     
     # Send emails
     employee_email = employee.get("email") or employee.get("personal_email")
-    erp_login_url = os.environ.get("FRONTEND_URL", "https://attendance-approvals.preview.emergentagent.com") + "/login"
+    erp_login_url = os.environ.get("FRONTEND_URL", "https://sales-funnel-fix.preview.emergentagent.com") + "/login"
     employee_name = employee.get("full_name") or f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
     
     if employee_email:
@@ -1122,7 +1122,7 @@ async def reset_employee_password(
     
     # Send emails
     employee_email = employee.get("email") or employee.get("personal_email")
-    erp_login_url = os.environ.get("FRONTEND_URL", "https://attendance-approvals.preview.emergentagent.com") + "/login"
+    erp_login_url = os.environ.get("FRONTEND_URL", "https://sales-funnel-fix.preview.emergentagent.com") + "/login"
     employee_name = employee.get("full_name") or f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
     
     if employee_email:

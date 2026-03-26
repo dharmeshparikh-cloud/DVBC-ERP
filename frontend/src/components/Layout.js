@@ -409,7 +409,7 @@ const Layout = () => {
         // Consultant view - simplified with SSOT marker
         { name: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar, badge: 'SSOT' },
         { name: 'Meetings Calendar', href: '/meeting-calendar', icon: CalendarDays },
-        { name: 'My Clients', href: '/clients', icon: Building2 },
+        { name: 'My Projects', href: '/clients', icon: Briefcase },
         { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Efforts Summary', href: '/consulting/efforts-summary', icon: BarChart3 },
         { name: 'Payments', href: '/payments', icon: DollarSign },
@@ -418,6 +418,7 @@ const Layout = () => {
         // Manager/Admin view - full access
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Team Assignment', href: '/consultants', icon: Users },
+        { name: 'SOW List', href: '/consulting/sow-list', icon: FileText },
         { name: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar, badge: 'SSOT' },
         { name: 'Meetings Calendar', href: '/meeting-calendar', icon: CalendarDays },
         { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },

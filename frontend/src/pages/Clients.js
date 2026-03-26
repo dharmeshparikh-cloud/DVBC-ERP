@@ -53,6 +53,12 @@ const Clients = () => {
   const canEditClient = canManageClients(user);
   // Can view - everyone but filtered by role
 
+  // GOVERNANCE: Sales sees "Client", Consulting sees "Project" — same data
+  const termSingular = isConsulting ? 'Project' : 'Client';
+  const termPlural = isConsulting ? 'Projects' : 'Clients';
+  const pageTitle = isConsulting ? 'My Projects' : 'Client Master';
+  const pageDesc = isConsulting ? 'Projects assigned to you' : 'Manage client information and relationships';
+
   // Form data
   const [formData, setFormData] = useState({
     company_name: '',
@@ -391,9 +397,9 @@ const Clients = () => {
     <div data-testid="clients-page">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-          Client Master
+          {pageTitle}
         </h1>
-        <p className="text-zinc-500">Manage client information and relationships</p>
+        <p className="text-zinc-500">{pageDesc}</p>
       </div>
 
       {/* Stats Cards */}
@@ -403,7 +409,7 @@ const Clients = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase text-zinc-500">Total Clients</p>
+                  <p className="text-xs uppercase text-zinc-500">Total {termPlural}</p>
                   <p className="text-2xl font-semibold text-zinc-950">{stats.total_clients}</p>
                 </div>
                 <Building2 className="w-8 h-8 text-zinc-300" />
@@ -555,7 +561,7 @@ const Clients = () => {
           <CardContent className="p-12 text-center">
             <Building2 className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
             <p className="text-zinc-500">
-              {clients.length === 0 ? 'No clients yet. Add your first client.' : 'No clients match your search.'}
+              {clients.length === 0 ? `No ${termPlural.toLowerCase()} yet.${!isConsulting ? ' Add your first client.' : ''}` : `No ${termPlural.toLowerCase()} match your search.`}
             </p>
           </CardContent>
         </Card>
@@ -566,7 +572,7 @@ const Clients = () => {
         <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
-              {editDialog ? 'Edit Client' : 'Add New Client'}
+              {editDialog ? `Edit ${termSingular}` : `Add New ${termSingular}`}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
