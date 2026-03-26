@@ -1942,6 +1942,32 @@ async def search_leads_ssot(
                 {"lead_id": 1, "_id": 0}
             ).to_list(1000)
             eligible_lead_ids = {p["lead_id"] for p in plans if p.get("lead_id")}
+        
+        elif funnel_stage == "has_sow":
+            # Find leads with SOW that has at least 1 scope item
+            # First get pricing plans, then check for SOWs
+            plans = await db.pricing_plans.find({}, {"id": 1, "lead_id": 1, "_id": 0}).to_list(1000)
+            plan_to_lead = {p["id"]: p["lead_id"] for p in plans if p.get("id") and p.get("lead_id")}
+            
+            # Check enhanced_sow collection
+            sows = await db.enhanced_sow.find(
+                {"scopes": {"$exists": True, "$ne": []}},
+                {"pricing_plan_id": 1, "_id": 0}
+            ).to_list(1000)
+            for sow in sows:
+                pp_id = sow.get("pricing_plan_id")
+                if pp_id and pp_id in plan_to_lead:
+                    eligible_lead_ids.add(plan_to_lead[pp_id])
+            
+            # Also check legacy sow collection
+            legacy_sows = await db.sow.find(
+                {"items": {"$exists": True, "$ne": []}},
+                {"pricing_plan_id": 1, "_id": 0}
+            ).to_list(1000)
+            for sow in legacy_sows:
+                pp_id = sow.get("pricing_plan_id")
+                if pp_id and pp_id in plan_to_lead:
+                    eligible_lead_ids.add(plan_to_lead[pp_id])
             
         elif funnel_stage == "has_quotation":
             # Find leads with quotations

@@ -43,8 +43,8 @@ const ProformaInvoice = () => {
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   
-  // Check if there are eligible leads (with pricing plans) for creating quotations
-  const { hasEligibleLeads, isLoading: eligibilityLoading } = useFunnelEligibility('has_pricing_plan');
+  // Check if there are eligible leads (with SOW - enforced before quotation)
+  const { hasEligibleLeads, isLoading: eligibilityLoading } = useFunnelEligibility('has_sow');
   
   // Auto-switch to card view on mobile
   useEffect(() => {
@@ -170,6 +170,23 @@ const ProformaInvoice = () => {
     },
     onError: (error) => {
       const detail = error.response?.data?.detail;
+      
+      // Handle SOW_REQUIRED error - redirect to SOW Builder
+      if (typeof detail === 'string' && (detail.includes('SOW_REQUIRED') || detail.includes('SOW_EMPTY'))) {
+        toast.error('Scope of Work is required before creating a Quotation');
+        setDialogOpen(false);
+        // Get redirect URL from header or construct it
+        const redirectUrl = error.response?.headers?.['x-redirect-to'];
+        if (redirectUrl) {
+          navigate(redirectUrl);
+        } else if (formData.pricing_plan_id) {
+          navigate(`/sales-funnel/sow/${formData.pricing_plan_id}?lead_id=${formData.lead_id}`);
+        } else {
+          navigate('/sales-funnel/sow-list');
+        }
+        return;
+      }
+      
       if (Array.isArray(detail)) {
         toast.error((detail || []).map(e => e.msg || 'Validation error').join(', '));
       } else if (typeof detail === 'string') {
@@ -651,8 +668,8 @@ const ProformaInvoice = () => {
                   </TooltipTrigger>
                   {!hasEligibleLeads && !eligibilityLoading && (
                     <TooltipContent side="bottom" className="bg-zinc-900 text-white border-zinc-700 max-w-xs">
-                      <p className="text-sm">{getFunnelTooltip('has_pricing_plan')}</p>
-                      <p className="text-xs text-zinc-400 mt-1">Go to Pricing Plans → Create a plan first</p>
+                      <p className="text-sm">{getFunnelTooltip('has_sow')}</p>
+                      <p className="text-xs text-zinc-400 mt-1">Go to SOW Builder → Define scope items first</p>
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -739,6 +756,7 @@ const ProformaInvoice = () => {
                       const isLatest = idx === 0;
                       const usedInAgreement = isUsedInAgreement(invoice.id);
                       const versionNumber = invoicesList.length - idx;
+                      const hasSow = invoice.has_sow !== false; // Legacy quotations without SOW flag
                       
                       return (
                         <div 
@@ -761,6 +779,12 @@ const ProformaInvoice = () => {
                                   {new Date(invoice.created_at).toLocaleDateString()}
                                 </span>
                               </div>
+                              {!hasSow && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-sm bg-amber-100 text-amber-700 border border-amber-200">
+                                  <AlertCircle className="w-3 h-3" />
+                                  No SOW
+                                </span>
+                              )}
                               {usedInAgreement && (
                                 <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-sm bg-emerald-100 text-emerald-700">
                                   <Star className="w-3 h-3" />

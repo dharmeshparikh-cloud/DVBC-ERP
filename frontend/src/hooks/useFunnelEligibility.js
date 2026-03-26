@@ -12,7 +12,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 /**
  * Check if leads exist for a specific funnel stage
- * @param {string} funnelStage - 'has_meeting', 'has_pricing_plan', 'has_quotation'
+ * @param {string} funnelStage - 'has_meeting', 'has_pricing_plan', 'has_sow', 'has_quotation'
  * @returns {{ hasEligibleLeads: boolean, isLoading: boolean, count: number }}
  */
 export const useFunnelEligibility = (funnelStage) => {
@@ -44,6 +44,7 @@ export const getFunnelTooltip = (funnelStage) => {
   const messages = {
     'has_meeting': 'No leads with meetings (MOM) found. Record a meeting first.',
     'has_pricing_plan': 'No leads with pricing plans found. Create a Pricing Plan first.',
+    'has_sow': 'No leads with Scope of Work found. Create a SOW first.',
     'has_quotation': 'No leads with quotations found. Create a Quotation first.'
   };
   return messages[funnelStage] || 'No eligible leads found.';

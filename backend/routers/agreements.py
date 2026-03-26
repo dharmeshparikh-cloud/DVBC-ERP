@@ -151,8 +151,12 @@ async def create_agreement(
     if not end_date_str:
         end_date_str = (start + relativedelta(months=tenure)).strftime("%Y-%m-%d")
     
-    # Auto-populate client info from lead
-    client_name = data.client_name or lead.get("company", "") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+    # SSOT: All client fields ALWAYS come from Lead
+    client_name = lead.get("company", "") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+    client_email = lead.get("email", "")
+    client_phone = lead.get("phone", "") or lead.get("mobile", "")
+    client_address = lead.get("address", "") or lead.get("company_address", "")
+    client_gstin = lead.get("gstin", "") or lead.get("gst_number", "")
     
     agreement_doc = {
         "id": agreement_id,
@@ -161,9 +165,10 @@ async def create_agreement(
         "quotation_id": data.quotation_id or quotation.get("id"),
         "title": data.title,
         "client_name": client_name,
-        "client_address": data.client_address,
-        "client_email": data.client_email or lead.get("email", ""),
-        "client_phone": data.client_phone or lead.get("phone", ""),
+        "client_address": client_address,
+        "client_email": client_email,
+        "client_phone": client_phone,
+        "client_gstin": client_gstin,
         "services_description": data.services_description,
         "total_value": data.total_value or quotation.get("grand_total") or quotation.get("total") or 0,
         "payment_terms": data.payment_terms,
@@ -188,8 +193,7 @@ async def create_agreement(
     await db.agreements.insert_one(agreement_doc)
     agreement_doc.pop("_id", None)
     
-    # Client email
-    client_email = data.client_email or lead.get("email", "")
+    # Client email already set from Lead (SSOT)
     
     # Send email notification in background
     # Agreement: Manager + Manager's Manager + Client
@@ -207,7 +211,7 @@ async def create_agreement(
                 total_value=data.total_value,
                 currency="INR",
                 start_date=data.start_date or "TBD",
-                end_date=end_date,
+                end_date=end_date_str,
                 status=initial_status,
                 salesperson_name=current_user.full_name,
                 client_email=client_email,

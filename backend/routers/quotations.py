@@ -49,7 +49,9 @@ async def create_quotation(
     """
     Create a new quotation and send email notification.
     
-    FUNNEL PREREQUISITE: Pricing Plan must exist for this lead.
+    FUNNEL PREREQUISITES:
+    1. Pricing Plan must exist for this lead
+    2. SOW must exist with at least 1 scope item
     """
     db = get_db()
     
@@ -57,7 +59,7 @@ async def create_quotation(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     
-    # FUNNEL VALIDATION: Check if pricing plan exists for this lead
+    # FUNNEL VALIDATION 1: Check if pricing plan exists for this lead
     pricing_plan = await db.pricing_plans.find_one({"lead_id": data.lead_id}, {"_id": 0})
     if not pricing_plan:
         raise HTTPException(
@@ -70,6 +72,28 @@ async def create_quotation(
         specific_plan = await db.pricing_plans.find_one({"id": data.pricing_plan_id}, {"_id": 0})
         if specific_plan:
             pricing_plan = specific_plan
+    
+    # FUNNEL VALIDATION 2: Check if SOW exists with at least 1 scope item
+    sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan.get("id")}, {"_id": 0})
+    if not sow:
+        # Also check legacy sow collection
+        sow = await db.sow.find_one({"pricing_plan_id": pricing_plan.get("id")}, {"_id": 0})
+    
+    if not sow:
+        raise HTTPException(
+            status_code=400,
+            detail="SOW_REQUIRED: Cannot create quotation without Scope of Work. Please define at least one scope item in the SOW Builder first.",
+            headers={"X-Redirect-To": f"/sales-funnel/sow/{pricing_plan.get('id')}?lead_id={data.lead_id}"}
+        )
+    
+    # Check if SOW has at least 1 scope item
+    sow_scopes = sow.get("scopes") or sow.get("items") or []
+    if len(sow_scopes) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="SOW_EMPTY: SOW exists but has no scope items. Please add at least one scope item before creating a quotation.",
+            headers={"X-Redirect-To": f"/sales-funnel/sow/{pricing_plan.get('id')}?lead_id={data.lead_id}"}
+        )
     
     # Auto-calculate financial fields from pricing plan if not provided
     subtotal = data.subtotal
@@ -90,21 +114,32 @@ async def create_quotation(
     tax_amount = data.tax_amount if data.tax_amount else round(subtotal * (data.tax_rate / 100), 2)
     grand_total = subtotal + tax_amount
     
-    client_name = data.client_name or lead.get("company", "") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+    # SSOT: Client fields ALWAYS come from Lead
+    client_name = lead.get("company", "") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
     
     quotation_id = str(uuid.uuid4())
     quotation_number = f"QT-{now_ist().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
     valid_until = (datetime.now(timezone.utc) + timedelta(days=data.validity_days)).strftime("%Y-%m-%d")
+    
+    # SSOT: All client fields from Lead
+    client_email = lead.get("email", "")
+    client_phone = lead.get("phone", "") or lead.get("mobile", "")
+    client_address = lead.get("address", "") or lead.get("company_address", "")
+    client_gstin = lead.get("gstin", "") or lead.get("gst_number", "")
     
     quotation_doc = {
         "id": quotation_id,
         "quotation_number": quotation_number,
         "lead_id": data.lead_id,
         "pricing_plan_id": data.pricing_plan_id or pricing_plan.get("id"),
+        "sow_id": sow.get("id"),  # Link to SOW for traceability
+        "has_sow": True,  # Flag for frontend badge
         "title": data.title,
         "client_name": client_name,
-        "client_email": data.client_email or lead.get("email", ""),
-        "client_gstin": data.client_gstin or lead.get("gstin", ""),
+        "client_email": client_email,
+        "client_phone": client_phone,
+        "client_address": client_address,
+        "client_gstin": client_gstin,
         "line_items": data.line_items or [],
         "subtotal": subtotal,
         "tax_rate": data.tax_rate,
@@ -127,8 +162,8 @@ async def create_quotation(
     await db.quotations.insert_one(quotation_doc)
     quotation_doc.pop("_id", None)
     
-    # Client email from lead
-    client_email = data.client_email or lead.get("email", "")
+    # Client email from Lead (SSOT)
+    # Already set from lead above
     
     # Send email notification in background
     async def send_proforma_notification():
@@ -306,6 +341,25 @@ async def get_quotations(
     # Get total and paginated data
     total = await db.quotations.count_documents(query)
     quotations = await db.quotations.find(query, {"_id": 0}).sort(sort_field, sort_order).skip(skip).limit(page_size).to_list(page_size)
+    
+    # Enrich quotations with has_sow flag for legacy records
+    for quotation in quotations:
+        if "has_sow" not in quotation:
+            # Check if SOW exists for this quotation's pricing plan
+            pricing_plan_id = quotation.get("pricing_plan_id")
+            if pricing_plan_id:
+                sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan_id}, {"_id": 0, "id": 1, "scopes": 1})
+                if not sow:
+                    sow = await db.sow.find_one({"pricing_plan_id": pricing_plan_id}, {"_id": 0, "id": 1, "items": 1})
+                
+                if sow:
+                    scope_count = len(sow.get("scopes") or sow.get("items") or [])
+                    quotation["has_sow"] = scope_count > 0
+                    quotation["sow_id"] = sow.get("id")
+                else:
+                    quotation["has_sow"] = False
+            else:
+                quotation["has_sow"] = False
     
     return {
         "data": quotations,
