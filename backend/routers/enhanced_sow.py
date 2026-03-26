@@ -183,6 +183,7 @@ async def create_simple_sow(
     """
     Simple SOW creation from SOWBuilder.
     Creates enhanced_sow with scopes (Category, Name, Deliverables).
+    Auto-syncs new scopes to library for future reuse.
     """
     allowed = ADMIN_ROLES + SALES_ROLES + ["principal_consultant"]
     if current_user.role not in allowed:
@@ -233,6 +234,11 @@ async def create_simple_sow(
             "progress_percentage": 0
         }
         scopes.append(scope)
+        
+        # Auto-sync to library: Add new scope template if not exists
+        await _sync_scope_to_library(db, scope_data.name, scope_data.category_code, 
+                                     scope_data.category_name, deliverables_list, 
+                                     current_user.id, user_name)
     
     # Generate SOW number
     count = await db.enhanced_sow.count_documents({})
@@ -272,6 +278,64 @@ async def create_simple_sow(
     }
 
 
+async def _sync_scope_to_library(db, name: str, category_code: str, category_name: str, 
+                                  deliverables: list, user_id: str, user_name: str):
+    """
+    Auto-sync scope to library templates for future reuse.
+    - If scope doesn't exist: Create new template
+    - If scope exists but has fewer deliverables: Update with new deliverables
+    """
+    import re
+    now = datetime.now(timezone.utc)
+    
+    # Skip empty scopes
+    if not name or not name.strip():
+        return
+    
+    # Check if template exists (case-insensitive exact match)
+    existing = await db.sow_scope_templates.find_one({
+        "name": {"$regex": f"^{re.escape(name.strip())}$", "$options": "i"},
+        "is_active": True
+    }, {"_id": 0})
+    
+    if existing:
+        # Template exists - update only if new deliverables are more comprehensive
+        existing_deliverables = existing.get("deliverables", [])
+        if len(deliverables) > len(existing_deliverables):
+            # Merge deliverables - keep existing and add new unique ones
+            merged = list(existing_deliverables)
+            for d in deliverables:
+                if d not in merged:
+                    merged.append(d)
+            
+            await db.sow_scope_templates.update_one(
+                {"id": existing["id"]},
+                {"$set": {
+                    "deliverables": merged[:10],  # Cap at 10 deliverables
+                    "updated_at": now.isoformat(),
+                    "updated_by": user_id,
+                    "updated_by_name": user_name
+                }}
+            )
+    else:
+        # Create new template
+        template = {
+            "id": str(uuid.uuid4()),
+            "name": name.strip(),
+            "category_code": category_code or "general",
+            "category_name": category_name or "General",
+            "deliverables": deliverables[:10],  # Cap at 10 deliverables
+            "description": f"Auto-created from SOW by {user_name}",
+            "is_active": True,
+            "source": "auto_sync",
+            "created_by": user_id,
+            "created_by_name": user_name,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+        await db.sow_scope_templates.insert_one(template)
+
+
 @router.put("/{sow_id}/simple-update")
 async def update_simple_sow(
     sow_id: str,
@@ -281,6 +345,7 @@ async def update_simple_sow(
     """
     Update SOW scopes from SOWBuilder.
     Allows adding/updating/removing scopes before handover.
+    Auto-syncs new scopes to library for future reuse.
     """
     allowed = ADMIN_ROLES + SALES_ROLES + ["principal_consultant"]
     if current_user.role not in allowed:
@@ -323,6 +388,13 @@ async def update_simple_sow(
             "progress_percentage": scope_data.get("progress_percentage", 0)
         }
         scopes.append(scope)
+        
+        # Auto-sync to library: Add new scope template if not exists
+        await _sync_scope_to_library(db, scope_data.get("name", ""), 
+                                     scope_data.get("category_code", ""), 
+                                     scope_data.get("category_name", ""), 
+                                     deliverables_list, 
+                                     current_user.id, user_name)
     
     # Update SOW
     await db.enhanced_sow.update_one(
