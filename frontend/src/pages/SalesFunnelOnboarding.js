@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -15,6 +15,7 @@ import {
   AlertTriangle, Plus, Edit2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import CelebrationOverlay from '../components/CelebrationOverlay';
 
 // Complete 9-Step Sales Funnel
 const FUNNEL_STEPS = [
@@ -101,6 +102,8 @@ const SalesFunnelOnboarding = () => {
   const leadId = searchParams.get('leadId');
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationShown, setCelebrationShown] = useState(false);
 
   // Check if user can approve agreements (Sales Manager, Sr. Manager, Principal Consultant, Admin)
   const canApproveAgreement = ['admin', 'sales_manager', 'sr_manager', 'manager', 'principal_consultant'].includes(user?.role);
@@ -139,6 +142,26 @@ const SalesFunnelOnboarding = () => {
 
   const lead = funnelData?.lead || null;
   const funnelStatus = funnelData?.funnelStatus || {};
+
+  // Trigger celebration when all 9 steps are complete
+  useEffect(() => {
+    const completedCount = funnelStatus?.completed_count || 0;
+    const totalSteps = funnelStatus?.total_steps || 9;
+    const isComplete = completedCount >= totalSteps && funnelStatus?.project_id;
+    
+    // Only show celebration once per session for this lead
+    const celebrationKey = `celebration_shown_${leadId}`;
+    const alreadyShown = sessionStorage.getItem(celebrationKey);
+    
+    if (isComplete && !celebrationShown && !alreadyShown) {
+      // Small delay for dramatic effect
+      setTimeout(() => {
+        setShowCelebration(true);
+        setCelebrationShown(true);
+        sessionStorage.setItem(celebrationKey, 'true');
+      }, 500);
+    }
+  }, [funnelStatus, leadId, celebrationShown]);
 
   // Mutation for approving agreement
   const approveAgreementMutation = useMutation({
@@ -383,6 +406,15 @@ const SalesFunnelOnboarding = () => {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950" data-testid="sales-funnel-onboarding">
+      {/* Celebration Overlay */}
+      <CelebrationOverlay
+        isVisible={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        userName={user?.full_name || user?.name || 'Champion'}
+        companyName={lead?.company || `${lead?.first_name || ''} ${lead?.last_name || ''}`.trim()}
+        projectName={funnelStatus?.project_name}
+      />
+      
       {/* Header */}
       <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4">
         <div className="max-w-7xl mx-auto">
@@ -786,14 +818,24 @@ const SalesFunnelOnboarding = () => {
                           {lead.company || lead.first_name} has been successfully onboarded.
                           <br />Project has been created and PM has been notified.
                         </p>
-                        <Button
-                          onClick={() => navigate(`/projects/${funnelStatus.project_id}`)}
-                          className="bg-emerald-600 hover:bg-emerald-700"
-                          data-testid="view-project-btn"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          View Project
-                        </Button>
+                        <div className="flex items-center justify-center gap-3">
+                          <Button
+                            onClick={() => navigate(`/projects/${funnelStatus.project_id}`)}
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            data-testid="view-project-btn"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            View Project
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowCelebration(true)}
+                            className="border-amber-300 text-amber-600 hover:bg-amber-50"
+                            data-testid="replay-celebration-btn"
+                          >
+                            🎉 Replay Celebration
+                          </Button>
+                        </div>
                       </>
                     ) : (
                       <>
