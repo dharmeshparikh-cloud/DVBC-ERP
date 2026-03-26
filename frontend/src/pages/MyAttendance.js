@@ -141,6 +141,7 @@ const MyAttendance = () => {
                 <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Date</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Status</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Location</th>
+                <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Address</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Check In</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Check Out</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Hours</th>
@@ -163,6 +164,14 @@ const MyAttendance = () => {
                           {r.work_location === 'in_office' && <><Building2 className="w-3 h-3 text-blue-600" /><span className="text-blue-700 dark:text-blue-400">Office</span></>}
                           {r.work_location === 'onsite' && <><MapPin className="w-3 h-3 text-emerald-600" /><span className="text-emerald-700 dark:text-emerald-400">On-Site</span></>}
                           {r.work_location === 'wfh' && <><Home className="w-3 h-3 text-amber-600" /><span className="text-amber-700 dark:text-amber-400">WFH</span></>}
+                        </span>
+                      ) : <span className="text-zinc-400">-</span>}
+                    </td>
+                    <td className="px-4 py-3 text-left text-xs text-zinc-600 dark:text-zinc-400 max-w-[200px]" data-testid={`att-address-${i}`}>
+                      {r?.location_address ? (
+                        <span className="flex items-start gap-1" title={r.location_address}>
+                          <MapPin className="w-3 h-3 text-zinc-400 mt-0.5 flex-shrink-0" />
+                          <span className="truncate">{r.location_address}</span>
                         </span>
                       ) : <span className="text-zinc-400">-</span>}
                     </td>

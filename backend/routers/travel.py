@@ -176,6 +176,77 @@ async def search_locations(
         return {"results": [], "error": str(e)}
 
 
+@router.get("/reverse-geocode")
+async def reverse_geocode(
+    lat: float,
+    lng: float,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reverse geocode coordinates to get locality, area, and city.
+    Used by attendance check-in to convert GPS coordinates to human-readable address.
+    """
+    if not GOOGLE_MAPS_API_KEY:
+        return {"address": f"{lat:.4f}, {lng:.4f}", "locality": "", "area": "", "city": ""}
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={
+                    "latlng": f"{lat},{lng}",
+                    "key": GOOGLE_MAPS_API_KEY,
+                    "language": "en"
+                },
+                timeout=10.0
+            )
+
+            if response.status_code != 200:
+                return {"address": f"{lat:.4f}, {lng:.4f}", "locality": "", "area": "", "city": ""}
+
+            data = response.json()
+
+            if data.get("status") != "OK" or not data.get("results"):
+                return {"address": f"{lat:.4f}, {lng:.4f}", "locality": "", "area": "", "city": ""}
+
+            result = data["results"][0]
+            components = result.get("address_components", [])
+
+            locality = ""
+            area = ""
+            city = ""
+            state = ""
+
+            for comp in components:
+                types = comp.get("types", [])
+                if "sublocality_level_1" in types or "sublocality" in types:
+                    locality = comp.get("long_name", "")
+                elif "sublocality_level_2" in types or "neighborhood" in types:
+                    if not area:
+                        area = comp.get("long_name", "")
+                elif "locality" in types:
+                    city = comp.get("long_name", "")
+                elif "administrative_area_level_1" in types:
+                    state = comp.get("long_name", "")
+
+            # Build readable address string
+            parts = [p for p in [locality, area, city, state] if p]
+            address = ", ".join(parts) if parts else result.get("formatted_address", f"{lat:.4f}, {lng:.4f}")
+
+            return {
+                "address": address,
+                "locality": locality,
+                "area": area,
+                "city": city,
+                "state": state,
+                "formatted_address": result.get("formatted_address", "")
+            }
+
+    except Exception:
+        return {"address": f"{lat:.4f}, {lng:.4f}", "locality": "", "area": "", "city": ""}
+
+
+
 @router.get("/travel/place-details/{place_id}")
 async def get_place_details(
     place_id: str,

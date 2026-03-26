@@ -117,6 +117,9 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "longitude": longitude,
         "location_accuracy": geo.get("accuracy"),
         "location_address": geo.get("address") or data.get("location_address"),
+        "location_locality": data.get("location_locality", ""),
+        "location_area": data.get("location_area", ""),
+        "location_city": data.get("location_city", ""),
         "selfie": data.get("selfie"),  # Base64 selfie image
         "remarks": data.get("remarks", "Self check-in"),
         "working_hours": None,  # Calculated on check-out
@@ -197,6 +200,7 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
         "checkout_latitude": data.get("latitude") or geo.get("latitude"),
         "checkout_longitude": data.get("longitude") or geo.get("longitude"),
         "checkout_accuracy": geo.get("accuracy"),
+        "checkout_address": geo.get("address") or data.get("checkout_address", ""),
         "checkout_remarks": data.get("remarks"),
         "updated_at": now.isoformat()
     }

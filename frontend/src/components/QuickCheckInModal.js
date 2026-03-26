@@ -97,10 +97,13 @@ const QuickCheckInModal = ({ isOpen, onClose, user }) => {
           accuracy: position.coords.accuracy
         };
         try {
-          const res = await axios.get(`${API}/search-location?query=${coords.latitude},${coords.longitude}`);
-          if (res.data.results?.length > 0) {
-            coords.address = res.data.results[0].address;
-          }
+          const res = await axios.get(`${API}/reverse-geocode`, {
+            params: { lat: coords.latitude, lng: coords.longitude }
+          });
+          coords.address = res.data.address || `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+          coords.locality = res.data.locality || '';
+          coords.area = res.data.area || '';
+          coords.city = res.data.city || '';
         } catch (e) {
           coords.address = `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
         }
@@ -189,7 +192,11 @@ const QuickCheckInModal = ({ isOpen, onClose, user }) => {
           longitude: location.longitude,
           accuracy: location.accuracy,
           address: location.address
-        }
+        },
+        location_address: location.address,
+        location_locality: location.locality || '',
+        location_area: location.area || '',
+        location_city: location.city || ''
       };
 
       if (selectedWorkLocation === 'onsite' && selectedClient) {
@@ -222,6 +229,16 @@ const QuickCheckInModal = ({ isOpen, onClose, user }) => {
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy
       };
+
+      // Reverse geocode checkout location
+      try {
+        const geoRes = await axios.get(`${API}/reverse-geocode`, {
+          params: { lat: geo_location.latitude, lng: geo_location.longitude }
+        });
+        geo_location.address = geoRes.data.address || '';
+      } catch (e) {
+        geo_location.address = '';
+      }
 
       const response = await axios.post(`${API}/my/check-out`, { geo_location });
       toast.success(`Check-out successful! Work hours: ${response.data.work_hours?.toFixed(1) || '-'} hrs`);
