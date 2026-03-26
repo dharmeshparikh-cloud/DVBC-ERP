@@ -16,7 +16,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sales-funnel-fix.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://governance-erp-1.preview.emergentagent.com')
 
 # Test credentials
 HR_CREDENTIALS = {"employee_id": "DVC037", "password": "test123"}

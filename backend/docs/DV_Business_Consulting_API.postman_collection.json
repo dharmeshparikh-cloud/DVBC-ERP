@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://sales-funnel-fix.preview.emergentagent.com",
+      "value": "https://governance-erp-1.preview.emergentagent.com",
       "type": "string"
     },
     {
