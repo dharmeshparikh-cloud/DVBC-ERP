@@ -229,11 +229,11 @@ const ApprovalsCenter = () => {
 
   // WebSocket connection for real-time updates
   useEffect(() => {
-    if (!token) return;
+    if (!token || !user?.id) return;
     
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = API.replace(/^https?:\/\//, '').replace('/api', '');
-    const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications/${token}`;
+    const wsUrl = `${wsProtocol}//${wsHost}/api/ws/${user.id}`;
     
     const connectWebSocket = () => {
       try {
@@ -242,6 +242,11 @@ const ApprovalsCenter = () => {
         wsRef.current.onopen = () => {
           setWsConnected(true);
           console.log('Approvals WebSocket connected');
+          // Subscribe to approval-related topics
+          wsRef.current.send(JSON.stringify({
+            type: 'subscribe',
+            topics: ['approvals', 'leaves', 'expenses', 'kickoff', 'go_live', 'bank_change', 'ctc', 'permissions']
+          }));
         };
         
         wsRef.current.onmessage = (event) => {
@@ -271,10 +276,8 @@ const ApprovalsCenter = () => {
         wsRef.current.onclose = (event) => {
           setWsConnected(false);
           console.log('Approvals WebSocket disconnected', event.code);
-          // Only reconnect if not a normal closure
-          if (event.code !== 1000) {
-            setTimeout(connectWebSocket, 10000);
-          }
+          // Auto-reconnect after delay
+          setTimeout(connectWebSocket, 5000);
         };
         
         wsRef.current.onerror = (error) => {
@@ -293,7 +296,7 @@ const ApprovalsCenter = () => {
         wsRef.current.close();
       }
     };
-  }, [token]);
+  }, [token, user?.id]);
 
   useEffect(() => {
     // Initial fetch is handled by React Query hooks automatically

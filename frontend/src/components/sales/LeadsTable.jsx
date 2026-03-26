@@ -251,10 +251,10 @@ export const LeadsTable = ({
       className: 'text-blue-600'
     },
     {
-      label: 'Pause Lead',
-      icon: Pause,
-      onClick: (row) => onPause?.(row),
-      className: 'text-yellow-600'
+      label: (row) => row?.status === 'paused' ? 'Resume Lead' : 'Pause Lead',
+      icon: (row) => row?.status === 'paused' ? Play : Pause,
+      onClick: (row) => row?.status === 'paused' ? onResume?.(row) : onPause?.(row),
+      className: (row) => row?.status === 'paused' ? 'text-emerald-600' : 'text-yellow-600'
     },
   ];
   

@@ -27,13 +27,15 @@ export const ApprovalHeader = memo(({
             <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
               Review and manage approval requests
             </p>
-            {/* Real-time indicator - only show when connected */}
-            {wsConnected && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live
-              </div>
-            )}
+            {/* Real-time indicator */}
+            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs ${
+              wsConnected 
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-orange-400 animate-pulse'}`} />
+              {wsConnected ? 'Live' : 'Connecting...'}
+            </div>
           </div>
         </div>
         

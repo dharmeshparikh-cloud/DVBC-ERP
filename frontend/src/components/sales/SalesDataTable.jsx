@@ -1218,19 +1218,24 @@ export const SalesDataTable = ({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {rowActions.filter(action => !action.hidden || !action.hidden(row)).map((action, i) => (
+                            {rowActions.filter(action => !action.hidden || !action.hidden(row)).map((action, i) => {
+                              const label = typeof action.label === 'function' ? action.label(row) : action.label;
+                              const IconComp = typeof action.icon === 'function' ? action.icon(row) : action.icon;
+                              const cls = typeof action.className === 'function' ? action.className(row) : action.className;
+                              return (
                               <DropdownMenuItem
                                 key={i}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   action.onClick(row);
                                 }}
-                                className={action.className}
+                                className={cls}
                               >
-                                {action.icon && <action.icon className="w-4 h-4 mr-2" />}
-                                {action.label}
+                                {IconComp && <IconComp className="w-4 h-4 mr-2" />}
+                                {label}
                               </DropdownMenuItem>
-                            ))}
+                              );
+                            })}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}

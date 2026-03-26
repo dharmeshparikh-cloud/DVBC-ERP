@@ -1,0 +1,138 @@
+{
+  "summary": "Tested new lead management features: Pause/Resume endpoints, CSV Export, Team Members endpoint, and Approvals Center WebSocket status. Backend: 15/15 tests passed. Frontend: All features verified - Export CSV button visible, Import CSV button visible, Pause Lead option in row actions, Approvals Center shows 'Connecting...' instead of 'Offline'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_leads_pause_resume_export_team.py",
+    "/app/test_reports/pytest/pytest_leads_pause_resume_export.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_leads_pause_resume_export_team.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "admin": {"employee_id": "EMP001", "password": "admin123"},
+    "sales": {"employee_id": "EMP003", "password": "sales123"}
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All new lead management features verified. Pause/Resume endpoints work correctly with proper status validation. CSV export returns proper CSV with headers. Team-members endpoint accessible by sales role. Approvals Center WebSocket shows 'Connecting...' or 'Live' instead of 'Offline'.",
+  "features_verified": {
+    "POST /api/leads/{lead_id}/pause": {
+      "status": "PASSED",
+      "details": "Pauses a lead, saves previous_status, returns success message with previous_status"
+    },
+    "POST /api/leads/{lead_id}/resume": {
+      "status": "PASSED",
+      "details": "Resumes a paused lead, restores previous status"
+    },
+    "POST /api/leads/{lead_id}/pause on already paused lead": {
+      "status": "PASSED",
+      "details": "Returns 400 error when trying to pause an already paused lead"
+    },
+    "POST /api/leads/{lead_id}/resume on non-paused lead": {
+      "status": "PASSED",
+      "details": "Returns 400 error when trying to resume a non-paused lead"
+    },
+    "GET /api/leads/export/csv": {
+      "status": "PASSED",
+      "details": "Returns CSV with proper headers (Company Name, Contact Person, Email, Phone, etc.) and data rows"
+    },
+    "GET /api/leads/team-members": {
+      "status": "PASSED",
+      "details": "Returns list of assignable users with id, full_name, email, role fields. Accessible by sales role (EMP003)"
+    },
+    "Leads page Export CSV button": {
+      "status": "PASSED",
+      "details": "Export CSV button visible in Leads page header with data-testid='csv-download-btn'"
+    },
+    "Leads page Import CSV button": {
+      "status": "PASSED",
+      "details": "Import CSV button visible next to Export CSV with data-testid='csv-upload-btn'"
+    },
+    "Leads page row actions Pause/Resume": {
+      "status": "PASSED",
+      "details": "Row actions menu shows 'Pause Lead' for non-paused leads. Menu includes: View Pipeline, Edit Lead, Reassign Lead, Pause Lead"
+    },
+    "Approvals Center WebSocket status": {
+      "status": "PASSED",
+      "details": "Shows 'Connecting...' or 'Live' indicator instead of 'Offline'. WebSocket connects to /api/ws/{user_id} and sends subscribe message"
+    }
+  },
+  "backend_test_results": {
+    "total_tests": 15,
+    "passed": 15,
+    "failed": 0,
+    "tests": [
+      "test_team_members_endpoint_exists - PASSED",
+      "test_team_members_returns_assignable_users - PASSED",
+      "test_team_members_accessible_by_sales_role - PASSED",
+      "test_team_members_requires_auth - PASSED",
+      "test_pause_lead_endpoint_exists - PASSED",
+      "test_pause_already_paused_lead_returns_400 - PASSED",
+      "test_resume_lead_endpoint_exists - PASSED",
+      "test_resume_non_paused_lead_returns_400 - PASSED",
+      "test_resume_restores_previous_status - PASSED",
+      "test_export_csv_endpoint_exists - PASSED",
+      "test_export_csv_has_proper_headers - PASSED",
+      "test_export_csv_has_data_rows - PASSED",
+      "test_pause_requires_auth - PASSED",
+      "test_resume_requires_auth - PASSED",
+      "test_export_csv_requires_auth - PASSED"
+    ]
+  },
+  "ui_test_results": {
+    "leads_page": {
+      "status": "PASSED",
+      "elements_verified": [
+        "Export CSV button with data-testid='csv-download-btn'",
+        "Import CSV button with data-testid='csv-upload-btn'",
+        "Leads table with 24 leads",
+        "Row actions menu with Pause Lead option",
+        "Quick views: All Leads, My Leads, New, Hot Deals, Stuck, In Meeting, Closing"
+      ]
+    },
+    "approvals_center": {
+      "status": "PASSED",
+      "elements_verified": [
+        "Page title: Approvals Center",
+        "'Connecting...' status indicator visible",
+        "'Offline' text NOT found in page",
+        "Refresh button present"
+      ]
+    }
+  },
+  "code_review_findings": {
+    "leads.py": {
+      "team_members_endpoint": "Lines 44-58 - GET /api/leads/team-members returns users with sales/manager/admin roles",
+      "pause_endpoint": "Lines 1029-1071 - POST /api/leads/{lead_id}/pause saves previous_status and sets status to 'paused'",
+      "resume_endpoint": "Lines 1074-1120 - POST /api/leads/{lead_id}/resume restores previous_status",
+      "export_csv_endpoint": "Lines 1123-1180 - GET /api/leads/export/csv returns CSV with proper headers"
+    },
+    "LeadsTable.jsx": {
+      "dynamic_pause_resume": "Lines 254-258 - Row action uses function-based label/icon for dynamic Pause/Resume display"
+    },
+    "SalesDataTable.jsx": {
+      "function_based_actions": "Lines 1220-1240 - Supports function-based label, icon, className for row actions"
+    },
+    "ApprovalHeader.jsx": {
+      "websocket_status": "Lines 31-38 - Shows 'Live' or 'Connecting...' based on wsConnected state"
+    },
+    "ApprovalsCenter.js": {
+      "websocket_connection": "Lines 236-280 - WebSocket connects to /api/ws/{user_id} and sends subscribe message"
+    }
+  }
+}

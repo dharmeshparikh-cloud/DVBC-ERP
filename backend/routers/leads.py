@@ -41,6 +41,24 @@ def get_leads_access_roles():
     return sales_roles  # ADMIN_ROLES is already included in SALES_ROLES
 
 
+@router.get("/team-members")
+async def get_team_members(
+    current_user: User = Depends(get_current_user)
+):
+    """Get team members eligible for lead assignment.
+    Accessible by all sales roles - returns users with sales/manager/admin roles."""
+    db = get_db()
+    
+    assignable_roles = ["sales", "sales_manager", "admin", "principal_consultant", "manager"]
+    users = await db.users.find(
+        {"role": {"$in": assignable_roles}, "is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "role": 1, "employee_id": 1}
+    ).to_list(200)
+    
+    return users
+
+
+
 def calculate_lead_score(lead_data: dict) -> tuple:
     """
     Calculate lead score based on multiple factors:
@@ -1006,6 +1024,161 @@ async def bulk_reassign_leads(
         "transferred_count": len(lead_ids),
         "transfer_results": transfer_results,
     }
+
+
+@router.post("/{lead_id}/pause")
+async def pause_lead(
+    lead_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Pause a lead - stops all funnel activity until resumed.
+    Access: sales, managers, admins."""
+    db = get_db()
+    
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    if lead.get("status") == "paused":
+        raise HTTPException(status_code=400, detail="Lead is already paused")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    previous_status = lead.get("status", "new")
+    
+    await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "status": "paused",
+            "previous_status": previous_status,
+            "paused_at": now,
+            "paused_by": current_user.id,
+            "updated_at": now
+        }}
+    )
+    
+    # Add to activity log
+    await db.lead_activities.insert_one({
+        "id": str(uuid.uuid4()),
+        "lead_id": lead_id,
+        "action": "paused",
+        "performed_by": current_user.id,
+        "performed_by_name": current_user.full_name or current_user.email,
+        "details": f"Lead paused from status '{previous_status}'",
+        "created_at": now,
+        "previous_status": previous_status
+    })
+    
+    return {"message": "Lead paused successfully", "previous_status": previous_status}
+
+
+@router.post("/{lead_id}/resume")
+async def resume_lead(
+    lead_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Resume a paused lead - restores previous status.
+    Access: sales, managers, admins."""
+    db = get_db()
+    
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    if lead.get("status") != "paused":
+        raise HTTPException(status_code=400, detail="Lead is not paused")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    resume_to = lead.get("previous_status", "qualified")
+    
+    await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "status": resume_to,
+            "resumed_at": now,
+            "resumed_by": current_user.id,
+            "updated_at": now
+        },
+        "$unset": {
+            "paused_at": "",
+            "paused_by": "",
+            "previous_status": ""
+        }}
+    )
+    
+    # Add to activity log
+    await db.lead_activities.insert_one({
+        "id": str(uuid.uuid4()),
+        "lead_id": lead_id,
+        "action": "resumed",
+        "performed_by": current_user.id,
+        "performed_by_name": current_user.full_name or current_user.email,
+        "details": f"Lead resumed to status '{resume_to}'",
+        "created_at": now,
+        "resumed_to": resume_to
+    })
+    
+    return {"message": f"Lead resumed to '{resume_to}' status", "resumed_status": resume_to}
+
+
+@router.get("/export/csv")
+async def export_leads_csv(
+    current_user: User = Depends(get_current_user)
+):
+    """Export all leads as CSV download."""
+    db = get_db()
+    
+    leads = await db.leads.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    
+    if not leads:
+        raise HTTPException(status_code=404, detail="No leads found to export")
+    
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Headers
+    headers = [
+        "Company Name", "Contact Person", "Email", "Phone", "Industry",
+        "Status", "Lead Source", "Lead Score", "Assigned To",
+        "City", "State", "Country",
+        "Expected Revenue", "Probability", "Next Follow Up",
+        "Created Date", "Last Updated"
+    ]
+    writer.writerow(headers)
+    
+    for lead in leads:
+        writer.writerow([
+            lead.get("company_name", ""),
+            lead.get("contact_person", ""),
+            lead.get("email", ""),
+            lead.get("phone", ""),
+            lead.get("industry", ""),
+            lead.get("status", ""),
+            lead.get("source", ""),
+            lead.get("lead_score", ""),
+            lead.get("assigned_to_name", ""),
+            lead.get("city", ""),
+            lead.get("state", ""),
+            lead.get("country", ""),
+            lead.get("expected_revenue", ""),
+            lead.get("probability", ""),
+            lead.get("next_follow_up", ""),
+            lead.get("created_at", ""),
+            lead.get("updated_at", "")
+        ])
+    
+    csv_content = output.getvalue()
+    output.close()
+    
+    from fastapi.responses import Response
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=leads_export.csv"}
+    )
+
 
 
 

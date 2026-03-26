@@ -197,11 +197,11 @@ const Leads = () => {
       try {
         const API = process.env.REACT_APP_BACKEND_URL;
         const token = localStorage.getItem('token');
-        const res = await fetch(`${API}/api/users`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API}/api/leads/team-members`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
-          const users = Array.isArray(data) ? data : (data?.data || data?.users || []);
-          setSalesUsers(users.filter(u => ['sales', 'sales_manager', 'admin', 'principal_consultant'].includes(u.role)));
+          const users = Array.isArray(data) ? data : [];
+          setSalesUsers(users);
         }
       } catch { /* silent */ }
     };
@@ -724,6 +724,26 @@ const Leads = () => {
             )}
             <Button variant="outline" onClick={() => setCsvDialogOpen(true)} className="border-zinc-200" data-testid="csv-upload-btn">
               <Upload className="w-4 h-4 mr-2" /> Import CSV
+            </Button>
+            <Button variant="outline" onClick={async () => {
+              try {
+                const API = process.env.REACT_APP_BACKEND_URL;
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API}/api/leads/export/csv`, { headers: { Authorization: `Bearer ${token}` } });
+                if (!res.ok) throw new Error('Failed to export');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `leads_export_${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success('Leads exported to CSV');
+              } catch (e) {
+                toast.error(e.message || 'Failed to export leads');
+              }
+            }} className="border-zinc-200" data-testid="csv-download-btn">
+              <Download className="w-4 h-4 mr-2" /> Export CSV
             </Button>
             {isManagerOrAbove && (
               <Button variant="outline" onClick={() => setShowBulkReassign(true)} className="border-zinc-200 text-blue-700" data-testid="bulk-reassign-btn">
