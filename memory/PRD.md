@@ -32,20 +32,20 @@ Overtime       = Early Login + Late Checkout (capped, informational only)
 | OT blocked | If half-day or on leave |
 | Leave Block | Check-in blocked if approved leave exists |
 
-### Half Day Logic
-- Check-in after 3:00 PM -> status=half_day, half_day_type=first_half, auto-creates approved CL (0.5 day)
-- Check-out before 3:00 PM -> status=half_day, half_day_type=second_half, auto-creates approved CL (0.5 day)
-
-### Data Display Rules
-- All table cell values are PURE NUMBERS (no "m", "h" suffixes)
-- Column headers indicate units: "Late (min)", "Hours (h)", "OT (min)"
-- Summary card labels kept as-is
-- All times displayed in IST (Asia/Kolkata) regardless of browser timezone
-
 ## RBAC Governance Rules
 - **Sales** sees "Clients" terminology, only clients where they are sales_owner
 - **Consulting** sees "Projects" terminology, only projects where they are in assigned_team/assigned_consultants
 - **Admin/Finance** sees all data
+
+## Sales Funnel - 9-Step Flow
+1. Lead Capture → 2. Record Meeting → 3. Pricing Plan → 4. Scope of Work → 5. Quotation → 6. Agreement → 7. Record Payment → 8. Kickoff Request → 9. Project Created
+
+### Key Business Rules
+- Agreement must be submitted for approval → approved by Admin/PC before payment/kickoff steps unlock
+- Quotation auto-calculates financial fields (subtotal, GST, grand total, meetings) from pricing plan
+- All page navigations use path params (not query params) for entity IDs
+- No Completion Checklists on funnel steps (removed per user request)
+- SOW page uses enhanced SOWBuilderNew (old SalesScopeSelection deleted)
 
 ## What's Been Implemented
 
@@ -53,25 +53,29 @@ Overtime       = Early Login + Late Checkout (capped, informational only)
 - GPS Reverse Geocoding, Attendance table overhaul, Leave Balance, Approvals Center, Leads features, HR Regularization, Expense features
 
 ### Session 2 (March 26, 2026)
-- **IST Timezone Fix** — 28+ files across frontend and backend
-- **Centralized IST utilities** — `utils/timezone.py` (backend), `utils/dateTimeIST.js` (frontend)
-- **Attendance Governance Model** — Full implementation per rules above
-- **Half Day Auto-Detection** — 3 PM cutoff, auto-leave creation
-- **Late Penalty System** — 100 flat, pending_review for HR, monthly reset
-- **Grace Period** — 10 min noise filter, 3 days/month tracking
-- **Pure Numeric Tables** — Removed all "m"/"h" suffixes, headers show units
-- **Leave Block on Check-in** — Returns 400 if approved leave exists
-- **Dynamic Late Recalculation** — All records recalculated server-side using IST
-- Tested: iteration_235 (IST fix 100%), iteration_236 (governance 100%)
+- IST Timezone Fix (28+ files)
+- Attendance Governance Model (Early In, Late Out, OT, Half Day, Penalties)
+- Pure Numeric Tables for CSV exports
+- Tested: iteration_235, iteration_236
 
-### Session 3 (March 26, 2026) - Sales Funnel P0 Fixes
-- **Proforma Invoice "Save & Create Invoice" FIXED** — Made client_name optional in backend QuotationCreate model, auto-populated from lead. Added auto-calculation of subtotal/tax/grand_total/total_meetings from pricing plan.
-- **Agreements Creation/View FIXED** — Updated AgreementCreate model to accept quotation_id, meeting_frequency, project_tenure_months, team_deployment. Auto-populates client info from lead.
-- **Paginated Response Handling FIXED** — Fixed 7 files in sales-funnel to handle {data:[...]} paginated API responses: ProformaInvoice.js, Agreements.js, AgreementView.js, Quotations.js, PaymentVerification.js, ManagerApprovals.js
-- **Consulting Meeting Request Dialog Overflow FIXED** — Added max-h-[85vh] overflow-y-auto to dialog content
-- **RBAC Consultant Data Filtering FIXED** — Consultants now see only projects where they are in assigned_team, assigned_consultants, or consulting_owner. Page shows "My Projects" heading.
-- **Agreement Sign/Send endpoints FIXED** — Backend accepts both frontend (signer_name) and backend (signed_by_name) field naming conventions
-- Tested: iteration_237 (backend 12/12 100%, frontend all passed)
+### Session 3 (March 26, 2026) — Sales Funnel P0 Fixes
+- **Proforma Invoice "Save & Create Invoice"** FIXED — optional client_name, auto-calculation from pricing plan
+- **Agreements Creation/View** FIXED — accepts all frontend fields
+- **Paginated Response Handling** FIXED across 7 sales-funnel files
+- **Consulting Meeting Request Dialog** FIXED — overflow-y-auto
+- **RBAC Consultant Data Filtering** FIXED — checks assigned_team/assigned_consultants
+- Tested: iteration_237
+
+### Session 4 (March 26, 2026) — Sales Funnel Flow & Navigation
+- **VVS Quotation Data Recalculated** — Meetings: 48, GST: ₹1,35,000, Grand Total: ₹8,85,000
+- **Quotation Recalculate Endpoint** — PATCH `/api/quotations/{id}/recalculate` for fixing old records
+- **Review Agreement Navigation** FIXED — uses path param `/sales-funnel/agreement/{id}` instead of query param
+- **SalesScopeSelection.js DELETED** — All scope-selection routes redirect to SOWBuilderNew
+- **Completion Checklist REMOVED** from funnel onboarding (user requested cleaner flow)
+- **Back to Funnel buttons** added on ProformaInvoice and AgreementView pages
+- **Agreement Approval Flow** verified: submit-for-approval → approve (works for VVS)
+- **Funnel Step Blocked IDs** fixed (record_payment, kickoff_request, project_created)
+- Tested: iteration_238 (backend 100%, frontend 100%)
 
 ## P1 Upcoming Tasks
 - Late Penalty Workflow (HR review with Confirm/Reject UI)
@@ -80,19 +84,13 @@ Overtime       = Early Login + Late Checkout (capped, informational only)
 ## P2 Future/Backlog
 - Delete legacy `SOWBuilder.js` and `sow_legacy.py`
 - Refactor `ConsultingMeetings.js` (2300+ lines)
-- Deliverables master admin page UI
 - Governance Dashboard UI
 
-## Key DB Collections
-| Collection | Purpose |
-|---|---|
-| `attendance` | Daily records with governance fields |
-| `attendance_penalties` | 100 flat penalties, pending_review |
-| `attendance_history` | Archived re-checkins/re-checkouts |
-| `leave_requests` | Includes auto_generated half-day leaves |
-| `business_policies` | Shift config, grace rules |
-| `quotations` | Proforma invoices with auto-calculated financials |
-| `agreements` | Consulting agreements with quotation/project links |
+## Key API Endpoints
+- `PATCH /api/quotations/{id}/recalculate` — Recalculates quotation from pricing plan
+- `PATCH /api/agreements/{id}/submit-for-approval` — Sales submits for PC/Admin approval
+- `PATCH /api/agreements/{id}/approve` — Admin/PC approves agreement
+- `GET /api/leads/{id}/funnel-progress` — Full funnel status with blocking logic
 
 ## Credentials
 | Role | Employee ID | Password |
