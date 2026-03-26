@@ -19,7 +19,7 @@ import os
 import base64
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://unified-sow-builder.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://deliverable-status.preview.emergentagent.com')
 
 # Test data
 ONBOARDING_TOKEN = "c24f79ec-f562-4d3f-9523-c4d765b013b9"

@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://unified-sow-builder.preview.emergentagent.com",
+      "value": "https://deliverable-status.preview.emergentagent.com",
       "type": "string"
     },
     {

@@ -644,11 +644,18 @@ async def update_scope_status(
         target_scope["na_requested_at"] = now.isoformat()
         # TODO: Send notification to manager
     
-    # Handle "Implemented" - requires proof
+    # Handle "Implemented" - requires proof and start_date
     elif status.value == "implemented":
         if old_status == "implemented":
             # Already implemented, no change
             return {"message": "Scope already implemented", "overall_status": project_sow.get("status")}
+        
+        # Require start_date to be set
+        if not target_scope.get("start_date"):
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot mark as Implemented without a Start Date. Please set the start date first."
+            )
         
         # Check if there's at least one proof for this scope or its tasks
         scope_tasks = await db.sow_tasks.find({"scope_id": scope_id}, {"id": 1, "proofs": 1}).to_list(1000)
@@ -682,8 +689,17 @@ async def update_scope_status(
         target_scope["implemented_by_name"] = current_user.full_name
         target_scope["implemented_at"] = now.isoformat()
     
+    # Handle WIP - requires start_date
+    elif status.value == "wip":
+        if not target_scope.get("start_date"):
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot start work without a Start Date. Please set the start date first."
+            )
+        target_scope["status"] = status.value
+    
     # Handle Reopen - clear implementation data
-    elif status.value in ["open", "wip", "reopen"]:
+    elif status.value in ["open", "reopen"]:
         target_scope["status"] = status.value
         if old_status == "implemented":
             target_scope["end_date"] = None
