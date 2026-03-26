@@ -2,6 +2,29 @@
 
 ## Latest Updates - March 26, 2026
 
+### Session 16 - Attendance GPS Reverse Geocoding (COMPLETE)
+
+**Problem:** GPS capture on attendance check-in was showing raw latitude/longitude coordinates instead of human-readable addresses.
+
+**Solution:** Added reverse geocoding using Google Maps Geocoding API to convert GPS coordinates to locality, area, and city.
+
+**Changes Made:**
+1. **Backend** - Added `GET /api/reverse-geocode?lat=X&lng=Y` endpoint in `travel.py` that uses Google Maps Geocoding API with `latlng` parameter
+2. **Backend** - Updated `POST /api/my/check-in` to store `location_address`, `location_locality`, `location_area`, `location_city`
+3. **Backend** - Updated `POST /api/my/check-out` to store `checkout_address`
+4. **Frontend** - Updated `QuickCheckInModal.js` to call `/api/reverse-geocode` on GPS capture (both check-in and check-out)
+5. **Frontend** - Added "Address" column to `MyAttendance.js` table showing resolved location
+
+**Files Changed:**
+- `/app/backend/routers/travel.py` - New reverse_geocode endpoint (lines 178-250)
+- `/app/backend/routers/my.py` - Stores address fields on check-in/check-out
+- `/app/frontend/src/components/QuickCheckInModal.js` - Calls reverse-geocode API
+- `/app/frontend/src/pages/MyAttendance.js` - New Address column in table
+
+**Testing:** 100% pass rate (iteration_231.json) - 10/10 backend tests passed, all frontend verifications passed
+
+---
+
 ### Session 15 - P1 Features + AI Deliverables Enhancement
 
 **1. AI Deliverables Generator - B2B Manufacturing Context (COMPLETE)**
