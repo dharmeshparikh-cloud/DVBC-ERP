@@ -2,6 +2,23 @@
 
 ## Latest Updates - March 26, 2026
 
+### Session 18 - Leads Management + WebSocket + Attendance OT (COMPLETE)
+
+**Changes Made:**
+1. **WebSocket "Live"** - Fixed Approvals Center WS URL to use `/api/ws/${user.id}`, added subscribe message, auto-reconnect. Shows "Live" or "Connecting..."
+2. **Pause/Resume Lead** - Added `POST /api/leads/{id}/pause` and `/resume` endpoints with status preservation, activity logging
+3. **CSV Export Leads** - Added `GET /api/leads/export/csv` with all 17 columns. Export CSV button in Leads header
+4. **Reassign Lead Fix** - Created `GET /api/leads/team-members` endpoint accessible by sales users. Fixed empty dropdown
+5. **Lead Migration Fix** - Uses same team-members endpoint for dropdown population
+6. **Dynamic Row Actions** - Updated SalesDataTable to support function-based labels/icons. Pause/Resume toggles dynamically
+7. **Attendance Overtime** - Row-wise OT calculation beyond shift hours, OT column + summary card
+8. **Leave Balance** - Real-time from leave_requests collection, shown in apply-leave dialog with preview
+9. **Leave-Attendance Conflict** - Cannot apply leave on days with marked attendance
+
+**Testing:** 100% pass (iteration_233.json) - 15/15 backend, all frontend verified
+
+---
+
 ### Session 17 - Attendance OT, Leave Balance & Multiple Enhancements (COMPLETE)
 
 **Changes Made:**
