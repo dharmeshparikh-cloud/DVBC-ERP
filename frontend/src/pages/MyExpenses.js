@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Receipt, Clock, CheckCircle, XCircle, DollarSign, Trash2, Send, Save, Cloud, FileText, Download, Car, Bike, Train, Users, MapPin, Calendar, Building2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Receipt, Clock, CheckCircle, XCircle, DollarSign, Trash2, Send, Save, Cloud, FileText, Download, Car, Bike, Train, Users, MapPin, Calendar, Building2, ChevronDown, ChevronUp, Edit, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import useDraft from '../hooks/useDraft';
@@ -32,8 +32,19 @@ const STATUS_STYLES = {
   approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   rejected: 'bg-red-50 text-red-700 border-red-200',
   reimbursed: 'bg-blue-50 text-blue-700 border-blue-200',
-  hr_approved: 'bg-blue-50 text-blue-700 border-blue-200'
+  hr_approved: 'bg-blue-50 text-blue-700 border-blue-200',
+  revision_required: 'bg-orange-50 text-orange-700 border-orange-200',
+  manager_approved: 'bg-teal-50 text-teal-700 border-teal-200'
 };
+
+const EXP_TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'draft', label: 'Draft' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'approved', label: 'Approved' },
+  { key: 'rejected', label: 'Rejected' },
+  { key: 'revision_required', label: 'Sent Back' },
+];
 
 const TRAVEL_MODE_ICONS = {
   DRIVING: Car,
@@ -56,6 +67,11 @@ const MyExpenses = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showMonthlyReport, setShowMonthlyReport] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [activeTab, setActiveTab] = useState('all');
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [editExpenseData, setEditExpenseData] = useState({});
+  const [filterCategory, setFilterCategory] = useState('');
+  const [showExpenseDetail, setShowExpenseDetail] = useState(null);
   
   // Draft support
   const {
@@ -298,6 +314,30 @@ const MyExpenses = () => {
     },
   });
 
+  // Mutation: Update and Resubmit sent-back expense
+  const resubmitMutation = useMutation({
+    mutationFn: async ({ expenseId, updatedData }) => {
+      await axios.put(`${API}/expenses/${expenseId}`, updatedData);
+      await axios.post(`${API}/expenses/${expenseId}/resubmit`);
+    },
+    onSuccess: () => {
+      toast.success('Expense updated and resubmitted');
+      setEditingExpense(null);
+      queryClient.invalidateQueries({ queryKey: ['my', 'expenses'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to resubmit'),
+  });
+
+  // Fetch expense detail with meeting context for slide-out
+  const fetchExpenseDetail = async (expenseId) => {
+    try {
+      const res = await axios.get(`${API}/expenses/${expenseId}`);
+      setShowExpenseDetail(res.data);
+    } catch (e) {
+      toast.error('Failed to load expense details');
+    }
+  };
+
   const addLineItem = () => {
     setFormData({ ...formData, line_items: [...formData.line_items, { category: 'Travel', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }] });
   };
@@ -479,7 +519,7 @@ const MyExpenses = () => {
         </Dialog>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-5 gap-3 mb-6">
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="p-3 flex items-center gap-2">
             <Clock className="w-5 h-5 text-yellow-500" />
@@ -490,6 +530,12 @@ const MyExpenses = () => {
           <CardContent className="p-3 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-emerald-500" />
             <div><div className="text-xs text-zinc-500">Approved</div><div className="text-xl font-semibold text-zinc-950">{sm.approved || 0}</div></div>
+          </CardContent>
+        </Card>
+        <Card className="border-zinc-200 shadow-none rounded-sm border-orange-200">
+          <CardContent className="p-3 flex items-center gap-2">
+            <RotateCcw className="w-5 h-5 text-orange-500" />
+            <div><div className="text-xs text-orange-600">Sent Back</div><div className="text-xl font-semibold text-orange-700">{(data.expenses || []).filter(e => e.status === 'revision_required').length}</div></div>
           </CardContent>
         </Card>
         <Card className="border-zinc-200 shadow-none rounded-sm">
@@ -506,74 +552,268 @@ const MyExpenses = () => {
         </Card>
       </div>
 
+      {/* Tabs + Filters */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-1 p-1 bg-zinc-100 rounded-sm" data-testid="expense-list-tabs">
+          {EXP_TABS.map(tab => {
+            const count = tab.key === 'all' ? (data.expenses || []).length : (data.expenses || []).filter(e => e.status === tab.key).length;
+            return (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${activeTab === tab.key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                data-testid={`exp-tab-${tab.key}`}>
+                {tab.label}
+                {count > 0 && <span className="ml-1.5 text-[10px] px-1 rounded-full bg-zinc-200 text-zinc-600">{count}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="h-8 px-2 text-xs border border-zinc-200 rounded-sm bg-white" data-testid="exp-filter-category">
+          <option value="">All Categories</option>
+          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
       {/* Expense List */}
       {loading ? (
         <div className="flex items-center justify-center h-40"><div className="text-zinc-500">Loading...</div></div>
-      ) : (!data.expenses || data.expenses.length === 0) ? (
-        <Card className="border-zinc-200 shadow-none rounded-sm">
-          <CardContent className="flex flex-col items-center justify-center h-40">
-            <Receipt className="w-10 h-10 text-zinc-300 mb-3" />
-            <p className="text-zinc-500">No expenses yet</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {sortByLatest(data?.expenses || [], 'created_at').map(exp => (
-            <Card key={exp?.id} className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors" data-testid={`expense-${exp?.id}`}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="font-medium text-sm text-zinc-950">
-                        {exp?.is_office_expense ? 'Office Expense' : (exp?.description || exp?.client_name || exp?.project_name || 'Expense')}
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-sm border ${STATUS_STYLES[exp?.status] || STATUS_STYLES.draft}`}>
-                        {exp?.status?.charAt(0).toUpperCase() + exp?.status?.slice(1)}
-                      </span>
-                      {exp.expense_type === 'meeting_expense' && (
-                        <span className="text-xs px-2 py-0.5 rounded-sm bg-blue-50 text-blue-600 border border-blue-200">
-                          Meeting
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-zinc-500">
-                      {exp.expense_type === 'meeting_expense' ? (
-                        <>
-                          {exp.travel_details?.travel_mode?.replace('_', ' ')} | {exp.travel_details?.total_km || exp.travel_details?.distance_km || 0} km
-                          {exp.travel_details?.is_round_trip && ' (Round Trip)'}
-                          {exp.lead_name && ` | ${exp.lead_name}`}
-                        </>
-                      ) : (
-                        <>
-                          {exp.line_items?.length || 0} items | Created {exp.created_at ? format(new Date(exp.created_at), 'MMM dd, yyyy') : '-'}
-                          {exp.notes && ` | ${exp.notes}`}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-zinc-950">{fmt(exp.total_amount || exp.amount)}</span>
-                    {exp.status === 'draft' && (
-                      <>
-                        <Button onClick={() => handleSubmitForApproval(exp.id)} variant="outline" size="sm" className="rounded-sm" data-testid={`submit-exp-${exp.id}`}>
-                          <Send className="w-3 h-3 mr-1" /> Submit
+      ) : (() => {
+        let expenses = sortByLatest(data?.expenses || [], 'created_at');
+        if (activeTab !== 'all') expenses = expenses.filter(e => e.status === activeTab);
+        if (filterCategory) expenses = expenses.filter(e => (e.line_items || []).some(li => li.category === filterCategory) || e.category === filterCategory);
+        
+        if (!expenses.length) return (
+          <Card className="border-zinc-200 shadow-none rounded-sm">
+            <CardContent className="flex flex-col items-center justify-center h-40">
+              <Receipt className="w-10 h-10 text-zinc-300 mb-3" />
+              <p className="text-zinc-500">{activeTab === 'all' ? 'No expenses yet' : `No ${EXP_TABS.find(t => t.key === activeTab)?.label || ''} expenses`}</p>
+            </CardContent>
+          </Card>
+        );
+        
+        return (
+          <div className="space-y-2">
+            {expenses.map(exp => {
+              const isSentBack = exp.status === 'revision_required';
+              const isEditingThis = editingExpense === exp.id;
+              
+              return (
+                <Card key={exp?.id} className={`border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors ${isSentBack ? 'border-orange-300 bg-orange-50/30' : ''}`} data-testid={`expense-${exp?.id}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="font-medium text-sm text-zinc-950">
+                            {exp?.is_office_expense ? 'Office Expense' : (exp?.description || exp?.client_name || exp?.project_name || 'Expense')}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-sm border ${STATUS_STYLES[exp?.status] || STATUS_STYLES.draft}`}>
+                            {exp?.status === 'revision_required' ? 'Sent Back' : exp?.status?.charAt(0).toUpperCase() + exp?.status?.slice(1)}
+                          </span>
+                          {exp.expense_type === 'meeting_expense' && (
+                            <span className="text-xs px-2 py-0.5 rounded-sm bg-blue-50 text-blue-600 border border-blue-200">Meeting</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          {exp.expense_type === 'meeting_expense' ? (
+                            <>{exp.travel_details?.travel_mode?.replace('_', ' ')} | {exp.travel_details?.total_km || exp.travel_details?.distance_km || 0} km{exp.travel_details?.is_round_trip && ' (Round Trip)'}{exp.lead_name && ` | ${exp.lead_name}`}</>
+                          ) : (
+                            <>{exp.line_items?.length || 0} items | Created {exp.created_at ? format(new Date(exp.created_at), 'dd/MM/yyyy') : '-'}{exp.notes && ` | ${exp.notes}`}</>
+                          )}
+                        </div>
+                        {/* Reviewer comments for sent-back expenses */}
+                        {isSentBack && exp.revision_comments && (
+                          <div className="mt-2 p-2 bg-orange-100 border border-orange-200 rounded-sm" data-testid={`sentback-comments-${exp.id}`}>
+                            <div className="text-xs font-medium text-orange-700 mb-0.5">Reviewer Comments:</div>
+                            <div className="text-xs text-orange-800">{exp.revision_comments}</div>
+                            {exp.revision_history?.length > 0 && (
+                              <div className="text-[10px] text-orange-600 mt-1">
+                                By: {exp.revision_history[exp.revision_history.length - 1]?.action_by_name} on {new Date(exp.revision_history[exp.revision_history.length - 1]?.action_at).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-zinc-950">{fmt(exp.total_amount || exp.amount)}</span>
+                        
+                        {/* View Detail Button - for all statuses */}
+                        <Button onClick={() => fetchExpenseDetail(exp.id)} variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-700" data-testid={`view-exp-${exp.id}`}>
+                          <FileText className="w-4 h-4" />
                         </Button>
-                        <Button onClick={() => handleDeleteExpense(exp.id)} variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" data-testid={`delete-exp-${exp.id}`}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </>
+                        
+                        {exp.status === 'draft' && (
+                          <>
+                            <Button onClick={() => handleSubmitForApproval(exp.id)} variant="outline" size="sm" className="rounded-sm" data-testid={`submit-exp-${exp.id}`}>
+                              <Send className="w-3 h-3 mr-1" /> Submit
+                            </Button>
+                            <Button onClick={() => handleDeleteExpense(exp.id)} variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" data-testid={`delete-exp-${exp.id}`}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                        
+                        {/* Sent-back: Edit & Resubmit */}
+                        {isSentBack && (
+                          <Button onClick={() => {
+                            setEditingExpense(exp.id);
+                            setEditExpenseData({
+                              notes: exp.notes || '',
+                              line_items: exp.line_items || [],
+                              description: exp.description || ''
+                            });
+                          }} variant="outline" size="sm" className="text-orange-600 border-orange-200 hover:bg-orange-50" data-testid={`edit-sentback-${exp.id}`}>
+                            <Edit className="w-3 h-3 mr-1" /> Edit & Resubmit
+                          </Button>
+                        )}
+                        
+                        {(exp.status === 'pending' || exp.status === 'rejected') && (
+                          <Button onClick={() => handleDeleteExpense(exp.id)} variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" data-testid={`delete-exp-${exp.id}`}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Inline Edit form for sent-back expenses */}
+                    {isEditingThis && (
+                      <div className="mt-3 pt-3 border-t border-orange-200 space-y-3" data-testid={`edit-form-${exp.id}`}>
+                        <div className="text-xs font-medium text-orange-700">Edit and resubmit your expense claim:</div>
+                        {(editExpenseData.line_items || []).map((li, idx) => (
+                          <div key={idx} className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-3">
+                              <Input value={li.category || ''} onChange={(e) => {
+                                const items = [...editExpenseData.line_items];
+                                items[idx] = { ...items[idx], category: e.target.value };
+                                setEditExpenseData({...editExpenseData, line_items: items});
+                              }} placeholder="Category" className="h-8 text-xs rounded-sm" />
+                            </div>
+                            <div className="col-span-5">
+                              <Input value={li.description || ''} onChange={(e) => {
+                                const items = [...editExpenseData.line_items];
+                                items[idx] = { ...items[idx], description: e.target.value };
+                                setEditExpenseData({...editExpenseData, line_items: items});
+                              }} placeholder="Description" className="h-8 text-xs rounded-sm" />
+                            </div>
+                            <div className="col-span-2">
+                              <Input type="number" value={li.amount || 0} onChange={(e) => {
+                                const items = [...editExpenseData.line_items];
+                                items[idx] = { ...items[idx], amount: parseFloat(e.target.value) || 0 };
+                                setEditExpenseData({...editExpenseData, line_items: items});
+                              }} placeholder="Amount" className="h-8 text-xs rounded-sm" />
+                            </div>
+                          </div>
+                        ))}
+                        <div className="space-y-2">
+                          <Input value={editExpenseData.notes} onChange={(e) => setEditExpenseData({...editExpenseData, notes: e.target.value})} placeholder="Add notes / corrections" className="h-8 text-xs rounded-sm" />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setEditingExpense(null)} className="text-xs">Cancel</Button>
+                          <Button size="sm" onClick={() => resubmitMutation.mutate({ expenseId: exp.id, updatedData: editExpenseData })}
+                            disabled={resubmitMutation.isPending}
+                            className="text-xs bg-orange-600 hover:bg-orange-700 text-white" data-testid={`resubmit-${exp.id}`}>
+                            <Send className="w-3 h-3 mr-1" /> {resubmitMutation.isPending ? 'Resubmitting...' : 'Resubmit'}
+                          </Button>
+                        </div>
+                      </div>
                     )}
-                    {(exp.status === 'pending' || exp.status === 'rejected') && (
-                      <Button onClick={() => handleDeleteExpense(exp.id)} variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" data-testid={`delete-exp-${exp.id}`}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* Expense Detail Slide-out */}
+      {showExpenseDetail && (
+        <Dialog open={!!showExpenseDetail} onOpenChange={() => setShowExpenseDetail(null)}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-zinc-600" /> Expense Details
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className={`text-xs px-2 py-0.5 rounded-sm border ${STATUS_STYLES[showExpenseDetail.status] || ''}`}>
+                  {showExpenseDetail.status === 'revision_required' ? 'Sent Back' : showExpenseDetail.status?.charAt(0).toUpperCase() + showExpenseDetail.status?.slice(1)}
+                </span>
+                <span className="text-lg font-semibold">{fmt(showExpenseDetail.total_amount || showExpenseDetail.amount)}</span>
+              </div>
+
+              {/* Line Items */}
+              {showExpenseDetail.line_items?.length > 0 && (
+                <div>
+                  <div className="text-xs font-medium text-zinc-500 mb-2">Line Items</div>
+                  <div className="border border-zinc-200 rounded-sm">
+                    {showExpenseDetail.line_items.map((li, i) => (
+                      <div key={i} className="flex justify-between px-3 py-2 text-xs border-b border-zinc-100 last:border-0">
+                        <span className="text-zinc-700">{li.category} - {li.description}</span>
+                        <span className="font-medium">{fmt(li.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Meeting Context - MOM */}
+              {showExpenseDetail.meeting_context && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-sm">
+                  <div className="text-xs font-medium text-blue-700 mb-1">Meeting Context (Read Only)</div>
+                  <div className="text-xs text-zinc-700 space-y-1">
+                    <div><strong>Title:</strong> {showExpenseDetail.meeting_context.title}</div>
+                    <div><strong>Type:</strong> {showExpenseDetail.meeting_context.meeting_type}</div>
+                    <div><strong>Date:</strong> {showExpenseDetail.meeting_context.date}</div>
+                    {showExpenseDetail.meeting_context.location && <div><strong>Location:</strong> {showExpenseDetail.meeting_context.location}</div>}
+                    {showExpenseDetail.meeting_context.mom_summary && (
+                      <div className="mt-2 p-2 bg-white rounded-sm border border-blue-100">
+                        <strong>MOM Summary:</strong>
+                        <p className="mt-1 whitespace-pre-wrap">{showExpenseDetail.meeting_context.mom_summary}</p>
+                      </div>
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              )}
+
+              {/* Travel Context */}
+              {(showExpenseDetail.travel_context || showExpenseDetail.travel_details) && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm">
+                  <div className="text-xs font-medium text-amber-700 mb-1">Travel Details</div>
+                  <div className="text-xs text-zinc-700 space-y-1">
+                    {showExpenseDetail.travel_context && (
+                      <>
+                        <div><strong>From:</strong> {showExpenseDetail.travel_context.from_city}</div>
+                        <div><strong>To:</strong> {showExpenseDetail.travel_context.to_city}</div>
+                        <div><strong>Purpose:</strong> {showExpenseDetail.travel_context.purpose}</div>
+                      </>
+                    )}
+                    {showExpenseDetail.travel_details && (
+                      <>
+                        <div><strong>Mode:</strong> {showExpenseDetail.travel_details.travel_mode}</div>
+                        <div><strong>Distance:</strong> {showExpenseDetail.travel_details.total_km || showExpenseDetail.travel_details.distance_km} km</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Revision History */}
+              {showExpenseDetail.revision_history?.length > 0 && (
+                <div>
+                  <div className="text-xs font-medium text-zinc-500 mb-2">Approval History</div>
+                  <div className="space-y-1">
+                    {showExpenseDetail.revision_history.map((rev, i) => (
+                      <div key={i} className="text-xs px-2 py-1.5 bg-zinc-50 rounded-sm border border-zinc-100">
+                        <span className="font-medium">{rev.action_by_name}</span>: {rev.action}
+                        {rev.comments && <span className="text-zinc-500"> — "{rev.comments}"</span>}
+                        <span className="text-zinc-400 ml-2">{rev.action_at ? new Date(rev.action_at).toLocaleDateString() : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Monthly Expense Report Section */}

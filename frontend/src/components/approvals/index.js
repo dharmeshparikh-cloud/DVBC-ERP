@@ -11,4 +11,4 @@ export { BulkActionsBar } from './BulkActionsBar';
 // Sections
 export { CtcApprovalsSection } from './sections/CtcApprovalsSection';
 export { GoLiveApprovalsSection } from './sections/GoLiveApprovalsSection';
-export { ExpenseApprovalsSection } from './sections/ExpenseApprovalsSection';
+export { default as ExpenseApprovalsSection } from './sections/ExpenseApprovalsSection';

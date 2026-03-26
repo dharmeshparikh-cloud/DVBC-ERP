@@ -20,6 +20,155 @@ from services.redis_cache import CacheInvalidation
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
 
+
+@router.get("/admin/list")
+async def get_all_attendance_admin(
+    month: Optional[str] = None,
+    employee_id: Optional[str] = None,
+    status: Optional[str] = None,
+    work_location: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all employee attendance records with filters. HR/Admin only.
+    Supports Excel-like filtering by status, location, employee.
+    """
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Only HR/Admin can view all attendance")
+    
+    if not month:
+        month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    query = {"date": {"$regex": f"^{month}"}}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if status:
+        query["status"] = status
+    if work_location:
+        query["work_location"] = work_location
+    
+    records = await db.attendance.find(query, {"_id": 0, "selfie": 0}).sort([("date", -1), ("employee_id", 1)]).to_list(2000)
+    
+    # Get employee names
+    emp_ids = list(set(r.get("employee_id") for r in records if r.get("employee_id")))
+    employees = {}
+    if emp_ids:
+        emps = await db.employees.find(
+            {"id": {"$in": emp_ids}},
+            {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "employee_id": 1, "department": 1}
+        ).to_list(500)
+        employees = {e["id"]: e for e in emps}
+    
+    # Enrich records
+    for r in records:
+        emp = employees.get(r.get("employee_id"), {})
+        r["employee_name"] = f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip()
+        r["employee_code"] = emp.get("employee_id", "")
+        r["department"] = emp.get("department", "")
+    
+    # Summary
+    present = sum(1 for r in records if r.get("status") == "present")
+    absent = sum(1 for r in records if r.get("status") == "absent")
+    late_count = sum(1 for r in records if r.get("is_late"))
+    total_hours = sum(r.get("working_hours", 0) or 0 for r in records)
+    total_overtime = sum(r.get("overtime_hours", 0) or 0 for r in records)
+    
+    return {
+        "records": records,
+        "summary": {
+            "total_records": len(records),
+            "present": present,
+            "absent": absent,
+            "late": late_count,
+            "total_hours": round(total_hours, 1),
+            "total_overtime": round(total_overtime, 1)
+        }
+    }
+
+
+
+# ═══════════════════════════════════════════════════════════════════
+# REGULARIZATION ENDPOINT (HR/Admin only)
+# ═══════════════════════════════════════════════════════════════════
+
+@router.put("/{record_id}/regularize")
+async def regularize_attendance(
+    record_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Regularize an attendance record. HR/Admin only.
+    Updates the original record directly with corrected times, status, etc.
+    """
+    db = get_db()
+    
+    # Only HR/Admin can regularize
+    if current_user.role not in ["admin", "hr_admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Only HR/Admin can regularize attendance records")
+    
+    record = await db.attendance.find_one({"id": record_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    update_fields = {
+        "regularized": True,
+        "regularized_by": current_user.id,
+        "regularized_by_name": current_user.full_name or current_user.email,
+        "regularized_at": now,
+        "regularization_reason": data.get("reason", ""),
+        "updated_at": now
+    }
+    
+    # Update provided fields
+    if data.get("check_in_time"):
+        update_fields["check_in_time"] = data["check_in_time"]
+    if data.get("check_out_time"):
+        update_fields["check_out_time"] = data["check_out_time"]
+    if data.get("status"):
+        update_fields["status"] = data["status"]
+    if data.get("work_location"):
+        update_fields["work_location"] = data["work_location"]
+    if data.get("remarks"):
+        update_fields["remarks"] = data.get("remarks")
+    
+    # Recalculate working hours if both in/out times are provided
+    cin = data.get("check_in_time") or record.get("check_in_time")
+    cout = data.get("check_out_time") or record.get("check_out_time")
+    if cin and cout:
+        try:
+            ci_dt = datetime.fromisoformat(cin.replace("Z", "+00:00"))
+            co_dt = datetime.fromisoformat(cout.replace("Z", "+00:00"))
+            working_hours = round((co_dt - ci_dt).total_seconds() / 3600, 2)
+            update_fields["working_hours"] = working_hours
+            
+            # Recalculate overtime
+            standard_hours = 9
+            try:
+                att_policy = await db.business_policies.find_one(
+                    {"policy_type": "attendance", "scope": "company", "is_active": True},
+                    {"_id": 0, "rules": 1}
+                )
+                if att_policy:
+                    rules = {r["rule_id"]: r for r in att_policy.get("rules", [])}
+                    standard_hours = rules.get("AT001", {}).get("numeric_value", 9)
+            except Exception:
+                pass
+            
+            update_fields["overtime_hours"] = max(0, round(working_hours - standard_hours, 2))
+        except Exception:
+            pass
+    
+    await db.attendance.update_one({"id": record_id}, {"$set": update_fields})
+    
+    return {"message": "Attendance regularized successfully", "record_id": record_id}
+
+
+
 # ═══════════════════════════════════════════════════════════════════
 # MY ATTENDANCE ENDPOINTS (for current user)
 # ═══════════════════════════════════════════════════════════════════

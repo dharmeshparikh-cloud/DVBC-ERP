@@ -27,6 +27,7 @@ import {
   GoLiveApprovalsSection,
   ExpenseApprovalsSection
 } from '../components/approvals';
+import CollapsibleSection from '../components/approvals/CollapsibleSection';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   usePendingApprovals,
@@ -846,14 +847,7 @@ const ApprovalsCenter = () => {
 
       {/* Permission Change Requests Section - For Admin */}
       {isAdmin && permissionApprovals.length > 0 && (
-        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-          <CardHeader className="pb-3">
-            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <User className="w-5 h-5 text-indigo-500" />
-              Pending Permission Changes ({permissionApprovals.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <CollapsibleSection title="Pending Permission Changes" icon={User} count={permissionApprovals.length} isDark={isDark} testId="permission-approvals-section">
             <div className="space-y-3">
               {(permissionApprovals || []).map((perm, idx) => (
                 <div 
@@ -921,8 +915,7 @@ const ApprovalsCenter = () => {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+        </CollapsibleSection>
       )}
 
       {/* Go-Live Approvals Section - For Admin */}

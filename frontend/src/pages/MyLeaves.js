@@ -40,6 +40,7 @@ const generateLeaveDraftTitle = (data) => {
 
 const MyLeaves = () => {
   const queryClient = useQueryClient();
+  const [leaveFilter, setLeaveFilter] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [withdrawingId, setWithdrawingId] = useState(null);
   
@@ -327,10 +328,25 @@ const MyLeaves = () => {
       )}
 
       {/* Leave Requests */}
-      <div className="mb-3 text-sm font-medium text-zinc-700">My Leave Requests</div>
-      {loading ? (
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-medium text-zinc-700">My Leave Requests</div>
+        <div className="flex gap-1 p-1 bg-zinc-100 rounded-sm" data-testid="leave-filter-tabs">
+          {[{ key: '', label: 'All' }, { key: 'pending', label: 'Pending' }, { key: 'approved', label: 'Approved' }, { key: 'rejected', label: 'Rejected' }, { key: 'withdrawn', label: 'Withdrawn' }].map(tab => (
+            <button key={tab.key} onClick={() => setLeaveFilter(tab.key)}
+              className={`px-2.5 py-1 text-xs font-medium rounded-sm transition-colors ${leaveFilter === tab.key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
+              {tab.label}
+              <span className="ml-1 text-[10px] text-zinc-400">
+                {tab.key === '' ? requests.length : requests.filter(r => r.status === tab.key).length}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {(() => {
+        const filteredReqs = leaveFilter ? requests.filter(r => r.status === leaveFilter) : requests;
+        return loading ? (
         <div className="flex items-center justify-center h-40"><div className="text-zinc-500">Loading...</div></div>
-      ) : requests.length === 0 ? (
+      ) : filteredReqs.length === 0 ? (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="flex flex-col items-center justify-center h-40">
             <Calendar className="w-10 h-10 text-zinc-300 mb-3" />
@@ -353,7 +369,7 @@ const MyLeaves = () => {
               </tr>
             </thead>
             <tbody>
-              {sortByLatest(requests || [], 'created_at').filter(req => req.id).map(req => {
+              {sortByLatest(filteredReqs || [], 'created_at').filter(req => req.id).map(req => {
                 const fmtDate = (d) => {
                   if (!d) return '-';
                   try {
@@ -407,7 +423,8 @@ const MyLeaves = () => {
             </tbody>
           </table>
         </div>
-      )}
+      );
+      })()}
     </div>
   );
 };

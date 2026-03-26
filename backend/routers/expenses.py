@@ -273,12 +273,35 @@ async def get_expenses(
 
 @router.get("/{expense_id}")
 async def get_expense(expense_id: str, current_user: User = Depends(get_current_user)):
-    """Get a single expense by ID."""
+    """Get a single expense by ID with linked meeting/travel context."""
     db = get_db()
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # Enrich with meeting context if linked
+    if expense.get("linked_meeting_id") or expense.get("meeting_id"):
+        meeting_id = expense.get("linked_meeting_id") or expense.get("meeting_id")
+        meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0, "title": 1, "meeting_type": 1, "date": 1, "location": 1, "mom_text": 1, "mom_summary": 1, "outcomes": 1, "attendees": 1})
+        if meeting:
+            expense["meeting_context"] = {
+                "title": meeting.get("title"),
+                "meeting_type": meeting.get("meeting_type"),
+                "date": meeting.get("date"),
+                "location": meeting.get("location"),
+                "mom_summary": meeting.get("mom_summary") or meeting.get("mom_text"),
+                "outcomes": meeting.get("outcomes"),
+                "attendees": meeting.get("attendees", [])
+            }
+    
+    # Enrich with travel details if travel expense
+    if expense.get("category") in ["travel", "transport", "cab", "flight", "hotel"] or expense.get("travel_request_id"):
+        travel_id = expense.get("travel_request_id")
+        if travel_id:
+            travel = await db.travel_requests.find_one({"id": travel_id}, {"_id": 0, "from_city": 1, "to_city": 1, "purpose": 1, "travel_dates": 1, "documents": 1})
+            if travel:
+                expense["travel_context"] = travel
     
     return expense
 
