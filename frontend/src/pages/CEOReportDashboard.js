@@ -324,7 +324,7 @@ const CEOReportDashboard = () => {
             <KPICard icon={Clock} label="Tasks Active" value={tasks.in_progress} color="text-blue-600" bg="bg-blue-50" />
             <KPICard icon={CheckCircle} label="Tasks Done" value={tasks.completed} color="text-emerald-600" bg="bg-emerald-50" />
             <KPICard icon={AlertTriangle} label="Tasks Overdue" value={tasks.overdue} color="text-red-600" bg="bg-red-50" />
-            <KPICard icon={Clock} label="MTD Hours" value={`${(ct.mtd_logged_hours || 0).toFixed(0)}h`} color="text-indigo-600" bg="bg-indigo-50" />
+            <KPICard icon={Clock} label="MTD Hours" value={(ct.mtd_logged_hours || 0).toFixed(0)} color="text-indigo-600" bg="bg-indigo-50" />
           </div>
           <PeriodTable rows={[
             { label: 'Tasks Completed', mtd: ct.tasks_completed?.mtd, qtd: ct.tasks_completed?.qtd, ytd: ct.tasks_completed?.ytd },

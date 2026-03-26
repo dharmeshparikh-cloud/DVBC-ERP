@@ -861,7 +861,7 @@ const Attendance = () => {
                   <th className="text-left px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Client</th>
                   <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-emerald-600 font-medium">Check-In</th>
                   <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-red-600 font-medium">Check-Out</th>
-                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Hours</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Hours (h)</th>
                   <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Selfie</th>
                 </tr>
               </thead>
@@ -897,21 +897,21 @@ const Attendance = () => {
                     </td>
                     <td className="px-3 py-2 text-center">
                       {r.check_in_time ? (
-                        <span className="text-xs text-emerald-700 font-medium">{r.check_in_time.split('T')[1]?.slice(0,5) || r.check_in_time}</span>
+                        <span className="text-xs text-emerald-700 font-medium">{(() => { try { return new Date(r.check_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }); } catch { return r.check_in_time; } })()}</span>
                       ) : (
                         <span className="text-zinc-400 text-xs">-</span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
                       {r.check_out_time ? (
-                        <span className="text-xs text-red-600 font-medium">{r.check_out_time.split('T')[1]?.slice(0,5) || r.check_out_time}</span>
+                        <span className="text-xs text-red-600 font-medium">{(() => { try { return new Date(r.check_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }); } catch { return r.check_out_time; } })()}</span>
                       ) : (
                         <span className="text-zinc-400 text-xs">-</span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
                       {r.work_hours ? (
-                        <span className="text-xs text-zinc-700 font-medium">{r.work_hours.toFixed(1)}h</span>
+                        <span className="text-xs text-zinc-700 font-medium">{r.work_hours.toFixed(1)}</span>
                       ) : (
                         <span className="text-zinc-400 text-xs">-</span>
                       )}
