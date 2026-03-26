@@ -579,15 +579,40 @@ const SalesFunnelOnboarding = () => {
                           className="border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300"
                           onClick={() => {
                             const step = FUNNEL_STEPS[currentStep];
-                            const routes = {
-                              'lead_capture': `/leads/edit/${leadId}`,
-                              'record_meeting': `/sales-funnel/meeting/record?leadId=${leadId}`,
-                              'pricing_plan': `/sales-funnel/pricing?planId=${funnelStatus.pricing_plan_id || ''}&leadId=${leadId}`,
-                              'scope_of_work': `/sales-funnel/sow/${funnelStatus.pricing_plan_id || ''}`,
-                              'quotation': `/sales-funnel/quotation?id=${funnelStatus.quotation_id || ''}&leadId=${leadId}`,
-                              'agreement': `/sales-funnel/agreement?id=${funnelStatus.agreement_id || ''}&leadId=${leadId}`
-                            };
-                            const route = routes[step.id];
+                            // Build routes based on step and available IDs
+                            let route = null;
+                            switch(step.id) {
+                              case 'lead_capture':
+                                route = `/leads`;  // Leads page where user can click on lead to edit
+                                break;
+                              case 'record_meeting':
+                                route = `/sales-funnel/meeting/record?leadId=${leadId}`;
+                                break;
+                              case 'pricing_plan':
+                                if (funnelStatus.pricing_plan_id) {
+                                  route = `/sales-funnel/pricing-plans?planId=${funnelStatus.pricing_plan_id}&leadId=${leadId}`;
+                                } else {
+                                  route = `/sales-funnel/pricing-plans?leadId=${leadId}`;
+                                }
+                                break;
+                              case 'scope_of_work':
+                                if (funnelStatus.pricing_plan_id) {
+                                  route = `/sales-funnel/sow/${funnelStatus.pricing_plan_id}`;
+                                }
+                                break;
+                              case 'quotation':
+                                route = `/sales-funnel/quotations?leadId=${leadId}`;
+                                break;
+                              case 'agreement':
+                                if (funnelStatus.agreement_id) {
+                                  route = `/sales-funnel/agreement/${funnelStatus.agreement_id}`;
+                                } else {
+                                  route = `/sales-funnel/agreements?leadId=${leadId}`;
+                                }
+                                break;
+                              default:
+                                break;
+                            }
                             if (route) navigate(route);
                           }}
                           data-testid="edit-completed-step-btn"
