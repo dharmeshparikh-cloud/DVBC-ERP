@@ -1,6 +1,31 @@
 # NETRA ERP - Product Requirements Document
 
-## Latest Updates - March 25, 2026
+## Latest Updates - March 26, 2026
+
+### SOW Delivery Table UI Fixes (Session 14)
+**User Feedback Addressed:**
+1. ✅ **Standardized Status Badges**: Both Scope and Deliverable rows now use the same `StatusBadge` component with consistent green box style (was showing different styles)
+2. ✅ **Unified Date Format DD MM YYYY**: All dates now display as "26 03 2026" format (was inconsistent between rows)
+3. ✅ **Collapsible Stats Cards**: Added "Hide Stats" / "Show Stats" toggle button. When collapsed, shows inline summary: "Scopes: X/Y Deliverables: X/Y WIP: X Done: X"
+4. ✅ **Implemented Status Locks Row**: When status is "Implemented":
+   - Row gets light green background
+   - "Locked" badge appears next to scope name
+   - All edit fields become read-only (Start Date, Status dropdown disabled)
+   - "Reopen" button appears to manually unlock
+5. ✅ **Validation for Implemented Status**:
+   - Frontend: Shows error toast if trying to mark Implemented without Start Date or Proof
+   - Backend: Returns 400 error with clear message preventing invalid status changes
+6. ✅ **All Buttons Wired**: Expand All, Collapse All, Export CSV, Add Scope, View, Reopen all functional
+
+**Files Changed:**
+- `/app/frontend/src/components/SOWDeliveryTable.jsx` - Updated formatDate, added StatusBadge consistency, collapsible stats, locked row behavior, validation handlers
+- `/app/backend/routers/project_sow_delivery.py` - Added backend validation for Implemented/WIP requiring Start Date and Proof
+
+**Testing**: 100% pass rate (iteration_229.json) - All 12 features verified
+
+---
+
+## Previous Updates - March 25, 2026
 
 ### Projects UI Flow Improvements (Session 13)
 **User Feedback Addressed:**
