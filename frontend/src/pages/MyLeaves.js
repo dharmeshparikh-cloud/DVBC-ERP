@@ -198,6 +198,28 @@ const MyLeaves = () => {
             )}
             
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Leave Balance Summary */}
+              {balance && (
+                <div className="grid grid-cols-3 gap-2 p-2 bg-zinc-50 rounded-sm border border-zinc-200" data-testid="leave-balance-bar">
+                  {LEAVE_TYPES.map(t => {
+                    const b = balance[t.key];
+                    if (!b) return null;
+                    const willUse = formData.leave_type === t.value ? days : 0;
+                    const afterApply = b.available - willUse;
+                    return (
+                      <div key={t.value} className={`text-center p-1.5 rounded-sm ${formData.leave_type === t.value ? 'bg-white border border-zinc-300' : ''}`}>
+                        <div className="text-[10px] text-zinc-500">{t.label}</div>
+                        <div className="text-sm font-bold text-zinc-800">{b.available}<span className="text-[10px] font-normal text-zinc-400">/{b.total}</span></div>
+                        {willUse > 0 && (
+                          <div className={`text-[10px] font-medium mt-0.5 ${afterApply < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                            After: {afterApply} left
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-zinc-950">Leave Type</Label>
                 <GovernedDropdown
@@ -326,21 +348,43 @@ const MyLeaves = () => {
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Days</th>
                 <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Reason</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
+                <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Approval Trail</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
-              {sortByLatest(requests || [], 'created_at').filter(req => req.id).map(req => (
+              {sortByLatest(requests || [], 'created_at').filter(req => req.id).map(req => {
+                const fmtDate = (d) => {
+                  if (!d) return '-';
+                  try {
+                    const dt = new Date(d);
+                    if (isNaN(dt.getTime())) return d;
+                    return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+                  } catch { return d; }
+                };
+                return (
                 <tr key={req.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`leave-req-${req.id}`}>
                   <td className="px-4 py-3 text-zinc-700">{req.leave_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
-                  <td className="px-4 py-3 text-zinc-700">{req.start_date ? (isNaN(new Date(req.start_date).getTime()) ? req.start_date : format(new Date(req.start_date), 'MMM dd, yyyy')) : '-'}</td>
-                  <td className="px-4 py-3 text-zinc-700">{req.end_date ? (isNaN(new Date(req.end_date).getTime()) ? req.end_date : format(new Date(req.end_date), 'MMM dd, yyyy')) : '-'}</td>
+                  <td className="px-4 py-3 text-zinc-700">{fmtDate(req.start_date)}</td>
+                  <td className="px-4 py-3 text-zinc-700">{fmtDate(req.end_date)}</td>
                   <td className="px-4 py-3 text-center font-medium">{req.days}</td>
                   <td className="px-4 py-3 text-zinc-600 max-w-[200px] truncate">{req.reason}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-xs px-2 py-1 rounded-sm border ${STATUS_STYLES[req.status] || STATUS_STYLES.pending}`}>
                       {req.status?.charAt(0).toUpperCase() + req.status?.slice(1)}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-zinc-500">
+                    <div className="space-y-0.5">
+                      {req.reporting_manager_name && (
+                        <div>RM: <span className="font-medium text-zinc-700">{req.reporting_manager_name}</span>
+                          {req.rm_action && <span className={`ml-1 ${req.rm_action === 'approve' ? 'text-emerald-600' : 'text-red-600'}`}>({req.rm_action}d)</span>}
+                        </div>
+                      )}
+                      {req.rm_action_at && <div className="text-[10px] text-zinc-400">{fmtDate(req.rm_action_at)}</div>}
+                      {req.rm_comments && <div className="text-[10px] italic text-zinc-400">"{req.rm_comments}"</div>}
+                      {!req.reporting_manager_name && <span className="text-zinc-400">Pending assignment</span>}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {req.status === 'pending' && (
@@ -358,7 +402,8 @@ const MyLeaves = () => {
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

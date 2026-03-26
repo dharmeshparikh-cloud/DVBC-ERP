@@ -1,0 +1,156 @@
+{
+  "summary": "Tested Attendance & Leave Features Batch. Backend: 16/16 tests passed - GET /api/my/attendance returns records with summary (total_overtime), shift_config; GET /api/my/leave-balance returns balance calculated from approved leave_requests; POST /api/leave-requests validates attendance conflict; POST /api/my/check-in allows re-check-in. Frontend: My Attendance page has all 10 columns (Date DD/MM/YYYY, Status, Location, Address, Leave Type, Check In, Check Out, Hours, OT, Late), shift config bar, CSV download, footer totals. My Leaves page has Approval Trail column showing RM name and action, leave balance bar in Apply Leave dialog. Approvals Center no longer shows 'Offline' text.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_attendance_leave_features_batch.py",
+    "/app/test_reports/pytest/pytest_attendance_leave_batch.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_attendance_leave_features_batch.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "admin": {"employee_id": "EMP001", "password": "admin123"},
+    "sales": {"employee_id": "EMP003", "password": "sales123"}
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All attendance and leave features verified. My Attendance page has 10 columns with DD/MM/YYYY dates, shift config bar, CSV download, footer totals. My Leaves page has Approval Trail column and leave balance bar in dialog. Approvals Center shows 'Live' indicator when WebSocket connected, no 'Offline' text visible.",
+  "features_verified": {
+    "my_attendance_returns_records_summary_shift_config": {
+      "status": "PASSED",
+      "details": "GET /api/my/attendance returns records array, summary with total_overtime, shift_config object"
+    },
+    "my_leave_balance_calculated_from_leave_requests": {
+      "status": "PASSED",
+      "details": "GET /api/my/leave-balance returns casual/sick/earned with total/used/available calculated from approved leave_requests"
+    },
+    "leave_attendance_conflict_validation": {
+      "status": "PASSED",
+      "details": "POST /api/leave-requests returns 400 with conflict message when attendance already marked for date"
+    },
+    "re_checkin_support": {
+      "status": "PASSED",
+      "details": "POST /api/my/check-in allows re-check-in, archives previous record to attendance_history"
+    },
+    "my_attendance_dd_mm_yyyy_format": {
+      "status": "PASSED",
+      "details": "Dates displayed as DD/MM/YYYY (e.g., 26/03/2026)"
+    },
+    "my_attendance_hours_column": {
+      "status": "PASSED",
+      "details": "Hours column shows working_hours (e.g., 8.0h)"
+    },
+    "my_attendance_ot_column": {
+      "status": "PASSED",
+      "details": "OT column shows overtime_hours"
+    },
+    "my_attendance_leave_type_column": {
+      "status": "PASSED",
+      "details": "Leave Type column shows CL/SL/EL for days with leave"
+    },
+    "my_attendance_late_column": {
+      "status": "PASSED",
+      "details": "Late column shows late minutes (e.g., 30m)"
+    },
+    "my_attendance_shift_config_bar": {
+      "status": "PASSED",
+      "details": "Shift config bar shows 'Shift: 10:00 - 19:00, Standard: 9h, OT after: 9h, Grace: 30min'"
+    },
+    "my_attendance_csv_download": {
+      "status": "PASSED",
+      "details": "CSV download button present with data-testid='download-csv-btn'"
+    },
+    "my_attendance_footer_totals": {
+      "status": "PASSED",
+      "details": "Footer row shows TOTAL with days count and total hours"
+    },
+    "my_attendance_summary_cards": {
+      "status": "PASSED",
+      "details": "8 summary cards: Present, Absent, Half Day, WFH, Leave, Late, Total Hrs, Overtime"
+    },
+    "my_leaves_approval_trail_column": {
+      "status": "PASSED",
+      "details": "Approval Trail column shows RM name and action (e.g., 'RM: Admin User (approved)')"
+    },
+    "my_leaves_balance_bar_in_dialog": {
+      "status": "PASSED",
+      "details": "Apply Leave dialog shows leave balance bar with Casual 8/12, Sick 5/6, Earned 15/15"
+    },
+    "approvals_center_offline_hidden": {
+      "status": "PASSED",
+      "details": "'Offline' text not visible in Approvals Center header, 'Live' indicator shown when WebSocket connected"
+    }
+  },
+  "backend_test_results": {
+    "total_tests": 16,
+    "passed": 16,
+    "failed": 0,
+    "tests": [
+      "test_my_attendance_returns_records - PASSED",
+      "test_my_attendance_returns_summary - PASSED",
+      "test_my_attendance_returns_shift_config - PASSED",
+      "test_my_attendance_with_month_filter - PASSED",
+      "test_attendance_records_have_overtime_hours - PASSED",
+      "test_attendance_records_have_working_hours - PASSED",
+      "test_attendance_records_have_is_late - PASSED",
+      "test_my_leave_balance_returns_balance - PASSED",
+      "test_leave_balance_has_total_used_available - PASSED",
+      "test_leave_request_conflict_with_attendance - PASSED",
+      "test_check_in_allows_re_checkin - PASSED",
+      "test_check_status_endpoint - PASSED",
+      "test_get_leave_requests - PASSED",
+      "test_leave_request_has_approval_trail_fields - PASSED",
+      "test_sales_user_attendance - PASSED",
+      "test_sales_user_leave_balance - PASSED"
+    ]
+  },
+  "ui_test_results": {
+    "my_attendance_page": {
+      "status": "PASSED",
+      "elements_verified": [
+        "data-testid='my-attendance-page'",
+        "data-testid='attendance-table'",
+        "data-testid='shift-config-bar'",
+        "data-testid='download-csv-btn'",
+        "data-testid='quick-checkin-btn'",
+        "Table headers: DATE, STATUS, LOCATION, ADDRESS, LEAVE TYPE, CHECK IN, CHECK OUT, HOURS, OT, LATE"
+      ]
+    },
+    "my_leaves_page": {
+      "status": "PASSED",
+      "elements_verified": [
+        "data-testid='my-leaves-page'",
+        "data-testid='apply-leave-btn'",
+        "data-testid='balance-casual'",
+        "data-testid='balance-sick'",
+        "data-testid='balance-earned'",
+        "data-testid='leave-balance-bar' in dialog",
+        "Table headers: TYPE, FROM, TO, DAYS, REASON, STATUS, APPROVAL TRAIL, ACTION"
+      ]
+    },
+    "approvals_center": {
+      "status": "PASSED",
+      "elements_verified": [
+        "Page title: Approvals Center",
+        "data-testid='refresh-approvals-btn'",
+        "'Live' indicator visible",
+        "'Offline' text not found"
+      ]
+    }
+  }
+}

@@ -100,6 +100,28 @@ async def create_leave_request(
     if days > available and leave_data.leave_type not in ['loss_of_pay', 'lop']:
         raise HTTPException(status_code=400, detail=f"Insufficient leave balance. Available: {available} days, Requested: {days} days")
     
+    # Check for attendance conflict - cannot apply leave on days with attendance already marked
+    from datetime import timedelta as td
+    conflict_dates = []
+    check_date = leave_data.start_date
+    end_check = leave_data.end_date if not leave_data.is_half_day else leave_data.start_date
+    while check_date <= end_check:
+        date_str = check_date.isoformat()[:10]
+        att = await db.attendance.find_one(
+            {"employee_id": employee["id"], "date": date_str, "status": "present"},
+            {"_id": 0, "date": 1}
+        )
+        if att:
+            conflict_dates.append(date_str)
+        check_date += td(days=1)
+    
+    if conflict_dates:
+        formatted = ", ".join(conflict_dates)
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot apply leave - attendance already marked for: {formatted}. Please contact HR for regularization."
+        )
+    
     # Get reporting manager
     reporting_manager_id = employee.get('reporting_manager_id')
     rm_name = None

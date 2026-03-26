@@ -87,10 +87,16 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     now = datetime.now(timezone.utc)
     
-    # Check if already checked in today
+    # Check if already checked in today - allow re-check-in, archive previous
     existing = await db.attendance.find_one({"employee_id": emp["id"], "date": today}, {"_id": 0})
     if existing:
-        raise HTTPException(status_code=400, detail="Already checked in today")
+        # Archive the previous record (mark as superseded) and delete it
+        await db.attendance_history.insert_one({
+            **existing,
+            "superseded_at": now.isoformat(),
+            "superseded_reason": "re_checkin"
+        })
+        await db.attendance.delete_one({"id": existing["id"]})
     
     # Create attendance record
     # Handle both direct lat/lng and geo_location object from frontend
@@ -177,18 +183,38 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
         raise HTTPException(status_code=400, detail="No check-in record found for today")
     
     if record.get("check_out_time"):
-        raise HTTPException(status_code=400, detail="Already checked out today")
+        # Allow re-checkout - archive previous checkout in history
+        await db.attendance_history.insert_one({
+            **record,
+            "superseded_at": now.isoformat(),
+            "superseded_reason": "re_checkout"
+        })
     
     # Calculate working hours
     check_in_time = datetime.fromisoformat(record["check_in_time"].replace("Z", "+00:00"))
     working_seconds = (now - check_in_time).total_seconds()
     working_hours = round(working_seconds / 3600, 2)
     
-    # Calculate overtime (anything over 9 hours)
-    overtime_hours = max(0, round(working_hours - 9, 2))
+    # Fetch configured shift hours from business policy
+    standard_work_hours = 9  # default
+    overtime_threshold = 10  # default
+    try:
+        att_policy = await db.business_policies.find_one(
+            {"policy_type": "attendance", "scope": "company", "is_active": True},
+            {"_id": 0, "rules": 1}
+        )
+        if att_policy:
+            rules = {r["rule_id"]: r for r in att_policy.get("rules", [])}
+            standard_work_hours = rules.get("AT001", {}).get("numeric_value", 9)
+            overtime_threshold = rules.get("AT008", {}).get("numeric_value", 10)
+    except Exception:
+        pass
     
-    # Check for early departure (before 6 PM = 18:00)
-    is_early_departure = now.hour < 18
+    # Calculate overtime beyond shift hours
+    overtime_hours = max(0, round(working_hours - standard_work_hours, 2))
+    
+    # Check for early departure based on standard work hours
+    is_early_departure = working_hours < standard_work_hours
     
     # Update attendance record
     geo = data.get("geo_location", {})
@@ -229,18 +255,18 @@ async def get_my_attendance(
 ):
     """
     Get current user's attendance records for a month.
-    Used for attendance calendar/history view.
+    Returns records with summary stats, leave type, late penalty info.
     """
     db = get_db()
     
     # Get employee record
     emp = await db.employees.find_one(
         {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
-        {"_id": 0, "id": 1}
+        {"_id": 0}
     )
     
     if not emp:
-        return []
+        return {"records": [], "summary": {}, "employee": {}}
     
     # Default to current month
     if not month:
@@ -255,7 +281,90 @@ async def get_my_attendance(
         {"_id": 0, "selfie": 0}
     ).sort("date", -1).to_list(50)
     
-    return records
+    # Fetch leave requests for this month to show leave type
+    leaves = await db.leave_requests.find(
+        {
+            "employee_id": emp["id"],
+            "status": {"$in": ["approved", "pending"]},
+            "start_date": {"$regex": f"^{month}"}
+        },
+        {"_id": 0, "start_date": 1, "end_date": 1, "leave_type": 1, "status": 1, "days": 1}
+    ).to_list(100)
+    
+    # Build leave date map
+    leave_map = {}
+    for lv in leaves:
+        try:
+            s = datetime.fromisoformat(lv["start_date"].replace("Z", "+00:00"))
+            e = datetime.fromisoformat(lv.get("end_date", lv["start_date"]).replace("Z", "+00:00"))
+            d = s
+            while d <= e:
+                leave_map[d.strftime("%Y-%m-%d")] = {
+                    "leave_type": lv["leave_type"],
+                    "leave_status": lv["status"]
+                }
+                d += __import__('datetime').timedelta(days=1)
+        except Exception:
+            pass
+    
+    # Enrich records with leave type
+    for r in records:
+        lv_info = leave_map.get(r.get("date"))
+        if lv_info:
+            r["leave_type"] = lv_info["leave_type"]
+            r["leave_status"] = lv_info["leave_status"]
+    
+    # Calculate summary
+    present = sum(1 for r in records if r.get("status") == "present")
+    absent = sum(1 for r in records if r.get("status") == "absent")
+    half_day = sum(1 for r in records if r.get("status") == "half_day")
+    wfh = sum(1 for r in records if r.get("work_location") == "wfh")
+    on_leave = sum(1 for r in records if r.get("status") == "on_leave")
+    late_count = sum(1 for r in records if r.get("is_late"))
+    total_hours = sum(r.get("working_hours", 0) or 0 for r in records)
+    total_overtime = sum(r.get("overtime_hours", 0) or 0 for r in records)
+    
+    # Fetch shift config for display
+    shift_config = {"standard_work_hours": 9, "overtime_threshold_hours": 10, "core_hours_start": "10:00", "core_hours_end": "19:00"}
+    try:
+        att_policy = await db.business_policies.find_one(
+            {"policy_type": "attendance", "scope": "company", "is_active": True},
+            {"_id": 0, "rules": 1}
+        )
+        if att_policy:
+            rules_map = {r["rule_id"]: r for r in att_policy.get("rules", [])}
+            shift_config = {
+                "standard_work_hours": rules_map.get("AT001", {}).get("numeric_value", 9),
+                "overtime_threshold_hours": rules_map.get("AT008", {}).get("numeric_value", 10),
+                "core_hours_start": rules_map.get("AT002", {}).get("value", "10:00"),
+                "core_hours_end": rules_map.get("AT003", {}).get("value", "19:00"),
+                "late_threshold_minutes": rules_map.get("AT004", {}).get("numeric_value", 15),
+                "grace_period_minutes": rules_map.get("AT010", {}).get("numeric_value", 30),
+                "grace_days_per_month": rules_map.get("AT011", {}).get("numeric_value", 3),
+                "late_penalty_amount": rules_map.get("AT012", {}).get("numeric_value", 100),
+            }
+    except Exception:
+        pass
+    
+    return {
+        "records": records,
+        "summary": {
+            "present": present,
+            "absent": absent,
+            "half_day": half_day,
+            "wfh": wfh,
+            "on_leave": on_leave,
+            "late_count": late_count,
+            "total_hours": round(total_hours, 1),
+            "total_overtime": round(total_overtime, 1)
+        },
+        "shift_config": shift_config,
+        "employee": {
+            "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+            "employee_id": emp.get("employee_id", ""),
+            "department": emp.get("department", "")
+        }
+    }
 
 
 @router.get("/onboarding-status")
@@ -366,21 +475,35 @@ async def get_my_leave_balance(current_user: User = Depends(get_current_user)):
     
     balance = emp.get('leave_balance', {})
     
+    # Calculate actual used from leave_requests (authoritative source)
+    approved_leaves = await db.leave_requests.find(
+        {"employee_id": emp["id"], "status": "approved"},
+        {"_id": 0, "leave_type": 1, "days": 1}
+    ).to_list(500)
+    
+    used_casual = sum(lv.get("days", 0) for lv in approved_leaves if lv.get("leave_type") == "casual_leave")
+    used_sick = sum(lv.get("days", 0) for lv in approved_leaves if lv.get("leave_type") == "sick_leave")
+    used_earned = sum(lv.get("days", 0) for lv in approved_leaves if lv.get("leave_type") == "earned_leave")
+    
+    total_casual = balance.get('casual_leave', 12)
+    total_sick = balance.get('sick_leave', 6)
+    total_earned = balance.get('earned_leave', 15)
+    
     return {
         "casual": {
-            "total": balance.get('casual_leave', 12),
-            "used": balance.get('used_casual', 0),
-            "available": balance.get('casual_leave', 12) - balance.get('used_casual', 0)
+            "total": total_casual,
+            "used": used_casual,
+            "available": total_casual - used_casual
         },
         "sick": {
-            "total": balance.get('sick_leave', 6),
-            "used": balance.get('used_sick', 0),
-            "available": balance.get('sick_leave', 6) - balance.get('used_sick', 0)
+            "total": total_sick,
+            "used": used_sick,
+            "available": total_sick - used_sick
         },
         "earned": {
-            "total": balance.get('earned_leave', 15),
-            "used": balance.get('used_earned', 0),
-            "available": balance.get('earned_leave', 15) - balance.get('used_earned', 0)
+            "total": total_earned,
+            "used": used_earned,
+            "available": total_earned - used_earned
         }
     }
 
