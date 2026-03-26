@@ -568,6 +568,7 @@ const MeetingRecord = () => {
                 value={travelData}
                 onChange={setTravelData}
                 meetingType={formData.meeting_type}
+                hideTimeFields={true}
                 data-testid="meeting-location-picker"
               />
             )}

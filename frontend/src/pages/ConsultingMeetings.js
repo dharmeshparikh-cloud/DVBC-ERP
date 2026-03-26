@@ -2334,6 +2334,7 @@ const ConsultingMeetings = () => {
                     }));
                   }}
                   meetingType="Offline"
+                  hideTimeFields={true}
                 />
               </div>
             )}
