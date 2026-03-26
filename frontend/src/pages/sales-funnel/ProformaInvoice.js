@@ -63,6 +63,7 @@ const ProformaInvoice = () => {
     base_rate_per_meeting: 12500,
     validity_days: 30,
     payment_terms: 'ADVANCE',
+    client_gstin: '',
     terms_and_conditions: '1) Payment to be paid via Bank transfer or cheques\n2) Payment refund is not permissible\n3) Any breach of information is subject to violation of agreement\n4) TDS amount to be paid regularly and submit challan to biller\n5) Disputes subject to Ahmedabad jurisdiction.'
   });
 
@@ -214,161 +215,155 @@ const ProformaInvoice = () => {
   const handleDownloadPDF = () => {
     if (!invoiceRef.current) return;
     
-    // Generate professional print-ready PDF with proper styling
-    const printContent = invoiceRef.current.innerHTML;
+    // Clone the invoice content for print
+    const printContent = invoiceRef.current.cloneNode(true);
+    
+    // Fix image paths - convert relative to absolute
+    const images = printContent.querySelectorAll('img');
+    images.forEach(img => {
+      if (img.src.startsWith('/') || !img.src.startsWith('http')) {
+        img.src = window.location.origin + img.getAttribute('src');
+      }
+    });
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head>
-          <title>Proforma Invoice - ${selectedInvoice?.quotation_number}</title>
+          <title>Proforma Invoice - ${selectedInvoice?.quotation_number || ''}</title>
           <style>
+            @page { size: A4; margin: 14mm 16mm; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-              margin: 0; 
-              padding: 24px; 
-              font-size: 11px;
-              color: #18181b;
-              background: white;
+              font-size: 11px; color: #18181b; background: white;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            .bg-white { background-color: #ffffff !important; }
-            .bg-zinc-50 { background-color: #fafafa !important; }
-            .bg-zinc-100 { background-color: #f4f4f5 !important; }
-            .bg-zinc-900 { background-color: #18181b !important; color: white !important; }
-            .bg-blue-50 { background-color: #eff6ff !important; }
-            .bg-amber-50 { background-color: #fffbeb !important; }
-            .bg-emerald-50 { background-color: #ecfdf5 !important; }
-            .bg-emerald-500, .bg-emerald-600 { background-color: #10b981 !important; color: white !important; }
-            .text-white { color: white !important; }
-            .text-zinc-300, .text-zinc-400 { color: #a1a1aa !important; }
-            .text-zinc-500 { color: #71717a !important; }
-            .text-zinc-600 { color: #52525b !important; }
-            .text-zinc-700 { color: #3f3f46 !important; }
-            .text-zinc-800 { color: #27272a !important; }
-            .text-zinc-900 { color: #18181b !important; }
-            .text-emerald-600, .text-emerald-700 { color: #059669 !important; }
-            .text-blue-600, .text-blue-700 { color: #2563eb !important; }
-            .text-amber-800, .text-amber-900 { color: #92400e !important; }
+            img { max-width: 100%; height: auto; }
+            table { width: 100%; border-collapse: collapse; }
+
+            /* Grid utilities */
+            .grid { display: grid !important; }
+            .grid-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
+            .grid-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
+
+            /* Flex utilities */
+            .flex { display: flex !important; }
+            .items-center { align-items: center !important; }
+            .items-end { align-items: flex-end !important; }
+            .justify-between { justify-content: space-between !important; }
+            .justify-end { justify-content: flex-end !important; }
+
+            /* Spacing */
+            .gap-6 { gap: 24px !important; }
+            .gap-1\\.5, .gap-1-5 { gap: 6px !important; }
+            .space-y-4 > * + * { margin-top: 16px !important; }
+            .space-y-1 > * + * { margin-top: 4px !important; }
+            .px-6 { padding-left: 24px !important; padding-right: 24px !important; }
+            .px-3 { padding-left: 12px !important; padding-right: 12px !important; }
+            .px-2 { padding-left: 8px !important; padding-right: 8px !important; }
+            .py-2 { padding-top: 8px !important; padding-bottom: 8px !important; }
+            .py-1\\.5, .py-1-5 { padding-top: 6px !important; padding-bottom: 6px !important; }
+            .py-1 { padding-top: 4px !important; padding-bottom: 4px !important; }
+            .pt-5 { padding-top: 20px !important; }
+            .pt-4 { padding-top: 16px !important; }
+            .pt-2 { padding-top: 8px !important; }
+            .pt-1 { padding-top: 4px !important; }
+            .pb-5 { padding-bottom: 20px !important; }
+            .pb-4 { padding-bottom: 16px !important; }
+            .pb-1 { padding-bottom: 4px !important; }
+            .p-3 { padding: 12px !important; }
+            .pl-3 { padding-left: 12px !important; }
+            .ml-2 { margin-left: 8px !important; }
+            .mt-0\\.5, .mt-0-5 { margin-top: 2px !important; }
+            .mt-2 { margin-top: 8px !important; }
+            .mt-3 { margin-top: 12px !important; }
+            .mb-2 { margin-bottom: 8px !important; }
+            .mb-1\\.5, .mb-1-5 { margin-bottom: 6px !important; }
+            .mb-1 { margin-bottom: 4px !important; }
+            .mb-6 { margin-bottom: 24px !important; }
+
+            /* Width */
+            .w-full { width: 100% !important; }
+            .w-56 { width: 224px !important; }
+            .w-40 { width: 160px !important; }
+            .w-auto { width: auto !important; }
+
+            /* Height */
+            .h-16 { height: 64px !important; }
+            .h-px { height: 1px !important; }
+
+            /* Text */
+            .text-right { text-align: right !important; }
+            .text-center { text-align: center !important; }
+            .text-left { text-align: left !important; }
+            .text-xl { font-size: 16px !important; }
+            .text-sm { font-size: 12px !important; }
+            .text-xs { font-size: 11px !important; }
+            .text-\\[9px\\] { font-size: 9px !important; }
+            .text-\\[10px\\] { font-size: 10px !important; }
+            .font-black { font-weight: 900 !important; }
             .font-bold { font-weight: 700 !important; }
             .font-semibold { font-weight: 600 !important; }
             .font-medium { font-weight: 500 !important; }
-            .text-xs { font-size: 10px !important; }
-            .text-sm { font-size: 11px !important; }
-            .text-base { font-size: 12px !important; }
-            .text-lg { font-size: 14px !important; }
-            .text-xl { font-size: 16px !important; }
-            .text-2xl { font-size: 18px !important; }
-            .text-3xl { font-size: 22px !important; }
-            .text-right { text-align: right !important; }
-            .text-center { text-align: center !important; }
+            .font-mono { font-family: 'Courier New', monospace !important; }
             .uppercase { text-transform: uppercase !important; }
-            .rounded-sm { border-radius: 4px !important; }
-            .rounded-full { border-radius: 9999px !important; }
+            .tracking-tight { letter-spacing: -0.025em !important; }
+            .tracking-wider { letter-spacing: 0.05em !important; }
+            .tracking-\\[0\\.15em\\] { letter-spacing: 0.15em !important; }
+
+            /* Colors */
+            .text-zinc-950 { color: #09090b !important; }
+            .text-zinc-700 { color: #3f3f46 !important; }
+            .text-zinc-600 { color: #52525b !important; }
+            .text-zinc-500 { color: #71717a !important; }
+            .text-zinc-400 { color: #a1a1aa !important; }
+            .text-zinc-300 { color: #d4d4d8 !important; }
+            .text-white { color: #ffffff !important; }
+            .bg-white { background: #ffffff !important; }
+            .bg-zinc-950 { background: #09090b !important; }
+            .bg-zinc-50 { background: #fafafa !important; }
+
+            /* Borders */
             .border { border: 1px solid #e4e4e7 !important; }
-            .border-t { border-top: 1px solid #e4e4e7 !important; }
-            .border-b { border-bottom: 1px solid #e4e4e7 !important; }
-            .border-t-2 { border-top: 2px solid #18181b !important; }
-            .border-zinc-100 { border-color: #f4f4f5 !important; }
+            .border-zinc-300 { border-color: #d4d4d8 !important; }
             .border-zinc-200 { border-color: #e4e4e7 !important; }
-            .border-amber-200 { border-color: #fde68a !important; }
-            .border-blue-500 { border-color: #3b82f6 !important; }
-            .border-l-4 { border-left: 4px solid !important; }
-            .p-2 { padding: 8px !important; }
-            .p-3 { padding: 12px !important; }
-            .p-4 { padding: 16px !important; }
-            .p-6 { padding: 24px !important; }
-            .px-2 { padding-left: 8px !important; padding-right: 8px !important; }
-            .px-4 { padding-left: 16px !important; padding-right: 16px !important; }
-            .py-1 { padding-top: 4px !important; padding-bottom: 4px !important; }
-            .py-2 { padding-top: 8px !important; padding-bottom: 8px !important; }
-            .py-3 { padding-top: 12px !important; padding-bottom: 12px !important; }
-            .pt-2 { padding-top: 8px !important; }
-            .pt-6 { padding-top: 24px !important; }
-            .mb-2 { margin-bottom: 8px !important; }
-            .mb-3 { margin-bottom: 12px !important; }
-            .mb-8 { margin-bottom: 32px !important; }
-            .mt-1 { margin-top: 4px !important; }
-            .mt-2 { margin-top: 8px !important; }
-            .mt-3 { margin-top: 12px !important; }
-            .mt-4 { margin-top: 16px !important; }
-            .gap-2 { gap: 8px !important; }
-            .gap-3 { gap: 12px !important; }
-            .gap-6 { gap: 24px !important; }
-            .gap-8 { gap: 32px !important; }
-            .space-y-2 > * + * { margin-top: 8px !important; }
-            .space-y-4 > * + * { margin-top: 16px !important; }
-            .space-y-6 > * + * { margin-top: 24px !important; }
-            .grid { display: grid !important; }
-            .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-            .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
-            .col-span-3 { grid-column: span 3 / span 3 !important; }
-            .flex { display: flex !important; }
-            .flex-shrink-0 { flex-shrink: 0 !important; }
-            .items-center { align-items: center !important; }
-            .items-start { align-items: flex-start !important; }
-            .items-end { align-items: flex-end !important; }
-            .justify-between { justify-content: space-between !important; }
-            .justify-center { justify-content: center !important; }
-            .justify-end { justify-content: flex-end !important; }
-            .w-4 { width: 16px !important; }
-            .w-5 { width: 20px !important; }
-            .w-10 { width: 40px !important; }
-            .w-12 { width: 48px !important; }
-            .w-72 { width: 288px !important; }
-            .w-full { width: 100% !important; }
-            .h-4 { height: 16px !important; }
-            .h-5 { height: 20px !important; }
-            .h-10 { height: 40px !important; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e4e4e7; }
-            th { background-color: #fafafa; font-weight: 500; color: #71717a; font-size: 10px; text-transform: uppercase; }
-            .inline-flex { display: inline-flex !important; }
-            .overflow-hidden { overflow: hidden !important; }
-            .tracking-wide { letter-spacing: 0.025em !important; }
-            
-            /* Logo styling */
-            .logo-container { 
-              background: linear-gradient(135deg, #18181b 0%, #3f3f46 100%) !important; 
-              padding: 24px !important;
-              border-radius: 4px 4px 0 0 !important;
-            }
-            .logo-text {
-              font-size: 32px !important;
-              font-weight: 800 !important;
-              color: white !important;
-              letter-spacing: -0.02em !important;
-            }
-            .logo-registered {
-              font-size: 14px !important;
-              vertical-align: super !important;
-            }
-            
-            /* Print-specific styles */
+            .border-zinc-100 { border-color: #f4f4f5 !important; }
+            .border-zinc-950 { border-color: #09090b !important; }
+            .border-b { border-bottom: 1px solid #e4e4e7 !important; }
+            .border-b-2 { border-bottom: 2px solid !important; }
+            .border-t { border-top: 1px solid #e4e4e7 !important; }
+            .border-t-2 { border-top: 2px solid !important; }
+            .border-l-2 { border-left: 2px solid !important; }
+
+            /* SVG icons hidden in print */
+            svg { display: none !important; }
+
             @media print {
-              body { 
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-              .page-break { page-break-before: always; }
-              .no-break { page-break-inside: avoid; }
+              body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             }
           </style>
         </head>
         <body>
-          <div class="invoice-content">
-            ${printContent}
-          </div>
+          ${printContent.innerHTML}
         </body>
       </html>
     `);
     printWindow.document.close();
     
-    // Wait for content to render before printing
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+    // Wait for images to load before printing
+    const checkImagesAndPrint = () => {
+      const imgs = printWindow.document.querySelectorAll('img');
+      let allLoaded = true;
+      imgs.forEach(img => { if (!img.complete) allLoaded = false; });
+      if (allLoaded) {
+        printWindow.print();
+      } else {
+        setTimeout(checkImagesAndPrint, 200);
+      }
+    };
+    setTimeout(checkImagesAndPrint, 300);
   };
 
   const getStatusBadge = (status, isFinal) => {
@@ -759,6 +754,7 @@ const ProformaInvoice = () => {
               base_rate_per_meeting: invoice.base_rate_per_meeting || 12500,
               validity_days: invoice.validity_days || 30,
               payment_terms: invoice.payment_terms || 'ADVANCE',
+              client_gstin: invoice.client_gstin || '',
               terms_and_conditions: invoice.terms_and_conditions || ''
             });
             setDialogOpen(true);
@@ -984,6 +980,16 @@ const ProformaInvoice = () => {
               </div>
             </div>
             <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Client GSTIN</Label>
+              <Input
+                value={formData.client_gstin}
+                onChange={(e) => setFormData({ ...formData, client_gstin: e.target.value })}
+                placeholder="e.g. 24XXXXX1234X1Z5"
+                className="rounded-sm border-zinc-200"
+                data-testid="client-gstin-input"
+              />
+            </div>
+            <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Terms of Delivery</Label>
               <textarea
                 value={formData.terms_and_conditions}
@@ -1063,7 +1069,7 @@ const ProformaInvoice = () => {
                     <p className="text-zinc-600 mt-0.5">{selectedLead?.first_name} {selectedLead?.last_name}</p>
                     {selectedLead?.email && <p className="text-zinc-400 mt-0.5">{selectedLead.email}</p>}
                     {selectedLead?.phone && <p className="text-zinc-400">{selectedLead.phone}</p>}
-                    {selectedLead?.gstin && <p className="text-zinc-500 font-mono mt-0.5">GSTIN: {selectedLead.gstin}</p>}
+                    {(selectedInvoice?.client_gstin || selectedLead?.gstin) && <p className="text-zinc-500 font-mono mt-0.5">GSTIN: {selectedInvoice?.client_gstin || selectedLead?.gstin}</p>}
                     <p className="text-zinc-400">State: Gujarat | Code: 24</p>
                   </div>
                 </div>
@@ -1073,12 +1079,6 @@ const ProformaInvoice = () => {
                   <p className="text-zinc-400 mt-0.5">{companyDetails.address}</p>
                   <p className="text-zinc-500 font-mono mt-0.5">GSTIN: {companyDetails.gstin}</p>
                   <p className="text-zinc-400">State: {companyDetails.state} | Code: {companyDetails.stateCode}</p>
-                  {/* Amount Due */}
-                  <div className="bg-zinc-950 p-3 mt-2">
-                    <p className="text-[9px] text-zinc-400 uppercase tracking-wider">Amount Due</p>
-                    <p className="text-xl font-black text-white mt-0.5">{formatINR(selectedInvoice?.grand_total || selectedInvoice?.total || ((selectedInvoice?.subtotal || 0) + (selectedInvoice?.tax_amount || 0)))}</p>
-                    <p className="text-[9px] text-zinc-500">Incl. 18% GST</p>
-                  </div>
                 </div>
               </div>
 
@@ -1193,22 +1193,20 @@ const ProformaInvoice = () => {
                 </table>
               </div>
 
-              {/* Terms & Bank — 2 col compact */}
+              {/* Payment Terms & Conditions Box + Bank Details */}
               <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.15em] mb-1.5">Terms of Delivery</h3>
+                <div className="border border-zinc-300 p-3">
+                  <h3 className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.15em] mb-1.5">Payment Terms & Conditions</h3>
                   <ol className="text-[10px] text-zinc-600 space-y-1">
-                    {['Payment via Bank transfer or cheques only',
-                      'Payment refund is not permissible',
-                      'Breach of information subject to agreement violation',
-                      'TDS to be paid regularly; submit challan to biller',
-                      'Disputes subject to Ahmedabad jurisdiction'
-                    ].map((t, i) => (
-                      <li key={i} className="flex gap-1.5"><span className="text-zinc-400 font-mono">{i+1}.</span>{t}</li>
-                    ))}
+                    {(selectedInvoice?.terms_and_conditions || '1) Payment via Bank transfer or cheques only\n2) Payment refund is not permissible\n3) Breach of information subject to agreement violation\n4) TDS to be paid regularly; submit challan to biller\n5) Disputes subject to Ahmedabad jurisdiction').split('\n').map((t, i) => {
+                      const cleaned = t.replace(/^\d+\)\s*/, '').trim();
+                      return cleaned ? (
+                        <li key={i} className="flex gap-1.5"><span className="text-zinc-400 font-mono">{i+1}.</span>{cleaned}</li>
+                      ) : null;
+                    })}
                   </ol>
                 </div>
-                <div className="bg-zinc-50 p-3 border border-zinc-200">
+                <div className="border border-zinc-300 p-3">
                   <h3 className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.15em] mb-1.5">Bank Details</h3>
                   <div className="space-y-1 text-[10px]">
                     {[['Bank', companyDetails.bankName],['A/c Holder', companyDetails.accountName],['A/c No.', companyDetails.accountNo],['Branch & IFSC', `${companyDetails.branch} | ${companyDetails.ifscCode}`],['SWIFT', companyDetails.swiftCode]].map(([l,v],i) => (

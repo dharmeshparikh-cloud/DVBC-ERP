@@ -27,6 +27,7 @@ class QuotationCreate(BaseModel):
     title: Optional[str] = "Quotation"
     client_name: Optional[str] = None
     client_email: Optional[str] = ""
+    client_gstin: Optional[str] = ""
     line_items: Optional[List[dict]] = []
     subtotal: Optional[float] = 0
     tax_rate: float = 18
@@ -103,6 +104,7 @@ async def create_quotation(
         "title": data.title,
         "client_name": client_name,
         "client_email": data.client_email or lead.get("email", ""),
+        "client_gstin": data.client_gstin or lead.get("gstin", ""),
         "line_items": data.line_items or [],
         "subtotal": subtotal,
         "tax_rate": data.tax_rate,
@@ -216,6 +218,7 @@ async def update_quotation(quotation_id: str, data: QuotationCreate, current_use
         "pricing_plan_id": pp_id,
         "client_name": client_name,
         "client_email": data.client_email or (lead or {}).get("email", "") or quotation.get("client_email", ""),
+        "client_gstin": data.client_gstin or (lead or {}).get("gstin", "") or quotation.get("client_gstin", ""),
         "subtotal": subtotal,
         "tax_rate": tax_rate,
         "tax_amount": tax_amount,
