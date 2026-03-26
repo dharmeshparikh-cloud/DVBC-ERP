@@ -2,6 +2,28 @@
 
 ## Latest Updates - March 26, 2026
 
+### Session 17 - Attendance OT, Leave Balance & Multiple Enhancements (COMPLETE)
+
+**Changes Made:**
+1. **Overtime calculation** - Row-wise OT beyond configured shift hours (9h standard), displayed in OT column with footer total
+2. **Shift config bar** - Shows shift times (10:00-19:00), standard hours, OT threshold, grace period
+3. **Leave balance (real-time)** - Calculated from `leave_requests` collection, shown in apply-leave dialog with "After" preview
+4. **Leave-attendance conflict** - Cannot apply leave on days with attendance already marked
+5. **Re-check-in/check-out** - Archives previous record, creates fresh entry
+6. **DD/MM/YYYY dates** - All attendance and leave tables use DD/MM/YYYY format
+7. **Hours column fixed** - Now uses `working_hours` field correctly
+8. **Leave Type column** - Shows CL/SL/EL for leave days
+9. **Late penalty column** - Shows late minutes with badge
+10. **CSV download** - Exports all visible columns with monthly totals
+11. **Monthly totals footer** - Sum of hours, OT, late count
+12. **8 summary cards** - Present, Absent, Half Day, WFH, Leave, Late, Total Hrs, Overtime
+13. **Approval trail** - My Leaves table shows RM name, action, date, comments
+14. **Approval Center** - "Offline" status hidden when WebSocket disconnected
+
+**Testing:** 100% pass rate (iteration_232.json) - 16/16 backend, all frontend verified
+
+---
+
 ### Session 16 - Attendance GPS Reverse Geocoding (COMPLETE)
 
 **Problem:** GPS capture on attendance check-in was showing raw latitude/longitude coordinates instead of human-readable addresses.
