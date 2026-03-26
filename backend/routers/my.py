@@ -4,11 +4,12 @@ My Router - User self-service endpoints (attendance check-in/out, profile, onboa
 
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 from .deps import get_db, APPROVAL_ROLES
 from .models import User
 from .deps import get_current_user
+from utils.timezone import IST, now_ist, today_ist, current_month_ist, to_ist
 
 router = APIRouter(prefix="/my", tags=["My - Self Service"])
 
@@ -38,7 +39,7 @@ async def get_check_in_status(current_user: User = Depends(get_current_user)):
     # If no employee record, return default status
     if not emp:
         return {
-            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "date": today_ist(),
             "has_checked_in": False,
             "has_checked_out": False,
             "check_in_time": None,
@@ -48,7 +49,7 @@ async def get_check_in_status(current_user: User = Depends(get_current_user)):
             "no_employee_record": True
         }
     
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = today_ist()
     
     record = await db.attendance.find_one(
         {"employee_id": emp["id"], "date": today},
@@ -84,8 +85,20 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     if not emp:
         raise HTTPException(status_code=404, detail="Employee record not found. Please contact HR.")
     
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    now = datetime.now(timezone.utc)
+    today = today_ist()
+    now = now_ist()
+    approved_leave_today = await db.leave_requests.find_one({
+        "employee_id": emp["id"],
+        "status": "approved",
+        "start_date": {"$lte": today},
+        "end_date": {"$gte": today}
+    }, {"_id": 0, "leave_type": 1})
+    if approved_leave_today:
+        leave_label = approved_leave_today.get("leave_type", "leave").replace("_", " ").title()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot check in — you have an approved {leave_label} for today. Please cancel the leave first."
+        )
     
     # Check if already checked in today - allow re-check-in, archive previous
     existing = await db.attendance.find_one({"employee_id": emp["id"], "date": today}, {"_id": 0})
@@ -130,18 +143,41 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "remarks": data.get("remarks", "Self check-in"),
         "working_hours": None,  # Calculated on check-out
         "overtime_hours": 0,
-        "is_late": False,  # TODO: Calculate based on policy
+        "is_late": False,
+        "late_minutes": 0,
         "is_early_departure": False,
         "source": "self_service",
         "created_at": now.isoformat(),
         "updated_at": now.isoformat()
     }
     
-    # Check for late arrival based on default policy (9:00 AM)
-    check_in_hour = now.hour
-    if check_in_hour >= 10:  # More than 1 hour late
+    # Calculate late arrival using business policy shift start (IST)
+    # now is already IST from now_ist()
+    
+    # Fetch shift start from business policy
+    shift_start_str = "10:00"  # will be overridden by policy
+    late_threshold_minutes = 15
+    try:
+        att_policy = await db.business_policies.find_one(
+            {"policy_type": "attendance", "scope": "company", "is_active": True},
+            {"_id": 0, "rules": 1}
+        )
+        if att_policy:
+            rules = {r["rule_id"]: r for r in att_policy.get("rules", [])}
+            shift_start_str = rules.get("AT002", {}).get("value", "10:00")
+            late_threshold_minutes = rules.get("AT004", {}).get("numeric_value", 15)
+    except Exception:
+        pass
+    
+    # Parse shift start and compare with IST check-in time
+    shift_h, shift_m = int(shift_start_str.split(":")[0]), int(shift_start_str.split(":")[1])
+    checkin_total_min = now.hour * 60 + now.minute
+    shift_total_min = shift_h * 60 + shift_m
+    late_by_min = checkin_total_min - shift_total_min
+    
+    if late_by_min > late_threshold_minutes:
         attendance["is_late"] = True
-        attendance["late_minutes"] = (check_in_hour - 9) * 60 + now.minute
+        attendance["late_minutes"] = late_by_min
     
     await db.attendance.insert_one(attendance)
     
@@ -174,8 +210,8 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
     if not emp:
         raise HTTPException(status_code=404, detail="Employee record not found")
     
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    now = datetime.now(timezone.utc)
+    today = today_ist()
+    now = now_ist()
     
     # Find today's attendance record
     record = await db.attendance.find_one({"employee_id": emp["id"], "date": today}, {"_id": 0})
@@ -190,14 +226,13 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
             "superseded_reason": "re_checkout"
         })
     
-    # Calculate working hours
-    check_in_time = datetime.fromisoformat(record["check_in_time"].replace("Z", "+00:00"))
+    # Calculate working hours using IST-aware check-in time
+    check_in_time = to_ist(datetime.fromisoformat(record["check_in_time"].replace("Z", "+00:00")))
     working_seconds = (now - check_in_time).total_seconds()
     working_hours = round(working_seconds / 3600, 2)
     
     # Fetch configured shift hours from business policy
     standard_work_hours = 9  # default
-    overtime_threshold = 10  # default
     try:
         att_policy = await db.business_policies.find_one(
             {"policy_type": "attendance", "scope": "company", "is_active": True},
@@ -206,7 +241,6 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
         if att_policy:
             rules = {r["rule_id"]: r for r in att_policy.get("rules", [])}
             standard_work_hours = rules.get("AT001", {}).get("numeric_value", 9)
-            overtime_threshold = rules.get("AT008", {}).get("numeric_value", 10)
     except Exception:
         pass
     
@@ -268,9 +302,9 @@ async def get_my_attendance(
     if not emp:
         return {"records": [], "summary": {}, "employee": {}}
     
-    # Default to current month
+    # Default to current month (IST)
     if not month:
-        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        month = current_month_ist()
     
     # Query attendance for the month
     records = await db.attendance.find(
@@ -307,25 +341,16 @@ async def get_my_attendance(
         except Exception:
             pass
     
-    # Enrich records with leave type
+    # Enrich records with leave type (only for non-present statuses)
     for r in records:
         lv_info = leave_map.get(r.get("date"))
-        if lv_info:
+        if lv_info and r.get("status") != "present":
             r["leave_type"] = lv_info["leave_type"]
             r["leave_status"] = lv_info["leave_status"]
     
-    # Calculate summary
-    present = sum(1 for r in records if r.get("status") == "present")
-    absent = sum(1 for r in records if r.get("status") == "absent")
-    half_day = sum(1 for r in records if r.get("status") == "half_day")
-    wfh = sum(1 for r in records if r.get("work_location") == "wfh")
-    on_leave = sum(1 for r in records if r.get("status") == "on_leave")
-    late_count = sum(1 for r in records if r.get("is_late"))
-    total_hours = sum(r.get("working_hours", 0) or 0 for r in records)
-    total_overtime = sum(r.get("overtime_hours", 0) or 0 for r in records)
-    
     # Fetch shift config for display
     shift_config = {"standard_work_hours": 9, "overtime_threshold_hours": 10, "core_hours_start": "10:00", "core_hours_end": "19:00"}
+    late_threshold_minutes = 15
     try:
         att_policy = await db.business_policies.find_one(
             {"policy_type": "attendance", "scope": "company", "is_active": True},
@@ -343,8 +368,43 @@ async def get_my_attendance(
                 "grace_days_per_month": rules_map.get("AT011", {}).get("numeric_value", 3),
                 "late_penalty_amount": rules_map.get("AT012", {}).get("numeric_value", 100),
             }
+            late_threshold_minutes = shift_config.get("late_threshold_minutes", 15)
     except Exception:
         pass
+    
+    # Normalize field names and dynamically recalculate late status using IST
+    shift_start_str = shift_config.get("core_hours_start", "10:00")
+    shift_h, shift_m = int(shift_start_str.split(":")[0]), int(shift_start_str.split(":")[1])
+    shift_total_min = shift_h * 60 + shift_m
+    
+    for r in records:
+        # Normalize: ensure check_in_time is set (old records use check_in)
+        if not r.get("check_in_time") and r.get("check_in"):
+            r["check_in_time"] = r["check_in"]
+        if not r.get("check_out_time") and r.get("check_out"):
+            r["check_out_time"] = r["check_out"]
+        
+        # Dynamically recalculate is_late based on check-in vs shift start (IST)
+        cin = r.get("check_in_time")
+        if cin and r.get("status") == "present":
+            try:
+                ci_ist = to_ist(datetime.fromisoformat(cin.replace("Z", "+00:00")))
+                checkin_total_min = ci_ist.hour * 60 + ci_ist.minute
+                late_by = checkin_total_min - shift_total_min
+                r["is_late"] = late_by > late_threshold_minutes
+                r["late_minutes"] = max(0, late_by) if late_by > late_threshold_minutes else 0
+            except Exception:
+                pass
+    
+    # Calculate summary (after recalculation)
+    present = sum(1 for r in records if r.get("status") == "present")
+    absent = sum(1 for r in records if r.get("status") == "absent")
+    half_day = sum(1 for r in records if r.get("status") == "half_day")
+    wfh = sum(1 for r in records if r.get("work_location") == "wfh")
+    on_leave = sum(1 for r in records if r.get("status") == "on_leave")
+    late_count = sum(1 for r in records if r.get("is_late"))
+    total_hours = sum(r.get("working_hours", 0) or 0 for r in records)
+    total_overtime = sum(r.get("overtime_hours", 0) or 0 for r in records)
     
     return {
         "records": records,

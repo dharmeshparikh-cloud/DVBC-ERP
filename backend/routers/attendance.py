@@ -16,6 +16,7 @@ from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, HR_PM_ROLES, get_role_group,
 from .deps import get_current_user
 from services.websocket_manager import ws_manager, notify_dashboard_refresh
 from services.redis_cache import CacheInvalidation
+from utils.timezone import IST, now_ist, today_ist, current_month_ist, to_ist
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
@@ -39,7 +40,7 @@ async def get_all_attendance_admin(
         raise HTTPException(status_code=403, detail="Only HR/Admin can view all attendance")
     
     if not month:
-        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        month = current_month_ist()
     
     query = {"date": {"$regex": f"^{month}"}}
     if employee_id:
@@ -160,6 +161,25 @@ async def regularize_attendance(
                 pass
             
             update_fields["overtime_hours"] = max(0, round(working_hours - standard_hours, 2))
+            
+            # Recalculate late status based on check-in time (IST)
+            try:
+                ci_ist = to_ist(ci_dt)
+                
+                # Get shift start from policy
+                shift_start_str = "10:00"
+                late_threshold = 15
+                if att_policy:
+                    rules_map = {r["rule_id"]: r for r in att_policy.get("rules", [])}
+                    shift_start_str = rules_map.get("AT002", {}).get("value", "10:00")
+                    late_threshold = rules_map.get("AT004", {}).get("numeric_value", 15)
+                
+                s_h, s_m = int(shift_start_str.split(":")[0]), int(shift_start_str.split(":")[1])
+                late_by = (ci_ist.hour * 60 + ci_ist.minute) - (s_h * 60 + s_m)
+                update_fields["is_late"] = late_by > late_threshold
+                update_fields["late_minutes"] = max(0, late_by) if late_by > late_threshold else 0
+            except Exception:
+                pass
         except Exception:
             pass
     
