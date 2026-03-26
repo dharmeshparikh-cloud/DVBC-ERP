@@ -55,7 +55,7 @@ const FUNNEL_STEPS = [
     title: 'Quotation', 
     icon: Receipt, 
     description: 'Generate proforma invoice with payment terms',
-    route: '/sales-funnel/quotation',
+    route: '/sales-funnel/quotations',
     checkCollection: 'quotations'
   },
   { 
@@ -266,7 +266,7 @@ const SalesFunnelOnboarding = () => {
       } else if (step.id === 'scope_of_work' && funnelStatus.pricing_plan_id) {
         route = `${step.route}/${funnelStatus.pricing_plan_id}`;
       } else if (step.id === 'quotation' && funnelStatus.pricing_plan_id) {
-        route = `/sales-funnel/quotation?pricingPlanId=${funnelStatus.pricing_plan_id}`;
+        route = `/sales-funnel/quotations?pricing_plan_id=${funnelStatus.pricing_plan_id}&leadId=${leadId}`;
       } else if (step.id === 'agreement' && funnelStatus.agreement_id) {
         route = `/sales-funnel/agreement/${funnelStatus.agreement_id}`;
       } else if (step.id === 'agreement' && funnelStatus.quotation_id) {
