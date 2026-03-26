@@ -359,6 +359,7 @@ async def suggest_deliverables(request: AIDeliverablesRequest):
     """
     AI-powered deliverables suggestion for a scope.
     Returns top 5 prioritized deliverables based on scope name and category.
+    Default context: B2B manufacturing companies, small-scale operations.
     """
     import os
     
@@ -380,45 +381,64 @@ async def suggest_deliverables(request: AIDeliverablesRequest):
     
     # Use AI to generate deliverables
     try:
-        from emergentintegrations.llm.chat import chat, UserMessage
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
         
-        prompt = f"""You are a business consultant. For the following consulting scope, suggest exactly 5 key deliverables.
+        system_prompt = """You are a business consultant specializing in B2B manufacturing companies and small-scale enterprises.
+Your role is to suggest practical, implementable deliverables for consulting scopes.
+Focus on deliverables that small-scale manufacturing companies can realistically implement with limited resources."""
+
+        user_prompt = f"""For the following consulting scope, suggest exactly 5 key deliverables that are:
+- Practical and commonly applied in small-scale B2B manufacturing businesses
+- Cost-effective and implementable with limited resources
+- Industry-proven best practices
 
 Scope Name: {scope_name}
 Category: {category}
 Description: {description if description else 'N/A'}
 
+Context: Focus on deliverables that small-scale manufacturing companies can realistically implement. Consider:
+- Limited IT infrastructure
+- Lean team structures
+- Practical SOPs over complex systems
+- Manual + semi-automated processes
+- Compliance with basic industry standards
+
 Rules:
 - Return ONLY 5 deliverables, one per line
 - Each deliverable should be 3-6 words max
-- Be specific and actionable
+- Be specific and actionable for manufacturing context
 - No numbering, bullets, or formatting
-- Examples: "Process Flow Diagrams", "Training Manual", "Gap Analysis Report"
+- Examples: "Process Flow Diagrams", "Quality Control Checklist", "SOP Documentation", "Training Manual"
 
 Deliverables:"""
 
         emergent_key = os.environ.get("EMERGENT_LLM_KEY")
         if not emergent_key:
-            # Fallback to generic deliverables
+            # Fallback to manufacturing-focused deliverables
             return {
                 "source": "default",
                 "deliverables": [
-                    f"{scope_name} Report",
-                    "Implementation Guide",
-                    "Progress Dashboard",
-                    "Training Documentation",
-                    "Final Assessment Report"
+                    f"{scope_name} SOP Document",
+                    "Process Flow Diagram",
+                    "Quality Checklist Template",
+                    "Training Manual",
+                    "Implementation Report"
                 ]
             }
         
-        response = await chat(
-            emergent_key,
-            [UserMessage(content=prompt)],
-            model="gpt-4o-mini"
+        import uuid
+        chat = LlmChat(
+            api_key=emergent_key,
+            session_id=f"sow-deliverables-{uuid.uuid4().hex[:8]}",
+            system_message=system_prompt
         )
+        chat.with_model("openai", "gpt-4o-mini")
+        
+        response = await chat.send_message(UserMessage(text=user_prompt))
         
         # Parse response - split by newlines, clean up
-        lines = [line.strip() for line in response.response.strip().split('\n') if line.strip()]
+        response_text = response if isinstance(response, str) else str(response)
+        lines = [line.strip() for line in response_text.strip().split('\n') if line.strip()]
         # Remove any numbering or bullets
         deliverables = []
         for line in lines[:5]:
@@ -428,8 +448,8 @@ Deliverables:"""
                 deliverables.append(clean)
         
         if len(deliverables) < 5:
-            # Pad with defaults
-            defaults = [f"{scope_name} Report", "Implementation Guide", "Progress Dashboard", "Training Documentation", "Final Assessment Report"]
+            # Pad with manufacturing-focused defaults
+            defaults = [f"{scope_name} SOP Document", "Process Flow Diagram", "Quality Checklist Template", "Training Manual", "Implementation Report"]
             while len(deliverables) < 5:
                 deliverables.append(defaults[len(deliverables)])
         
@@ -439,15 +459,15 @@ Deliverables:"""
         }
         
     except Exception as e:
-        # Fallback
+        # Fallback with manufacturing-focused deliverables
         return {
             "source": "default",
             "deliverables": [
-                f"{scope_name} Report",
-                "Implementation Guide", 
-                "Progress Dashboard",
-                "Training Documentation",
-                "Final Assessment Report"
+                f"{scope_name} SOP Document",
+                "Process Flow Diagram", 
+                "Quality Checklist Template",
+                "Training Manual",
+                "Implementation Report"
             ],
             "error": str(e)
         }
