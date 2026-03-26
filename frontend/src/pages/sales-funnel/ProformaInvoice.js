@@ -627,9 +627,9 @@ const ProformaInvoice = () => {
                       <Building2 className="w-5 h-5 text-zinc-500" />
                       <div>
                         <CardTitle className="text-lg font-semibold text-zinc-950">
-                          {lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Lead'}
+                          {lead ? `${lead.first_name} ${lead.last_name}` : (invoicesList[0]?.client_name || 'Unknown Lead')}
                         </CardTitle>
-                        <p className="text-sm text-zinc-500">{lead?.company || 'No company'}</p>
+                        <p className="text-sm text-zinc-500">{lead?.company || invoicesList[0]?.client_name || 'No company'}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -1016,239 +1016,223 @@ const ProformaInvoice = () => {
 
       {/* View Proforma Invoice Dialog - Downloadable Format */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-4xl max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
-                Proforma Invoice
-              </DialogTitle>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleDownloadPDF}
-                  size="sm"
-                  variant="outline"
-                  className="rounded-sm"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download PDF
-                </Button>
-                <Button
-                  onClick={handleDownloadPDF}
-                  size="sm"
-                  variant="outline"
-                  className="rounded-sm"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Send to Client
-                </Button>
-              </div>
+        <DialogContent className="border-zinc-300 rounded-none max-w-4xl max-h-[95vh] overflow-y-auto p-0">
+          {/* Action Bar */}
+          <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-200 bg-white sticky top-0 z-10">
+            <span className="text-sm font-medium text-zinc-500">Invoice Preview</span>
+            <div className="flex gap-2">
+              <Button onClick={handleDownloadPDF} size="sm" variant="outline" className="rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs">
+                <Download className="w-3.5 h-3.5 mr-1.5" /> Download PDF
+              </Button>
+              <Button onClick={handleDownloadPDF} size="sm" variant="outline" className="rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs">
+                <Send className="w-3.5 h-3.5 mr-1.5" /> Send to Client
+              </Button>
             </div>
-          </DialogHeader>
+          </div>
           
-          {/* Printable Invoice Content - Modern Layout */}
+          {/* Printable Invoice Content - B&W Minimalist */}
           <div ref={invoiceRef} className="bg-white">
-            {/* Header with gradient accent and Logo */}
-            <div className="logo-container bg-gradient-to-r from-zinc-900 to-zinc-700 text-white p-6 rounded-t-sm">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-4">
-                  {/* Company Logo/Icon */}
-                  <div className="w-16 h-16 bg-white rounded-sm flex items-center justify-center shadow-lg">
-                    <span className="text-3xl font-black text-zinc-900 tracking-tighter">D&V</span>
-                  </div>
-                  <div>
-                    <h1 className="logo-text text-3xl font-bold tracking-tight">
-                      D&V<span className="logo-registered text-sm align-super">®</span>
-                    </h1>
-                    <p className="text-zinc-300 text-sm mt-1">Business Consulting</p>
-                  </div>
-                </div>
+            {/* Header - Logo Left, Invoice Title Right on White */}
+            <div className="px-8 pt-8 pb-6">
+              <div className="flex justify-between items-center">
+                <img src="/assets/dv-logo.png" alt="D&V Business Consulting" className="h-20 w-auto" />
                 <div className="text-right">
-                  <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-sm">
-                    <h2 className="text-lg font-bold">PROFORMA INVOICE</h2>
-                    <p className="text-zinc-300 text-xs">{selectedInvoice?.quotation_number}</p>
-                  </div>
+                  <h2 className="text-2xl font-black tracking-tight text-zinc-950 uppercase">Proforma Invoice</h2>
+                  <p className="text-sm text-zinc-500 font-mono mt-1">{selectedInvoice?.quotation_number}</p>
+                  {selectedInvoice?.version > 1 && (
+                    <span className="text-xs text-zinc-400 font-mono">v{selectedInvoice.version}</span>
+                  )}
                 </div>
               </div>
+              <div className="mt-6 h-px bg-zinc-950"></div>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Invoice Meta & Company Info */}
-              <div className="grid grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <div className="bg-zinc-50 rounded-sm p-4">
-                    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">Invoice Details</h3>
+            <div className="px-8 pb-8 space-y-8">
+              {/* Two Column: Invoice Details + Bill To / From + Amount */}
+              <div className="grid grid-cols-2 gap-12">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Invoice Details */}
+                  <div>
+                    <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Invoice Details</h3>
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-zinc-500">Invoice No.</span>
-                        <span className="font-semibold">{selectedInvoice?.quotation_number}</span>
+                      <div className="flex justify-between border-b border-zinc-100 pb-2">
+                        <span className="text-zinc-400">Invoice No.</span>
+                        <span className="font-semibold text-zinc-950 font-mono">{selectedInvoice?.quotation_number}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-zinc-100 pb-2">
+                        <span className="text-zinc-400">Date</span>
+                        <span className="text-zinc-700">{formatDate(selectedInvoice?.created_at)}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-zinc-100 pb-2">
+                        <span className="text-zinc-400">Payment Terms</span>
+                        <span className="font-semibold text-zinc-950 uppercase">{selectedInvoice?.payment_terms || 'ADVANCE'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-500">Date</span>
-                        <span>{formatDate(selectedInvoice?.created_at)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-500">Payment Terms</span>
-                        <span className="font-medium text-emerald-600">ADVANCE</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-500">Valid Until</span>
-                        <span>{formatDate(new Date(new Date(selectedInvoice?.created_at).getTime() + 30*24*60*60*1000))}</span>
+                        <span className="text-zinc-400">Valid Until</span>
+                        <span className="text-zinc-700">{formatDate(selectedInvoice?.valid_until || new Date(new Date(selectedInvoice?.created_at).getTime() + (selectedInvoice?.validity_days || 30)*24*60*60*1000))}</span>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Buyer Details */}
-                  <div className="bg-blue-50 rounded-sm p-4 border-l-4 border-blue-500">
-                    <h3 className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">Bill To</h3>
-                    <div className="text-sm">
-                      <p className="font-bold text-zinc-900 text-base">{selectedLead?.company || 'Client Company'}</p>
+                  {/* Bill To */}
+                  <div>
+                    <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Bill To</h3>
+                    <div className="text-sm border-l-2 border-zinc-950 pl-4">
+                      <p className="font-bold text-zinc-950 text-base">{selectedLead?.company || selectedInvoice?.client_name || 'Client Company'}</p>
                       <p className="text-zinc-600 mt-1">{selectedLead?.first_name} {selectedLead?.last_name}</p>
-                      <p className="text-zinc-500 text-xs mt-2">{selectedLead?.address || 'Address not provided'}</p>
-                      {selectedLead?.gstin && <p className="text-zinc-600 text-xs mt-1">GSTIN: {selectedLead.gstin}</p>}
-                      <p className="text-zinc-500 text-xs">State: Gujarat, Code: 24</p>
+                      {selectedLead?.email && <p className="text-zinc-400 text-xs mt-1">{selectedLead.email}</p>}
+                      {selectedLead?.phone && <p className="text-zinc-400 text-xs">{selectedLead.phone}</p>}
+                      <p className="text-zinc-400 text-xs mt-2">{selectedLead?.address || 'Address not provided'}</p>
+                      {selectedLead?.gstin && <p className="text-zinc-500 text-xs mt-1 font-mono">GSTIN: {selectedLead.gstin}</p>}
+                      <p className="text-zinc-400 text-xs">State: Gujarat | Code: 24</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="space-y-4">
-                  {/* Company Details */}
-                  <div className="bg-zinc-50 rounded-sm p-4">
-                    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">From</h3>
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* From */}
+                  <div>
+                    <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">From</h3>
                     <div className="text-sm">
-                      <p className="font-bold text-zinc-900">{companyDetails.name}</p>
-                      <p className="text-zinc-600 text-xs mt-2">{companyDetails.address}</p>
-                      <p className="text-zinc-600 text-xs mt-1">GSTIN: {companyDetails.gstin}</p>
-                      <p className="text-zinc-600 text-xs">State: {companyDetails.state}, Code: {companyDetails.stateCode}</p>
-                      <p className="text-zinc-600 text-xs mt-1">{companyDetails.phone}</p>
+                      <p className="font-bold text-zinc-950">{companyDetails.name}</p>
+                      <p className="text-zinc-400 text-xs mt-2">{companyDetails.address}</p>
+                      <p className="text-zinc-500 text-xs mt-1 font-mono">GSTIN: {companyDetails.gstin}</p>
+                      <p className="text-zinc-400 text-xs">State: {companyDetails.state} | Code: {companyDetails.stateCode}</p>
+                      <p className="text-zinc-400 text-xs mt-1">{companyDetails.phone}</p>
                     </div>
                   </div>
                   
-                  {/* Quick Summary Card */}
-                  <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-sm p-4 text-white">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide opacity-80 mb-2">Amount Due</h3>
-                    <p className="text-3xl font-bold">{formatINR(selectedInvoice?.grand_total || 0)}</p>
-                    <p className="text-xs opacity-70 mt-1">Including 18% GST</p>
+                  {/* Amount Due - B&W */}
+                  <div className="bg-zinc-950 p-5">
+                    <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-2">Amount Due</h3>
+                    <p className="text-3xl font-black text-white">{formatINR(selectedInvoice?.grand_total || selectedInvoice?.total || ((selectedInvoice?.subtotal || 0) + (selectedInvoice?.tax_amount || 0)))}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Including 18% GST</p>
                   </div>
                 </div>
               </div>
 
-              {/* Project Overview */}
-              <div className="bg-zinc-900 text-white rounded-sm p-4">
+              {/* Project Overview Bar */}
+              <div className="border border-zinc-950 p-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold">Project Duration</h3>
-                    <p className="text-zinc-400 text-sm">{selectedPlanDetails?.project_duration_type?.replace('_', ' ')?.toUpperCase() || 'CUSTOM'}</p>
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Project Duration</span>
+                      <p className="text-lg font-bold text-zinc-950 mt-1">{selectedPlanDetails?.project_duration_months || 12} Months</p>
+                    </div>
+                    <div className="h-8 w-px bg-zinc-200"></div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Total Meetings</span>
+                      <p className="text-lg font-bold text-zinc-950 mt-1">{selectedInvoice?.total_meetings || (selectedPlanDetails?.team_deployment || selectedPlanDetails?.consultants || []).reduce((sum, m) => sum + ((m.committed_meetings || m.meetings || 0) * (m.count || 1)), 0)}</p>
+                    </div>
+                    <div className="h-8 w-px bg-zinc-200"></div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Payment</span>
+                      <p className="text-lg font-bold text-zinc-950 mt-1 uppercase">{selectedInvoice?.payment_terms || 'Advance'}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold">{selectedPlanDetails?.project_duration_months || 12}</p>
-                    <p className="text-zinc-400 text-xs">MONTHS</p>
+                  <div>
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Rate / Meeting</span>
+                    <p className="text-lg font-bold text-zinc-950 mt-1">{formatINR(selectedInvoice?.base_rate_per_meeting || selectedPlanDetails?.base_rate_per_meeting || 0)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Team Deployment Structure */}
               {selectedPlanDetails && (selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).length > 0 && (
-                <div className="border border-zinc-200 rounded-sm overflow-hidden">
-                  <div className="bg-zinc-100 px-4 py-3 border-b border-zinc-200">
-                    <h3 className="font-semibold text-zinc-800 flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      Team Deployment Structure
-                    </h3>
-                    <p className="text-xs text-zinc-500 mt-1">Consultant allocation for the project duration</p>
-                  </div>
-                  <div className="p-4">
-                    <div className="grid grid-cols-4 gap-3 mb-3">
-                      <div className="text-xs font-semibold text-zinc-500 uppercase">Role</div>
-                      <div className="text-xs font-semibold text-zinc-500 uppercase">Meeting Type</div>
-                      <div className="text-xs font-semibold text-zinc-500 uppercase">Frequency</div>
-                      <div className="text-xs font-semibold text-zinc-500 uppercase text-center">Meetings</div>
-                    </div>
-                    {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants).map((member, idx) => {
-                      const meetings = (member.committed_meetings || member.meetings || 0) * (member.count || 1);
-                      return (
-                        <div key={idx} className="grid grid-cols-4 gap-3 py-3 border-t border-zinc-100 items-center">
-                          <div>
-                            <span className="inline-flex items-center px-2 py-1 bg-zinc-100 text-zinc-700 text-xs font-medium rounded-sm">
-                              {member.role || member.consultant_type}
-                            </span>
-                          </div>
-                          <div className="text-sm text-zinc-600">{member.meeting_type || '-'}</div>
-                          <div className="text-sm text-zinc-600">{member.frequency || '-'}</div>
-                          <div className="text-center">
-                            <span className="inline-flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-700 font-bold rounded-full text-sm">
-                              {meetings}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div className="grid grid-cols-4 gap-3 py-3 border-t-2 border-zinc-200 bg-zinc-50 -mx-4 px-4 mt-3">
-                      <div className="col-span-3 text-right font-semibold text-zinc-700">Total Meetings</div>
-                      <div className="text-center">
-                        <span className="inline-flex items-center justify-center w-12 h-10 bg-zinc-900 text-white font-bold rounded-sm text-sm">
-                          {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).reduce((sum, m) => {
-                            const meetings = (m.committed_meetings || m.meetings || 0) * (m.count || 1);
-                            return sum + meetings;
-                          }, 0)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                <div>
+                  <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Team Deployment Structure</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-zinc-950">
+                        <th className="text-left py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Role / Designation</th>
+                        <th className="text-left py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Meeting Type</th>
+                        <th className="text-center py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Count</th>
+                        <th className="text-center py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Meetings</th>
+                        <th className="text-right py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Rate / Meeting</th>
+                        <th className="text-right py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants).map((member, idx) => {
+                        const meetings = (member.committed_meetings || member.meetings || 0) * (member.count || 1);
+                        const rate = member.rate_per_meeting || member.default_rate || selectedInvoice?.base_rate_per_meeting || 12500;
+                        const amount = meetings * rate;
+                        return (
+                          <tr key={idx} className="border-b border-zinc-100">
+                            <td className="py-3 font-medium text-zinc-950">{member.role || member.consultant_type || '-'}</td>
+                            <td className="py-3 text-zinc-600">{member.meeting_type || member.frequency || '-'}</td>
+                            <td className="py-3 text-center text-zinc-700">{member.count || 1}</td>
+                            <td className="py-3 text-center font-semibold text-zinc-950">{meetings}</td>
+                            <td className="py-3 text-right text-zinc-600">{formatINR(rate)}</td>
+                            <td className="py-3 text-right font-semibold text-zinc-950">{formatINR(amount)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-zinc-950">
+                        <td className="py-3 font-bold text-zinc-950" colSpan={3}>Total</td>
+                        <td className="py-3 text-center font-bold text-zinc-950">
+                          {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).reduce((sum, m) => sum + ((m.committed_meetings || m.meetings || 0) * (m.count || 1)), 0)}
+                        </td>
+                        <td></td>
+                        <td className="py-3 text-right font-bold text-zinc-950">{formatINR(selectedInvoice?.subtotal || 0)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
               )}
 
               {/* Pricing Breakdown */}
-              <div className="border border-zinc-200 rounded-sm overflow-hidden">
-                <div className="bg-zinc-100 px-4 py-3 border-b border-zinc-200">
-                  <h3 className="font-semibold text-zinc-800">Pricing Summary</h3>
-                </div>
-                <div className="p-4">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-zinc-200">
-                        <th className="text-left py-2 text-zinc-500 font-medium">Description</th>
-                        <th className="text-center py-2 text-zinc-500 font-medium">HSN/SAC</th>
-                        <th className="text-center py-2 text-zinc-500 font-medium">Period</th>
-                        <th className="text-right py-2 text-zinc-500 font-medium">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-zinc-100">
-                        <td className="py-3">
-                          <div className="font-medium text-zinc-900">Professional Fees - Consulting Services</div>
-                          <div className="text-xs text-zinc-500">{selectedPlanDetails?.project_duration_months || 12} months engagement</div>
-                        </td>
-                        <td className="py-3 text-center text-zinc-600">998311</td>
-                        <td className="py-3 text-center text-zinc-600">{selectedPlanDetails?.project_duration_months || 12} Months</td>
-                        <td className="py-3 text-right font-semibold">{formatINR(selectedInvoice?.subtotal || 0)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  
-                  {/* Tax & Total Section */}
-                  <div className="mt-4 pt-4 border-t border-zinc-200">
-                    <div className="flex justify-end">
-                      <div className="w-72 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-zinc-500">Subtotal</span>
-                          <span className="font-medium">{formatINR(selectedInvoice?.subtotal || 0)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-zinc-500">CGST @ 9%</span>
-                          <span>{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-zinc-500">SGST @ 9%</span>
-                          <span>{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm pt-2 border-t border-zinc-200">
-                          <span className="text-zinc-500">Total Tax (18%)</span>
-                          <span className="font-medium">{formatINR(selectedInvoice?.gst_amount || 0)}</span>
-                        </div>
-                        <div className="flex justify-between text-lg pt-2 border-t-2 border-zinc-900">
-                          <span className="font-bold">Grand Total</span>
-                          <span className="font-bold text-emerald-600">{formatINR(selectedInvoice?.grand_total || 0)}</span>
-                        </div>
+              <div>
+                <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Pricing Summary</h3>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-zinc-950">
+                      <th className="text-left py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Description</th>
+                      <th className="text-center py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">HSN/SAC</th>
+                      <th className="text-center py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Period</th>
+                      <th className="text-right py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-zinc-100">
+                      <td className="py-3">
+                        <div className="font-medium text-zinc-950">Professional Fees — Consulting Services</div>
+                        <div className="text-xs text-zinc-400 mt-0.5">{selectedPlanDetails?.project_duration_months || 12} months engagement</div>
+                      </td>
+                      <td className="py-3 text-center text-zinc-500 font-mono">998311</td>
+                      <td className="py-3 text-center text-zinc-500">{selectedPlanDetails?.project_duration_months || 12} Months</td>
+                      <td className="py-3 text-right font-semibold text-zinc-950">{formatINR(selectedInvoice?.subtotal || 0)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                
+                {/* Tax & Total */}
+                <div className="mt-4 pt-4 border-t border-zinc-200">
+                  <div className="flex justify-end">
+                    <div className="w-72 space-y-2 text-sm">
+                      <div className="flex justify-between pb-2 border-b border-zinc-100">
+                        <span className="text-zinc-400">Subtotal</span>
+                        <span className="font-medium text-zinc-700">{formatINR(selectedInvoice?.subtotal || 0)}</span>
+                      </div>
+                      <div className="flex justify-between pb-2 border-b border-zinc-100">
+                        <span className="text-zinc-400">CGST @ 9%</span>
+                        <span className="text-zinc-600">{formatINR((selectedInvoice?.gst_amount || selectedInvoice?.tax_amount || 0) / 2)}</span>
+                      </div>
+                      <div className="flex justify-between pb-2 border-b border-zinc-100">
+                        <span className="text-zinc-400">SGST @ 9%</span>
+                        <span className="text-zinc-600">{formatINR((selectedInvoice?.gst_amount || selectedInvoice?.tax_amount || 0) / 2)}</span>
+                      </div>
+                      <div className="flex justify-between pb-2 border-b border-zinc-200">
+                        <span className="text-zinc-400">Total Tax (18%)</span>
+                        <span className="font-medium text-zinc-700">{formatINR(selectedInvoice?.gst_amount || selectedInvoice?.tax_amount || 0)}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t-2 border-zinc-950">
+                        <span className="font-black text-zinc-950 text-base">GRAND TOTAL</span>
+                        <span className="font-black text-zinc-950 text-base">{formatINR(selectedInvoice?.grand_total || selectedInvoice?.total || ((selectedInvoice?.subtotal || 0) + (selectedInvoice?.tax_amount || 0)))}</span>
                       </div>
                     </div>
                   </div>
@@ -1256,119 +1240,98 @@ const ProformaInvoice = () => {
               </div>
 
               {/* Amount in Words */}
-              <div className="bg-amber-50 border border-amber-200 rounded-sm p-4">
+              <div className="border border-zinc-200 p-3">
                 <p className="text-sm">
-                  <span className="font-semibold text-amber-800">Amount in Words:</span>
-                  <span className="text-amber-900 ml-2">{numberToWords(selectedInvoice?.grand_total || 0)}</span>
+                  <span className="font-semibold text-zinc-500 text-xs uppercase tracking-wider">Amount in Words:</span>
+                  <span className="text-zinc-950 ml-2 font-medium">{numberToWords(selectedInvoice?.grand_total || selectedInvoice?.total || 0)}</span>
                 </p>
               </div>
 
               {/* HSN Summary */}
-              <div className="border border-zinc-200 rounded-sm overflow-hidden">
-                <div className="bg-zinc-100 px-4 py-2 border-b border-zinc-200">
-                  <h3 className="font-medium text-zinc-700 text-sm">HSN/SAC Summary</h3>
-                </div>
+              <div>
+                <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">HSN/SAC Summary</h3>
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="bg-zinc-50">
-                      <th className="px-4 py-2 text-left font-medium text-zinc-600">HSN/SAC</th>
-                      <th className="px-4 py-2 text-right font-medium text-zinc-600">Taxable Value</th>
-                      <th className="px-4 py-2 text-center font-medium text-zinc-600">CGST Rate</th>
-                      <th className="px-4 py-2 text-right font-medium text-zinc-600">CGST Amt</th>
-                      <th className="px-4 py-2 text-center font-medium text-zinc-600">SGST Rate</th>
-                      <th className="px-4 py-2 text-right font-medium text-zinc-600">SGST Amt</th>
-                      <th className="px-4 py-2 text-right font-medium text-zinc-600">Total Tax</th>
+                    <tr className="border-b-2 border-zinc-950">
+                      <th className="px-3 py-2 text-left font-bold text-zinc-500 uppercase tracking-wider">HSN/SAC</th>
+                      <th className="px-3 py-2 text-right font-bold text-zinc-500 uppercase tracking-wider">Taxable Value</th>
+                      <th className="px-3 py-2 text-center font-bold text-zinc-500 uppercase tracking-wider">CGST Rate</th>
+                      <th className="px-3 py-2 text-right font-bold text-zinc-500 uppercase tracking-wider">CGST Amt</th>
+                      <th className="px-3 py-2 text-center font-bold text-zinc-500 uppercase tracking-wider">SGST Rate</th>
+                      <th className="px-3 py-2 text-right font-bold text-zinc-500 uppercase tracking-wider">SGST Amt</th>
+                      <th className="px-3 py-2 text-right font-bold text-zinc-500 uppercase tracking-wider">Total Tax</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="px-4 py-2">998311</td>
-                      <td className="px-4 py-2 text-right">{formatINR(selectedInvoice?.subtotal || 0)}</td>
-                      <td className="px-4 py-2 text-center">9%</td>
-                      <td className="px-4 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
-                      <td className="px-4 py-2 text-center">9%</td>
-                      <td className="px-4 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
-                      <td className="px-4 py-2 text-right font-medium">{formatINR(selectedInvoice?.gst_amount || 0)}</td>
+                    <tr className="border-b border-zinc-100">
+                      <td className="px-3 py-2 font-mono">998311</td>
+                      <td className="px-3 py-2 text-right">{formatINR(selectedInvoice?.subtotal || 0)}</td>
+                      <td className="px-3 py-2 text-center">9%</td>
+                      <td className="px-3 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || selectedInvoice?.tax_amount || 0) / 2)}</td>
+                      <td className="px-3 py-2 text-center">9%</td>
+                      <td className="px-3 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || selectedInvoice?.tax_amount || 0) / 2)}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{formatINR(selectedInvoice?.gst_amount || selectedInvoice?.tax_amount || 0)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Terms & Bank Details */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="border border-zinc-200 rounded-sm p-4">
-                  <h4 className="text-sm font-semibold text-zinc-800 mb-3">Terms of Delivery</h4>
+              <div className="grid grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Terms of Delivery</h3>
                   <ol className="text-xs text-zinc-600 space-y-2">
-                    <li className="flex gap-2">
-                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">1</span>
-                      <span>Payment to be paid via Bank transfer or cheques</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">2</span>
-                      <span>Payment refund is not permissible</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">3</span>
-                      <span>Any breach of information is subject to violation of agreement</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">4</span>
-                      <span>TDS amount to be paid regularly and submit challan to biller</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">5</span>
-                      <span>Disputes subject to Ahmedabad jurisdiction</span>
-                    </li>
+                    {['Payment to be paid via Bank transfer or cheques',
+                      'Payment refund is not permissible',
+                      'Any breach of information is subject to violation of agreement',
+                      'TDS amount to be paid regularly and submit challan to biller',
+                      'Disputes subject to Ahmedabad jurisdiction'
+                    ].map((term, i) => (
+                      <li key={i} className="flex gap-2 items-start">
+                        <span className="flex-shrink-0 text-zinc-400 font-mono text-[10px] mt-0.5">{String(i+1).padStart(2, '0')}.</span>
+                        <span>{term}</span>
+                      </li>
+                    ))}
                   </ol>
                 </div>
                 
-                <div className="border border-zinc-200 rounded-sm p-4 bg-zinc-50">
-                  <h4 className="text-sm font-semibold text-zinc-800 mb-3">Bank Details</h4>
+                <div className="bg-zinc-50 p-4 border border-zinc-200">
+                  <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Bank Details</h3>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between py-1 border-b border-zinc-200">
-                      <span className="text-zinc-500">Bank Name</span>
-                      <span className="font-medium">{companyDetails.bankName}</span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-zinc-200">
-                      <span className="text-zinc-500">Account Holder</span>
-                      <span className="font-medium">{companyDetails.accountName}</span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-zinc-200">
-                      <span className="text-zinc-500">Account No.</span>
-                      <span className="font-medium font-mono">{companyDetails.accountNo}</span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-zinc-200">
-                      <span className="text-zinc-500">Branch & IFSC</span>
-                      <span className="font-medium">{companyDetails.branch} | {companyDetails.ifscCode}</span>
-                    </div>
-                    <div className="flex justify-between py-1">
-                      <span className="text-zinc-500">SWIFT Code</span>
-                      <span className="font-medium font-mono">{companyDetails.swiftCode}</span>
-                    </div>
+                    {[
+                      ['Bank Name', companyDetails.bankName],
+                      ['Account Holder', companyDetails.accountName],
+                      ['Account No.', companyDetails.accountNo],
+                      ['Branch & IFSC', `${companyDetails.branch} | ${companyDetails.ifscCode}`],
+                      ['SWIFT Code', companyDetails.swiftCode]
+                    ].map(([label, value], i) => (
+                      <div key={i} className="flex justify-between py-1 border-b border-zinc-100 last:border-0">
+                        <span className="text-zinc-400">{label}</span>
+                        <span className="font-medium text-zinc-700 font-mono">{value}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Signature Section */}
-              <div className="flex justify-between items-end pt-6 border-t border-zinc-200">
-                <div>
-                  <p className="text-xs text-zinc-400">This is a Computer Generated Invoice</p>
-                </div>
+              {/* Signature */}
+              <div className="flex justify-between items-end pt-8 border-t border-zinc-200">
+                <p className="text-[10px] text-zinc-300 uppercase tracking-wider">Computer Generated Invoice</p>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-zinc-700 mb-8">For {companyDetails.name}</p>
-                  <div className="border-t border-zinc-300 pt-2">
-                    <p className="text-xs text-zinc-500">Authorised Signatory</p>
+                  <p className="text-xs font-semibold text-zinc-700 mb-10">For {companyDetails.name}</p>
+                  <div className="border-t border-zinc-950 pt-2 w-48">
+                    <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Authorised Signatory</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-3 px-6 py-4 border-t border-zinc-200">
             <Button
               onClick={() => setViewDialogOpen(false)}
               variant="outline"
-              className="flex-1 rounded-sm"
+              className="flex-1 rounded-none border-zinc-300"
             >
               Close
             </Button>
@@ -1378,7 +1341,7 @@ const ProformaInvoice = () => {
                   setViewDialogOpen(false);
                   navigate(`/sales-funnel/agreements?quotationId=${selectedInvoice.id}&leadId=${selectedInvoice.lead_id}`);
                 }}
-                className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-none shadow-none"
               >
                 <ArrowRight className="w-4 h-4 mr-2" />
                 Proceed to Agreement
