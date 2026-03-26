@@ -238,30 +238,44 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         await db.leave_requests.insert_one(half_day_leave)
         half_day_leave.pop("_id", None)
     
-    # ── GOVERNANCE: Late Penalty — ₹100 flat per late day ──
+    # ── GOVERNANCE: Late Penalty — ₹100 flat per late day (unified collection) ──
     if late_by > 0:
         penalty_amount = 100
         month_prefix = today[:7]
-        # Count lates this month (excluding this one)
         monthly_late_count = await db.attendance.count_documents({
             "employee_id": emp["id"],
             "date": {"$regex": f"^{month_prefix}"},
             "is_late": True
         })
+        # Write to unified employee_penalties collection
         penalty_record = {
             "id": str(uuid.uuid4()),
             "employee_id": emp["id"],
+            "employee_code": emp.get("employee_id", ""),
             "employee_name": attendance["employee_name"],
-            "date": today,
-            "attendance_id": attendance["id"],
-            "penalty_type": "late_arrival",
+            "department": emp.get("department", ""),
+            "month": month_prefix,
+            "category": "attendance",
+            "category_name": "Attendance Penalty",
+            "violation_code": "AT_LATE",
+            "violation_name": "Late Arrival",
+            "source": "auto_attendance",
+            "name": "Late Arrival",
+            "amount": penalty_amount,
+            "reason": f"Late by {late_by} min on {today} (late #{monthly_late_count + 1} this month)",
+            "description": f"Late by {late_by} min on {today}",
+            "reference_id": attendance["id"],
+            "reference_date": today,
             "late_minutes": late_by,
             "late_count_this_month": monthly_late_count + 1,
-            "penalty_amount": penalty_amount,
-            "status": "pending_review",  # HR must approve/reject
-            "created_at": now.isoformat()
+            "apply_to_payroll": True,
+            "status": "pending_review",
+            "is_arrears": False,
+            "created_at": now.isoformat(),
+            "created_by": "system",
+            "created_by_name": "Auto-Detection"
         }
-        await db.attendance_penalties.insert_one(penalty_record)
+        await db.employee_penalties.insert_one(penalty_record)
         penalty_record.pop("_id", None)
     
     await db.attendance.insert_one(attendance)

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -18,6 +19,7 @@ import axios from 'axios';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const HRAttendanceInput = () => {
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -95,17 +97,18 @@ const HRAttendanceInput = () => {
     validationMutation.mutate();
   };
 
-  // Mutation: Apply penalties
+  // Mutation: Apply penalties (creates pending_review records in unified collection)
   const penaltyMutation = useMutation({
     mutationFn: async (penalties) => {
       return axios.post(`${API}/api/attendance/apply-penalties`, { month, penalties }, { headers });
     },
     onSuccess: (response) => {
-      toast.success(response.data.message);
+      toast.success(response.data.message || 'Penalties created — redirecting to Penalty Management');
       setValidationResults(null);
+      navigate('/penalty-management');
     },
     onError: () => {
-      toast.error('Failed to apply penalties');
+      toast.error('Failed to create penalty records');
     }
   });
 
@@ -367,7 +370,7 @@ const HRAttendanceInput = () => {
                 data-testid="apply-penalties-btn"
               >
                 <DollarSign className="w-4 h-4 mr-2" />
-                Apply Penalties (Rs.{validationResults.summary.total_pending_penalties})
+                Apply Penalties (Rs.{validationResults.summary.total_pending_penalties}) &rarr; Review
               </Button>
             )}
           </CardContent>

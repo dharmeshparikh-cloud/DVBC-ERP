@@ -231,8 +231,9 @@ async def apply_penalty(data: dict, current_user: User = Depends(get_current_use
         "reason": description,
         "description": description,
         "reference_id": reference_id,
+        "source": data.get("source", "manual"),
         "apply_to_payroll": apply_to_payroll,
-        "status": "active",
+        "status": "pending_review",
         "created_at": now,
         "created_by": current_user.id,
         "created_by_name": current_user.full_name
@@ -287,98 +288,86 @@ async def get_employee_penalties(
     month: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all penalties for an employee, optionally filtered by month."""
+    """Get all penalties for an employee from the unified collection."""
     db = get_db()
     
-    query = {"employee_id": employee_id, "status": "active"}
+    query = {"employee_id": employee_id}
     if month:
         query["month"] = month
     
     penalties = await db.employee_penalties.find(
         query,
         {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
-    
-    # Also get attendance penalties
-    att_query = {"employee_id": employee_id}
-    if month:
-        att_query["month"] = month
-    
-    att_penalties = await db.attendance_penalties.find(
-        att_query,
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(50)
+    ).sort("created_at", -1).to_list(200)
     
     return {
-        "policy_penalties": penalties,
-        "attendance_penalties": att_penalties,
-        "total_policy_amount": sum(p.get("amount", 0) for p in penalties),
-        "total_attendance_amount": sum(p.get("penalty_amount", 0) for p in att_penalties),
-        "grand_total": sum(p.get("amount", 0) for p in penalties) + sum(p.get("penalty_amount", 0) for p in att_penalties)
+        "penalties": penalties,
+        "total_amount": sum(p.get("amount", 0) for p in penalties if p.get("status") in ("approved", "active")),
+        "pending_amount": sum(p.get("amount", 0) for p in penalties if p.get("status") == "pending_review"),
+        "count_by_status": {
+            "pending_review": len([p for p in penalties if p.get("status") == "pending_review"]),
+            "approved": len([p for p in penalties if p.get("status") in ("approved", "active")]),
+            "rejected": len([p for p in penalties if p.get("status") == "rejected"]),
+        }
     }
 
 
 @router.get("/month/{month}")
-async def get_month_penalties(month: str, current_user: User = Depends(get_current_user)):
-    """Get all penalties for a month (for HR review). Includes arrears carried into this month."""
+async def get_month_penalties(
+    month: str,
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all penalties for a month from the unified collection. Supports status/category filters."""
     hr_roles = get_role_group("HR_ROLES", fail_closed=True)
     if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can view monthly penalties")
     
     db = get_db()
     
-    # Direct penalties for this month
-    policy_penalties = await db.employee_penalties.find(
-        {"month": month, "status": "active"},
-        {"_id": 0}
-    ).to_list(500)
+    query = {"month": month}
+    if status:
+        query["status"] = status
+    if category:
+        query["category"] = category
     
-    # Arrears carried into this month (original_month != month but effective_month == month)
-    arrears_penalties = await db.employee_penalties.find(
-        {"effective_month": month, "is_arrears": True, "status": "active", "month": {"$ne": month}},
-        {"_id": 0}
-    ).to_list(200)
+    penalties = await db.employee_penalties.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
     
-    # Attendance penalties
-    att_penalties = await db.attendance_penalties.find(
-        {"month": month},
-        {"_id": 0}
-    ).to_list(500)
+    # Also get arrears carried into this month
+    arrears_query = {"effective_month": month, "is_arrears": True, "month": {"$ne": month}}
+    if status:
+        arrears_query["status"] = status
+    arrears = await db.employee_penalties.find(arrears_query, {"_id": 0}).to_list(200)
+    
+    all_penalties = penalties + arrears
     
     # Group by category
     by_category = {}
-    all_policy = policy_penalties + arrears_penalties
-    for p in all_policy:
+    for p in all_penalties:
         cat = p.get("category", "general")
         if cat not in by_category:
-            by_category[cat] = {"count": 0, "total_amount": 0, "penalties": []}
+            by_category[cat] = {"count": 0, "total_amount": 0}
         by_category[cat]["count"] += 1
         by_category[cat]["total_amount"] += p.get("amount", 0)
-        by_category[cat]["penalties"].append(p)
     
-    # Add attendance as separate category
-    if att_penalties:
-        by_category["attendance_late"] = {
-            "count": len(att_penalties),
-            "total_amount": sum(p.get("penalty_amount", 0) for p in att_penalties),
-            "penalties": att_penalties
-        }
-    
-    # Check payroll lock status for this month
-    payroll_reg = await db.payroll_register.find_one(
-        {"month": month, "status": {"$in": ["locked", "pending_admin_approval"]}},
-        {"_id": 0, "status": 1}
-    )
+    # Count by status
+    count_by_status = {
+        "pending_review": len([p for p in all_penalties if p.get("status") == "pending_review"]),
+        "approved": len([p for p in all_penalties if p.get("status") in ("approved", "active")]),
+        "rejected": len([p for p in all_penalties if p.get("status") == "rejected"]),
+        "revoked": len([p for p in all_penalties if p.get("status") == "revoked"]),
+    }
     
     return {
         "month": month,
+        "penalties": all_penalties,
         "by_category": by_category,
-        "total_penalties": len(all_policy) + len(att_penalties),
-        "total_amount": sum(p.get("amount", 0) for p in all_policy) + sum(p.get("penalty_amount", 0) for p in att_penalties),
-        "employees_affected": len(set(p.get("employee_id") for p in all_policy + att_penalties)),
-        "arrears_count": len(arrears_penalties),
-        "arrears_amount": sum(p.get("amount", 0) for p in arrears_penalties),
-        "payroll_status": payroll_reg.get("status") if payroll_reg else "open"
+        "count_by_status": count_by_status,
+        "total_penalties": len(all_penalties),
+        "total_amount": sum(p.get("amount", 0) for p in all_penalties),
+        "employees_affected": len(set(p.get("employee_id") for p in all_penalties)),
+        "arrears_count": len(arrears)
     }
 
 
@@ -407,22 +396,205 @@ async def revoke_penalty(penalty_id: str, current_user: User = Depends(get_curre
     return {"message": "Penalty revoked successfully"}
 
 
+@router.post("/{penalty_id}/approve")
+async def approve_penalty(penalty_id: str, current_user: User = Depends(get_current_user)):
+    """Approve a pending penalty — moves it into payroll deduction."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can approve penalties")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.employee_penalties.update_one(
+        {"id": penalty_id, "status": "pending_review"},
+        {"$set": {
+            "status": "approved",
+            "approved_at": now,
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name
+        }}
+    )
+    
+    if result.modified_count == 0:
+        # Check if already approved
+        existing = await db.employee_penalties.find_one({"id": penalty_id}, {"_id": 0, "status": 1})
+        if existing and existing.get("status") == "approved":
+            return {"message": "Penalty already approved", "status": "approved"}
+        raise HTTPException(status_code=404, detail="Penalty not found or not in pending_review status")
+    
+    return {"message": "Penalty approved", "status": "approved"}
+
+
+@router.post("/{penalty_id}/reject")
+async def reject_penalty(penalty_id: str, data: dict = None, current_user: User = Depends(get_current_user)):
+    """Reject a pending penalty with optional reason."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can reject penalties")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    reason = (data or {}).get("reason", "")
+    
+    result = await db.employee_penalties.update_one(
+        {"id": penalty_id, "status": {"$in": ["pending_review", "approved"]}},
+        {"$set": {
+            "status": "rejected",
+            "rejected_at": now,
+            "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
+            "rejection_reason": reason
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Penalty not found or not in reviewable status")
+    
+    return {"message": "Penalty rejected", "status": "rejected"}
+
+
+@router.post("/{penalty_id}/send-back")
+async def send_back_penalty(penalty_id: str, data: dict = None, current_user: User = Depends(get_current_user)):
+    """Send back a penalty to pending_review with a reason."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can send back penalties")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    reason = (data or {}).get("reason", "")
+    
+    result = await db.employee_penalties.update_one(
+        {"id": penalty_id},
+        {"$set": {
+            "status": "pending_review",
+            "sent_back_at": now,
+            "sent_back_by": current_user.id,
+            "sent_back_by_name": current_user.full_name,
+            "sent_back_reason": reason
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Penalty not found")
+    
+    return {"message": "Penalty sent back for review", "status": "pending_review"}
+
+
+@router.put("/{penalty_id}")
+async def update_penalty(penalty_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Update a pending penalty (amount, reason, etc.)."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can edit penalties")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    update_fields = {"updated_at": now, "updated_by": current_user.id, "updated_by_name": current_user.full_name}
+    for field in ["amount", "reason", "description", "violation_code", "violation_name", "category"]:
+        if field in data:
+            update_fields[field] = data[field]
+    
+    result = await db.employee_penalties.update_one(
+        {"id": penalty_id, "status": "pending_review"},
+        {"$set": update_fields}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Penalty not found or not editable (must be pending_review)")
+    
+    return {"message": "Penalty updated"}
+
+
+@router.post("/bulk-action")
+async def bulk_penalty_action(data: dict, current_user: User = Depends(get_current_user)):
+    """Bulk approve/reject penalties."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can bulk-action penalties")
+    
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    penalty_ids = data.get("penalty_ids", [])
+    action = data.get("action")  # "approve" or "reject"
+    reason = data.get("reason", "")
+    
+    if not penalty_ids or action not in ("approve", "reject"):
+        raise HTTPException(status_code=400, detail="penalty_ids and action (approve/reject) required")
+    
+    if action == "approve":
+        update_fields = {
+            "status": "approved",
+            "approved_at": now,
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name
+        }
+    else:
+        update_fields = {
+            "status": "rejected",
+            "rejected_at": now,
+            "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
+            "rejection_reason": reason
+        }
+    
+    result = await db.employee_penalties.update_many(
+        {"id": {"$in": penalty_ids}, "status": "pending_review"},
+        {"$set": update_fields}
+    )
+    
+    return {
+        "message": f"{action.title()}d {result.modified_count} penalties",
+        "modified_count": result.modified_count
+    }
+
+
+@router.get("/summary-by-employees")
+async def get_penalty_summary_by_employees(
+    month: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get penalty summary grouped by employee for a month. Used for inline badges in attendance/leave tables."""
+    db = get_db()
+    
+    penalties = await db.employee_penalties.find(
+        {"month": month},
+        {"_id": 0, "employee_id": 1, "status": 1, "amount": 1, "category": 1, "violation_name": 1}
+    ).to_list(1000)
+    
+    summary = {}
+    for p in penalties:
+        eid = p.get("employee_id")
+        if eid not in summary:
+            summary[eid] = {"pending": 0, "approved": 0, "rejected": 0, "total_amount": 0, "violations": []}
+        status = p.get("status", "pending_review")
+        if status == "pending_review":
+            summary[eid]["pending"] += 1
+        elif status in ("approved", "active"):
+            summary[eid]["approved"] += 1
+            summary[eid]["total_amount"] += p.get("amount", 0)
+        elif status == "rejected":
+            summary[eid]["rejected"] += 1
+        summary[eid]["violations"].append(p.get("violation_name", "Unknown"))
+    
+    return summary
+
+
 @router.get("/summary")
 async def get_penalty_summary(
     months: int = 6,
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Get comprehensive penalty summary across all categories.
-    Used by Penalty Dashboard in Payroll Engine.
-    """
+    """Get comprehensive penalty summary from unified collection."""
     hr_roles = get_role_group("HR_ROLES", fail_closed=True)
     if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can view penalty summary")
     
     db = get_db()
     
-    # Calculate month list
     now = datetime.now(timezone.utc)
     month_list = []
     for i in range(months):
@@ -431,21 +603,15 @@ async def get_penalty_summary(
         if month_str not in month_list:
             month_list.append(month_str)
     
-    # Get all penalties
-    policy_penalties = await db.employee_penalties.find(
-        {"month": {"$in": month_list}, "status": "active"},
-        {"_id": 0}
-    ).to_list(2000)
-    
-    att_penalties = await db.attendance_penalties.find(
+    all_penalties = await db.employee_penalties.find(
         {"month": {"$in": month_list}},
         {"_id": 0}
-    ).to_list(1000)
+    ).to_list(3000)
     
     # Summary by category
     category_summary = {}
     for cat_key, cat_data in PENALTY_CATEGORIES.items():
-        cat_penalties = [p for p in policy_penalties if p.get("category") == cat_key]
+        cat_penalties = [p for p in all_penalties if p.get("category") == cat_key and p.get("status") in ("approved", "active")]
         category_summary[cat_key] = {
             "name": cat_data["name"],
             "total_count": len(cat_penalties),
@@ -453,34 +619,30 @@ async def get_penalty_summary(
             "unique_employees": len(set(p.get("employee_id") for p in cat_penalties))
         }
     
-    # Add attendance late
-    category_summary["attendance_late"] = {
-        "name": "Late Arrival (Attendance)",
-        "total_count": len(att_penalties),
-        "total_amount": sum(p.get("penalty_amount", 0) for p in att_penalties),
-        "unique_employees": len(set(p.get("employee_id") for p in att_penalties))
-    }
-    
     # Monthly breakdown
     monthly_breakdown = {}
     for m in month_list:
-        m_policy = [p for p in policy_penalties if p.get("month") == m]
-        m_att = [p for p in att_penalties if p.get("month") == m]
+        m_penalties = [p for p in all_penalties if p.get("month") == m]
         monthly_breakdown[m] = {
-            "policy_penalties": sum(p.get("amount", 0) for p in m_policy),
-            "attendance_penalties": sum(p.get("penalty_amount", 0) for p in m_att),
-            "total": sum(p.get("amount", 0) for p in m_policy) + sum(p.get("penalty_amount", 0) for p in m_att),
-            "employees_affected": len(set(p.get("employee_id") for p in m_policy + m_att))
+            "total": sum(p.get("amount", 0) for p in m_penalties if p.get("status") in ("approved", "active")),
+            "pending": sum(p.get("amount", 0) for p in m_penalties if p.get("status") == "pending_review"),
+            "count": len(m_penalties),
+            "employees_affected": len(set(p.get("employee_id") for p in m_penalties))
         }
+    
+    approved = [p for p in all_penalties if p.get("status") in ("approved", "active")]
     
     return {
         "by_category": category_summary,
         "monthly_breakdown": monthly_breakdown,
-        "grand_total": sum(p.get("amount", 0) for p in policy_penalties) + sum(p.get("penalty_amount", 0) for p in att_penalties),
-        "total_employees_penalized": len(set(
-            p.get("employee_id") for p in policy_penalties + att_penalties
-        )),
-        "months_analyzed": months
+        "grand_total": sum(p.get("amount", 0) for p in approved),
+        "total_employees_penalized": len(set(p.get("employee_id") for p in approved)),
+        "months_analyzed": months,
+        "count_by_status": {
+            "pending_review": len([p for p in all_penalties if p.get("status") == "pending_review"]),
+            "approved": len([p for p in all_penalties if p.get("status") in ("approved", "active")]),
+            "rejected": len([p for p in all_penalties if p.get("status") == "rejected"]),
+        }
     }
 
 

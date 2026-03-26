@@ -6,791 +6,485 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import {
-  AlertTriangle, Search, Filter, Plus, Trash2, Shield, 
-  FileWarning, Clock, Plane, Receipt, Users, RefreshCw,
-  ChevronDown, Eye, Ban, CheckCircle2, XCircle, Lock
+  AlertTriangle, Search, Plus, Shield, Clock, FileWarning,
+  Plane, Receipt, Users, RefreshCw, CheckCircle2, XCircle,
+  ChevronDown, Eye, RotateCcw, Filter, ArrowLeft
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-const CATEGORY_ICONS = {
-  attendance: Clock,
-  leave: FileWarning,
-  travel: Plane,
-  expense: Receipt,
-  general: Shield,
-};
-
+const CATEGORY_ICONS = { attendance: Clock, leave: FileWarning, travel: Plane, expense: Receipt, general: Shield };
 const CATEGORY_COLORS = {
-  attendance: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  leave: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-  travel: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  expense: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  general: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300',
+  attendance: 'bg-blue-50 text-blue-700 border-blue-200',
+  leave: 'bg-amber-50 text-amber-700 border-amber-200',
+  travel: 'bg-purple-50 text-purple-700 border-purple-200',
+  expense: 'bg-red-50 text-red-700 border-red-200',
+  general: 'bg-zinc-50 text-zinc-700 border-zinc-200',
+};
+const STATUS_STYLES = {
+  pending_review: 'bg-yellow-50 text-yellow-800 border-yellow-300',
+  approved: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+  rejected: 'bg-red-50 text-red-800 border-red-300',
+  revoked: 'bg-zinc-100 text-zinc-500 border-zinc-300',
+  active: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+};
+const SOURCE_LABELS = {
+  auto_attendance: 'Auto (Check-in)',
+  attendance_validation: 'Attendance Validation',
+  manual: 'Manual',
 };
 
 export default function PenaltyManagement() {
   const { user } = useContext(AuthContext);
-  const [activeTab, setActiveTab] = useState('apply');
+  const [activeTab, setActiveTab] = useState('pending_review');
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [penalties, setPenalties] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState({});
   const [employees, setEmployees] = useState([]);
-  const [monthPenalties, setMonthPenalties] = useState(null);
-  const [detectedViolations, setDetectedViolations] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [detectLoading, setDetectLoading] = useState(false);
-
-  // Apply form state
-  const [selectedMonth, setSelectedMonth] = useState(
-    new Date().toISOString().slice(0, 7)
-  );
-  const [formData, setFormData] = useState({
-    employee_id: '',
-    violation_code: '',
-    amount: '',
-    description: '',
-    apply_to_payroll: true,
-  });
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [employeeSearch, setEmployeeSearch] = useState('');
-  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
-
-  // Filter state for monthly view
+  const [summary, setSummary] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [selectedPenalties, setSelectedPenalties] = useState(new Set());
+  const [viewPenalty, setViewPenalty] = useState(null);
+  const [editPenalty, setEditPenalty] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectPenaltyId, setRejectPenaltyId] = useState(null);
 
-  const getHeaders = () => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-  });
+  // Apply form
+  const [applyForm, setApplyForm] = useState({ employee_id: '', violation_code: '', amount: '', description: '', category: '' });
+  const [empSearch, setEmpSearch] = useState('');
+  const [showEmpDropdown, setShowEmpDropdown] = useState(false);
 
-  // Fetch categories and employees on mount
-  useEffect(() => {
-    fetchCategories();
-    fetchEmployees();
-  }, []);
+  const token = localStorage.getItem('token');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  // Fetch month penalties when month changes
-  useEffect(() => {
-    if (selectedMonth) fetchMonthPenalties();
-  }, [selectedMonth]);
-
-  const fetchCategories = async () => {
-    try {
-      const res = await fetch(`${API}/api/penalties/categories`, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data.categories || {});
-      }
-    } catch (err) {
-      console.error('Failed to fetch categories:', err);
-    }
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      const res = await fetch(`${API}/api/employees`, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setEmployees(Array.isArray(data) ? data : data.employees || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch employees:', err);
-    }
-  };
-
-  const fetchMonthPenalties = useCallback(async () => {
-    if (!selectedMonth) return;
+  const fetchPenalties = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/penalties/month/${selectedMonth}`, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setMonthPenalties(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch month penalties:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedMonth]);
+      const res = await fetch(`${API}/api/penalties/month/${month}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setPenalties(data.penalties || []);
+      setSummary(data.count_by_status || {});
+    } catch { toast.error('Failed to load penalties'); }
+    setLoading(false);
+  }, [month, token]);
 
-  const handleApplyPenalty = async (e) => {
-    e.preventDefault();
-    if (!formData.employee_id || !formData.violation_code) {
-      toast.error('Please select employee and violation type');
-      return;
-    }
-
+  const fetchCategories = useCallback(async () => {
     try {
-      const payload = {
-        employee_id: formData.employee_id,
-        month: selectedMonth,
-        violation_code: formData.violation_code,
-        amount: formData.amount ? parseFloat(formData.amount) : undefined,
-        description: formData.description,
-        apply_to_payroll: formData.apply_to_payroll,
-      };
+      const res = await fetch(`${API}/api/penalties/categories`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setCategories(data.categories || {});
+    } catch (e) { console.error('Failed to load categories', e); }
+  }, [token]);
 
+  const fetchEmployees = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/employees`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setEmployees(Array.isArray(data) ? data : data.data || []);
+    } catch (e) { console.error('Failed to load employees', e); }
+  }, [token]);
+
+  useEffect(() => { fetchPenalties(); }, [fetchPenalties]);
+  useEffect(() => { fetchCategories(); fetchEmployees(); }, [fetchCategories, fetchEmployees]);
+
+  // Filter penalties by tab status
+  const getFilteredPenalties = (status) => {
+    let list = penalties.filter(p => {
+      if (status === 'approved') return p.status === 'approved' || p.status === 'active';
+      return p.status === status;
+    });
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      list = list.filter(p => (p.employee_name || '').toLowerCase().includes(s) || (p.employee_code || '').toLowerCase().includes(s) || (p.violation_name || '').toLowerCase().includes(s));
+    }
+    if (filterCategory !== 'all') list = list.filter(p => p.category === filterCategory);
+    return list;
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      await fetch(`${API}/api/penalties/${id}/approve`, { method: 'POST', headers });
+      toast.success('Penalty approved');
+      fetchPenalties();
+    } catch { toast.error('Failed to approve'); }
+  };
+
+  const handleReject = async () => {
+    if (!rejectPenaltyId) return;
+    try {
+      await fetch(`${API}/api/penalties/${rejectPenaltyId}/reject`, { method: 'POST', headers, body: JSON.stringify({ reason: rejectReason }) });
+      toast.success('Penalty rejected');
+      setRejectPenaltyId(null); setRejectReason('');
+      fetchPenalties();
+    } catch { toast.error('Failed to reject'); }
+  };
+
+  const handleSendBack = async (id) => {
+    try {
+      await fetch(`${API}/api/penalties/${id}/send-back`, { method: 'POST', headers, body: JSON.stringify({ reason: 'Sent back for review' }) });
+      toast.success('Sent back for review');
+      fetchPenalties();
+    } catch { toast.error('Failed'); }
+  };
+
+  const handleBulkAction = async (action) => {
+    const ids = Array.from(selectedPenalties);
+    if (ids.length === 0) return toast.info('Select penalties first');
+    try {
+      const res = await fetch(`${API}/api/penalties/bulk-action`, { method: 'POST', headers, body: JSON.stringify({ penalty_ids: ids, action }) });
+      const data = await res.json();
+      toast.success(data.message);
+      setSelectedPenalties(new Set());
+      fetchPenalties();
+    } catch { toast.error('Bulk action failed'); }
+  };
+
+  const handleApplyManual = async () => {
+    if (!applyForm.employee_id || !applyForm.violation_code) return toast.error('Select employee and violation type');
+    try {
       const res = await fetch(`${API}/api/penalties/apply`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(payload),
+        method: 'POST', headers,
+        body: JSON.stringify({ ...applyForm, month, amount: parseFloat(applyForm.amount) || undefined, source: 'manual' })
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.is_arrears) {
-          toast.warning(data.message || 'Penalty tagged as arrears', { duration: 6000 });
-        } else {
-          toast.success(data.message || 'Penalty applied successfully');
-        }
-        setFormData({ employee_id: '', violation_code: '', amount: '', description: '', apply_to_payroll: true });
-        setSelectedCategory('');
-        setEmployeeSearch('');
-        fetchMonthPenalties();
-      } else {
-        const err = await res.json();
-        toast.error(err.detail || 'Failed to apply penalty');
-      }
-    } catch (err) {
-      toast.error('Network error');
-    }
+      if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
+      toast.success('Penalty created');
+      setApplyForm({ employee_id: '', violation_code: '', amount: '', description: '', category: '' });
+      setEmpSearch('');
+      fetchPenalties();
+      setActiveTab('pending_review');
+    } catch (e) { toast.error(e.message || 'Failed to apply penalty'); }
   };
 
-  const handleRevokePenalty = async (penaltyId) => {
-    if (!window.confirm('Are you sure you want to revoke this penalty?')) return;
+  const handleUpdatePenalty = async () => {
+    if (!editPenalty) return;
     try {
-      const res = await fetch(`${API}/api/penalties/${penaltyId}`, {
-        method: 'DELETE',
-        headers: getHeaders(),
-      });
-      if (res.ok) {
-        toast.success('Penalty revoked');
-        fetchMonthPenalties();
-      } else {
-        const err = await res.json();
-        toast.error(err.detail || 'Failed to revoke');
-      }
-    } catch (err) {
-      toast.error('Network error');
-    }
+      await fetch(`${API}/api/penalties/${editPenalty.id}`, { method: 'PUT', headers, body: JSON.stringify({ amount: parseFloat(editPenalty.amount), reason: editPenalty.reason }) });
+      toast.success('Penalty updated');
+      setEditPenalty(null);
+      fetchPenalties();
+    } catch { toast.error('Failed to update'); }
   };
 
-  const handleAutoDetect = async () => {
-    setDetectLoading(true);
-    try {
-      const res = await fetch(`${API}/api/penalties/auto-detect/${selectedMonth}`, {
-        method: 'POST',
-        headers: getHeaders(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setDetectedViolations(data.detected_violations || []);
-        if ((data.detected_violations || []).length === 0) {
-          toast.info('No violations detected for this month');
-        } else {
-          toast.success(`${data.total_detected} potential violations detected`);
-          setActiveTab('auto-detect');
-        }
-      } else {
-        const err = await res.json();
-        toast.error(err.detail || 'Auto-detection failed');
-      }
-    } catch (err) {
-      toast.error('Network error');
-    } finally {
-      setDetectLoading(false);
-    }
+  const toggleSelect = (id) => {
+    const next = new Set(selectedPenalties);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedPenalties(next);
   };
 
-  const handleApplyDetected = async (violation) => {
-    try {
-      const payload = {
-        employee_id: violation.employee_id,
-        month: selectedMonth,
-        violation_code: violation.violation_code,
-        description: violation.description,
-        reference_id: violation.reference_id,
-        apply_to_payroll: true,
-      };
-      const res = await fetch(`${API}/api/penalties/apply`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        toast.success(`Penalty applied for ${violation.employee_name}`);
-        setDetectedViolations(prev => (prev || []).filter(v => v !== violation));
-        fetchMonthPenalties();
-      } else {
-        const err = await res.json();
-        toast.error(err.detail || 'Failed to apply');
-      }
-    } catch (err) {
-      toast.error('Network error');
-    }
+  const selectAll = (list) => {
+    if (selectedPenalties.size === list.length) setSelectedPenalties(new Set());
+    else setSelectedPenalties(new Set(list.map(p => p.id)));
   };
 
-  // Get violations for selected category
-  const getViolationsForCategory = (catKey) => {
-    const cat = categories[catKey];
-    return cat ? cat.violations || [] : [];
+  const fmtINR = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
+
+  const filteredEmps = empSearch ? employees.filter(e => `${e.first_name} ${e.last_name} ${e.employee_id}`.toLowerCase().includes(empSearch.toLowerCase())).slice(0, 8) : [];
+  const violations = applyForm.category && categories[applyForm.category] ? categories[applyForm.category].violations : [];
+
+  // --- RENDER ---
+  const PenaltyRow = ({ p, showActions, showCheckbox }) => {
+    const CatIcon = CATEGORY_ICONS[p.category] || Shield;
+    return (
+      <tr key={p.id} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors" data-testid={`penalty-row-${p.id}`}>
+        {showCheckbox && (
+          <td className="px-3 py-2.5">
+            <input type="checkbox" checked={selectedPenalties.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded border-zinc-300" data-testid={`penalty-checkbox-${p.id}`} />
+          </td>
+        )}
+        <td className="px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center"><CatIcon className="w-3.5 h-3.5 text-zinc-500" /></div>
+            <div>
+              <p className="text-sm font-medium text-zinc-900">{p.employee_name || '-'}</p>
+              <p className="text-xs text-zinc-400 font-mono">{p.employee_code || '-'}</p>
+            </div>
+          </div>
+        </td>
+        <td className="px-3 py-2.5">
+          <Badge variant="outline" className={`text-xs ${CATEGORY_COLORS[p.category] || CATEGORY_COLORS.general}`}>{p.category_name || p.category || '-'}</Badge>
+        </td>
+        <td className="px-3 py-2.5"><span className="text-sm text-zinc-700">{p.violation_name || p.name || '-'}</span></td>
+        <td className="px-3 py-2.5 font-mono font-semibold text-sm text-zinc-900">{fmtINR(p.amount)}</td>
+        <td className="px-3 py-2.5">
+          <Badge variant="outline" className={`text-xs ${STATUS_STYLES[p.status] || ''}`}>{(p.status || '').replace('_', ' ')}</Badge>
+        </td>
+        <td className="px-3 py-2.5">
+          <span className="text-xs text-zinc-400">{SOURCE_LABELS[p.source] || p.source || 'manual'}</span>
+        </td>
+        <td className="px-3 py-2.5">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setViewPenalty(p)} data-testid={`view-penalty-${p.id}`}><Eye className="w-3.5 h-3.5" /></Button>
+            {showActions && p.status === 'pending_review' && (
+              <>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => handleApprove(p.id)} data-testid={`approve-penalty-${p.id}`}><CheckCircle2 className="w-3.5 h-3.5" /></Button>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { setRejectPenaltyId(p.id); setRejectReason(''); }} data-testid={`reject-penalty-${p.id}`}><XCircle className="w-3.5 h-3.5" /></Button>
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-zinc-500" onClick={() => setEditPenalty({ ...p })} data-testid={`edit-penalty-${p.id}`}>Edit</Button>
+              </>
+            )}
+            {p.status === 'approved' && (
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-amber-500 hover:bg-amber-50" onClick={() => handleSendBack(p.id)} data-testid={`sendback-penalty-${p.id}`}><RotateCcw className="w-3.5 h-3.5" /></Button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
   };
 
-  // Get default amount for a violation code
-  const getDefaultAmount = (code) => {
-    for (const cat of Object.values(categories)) {
-      for (const v of cat.violations || []) {
-        if (v.code === code) return v.default_amount;
-      }
-    }
-    return 0;
-  };
-
-  // Filter employees by search
-  const filteredEmployees = (employees || []).filter(emp => {
-    if (!employeeSearch) return true;
-    const q = employeeSearch.toLowerCase();
-    const name = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
-    const code = (emp.employee_id || '').toLowerCase();
-    return name.includes(q) || code.includes(q);
-  });
-
-  // Get selected employee name
-  const getSelectedEmployeeName = () => {
-    const emp = (employees || []).find(e => e.id === formData.employee_id);
-    if (!emp) return '';
-    return `${emp.employee_id || ''} - ${emp.first_name || ''} ${emp.last_name || ''}`;
-  };
-
-  // Get all penalties flat from month data
-  const getAllPenalties = () => {
-    if (!monthPenalties?.by_category) return [];
-    const all = [];
-    for (const [catKey, catData] of Object.entries(monthPenalties.by_category || {})) {
-      for (const p of catData.penalties || []) {
-        all.push({ ...p, _category: catKey });
-      }
-    }
-    return all;
-  };
-
-  const filteredPenalties = getAllPenalties().filter(p => {
-    if (filterCategory === 'all') return true;
-    return p._category === filterCategory;
-  }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const PenaltyTable = ({ list, showActions = true, showCheckbox = false, emptyMsg }) => (
+    list.length === 0 ? (
+      <div className="text-center py-12 text-zinc-400" data-testid="empty-state"><AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-30" /><p>{emptyMsg || 'No penalties found'}</p></div>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full" data-testid="penalties-table">
+          <thead>
+            <tr className="border-b-2 border-zinc-200 text-xs text-zinc-500 uppercase tracking-wider">
+              {showCheckbox && <th className="px-3 py-2 text-left"><input type="checkbox" onChange={() => selectAll(list)} checked={selectedPenalties.size === list.length && list.length > 0} className="rounded border-zinc-300" /></th>}
+              <th className="px-3 py-2 text-left">Employee</th>
+              <th className="px-3 py-2 text-left">Category</th>
+              <th className="px-3 py-2 text-left">Violation</th>
+              <th className="px-3 py-2 text-left">Amount</th>
+              <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2 text-left">Source</th>
+              <th className="px-3 py-2 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody>{list.map(p => <PenaltyRow key={p.id} p={p} showActions={showActions} showCheckbox={showCheckbox} />)}</tbody>
+        </table>
+      </div>
+    )
+  );
 
   return (
-    <div className="space-y-6" data-testid="penalty-management">
+    <div className="space-y-4" data-testid="penalty-management-page">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            Penalty Management
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Apply, review, and manage policy violation penalties across all categories
-          </p>
+          <h1 className="text-xl font-bold text-zinc-900" data-testid="page-title">Penalty Management</h1>
+          <p className="text-sm text-zinc-500">Unified penalty review, approval & tracking</p>
         </div>
         <div className="flex items-center gap-3">
-          <Input
-            type="month"
-            value={selectedMonth}
-            onChange={e => setSelectedMonth(e.target.value)}
-            className="w-44"
-            data-testid="penalty-month-picker"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAutoDetect}
-            disabled={detectLoading}
-            data-testid="auto-detect-btn"
-          >
-            {detectLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-1" /> : <Search className="w-4 h-4 mr-1" />}
-            Auto-Detect
-          </Button>
+          <Input type="month" value={month} onChange={e => setMonth(e.target.value)} className="w-40 h-9 text-sm" data-testid="month-selector" />
+          <Button variant="outline" size="sm" onClick={fetchPenalties} disabled={loading} data-testid="refresh-btn"><RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh</Button>
         </div>
       </div>
 
-      {/* Payroll Status Banner */}
-      {monthPenalties && monthPenalties.payroll_status && monthPenalties.payroll_status !== 'open' && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800" data-testid="payroll-status-banner">
-          <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-          <p className="text-sm text-amber-800 dark:text-amber-300">
-            Payroll for <strong>{selectedMonth}</strong> is <strong>{monthPenalties.payroll_status}</strong>.
-            New penalties applied to this month will be auto-tagged as <strong>arrears</strong> and carried forward to the next open payroll.
-          </p>
-        </div>
-      )}
+      {/* Scorecard */}
+      <div className="grid grid-cols-4 gap-3" data-testid="summary-cards">
+        <Card className="border-yellow-200 bg-yellow-50/50">
+          <CardContent className="p-3">
+            <p className="text-xs text-yellow-600 font-medium uppercase tracking-wider">Pending Review</p>
+            <p className="text-2xl font-bold text-yellow-800 mt-1" data-testid="pending-count">{summary.pending_review || 0}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-emerald-200 bg-emerald-50/50">
+          <CardContent className="p-3">
+            <p className="text-xs text-emerald-600 font-medium uppercase tracking-wider">Approved</p>
+            <p className="text-2xl font-bold text-emerald-800 mt-1" data-testid="approved-count">{summary.approved || 0}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-red-200 bg-red-50/50">
+          <CardContent className="p-3">
+            <p className="text-xs text-red-600 font-medium uppercase tracking-wider">Rejected</p>
+            <p className="text-2xl font-bold text-red-800 mt-1" data-testid="rejected-count">{summary.rejected || 0}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-zinc-200">
+          <CardContent className="p-3">
+            <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Total Amount</p>
+            <p className="text-2xl font-bold text-zinc-900 mt-1" data-testid="total-amount">{fmtINR(penalties.filter(p => p.status === 'approved' || p.status === 'active').reduce((s, p) => s + (p.amount || 0), 0))}</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Summary Cards */}
-      {monthPenalties && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="penalty-summary-cards">
-          <Card>
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Total Penalties</p>
-              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1" data-testid="total-penalty-count">
-                {monthPenalties.total_penalties || 0}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Total Amount</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1" data-testid="total-penalty-amount">
-                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(monthPenalties.total_amount || 0)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Employees Affected</p>
-              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1" data-testid="employees-affected-count">
-                {monthPenalties.employees_affected || 0}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Categories Active</p>
-              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-1">
-                {Object.keys(monthPenalties.by_category || {}).length}
-              </p>
-            </CardContent>
-          </Card>
-          {(monthPenalties.arrears_count || 0) > 0 && (
-            <Card className="border-amber-200 dark:border-amber-800">
-              <CardContent className="pt-4 pb-3 px-4">
-                <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide">Arrears</p>
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1" data-testid="arrears-count">
-                  {monthPenalties.arrears_count}
-                </p>
-                <p className="text-xs text-amber-500 mt-0.5">
-                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(monthPenalties.arrears_amount || 0)}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-zinc-400" />
+          <Input placeholder="Search employee or violation..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 h-9 text-sm" data-testid="search-input" />
         </div>
-      )}
+        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="h-9 px-3 rounded-md border border-zinc-200 text-sm bg-white" data-testid="category-filter">
+          <option value="all">All Categories</option>
+          {Object.entries(categories).map(([k, v]) => <option key={k} value={k}>{v.name}</option>)}
+        </select>
+      </div>
 
-      {/* Main Tabs */}
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="apply" data-testid="tab-apply-penalty">
-            <Plus className="w-4 h-4 mr-1" /> Apply Penalty
-          </TabsTrigger>
-          <TabsTrigger value="review" data-testid="tab-review-penalties">
-            <Eye className="w-4 h-4 mr-1" /> Review ({monthPenalties?.total_penalties || 0})
-          </TabsTrigger>
-          <TabsTrigger value="auto-detect" data-testid="tab-auto-detect">
-            <Search className="w-4 h-4 mr-1" /> Auto-Detect ({(detectedViolations || []).length})
-          </TabsTrigger>
+        <TabsList className="bg-zinc-100" data-testid="penalty-tabs">
+          <TabsTrigger value="pending_review" data-testid="tab-pending">Pending Review ({getFilteredPenalties('pending_review').length})</TabsTrigger>
+          <TabsTrigger value="approved" data-testid="tab-approved">Approved ({getFilteredPenalties('approved').length})</TabsTrigger>
+          <TabsTrigger value="rejected" data-testid="tab-rejected">Rejected ({getFilteredPenalties('rejected').length})</TabsTrigger>
+          <TabsTrigger value="apply" data-testid="tab-apply"><Plus className="w-3.5 h-3.5 mr-1" />Apply Manual</TabsTrigger>
         </TabsList>
 
-        {/* === APPLY PENALTY TAB === */}
+        {/* Pending Review */}
+        <TabsContent value="pending_review">
+          {getFilteredPenalties('pending_review').length > 0 && (
+            <div className="flex items-center gap-2 mb-3" data-testid="bulk-actions">
+              <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handleBulkAction('approve')} data-testid="bulk-approve-btn">
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />Approve Selected ({selectedPenalties.size})
+              </Button>
+              <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleBulkAction('reject')} data-testid="bulk-reject-btn">
+                <XCircle className="w-3.5 h-3.5 mr-1" />Reject Selected
+              </Button>
+            </div>
+          )}
+          <Card>
+            <CardContent className="p-0">
+              <PenaltyTable list={getFilteredPenalties('pending_review')} showCheckbox showActions emptyMsg="No pending penalties for this month" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Approved */}
+        <TabsContent value="approved">
+          <Card>
+            <CardContent className="p-0">
+              <PenaltyTable list={getFilteredPenalties('approved')} showActions emptyMsg="No approved penalties" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Rejected */}
+        <TabsContent value="rejected">
+          <Card>
+            <CardContent className="p-0">
+              <PenaltyTable list={getFilteredPenalties('rejected')} showActions={false} emptyMsg="No rejected penalties" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Apply Manual */}
         <TabsContent value="apply">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Apply Policy Violation Penalty</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleApplyPenalty} className="space-y-5">
-                {/* Employee Selection */}
-                <div className="relative">
-                  <Label className="text-sm font-medium">Employee *</Label>
-                  <div className="mt-1 relative">
-                    <Input
-                      placeholder="Search employee by name or ID..."
-                      value={formData.employee_id ? getSelectedEmployeeName() : employeeSearch}
-                      onChange={e => {
-                        setEmployeeSearch(e.target.value);
-                        setFormData(prev => ({ ...prev, employee_id: '' }));
-                        setShowEmployeeDropdown(true);
-                      }}
-                      onFocus={() => setShowEmployeeDropdown(true)}
-                      data-testid="employee-search-input"
-                    />
-                    {showEmployeeDropdown && employeeSearch && (
-                      <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg">
-                        {filteredEmployees.length === 0 ? (
-                          <p className="p-3 text-sm text-zinc-500">No employees found</p>
-                        ) : (
-                          (filteredEmployees || []).slice(0, 10).map(emp => (
-                            <button
-                              key={emp.id}
-                              type="button"
-                              className="w-full text-left px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm flex justify-between"
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, employee_id: emp.id }));
-                                setEmployeeSearch('');
-                                setShowEmployeeDropdown(false);
-                              }}
-                              data-testid={`employee-option-${emp.employee_id}`}
-                            >
-                              <span className="font-medium">{emp.first_name} {emp.last_name}</span>
-                              <span className="text-zinc-400">{emp.employee_id} - {emp.department || 'N/A'}</span>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
+            <CardHeader><CardTitle className="text-base">Apply Manual Penalty</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {/* Employee Select */}
+              <div className="space-y-1.5 relative">
+                <Label className="text-sm font-medium">Employee</Label>
+                <Input placeholder="Search employee..." value={empSearch} onChange={e => { setEmpSearch(e.target.value); setShowEmpDropdown(true); }} onFocus={() => setShowEmpDropdown(true)} className="h-9" data-testid="employee-search" />
+                {showEmpDropdown && filteredEmps.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 w-full bg-white border border-zinc-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1">
+                    {filteredEmps.map(e => (
+                      <button key={e.id} className="w-full text-left px-3 py-2 hover:bg-zinc-50 text-sm flex justify-between" onClick={() => { setApplyForm({ ...applyForm, employee_id: e.id }); setEmpSearch(`${e.first_name} ${e.last_name} (${e.employee_id})`); setShowEmpDropdown(false); }} data-testid={`emp-option-${e.id}`}>
+                        <span>{e.first_name} {e.last_name}</span><span className="text-zinc-400 font-mono">{e.employee_id}</span>
+                      </button>
+                    ))}
                   </div>
-                  {formData.employee_id && (
-                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
-                      Selected: {getSelectedEmployeeName()}
-                    </p>
-                  )}
+                )}
+              </div>
+
+              {/* Category + Violation */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Category</Label>
+                  <select value={applyForm.category} onChange={e => setApplyForm({ ...applyForm, category: e.target.value, violation_code: '' })} className="w-full h-9 px-3 rounded-md border border-zinc-200 text-sm bg-white" data-testid="category-select">
+                    <option value="">Select category</option>
+                    {Object.entries(categories).map(([k, v]) => <option key={k} value={k}>{v.name}</option>)}
+                  </select>
                 </div>
-
-                {/* Category & Violation Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Penalty Category *</Label>
-                    <select
-                      className="mt-1 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm"
-                      value={selectedCategory}
-                      onChange={e => {
-                        setSelectedCategory(e.target.value);
-                        setFormData(prev => ({ ...prev, violation_code: '', amount: '' }));
-                      }}
-                      data-testid="category-select"
-                    >
-                      <option value="">Select category...</option>
-                      {Object.entries(categories || {}).map(([key, cat]) => (
-                        <option key={key} value={key}>{cat.name} ({(cat.violations || []).length} types)</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Violation Type *</Label>
-                    <select
-                      className="mt-1 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm"
-                      value={formData.violation_code}
-                      onChange={e => {
-                        const code = e.target.value;
-                        const defaultAmt = getDefaultAmount(code);
-                        setFormData(prev => ({
-                          ...prev,
-                          violation_code: code,
-                          amount: defaultAmt > 0 ? String(defaultAmt) : '',
-                        }));
-                      }}
-                      disabled={!selectedCategory}
-                      data-testid="violation-type-select"
-                    >
-                      <option value="">Select violation...</option>
-                      {getViolationsForCategory(selectedCategory).map(v => (
-                        <option key={v.code} value={v.code}>
-                          {v.name} {v.default_amount > 0 ? `(Default: ${v.default_amount})` : '(Amount required)'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Amount & Description */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Penalty Amount (INR)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="Enter amount or use default"
-                      value={formData.amount}
-                      onChange={e => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                      className="mt-1"
-                      data-testid="penalty-amount-input"
-                    />
-                    {formData.violation_code && (
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Default: {getDefaultAmount(formData.violation_code) > 0 ? `INR ${getDefaultAmount(formData.violation_code)}` : 'No default - enter custom amount'}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Description / Reason</Label>
-                    <Input
-                      placeholder="Describe the violation..."
-                      value={formData.description}
-                      onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      className="mt-1"
-                      data-testid="penalty-description-input"
-                    />
-                  </div>
-                </div>
-
-                {/* Apply to Payroll Toggle */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="apply-to-payroll"
-                    checked={formData.apply_to_payroll}
-                    onChange={e => setFormData(prev => ({ ...prev, apply_to_payroll: e.target.checked }))}
-                    className="rounded"
-                    data-testid="apply-to-payroll-checkbox"
-                  />
-                  <Label htmlFor="apply-to-payroll" className="text-sm cursor-pointer">
-                    Deduct from next payroll ({selectedMonth})
-                  </Label>
-                </div>
-
-                <Button type="submit" className="w-full sm:w-auto" data-testid="submit-penalty-btn">
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Apply Penalty
-                </Button>
-              </form>
-
-              {/* Quick Reference: All 21 Violation Types */}
-              <div className="mt-8 border-t pt-6">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">
-                  All Violation Types ({Object.values(categories || {}).reduce((sum, cat) => sum + (cat.violations || []).length, 0)})
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {Object.entries(categories || {}).map(([catKey, cat]) => {
-                    const Icon = CATEGORY_ICONS[catKey] || Shield;
-                    return (
-                      <div key={catKey} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Icon className="w-4 h-4 text-zinc-500" />
-                          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                            {cat.name}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          {(cat.violations || []).map(v => (
-                            <div key={v.code} className="flex justify-between text-xs">
-                              <span className="text-zinc-600 dark:text-zinc-400">{v.name}</span>
-                              <span className="font-medium text-zinc-800 dark:text-zinc-200">
-                                {v.default_amount > 0 ? `INR ${v.default_amount}` : 'Custom'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Violation Type</Label>
+                  <select value={applyForm.violation_code} onChange={e => { const v = violations.find(x => x.code === e.target.value); setApplyForm({ ...applyForm, violation_code: e.target.value, amount: v?.default_amount || '' }); }} className="w-full h-9 px-3 rounded-md border border-zinc-200 text-sm bg-white" data-testid="violation-select">
+                    <option value="">Select violation</option>
+                    {violations.map(v => <option key={v.code} value={v.code}>{v.name} ({fmtINR(v.default_amount)})</option>)}
+                  </select>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* === REVIEW PENALTIES TAB === */}
-        <TabsContent value="review">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Monthly Penalties - {selectedMonth}</CardTitle>
-              <div className="flex items-center gap-2">
-                <select
-                  className="text-sm rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 py-1"
-                  value={filterCategory}
-                  onChange={e => setFilterCategory(e.target.value)}
-                  data-testid="filter-category-select"
-                >
-                  <option value="all">All Categories</option>
-                  {Object.entries(monthPenalties?.by_category || {}).map(([key, val]) => (
-                    <option key={key} value={key}>{key} ({val.count})</option>
-                  ))}
-                </select>
-                <Button variant="ghost" size="sm" onClick={fetchMonthPenalties} data-testid="refresh-penalties-btn">
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
+              {/* Amount + Description */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Amount (₹)</Label>
+                  <Input type="number" value={applyForm.amount} onChange={e => setApplyForm({ ...applyForm, amount: e.target.value })} placeholder="Auto-fills from default" className="h-9" data-testid="amount-input" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Description</Label>
+                  <Input value={applyForm.description} onChange={e => setApplyForm({ ...applyForm, description: e.target.value })} placeholder="Reason / notes" className="h-9" data-testid="description-input" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <RefreshCw className="w-6 h-6 animate-spin text-zinc-400" />
-                </div>
-              ) : filteredPenalties.length === 0 ? (
-                <div className="text-center py-10">
-                  <Shield className="w-10 h-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
-                  <p className="text-zinc-500 dark:text-zinc-400">No penalties for {selectedMonth}</p>
-                  <p className="text-xs text-zinc-400 mt-1">Use "Apply Penalty" tab or "Auto-Detect" to add penalties</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm" data-testid="penalties-table">
-                    <thead>
-                      <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                        <th className="text-left p-2 font-medium text-zinc-500">Employee</th>
-                        <th className="text-left p-2 font-medium text-zinc-500">Category</th>
-                        <th className="text-left p-2 font-medium text-zinc-500">Violation</th>
-                        <th className="text-right p-2 font-medium text-zinc-500">Amount</th>
-                        <th className="text-left p-2 font-medium text-zinc-500">Reason</th>
-                        <th className="text-left p-2 font-medium text-zinc-500">Applied By</th>
-                        <th className="text-center p-2 font-medium text-zinc-500">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(filteredPenalties || []).map((p, idx) => {
-                        const catColor = CATEGORY_COLORS[p._category] || CATEGORY_COLORS.general;
-                        return (
-                          <tr key={p.id || idx} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                            <td className="p-2">
-                              <div className="font-medium text-zinc-800 dark:text-zinc-200">
-                                {p.employee_name || '-'}
-                              </div>
-                              <div className="text-xs text-zinc-400">{p.employee_code || p.department || '-'}</div>
-                            </td>
-                            <td className="p-2">
-                              <Badge className={`text-xs ${catColor}`}>
-                                {p.category_name || p._category || '-'}
-                              </Badge>
-                            </td>
-                            <td className="p-2 text-zinc-700 dark:text-zinc-300">
-                              <div className="flex items-center gap-1.5">
-                                {p.violation_name || p.name || '-'}
-                                {p.is_arrears && (
-                                  <Badge className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" data-testid="arrears-badge">
-                                    ARREARS from {p.original_month}
-                                  </Badge>
-                                )}
-                              </div>
-                              {p.is_arrears && p.effective_month && (
-                                <span className="text-[10px] text-amber-600 dark:text-amber-400">
-                                  Deducting in {p.effective_month}
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-2 text-right font-semibold text-red-600 dark:text-red-400">
-                              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p.amount || p.penalty_amount || 0)}
-                            </td>
-                            <td className="p-2 text-xs text-zinc-500 max-w-[200px] truncate">
-                              {p.description || p.reason || '-'}
-                            </td>
-                            <td className="p-2 text-xs text-zinc-500">
-                              {p.created_by_name || '-'}
-                            </td>
-                            <td className="p-2 text-center">
-                              {p.id && p._category !== 'attendance_late' && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                  onClick={() => handleRevokePenalty(p.id)}
-                                  data-testid={`revoke-btn-${p.id}`}
-                                >
-                                  <Ban className="w-3.5 h-3.5 mr-1" /> Revoke
-                                </Button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
 
-              {/* Category Breakdown */}
-              {monthPenalties && Object.keys(monthPenalties.by_category || {}).length > 0 && (
-                <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                  <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Category Breakdown</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {Object.entries(monthPenalties.by_category || {}).map(([key, data]) => {
-                      const Icon = CATEGORY_ICONS[key] || Shield;
-                      return (
-                        <div key={key} className="border rounded-lg p-3 border-zinc-200 dark:border-zinc-700">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Icon className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="text-xs font-medium text-zinc-500 capitalize">{key.replace('_', ' ')}</span>
-                          </div>
-                          <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{data.count}</p>
-                          <p className="text-xs text-red-500">
-                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(data.total_amount || 0)}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* === AUTO-DETECT TAB === */}
-        <TabsContent value="auto-detect">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Auto-Detected Violations - {selectedMonth}</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAutoDetect}
-                disabled={detectLoading}
-                data-testid="run-detection-btn"
-              >
-                {detectLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-1" /> : <Search className="w-4 h-4 mr-1" />}
-                Run Detection
+              <Button onClick={handleApplyManual} className="bg-zinc-900 hover:bg-zinc-800 text-white" data-testid="submit-penalty-btn">
+                <Plus className="w-4 h-4 mr-1" />Apply Penalty
               </Button>
-            </CardHeader>
-            <CardContent>
-              {(detectedViolations || []).length === 0 ? (
-                <div className="text-center py-10">
-                  <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-                  <p className="text-zinc-500 dark:text-zinc-400">No violations detected</p>
-                  <p className="text-xs text-zinc-400 mt-1">Click "Run Detection" to scan for policy violations in {selectedMonth}</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-zinc-500 mb-2">
-                    {(detectedViolations || []).length} potential violations found. Review and apply as needed.
-                  </p>
-                  {(detectedViolations || []).map((v, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-3 border border-amber-200 dark:border-amber-800 rounded-lg bg-amber-50/50 dark:bg-amber-900/10"
-                      data-testid={`detected-violation-${idx}`}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm text-zinc-800 dark:text-zinc-200">
-                            {v.employee_name || 'Unknown Employee'}
-                          </span>
-                          <Badge variant="outline" className="text-xs">{v.employee_code}</Badge>
-                          <Badge className={`text-xs ${CATEGORY_COLORS[v.violation_code?.split('_')[0]?.toLowerCase()] || CATEGORY_COLORS.general}`}>
-                            {v.violation_code}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400">{v.description}</p>
-                        {v.suggested_action && (
-                          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                            Suggested: {v.suggested_action}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <Button
-                          size="sm"
-                          onClick={() => handleApplyDetected(v)}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                          data-testid={`apply-detected-${idx}`}
-                        >
-                          <AlertTriangle className="w-3.5 h-3.5 mr-1" /> Apply
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDetectedViolations(prev => (prev || []).filter((_, i) => i !== idx))}
-                          data-testid={`dismiss-detected-${idx}`}
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* View Detail Dialog */}
+      <Dialog open={!!viewPenalty} onOpenChange={() => setViewPenalty(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Penalty Details</DialogTitle></DialogHeader>
+          {viewPenalty && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs text-zinc-400">Employee</Label><p className="font-medium">{viewPenalty.employee_name}</p><p className="text-xs text-zinc-400 font-mono">{viewPenalty.employee_code}</p></div>
+                <div><Label className="text-xs text-zinc-400">Department</Label><p>{viewPenalty.department || '-'}</p></div>
+                <div><Label className="text-xs text-zinc-400">Category</Label><Badge variant="outline" className={CATEGORY_COLORS[viewPenalty.category] || ''}>{viewPenalty.category_name || viewPenalty.category}</Badge></div>
+                <div><Label className="text-xs text-zinc-400">Violation</Label><p>{viewPenalty.violation_name || viewPenalty.name}</p></div>
+                <div><Label className="text-xs text-zinc-400">Amount</Label><p className="text-lg font-bold">{fmtINR(viewPenalty.amount)}</p></div>
+                <div><Label className="text-xs text-zinc-400">Status</Label><Badge variant="outline" className={STATUS_STYLES[viewPenalty.status]}>{viewPenalty.status?.replace('_', ' ')}</Badge></div>
+                <div><Label className="text-xs text-zinc-400">Source</Label><p>{SOURCE_LABELS[viewPenalty.source] || viewPenalty.source || 'manual'}</p></div>
+                <div><Label className="text-xs text-zinc-400">Month</Label><p>{viewPenalty.month}</p></div>
+              </div>
+              {viewPenalty.reason && <div><Label className="text-xs text-zinc-400">Reason</Label><p className="text-zinc-600 bg-zinc-50 p-2 rounded">{viewPenalty.reason}</p></div>}
+              {viewPenalty.rejection_reason && <div><Label className="text-xs text-zinc-400">Rejection Reason</Label><p className="text-red-600 bg-red-50 p-2 rounded">{viewPenalty.rejection_reason}</p></div>}
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-100 text-xs text-zinc-400">
+                <div><Label className="text-xs text-zinc-400">Created</Label><p>{new Date(viewPenalty.created_at).toLocaleString('en-IN')}</p><p>By: {viewPenalty.created_by_name || 'System'}</p></div>
+                {viewPenalty.approved_at && <div><Label className="text-xs text-zinc-400">Approved</Label><p>{new Date(viewPenalty.approved_at).toLocaleString('en-IN')}</p><p>By: {viewPenalty.approved_by_name}</p></div>}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewPenalty(null)} data-testid="close-view-btn">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editPenalty} onOpenChange={() => setEditPenalty(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Edit Penalty</DialogTitle></DialogHeader>
+          {editPenalty && (
+            <div className="space-y-3">
+              <p className="text-sm text-zinc-600"><span className="font-medium">{editPenalty.employee_name}</span> — {editPenalty.violation_name}</p>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Amount (₹)</Label>
+                <Input type="number" value={editPenalty.amount} onChange={e => setEditPenalty({ ...editPenalty, amount: e.target.value })} data-testid="edit-amount" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Reason</Label>
+                <Input value={editPenalty.reason || ''} onChange={e => setEditPenalty({ ...editPenalty, reason: e.target.value })} data-testid="edit-reason" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPenalty(null)}>Cancel</Button>
+            <Button onClick={handleUpdatePenalty} className="bg-zinc-900 text-white" data-testid="save-edit-btn">Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={!!rejectPenaltyId} onOpenChange={() => setRejectPenaltyId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Reject Penalty</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-sm">Reason for rejection (optional)</Label>
+            <Input value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Enter reason..." data-testid="reject-reason-input" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectPenaltyId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReject} data-testid="confirm-reject-btn">Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

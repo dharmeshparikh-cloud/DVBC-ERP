@@ -1089,28 +1089,33 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
 @router.post("/apply-penalties")
 async def apply_attendance_penalties(data: dict, current_user: User = Depends(get_current_user)):
     """
-    HR approves and applies attendance penalties to payroll.
-    Adds Rs.100 penalty per violation day beyond 3 grace days.
-    
-    Idempotent: If a penalty already exists for this employee/month, 
-    it will be updated rather than creating a duplicate.
+    HR validates attendance and creates penalty records in the UNIFIED employee_penalties collection.
+    Creates records with status='pending_review' for HR to approve/reject on the Penalty Management page.
+    Uses upsert to prevent duplicates (employee_id + month + violation_code + source).
     """
     db = get_db()
     
-    # RBAC Migration: Using database-driven role check
     hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
     if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Manager/Admin can apply penalties")
     
     month = data.get("month")
-    employee_penalties = data.get("penalties", [])  # [{employee_id, penalty_amount, penalty_days}]
+    employee_penalties = data.get("penalties", [])
     
     if not month or not employee_penalties:
         raise HTTPException(status_code=400, detail="Month and penalties required")
     
     now = datetime.now(timezone.utc).isoformat()
-    applied_count = 0
+    created_count = 0
     updated_count = 0
+    
+    # Get employee details for enrichment
+    emp_ids = [p.get("employee_id") for p in employee_penalties]
+    employees = await db.employees.find(
+        {"id": {"$in": emp_ids}},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1}
+    ).to_list(100)
+    emp_map = {e["id"]: e for e in employees}
     
     for p in employee_penalties:
         emp_id = p.get("employee_id")
@@ -1120,57 +1125,61 @@ async def apply_attendance_penalties(data: dict, current_user: User = Depends(ge
         if penalty_amount <= 0:
             continue
         
-        # Update payroll inputs with penalty (using $set to avoid accumulating)
-        await db.payroll_inputs.update_one(
-            {"employee_id": emp_id, "month": month},
-            {"$set": {
-                "penalty": penalty_amount,  # Replace, not accumulate
-                "attendance_penalty_applied": True,
-                "attendance_penalty_days": penalty_days,
-                "attendance_penalty_approved_by": current_user.id,
-                "attendance_penalty_approved_at": now
-            }},
-            upsert=True
-        )
+        emp = emp_map.get(emp_id, {})
         
-        # Check if penalty already exists for this employee/month (idempotency)
-        existing_penalty = await db.attendance_penalties.find_one({
+        # Check if unified penalty already exists for this employee/month/source
+        existing = await db.employee_penalties.find_one({
             "employee_id": emp_id,
-            "month": month
+            "month": month,
+            "violation_code": "AT_LATE",
+            "source": "attendance_validation"
         })
         
-        if existing_penalty:
-            # Update existing penalty instead of creating duplicate
-            await db.attendance_penalties.update_one(
-                {"employee_id": emp_id, "month": month},
+        if existing:
+            await db.employee_penalties.update_one(
+                {"id": existing["id"]},
                 {"$set": {
-                    "penalty_days": penalty_days,
-                    "penalty_amount": penalty_amount,
-                    "approved_by": current_user.id,
-                    "approved_by_name": current_user.full_name,
-                    "updated_at": now
+                    "amount": penalty_amount,
+                    "reason": f"{penalty_days} late days beyond grace limit",
+                    "description": f"{penalty_days} late days beyond grace limit",
+                    "updated_at": now,
+                    "updated_by": current_user.id,
+                    "updated_by_name": current_user.full_name
                 }}
             )
             updated_count += 1
         else:
-            # Create new penalty record
-            await db.attendance_penalties.insert_one({
+            await db.employee_penalties.insert_one({
                 "id": str(uuid.uuid4()),
                 "employee_id": emp_id,
+                "employee_code": emp.get("employee_id", ""),
+                "employee_name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+                "department": emp.get("department", ""),
                 "month": month,
-                "penalty_days": penalty_days,
-                "penalty_amount": penalty_amount,
-                "approved_by": current_user.id,
-                "approved_by_name": current_user.full_name,
-                "created_at": now
+                "category": "attendance",
+                "category_name": "Attendance Penalty",
+                "violation_code": "AT_LATE",
+                "violation_name": "Late Arrival",
+                "source": "attendance_validation",
+                "name": "Late Arrival (Monthly Validation)",
+                "amount": penalty_amount,
+                "reason": f"{penalty_days} late days beyond grace limit",
+                "description": f"{penalty_days} late days beyond grace limit",
+                "apply_to_payroll": True,
+                "status": "pending_review",
+                "is_arrears": False,
+                "created_at": now,
+                "created_by": current_user.id,
+                "created_by_name": current_user.full_name
             })
-            applied_count += 1
+            created_count += 1
     
     return {
-        "message": f"Applied penalties for {applied_count} employees, updated {updated_count} existing",
+        "message": f"Created {created_count} penalties, updated {updated_count} existing. Go to Penalty Management to approve.",
         "month": month,
-        "applied_count": applied_count,
-        "updated_count": updated_count
+        "created_count": created_count,
+        "updated_count": updated_count,
+        "redirect": "/penalty-management"
     }
 
 
@@ -1245,8 +1254,8 @@ async def get_penalty_dashboard(
         else:
             penalty_query["employee_id"] = {"$in": []}
     
-    # Get all penalties in date range with filters
-    all_penalties = await db.attendance_penalties.find(
+    # Get all penalties in date range with filters (from unified collection)
+    all_penalties = await db.employee_penalties.find(
         penalty_query,
         {"_id": 0}
     ).to_list(1000)
@@ -1266,8 +1275,7 @@ async def get_penalty_dashboard(
     for p in all_penalties:
         m = p.get("month")
         if m in monthly_trends:
-            monthly_trends[m]["total_amount"] += p.get("penalty_amount", 0)
-            monthly_trends[m]["total_days"] += p.get("penalty_days", 0)
+            monthly_trends[m]["total_amount"] += p.get("amount", 0)
             monthly_trends[m]["employee_count"] += 1
     
     trends_list = [
@@ -1294,8 +1302,7 @@ async def get_penalty_dashboard(
                 "total_penalty_days": 0,
                 "months_with_penalties": set()
             }
-        violator_map[emp_id]["total_penalty_amount"] += p.get("penalty_amount", 0)
-        violator_map[emp_id]["total_penalty_days"] += p.get("penalty_days", 0)
+        violator_map[emp_id]["total_penalty_amount"] += p.get("amount", 0)
         violator_map[emp_id]["months_with_penalties"].add(p.get("month"))
     
     # Convert sets to counts and sort
@@ -1332,8 +1339,7 @@ async def get_penalty_dashboard(
             dept = emp.get("department", "Other")
             if dept in dept_stats:
                 dept_stats[dept]["employees_with_penalties"] += 1
-                dept_stats[dept]["total_penalty_amount"] += p.get("penalty_amount", 0)
-                dept_stats[dept]["total_penalty_days"] += p.get("penalty_days", 0)
+                dept_stats[dept]["total_penalty_amount"] += p.get("amount", 0)
     
     dept_list = sorted(dept_stats.values(), key=lambda x: x["total_penalty_amount"], reverse=True)
     
@@ -1342,10 +1348,9 @@ async def get_penalty_dashboard(
     current_month_summary = {
         "month": current_month,
         "total_employees_penalized": len(set(p.get("employee_id") for p in current_penalties)),
-        "total_penalty_amount": sum(p.get("penalty_amount", 0) for p in current_penalties),
-        "total_penalty_days": sum(p.get("penalty_days", 0) for p in current_penalties),
+        "total_penalty_amount": sum(p.get("amount", 0) for p in current_penalties),
         "avg_penalty_per_employee": (
-            sum(p.get("penalty_amount", 0) for p in current_penalties) / 
+            sum(p.get("amount", 0) for p in current_penalties) / 
             max(1, len(set(p.get("employee_id") for p in current_penalties)))
         )
     }
