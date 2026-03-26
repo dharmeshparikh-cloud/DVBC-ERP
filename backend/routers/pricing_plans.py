@@ -96,13 +96,23 @@ async def create_pricing_plan(
             detail="Cannot create pricing plan: A meeting with MOM (Minutes of Meeting) must be recorded first. Please complete the Meeting step in the sales funnel."
         )
     
-    # Check if pricing plan already exists for this lead
+    # Check if pricing plan already exists for this lead - auto-update if so
     existing = await db.pricing_plans.find_one({"lead_id": data.lead_id}, {"_id": 0})
     if existing:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Pricing plan already exists for this lead. Use PUT to update. (ID: {existing.get('id')})"
-        )
+        # Auto-update existing plan instead of rejecting
+        tenure_months = calculate_tenure_months(data.payment_plan)
+        update_data = {
+            "name": data.name or existing.get("name"),
+            "total_amount": data.total_amount,
+            "tenure_months": tenure_months,
+            "payment_schedule": data.payment_schedule,
+            "payment_plan": data.payment_plan,
+            "team_deployment": data.team_deployment or existing.get("team_deployment", []),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.pricing_plans.update_one({"id": existing["id"]}, {"$set": update_data})
+        updated = await db.pricing_plans.find_one({"id": existing["id"]}, {"_id": 0})
+        return updated
     
     pricing_plan_id = f"pp-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
     
