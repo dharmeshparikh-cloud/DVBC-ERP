@@ -25,15 +25,18 @@ class QuotationCreate(BaseModel):
     lead_id: str
     pricing_plan_id: Optional[str] = None
     title: Optional[str] = "Quotation"
-    client_name: str
+    client_name: Optional[str] = None
     client_email: Optional[str] = ""
     line_items: Optional[List[dict]] = []
-    subtotal: float = 0
+    subtotal: Optional[float] = 0
     tax_rate: float = 18
-    tax_amount: float = 0
-    total: float = 0
+    tax_amount: Optional[float] = 0
+    total: Optional[float] = 0
     validity_days: int = 30
     notes: Optional[str] = ""
+    payment_terms: Optional[str] = ""
+    terms_and_conditions: Optional[str] = ""
+    base_rate_per_meeting: Optional[float] = 12500
 
 
 @router.post("")
@@ -54,12 +57,39 @@ async def create_quotation(
         raise HTTPException(status_code=404, detail="Lead not found")
     
     # FUNNEL VALIDATION: Check if pricing plan exists for this lead
-    pricing_plan = await db.pricing_plans.find_one({"lead_id": data.lead_id}, {"_id": 0, "id": 1})
+    pricing_plan = await db.pricing_plans.find_one({"lead_id": data.lead_id}, {"_id": 0})
     if not pricing_plan:
         raise HTTPException(
             status_code=400,
             detail="Cannot create quotation: A Pricing Plan must be created first. Please complete the Pricing step in the sales funnel."
         )
+    
+    # If pricing_plan_id specified, use that plan; otherwise use any plan for the lead
+    if data.pricing_plan_id:
+        specific_plan = await db.pricing_plans.find_one({"id": data.pricing_plan_id}, {"_id": 0})
+        if specific_plan:
+            pricing_plan = specific_plan
+    
+    # Auto-calculate financial fields from pricing plan if not provided
+    subtotal = data.subtotal
+    total_meetings = 0
+    team_data = pricing_plan.get("team_deployment") or pricing_plan.get("consultants") or []
+    
+    if (subtotal == 0 or subtotal is None) and team_data:
+        base_rate = data.base_rate_per_meeting or 12500
+        for member in team_data:
+            meetings = (member.get("committed_meetings") or member.get("meetings") or 0) * (member.get("count") or 1)
+            rate = member.get("rate_per_meeting") or base_rate
+            subtotal += meetings * rate
+            total_meetings += meetings
+    
+    if subtotal == 0:
+        subtotal = pricing_plan.get("total_amount") or pricing_plan.get("total_investment") or 0
+    
+    tax_amount = data.tax_amount if data.tax_amount else round(subtotal * (data.tax_rate / 100), 2)
+    grand_total = subtotal + tax_amount
+    
+    client_name = data.client_name or lead.get("company", "") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
     
     quotation_id = str(uuid.uuid4())
     quotation_number = f"QT-{now_ist().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
@@ -69,18 +99,23 @@ async def create_quotation(
         "id": quotation_id,
         "quotation_number": quotation_number,
         "lead_id": data.lead_id,
-        "pricing_plan_id": data.pricing_plan_id,
+        "pricing_plan_id": data.pricing_plan_id or pricing_plan.get("id"),
         "title": data.title,
-        "client_name": data.client_name or lead.get("company", ""),
+        "client_name": client_name,
         "client_email": data.client_email or lead.get("email", ""),
         "line_items": data.line_items or [],
-        "subtotal": data.subtotal,
+        "subtotal": subtotal,
         "tax_rate": data.tax_rate,
-        "tax_amount": data.tax_amount,
-        "total": data.total,
+        "tax_amount": tax_amount,
+        "gst_amount": tax_amount,
+        "total": grand_total,
+        "grand_total": grand_total,
+        "total_meetings": total_meetings,
         "validity_days": data.validity_days,
         "valid_until": valid_until,
         "notes": data.notes,
+        "payment_terms": data.payment_terms or "ADVANCE",
+        "terms_and_conditions": data.terms_and_conditions or "",
         "status": "draft",
         "created_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat(),

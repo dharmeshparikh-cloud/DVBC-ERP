@@ -57,7 +57,7 @@ const PaymentVerification = () => {
       const response = await axios.get(`${API}/agreements`, {
         params: { status: 'approved' }
       });
-      const data = Array.isArray(response.data) ? response.data : [];
+      const data = response.data?.data || (Array.isArray(response.data) ? response.data : []);
       return (data || []).filter(a => 
         ['approved', 'signed', 'sent'].includes(a.status)
       );

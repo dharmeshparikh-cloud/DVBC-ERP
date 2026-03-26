@@ -146,16 +146,16 @@ const Agreements = () => {
       const [agreementsRes, quotationsRes, leadsRes, templatesRes, plansRes] = await Promise.all([
         axios.get(`${API}/agreements`, { params: { ...(leadId ? { lead_id: leadId } : {}), page_size: 500 } }).catch(() => ({ data: { data: [] } })),
         axios.get(`${API}/quotations`).catch(() => ({ data: { data: [] } })),
-        axios.get(`${API}/leads`).catch(() => ({ data: { items: [] } })),
+        axios.get(`${API}/leads`).catch(() => ({ data: { data: [] } })),
         axios.get(`${API}/email-templates`).catch(() => ({ data: { templates: [] } })),
         axios.get(`${API}/pricing-plans`).catch(() => ({ data: [] }))
       ]);
       return {
         agreements: agreementsRes.data?.data || agreementsRes.data || [],
         quotations: quotationsRes.data?.data || quotationsRes.data || [],
-        leads: leadsRes.data?.items || leadsRes.data || [],
+        leads: leadsRes.data?.data || leadsRes.data?.items || leadsRes.data || [],
         emailTemplates: templatesRes.data?.templates || templatesRes.data || [],
-        pricingPlans: plansRes.data || []
+        pricingPlans: Array.isArray(plansRes.data?.data) ? plansRes.data.data : (Array.isArray(plansRes.data) ? plansRes.data : [])
       };
     },
     staleTime: 0, // Force fresh data on each load

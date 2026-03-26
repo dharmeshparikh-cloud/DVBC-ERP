@@ -96,10 +96,10 @@ const Quotations = () => {
         axios.get(`${API}/agreements`).catch(() => ({ data: [] }))
       ]);
       return {
-        quotations: quotationsRes.data || [],
-        pricingPlans: plansRes.data || [],
-        leads: leadsRes.data || [],
-        agreements: agreementsRes.data || []
+        quotations: quotationsRes.data?.data || quotationsRes.data || [],
+        pricingPlans: Array.isArray(plansRes.data?.data) ? plansRes.data.data : (Array.isArray(plansRes.data) ? plansRes.data : []),
+        leads: leadsRes.data?.data || leadsRes.data || [],
+        agreements: agreementsRes.data?.data || agreementsRes.data || []
       };
     },
     staleTime: 2 * 60 * 1000,

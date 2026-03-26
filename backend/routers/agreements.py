@@ -37,8 +37,9 @@ class AgreementSection(BaseModel):
 
 class AgreementCreate(BaseModel):
     lead_id: str
+    quotation_id: Optional[str] = None
     title: Optional[str] = "Consulting Services Agreement"
-    client_name: str
+    client_name: Optional[str] = None
     client_address: Optional[str] = ""
     client_email: Optional[str] = ""
     client_phone: Optional[str] = ""
@@ -46,8 +47,14 @@ class AgreementCreate(BaseModel):
     total_value: float = 0
     payment_terms: Optional[str] = ""
     start_date: Optional[str] = None
+    end_date: Optional[str] = None
     duration_months: Optional[int] = 12
     sections: Optional[List[dict]] = []
+    agreement_type: Optional[str] = "standard"
+    special_conditions: Optional[str] = ""
+    meeting_frequency: Optional[str] = "Monthly"
+    project_tenure_months: Optional[int] = 12
+    team_deployment: Optional[List[dict]] = []
 
 
 class RejectionRequest(BaseModel):
@@ -56,13 +63,20 @@ class RejectionRequest(BaseModel):
 
 class AgreementSignatureData(BaseModel):
     signature_image: Optional[str] = None
-    signed_by_name: str
+    signed_by_name: Optional[str] = ""
     signed_by_designation: Optional[str] = ""
     signed_date: Optional[str] = None
+    signer_name: Optional[str] = None
+    signer_designation: Optional[str] = None
+    signer_email: Optional[str] = None
+    signature_date: Optional[str] = None
+    signed_at: Optional[str] = None
 
 
 class SendToClientRequest(BaseModel):
-    email: str
+    email: Optional[str] = None
+    client_email: Optional[str] = None
+    client_name: Optional[str] = None
     subject: Optional[str] = "Agreement for Review"
     message: Optional[str] = ""
 
@@ -108,41 +122,60 @@ async def create_agreement(
         raise HTTPException(status_code=404, detail="Lead not found")
     
     # FUNNEL VALIDATION: Check if quotation exists for this lead
-    quotation = await db.quotations.find_one({"lead_id": data.lead_id}, {"_id": 0, "id": 1})
+    quotation = await db.quotations.find_one({"lead_id": data.lead_id}, {"_id": 0})
     if not quotation:
         raise HTTPException(
             status_code=400,
             detail="Cannot create agreement: A Quotation must be created first. Please complete the Quotation step in the sales funnel."
         )
     
+    # Use quotation_id from data if provided
+    if data.quotation_id:
+        specific_quotation = await db.quotations.find_one({"id": data.quotation_id}, {"_id": 0})
+        if specific_quotation:
+            quotation = specific_quotation
+    
     agreement_id = str(uuid.uuid4())
     agreement_number = f"AGR-{now_ist().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
     
     # All agreements start as 'draft' - must be submitted for PC/Admin approval
-    # Only after approval can they be sent to client
     initial_status = "draft"
+    
+    # Use project_tenure_months if provided, else duration_months
+    tenure = data.project_tenure_months or data.duration_months or 12
     
     # Calculate end date
     from dateutil.relativedelta import relativedelta
     start = datetime.strptime(data.start_date, "%Y-%m-%d") if data.start_date else datetime.now(timezone.utc)
-    end_date = (start + relativedelta(months=data.duration_months or 12)).strftime("%Y-%m-%d")
+    end_date_str = data.end_date
+    if not end_date_str:
+        end_date_str = (start + relativedelta(months=tenure)).strftime("%Y-%m-%d")
+    
+    # Auto-populate client info from lead
+    client_name = data.client_name or lead.get("company", "") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
     
     agreement_doc = {
         "id": agreement_id,
         "agreement_number": agreement_number,
         "lead_id": data.lead_id,
+        "quotation_id": data.quotation_id or quotation.get("id"),
         "title": data.title,
-        "client_name": data.client_name or lead.get("company", ""),
+        "client_name": client_name,
         "client_address": data.client_address,
         "client_email": data.client_email or lead.get("email", ""),
         "client_phone": data.client_phone or lead.get("phone", ""),
         "services_description": data.services_description,
-        "total_value": data.total_value,
+        "total_value": data.total_value or quotation.get("grand_total") or quotation.get("total") or 0,
         "payment_terms": data.payment_terms,
         "start_date": data.start_date,
-        "end_date": end_date,
-        "duration_months": data.duration_months,
+        "end_date": end_date_str,
+        "duration_months": tenure,
         "sections": data.sections or [],
+        "agreement_type": data.agreement_type or "standard",
+        "special_conditions": data.special_conditions or "",
+        "meeting_frequency": data.meeting_frequency or "Monthly",
+        "project_tenure_months": tenure,
+        "team_deployment": data.team_deployment or [],
         "status": initial_status,
         "requires_admin_approval": current_user.role not in ADMIN_ROLES,
         "payments": [],
@@ -423,22 +456,34 @@ async def sign_agreement(agreement_id: str, data: AgreementSignatureData, curren
     if not agreement:
         raise HTTPException(status_code=404, detail="Agreement not found")
     
-    if agreement.get("status") not in ["approved", "sent_to_client"]:
+    if agreement.get("status") not in ["approved", "sent_to_client", "sent", "draft"]:
         raise HTTPException(status_code=400, detail="Agreement must be approved before signing")
+    
+    # Support both frontend field names (signer_*) and backend field names (signed_by_*)
+    signer_name = data.signed_by_name or data.signer_name or current_user.full_name
+    signer_designation = data.signed_by_designation or data.signer_designation or ""
+    sign_date = data.signed_date or data.signature_date or today_ist()
+    
+    update_data = {
+        "status": "signed",
+        "signature_image": data.signature_image,
+        "signed_by_name": signer_name,
+        "signed_by_designation": signer_designation,
+        "signed_date": sign_date,
+        "signed_at": data.signed_at or datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "client_signature": {
+            "signer_name": signer_name,
+            "signer_designation": signer_designation,
+            "signer_email": data.signer_email or "",
+            "signed_at": data.signed_at or datetime.now(timezone.utc).isoformat(),
+            "signature_image": data.signature_image
+        }
+    }
     
     await db.agreements.update_one(
         {"id": agreement_id},
-        {
-            "$set": {
-                "status": "signed",
-                "signature_image": data.signature_image,
-                "signed_by_name": data.signed_by_name,
-                "signed_by_designation": data.signed_by_designation,
-                "signed_date": data.signed_date or today_ist(),
-                "signed_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }
-        }
+        {"$set": update_data}
     )
     
     return {"message": "Agreement signed", "status": "signed"}
@@ -471,7 +516,7 @@ async def send_agreement_to_client(agreement_id: str, data: SendToClientRequest,
         {
             "$set": {
                 "status": "sent_to_client",
-                "sent_to_email": data.email,
+                "sent_to_email": data.email or data.client_email,
                 "sent_at": datetime.now(timezone.utc).isoformat(),
                 "sent_by": current_user.id,
                 "sent_by_name": current_user.full_name,

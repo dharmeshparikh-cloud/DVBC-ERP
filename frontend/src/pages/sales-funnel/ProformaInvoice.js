@@ -85,25 +85,25 @@ const ProformaInvoice = () => {
     swiftCode: 'ICICINBBCTS'
   };
 
-  // Query: Fetch invoices (quotations) using React Query
+  // Query: Fetch invoices (quotations) using React Query - API returns paginated {data: [...]}
   const { data: invoicesData, isLoading: invoicesLoading, refetch: refetchInvoices } = useFetch('/api/quotations', {
     params: leadId ? { lead_id: leadId } : {}
   });
-  const invoices = Array.isArray(invoicesData) ? invoicesData : [];
+  const invoices = Array.isArray(invoicesData?.data) ? invoicesData.data : (Array.isArray(invoicesData) ? invoicesData : []);
 
   // Query: Fetch pricing plans
   const { data: pricingPlansData } = useFetch('/api/pricing-plans', {
     params: leadId ? { lead_id: leadId } : {}
   });
-  const pricingPlans = Array.isArray(pricingPlansData) ? pricingPlansData : [];
+  const pricingPlans = Array.isArray(pricingPlansData?.data) ? pricingPlansData.data : (Array.isArray(pricingPlansData) ? pricingPlansData : []);
 
-  // Query: Fetch leads - API returns {items: [...], pagination: {...}}
+  // Query: Fetch leads - API returns {data: [...], total, ...}
   const { data: leadsData } = useFetch('/api/leads');
-  const leads = Array.isArray(leadsData?.items) ? leadsData.items : (Array.isArray(leadsData) ? leadsData : []);
+  const leads = Array.isArray(leadsData?.data) ? leadsData.data : (Array.isArray(leadsData?.items) ? leadsData.items : (Array.isArray(leadsData) ? leadsData : []));
 
-  // Query: Fetch agreements
+  // Query: Fetch agreements - API returns paginated {data: [...]}
   const { data: agreementsData } = useFetch('/api/agreements');
-  const agreements = Array.isArray(agreementsData) ? agreementsData : (agreementsData?.data || []);
+  const agreements = Array.isArray(agreementsData?.data) ? agreementsData.data : (Array.isArray(agreementsData) ? agreementsData : []);
 
   // Query: Fetch SOW data if we have a pricing plan ID
   const { data: sowData } = useFetch(

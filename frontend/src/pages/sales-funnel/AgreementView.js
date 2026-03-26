@@ -99,22 +99,26 @@ const AgreementView = () => {
         axios.get(`${API}/leads`)
       ]);
 
+      const allQuotations = quotationsRes?.data?.data || quotationsRes?.data || [];
+      const allPlans = Array.isArray(plansRes?.data?.data) ? plansRes.data.data : (Array.isArray(plansRes?.data) ? plansRes.data : []);
+      const allLeads = leadsRes?.data?.data || leadsRes?.data?.items || leadsRes?.data || [];
+
       let targetQuotation = null;
       let targetPlan = null;
       let targetLead = null;
       let targetSow = null;
 
       if (quotationId) {
-        targetQuotation = (quotationsRes?.data || []).find(q => q.id === quotationId);
+        targetQuotation = (allQuotations || []).find(q => q.id === quotationId);
         if (targetQuotation) {
-          targetPlan = (plansRes?.data || []).find(p => p.id === targetQuotation.pricing_plan_id);
-          targetLead = (leadsRes?.data || []).find(l => l.id === targetQuotation.lead_id);
+          targetPlan = (allPlans || []).find(p => p.id === targetQuotation.pricing_plan_id);
+          targetLead = (allLeads || []).find(l => l.id === targetQuotation.lead_id);
         }
       } else if (pricingPlanId) {
-        targetPlan = (plansRes?.data || []).find(p => p.id === pricingPlanId);
+        targetPlan = (allPlans || []).find(p => p.id === pricingPlanId);
         if (targetPlan) {
-          targetLead = (leadsRes?.data || []).find(l => l.id === targetPlan.lead_id);
-          targetQuotation = (quotationsRes?.data || []).find(q => q.pricing_plan_id === pricingPlanId);
+          targetLead = (allLeads || []).find(l => l.id === targetPlan.lead_id);
+          targetQuotation = (allQuotations || []).find(q => q.pricing_plan_id === pricingPlanId);
         }
       }
 

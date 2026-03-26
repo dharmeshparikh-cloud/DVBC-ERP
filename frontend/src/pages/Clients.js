@@ -100,12 +100,14 @@ const Clients = () => {
   const { data: clientsData, isLoading: loading } = useQuery({
     queryKey: ['clients-all', user?.id, user?.role],
     queryFn: async () => {
-      const [clientsRes, usersRes] = await Promise.all([
+      const [clientsRes, usersRes, projectsRes] = await Promise.all([
         axios.get(`${API}/clients`),
-        axios.get(`${API}/users`)
+        axios.get(`${API}/users`),
+        axios.get(`${API}/projects`).catch(() => ({ data: [] }))
       ]);
-      let clientData = clientsRes.data?.items || clientsRes.data || [];
-      const userData = usersRes.data?.items || usersRes.data || [];
+      let clientData = clientsRes.data?.items || clientsRes.data?.data || clientsRes.data || [];
+      const userData = usersRes.data?.items || usersRes.data?.data || usersRes.data || [];
+      const projectData = projectsRes.data?.data || projectsRes.data || [];
       
       // Filter clients based on role
       if (!isAdmin && !isFinance) {
@@ -115,10 +117,21 @@ const Clients = () => {
             c.sales_owner_id === user?.id || c.sales_person_id === user?.id
           );
         }
-        // Consulting team sees clients where they are consulting_owner
+        // Consulting team sees ONLY projects/clients where they are assigned
         else if (isConsulting) {
+          // Get project IDs where consultant is in assigned_team or assigned_consultants
+          const myProjectIds = (projectData || [])
+            .filter(p => 
+              (p.assigned_team || []).includes(user?.id) ||
+              (p.assigned_consultants || []).includes(user?.id) ||
+              p.consulting_owner_id === user?.id ||
+              p.project_manager_id === user?.id
+            )
+            .map(p => p.id);
+          
           clientData = (clientData || []).filter(c => 
-            c.consulting_owner_id === user?.id
+            c.consulting_owner_id === user?.id || 
+            myProjectIds.includes(c.project_id)
           );
         }
       }

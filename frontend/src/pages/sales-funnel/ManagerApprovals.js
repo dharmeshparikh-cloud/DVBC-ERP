@@ -31,7 +31,7 @@ const ManagerApprovals = () => {
       ]);
       return {
         pendingApprovals: approvalsRes.data || [],
-        leads: leadsRes.data || []
+        leads: leadsRes.data?.data || leadsRes.data || []
       };
     },
     staleTime: 1 * 60 * 1000, // 1 minute for approvals
