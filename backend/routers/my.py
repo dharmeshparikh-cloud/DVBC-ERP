@@ -66,6 +66,194 @@ async def get_check_in_status(current_user: User = Depends(get_current_user)):
     }
 
 
+@router.post("/check-in")
+async def self_check_in(data: dict, current_user: User = Depends(get_current_user)):
+    """
+    Self check-in for employees.
+    Creates attendance record with check-in time, location, and optional selfie.
+    Links to payroll for working hours calculation.
+    """
+    db = get_db()
+    
+    # Get employee record
+    emp = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee record not found. Please contact HR.")
+    
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc)
+    
+    # Check if already checked in today
+    existing = await db.attendance.find_one({"employee_id": emp["id"], "date": today}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Already checked in today")
+    
+    # Create attendance record
+    # Handle both direct lat/lng and geo_location object from frontend
+    geo = data.get("geo_location", {})
+    latitude = data.get("latitude") or geo.get("latitude")
+    longitude = data.get("longitude") or geo.get("longitude")
+    
+    attendance = {
+        "id": str(uuid.uuid4()),
+        "employee_id": emp["id"],
+        "employee_name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+        "user_id": current_user.id,
+        "date": today,
+        "check_in_time": now.isoformat(),
+        "check_out_time": None,
+        "status": "present",
+        "work_location": data.get("work_location", "office"),
+        "location_type": data.get("location_type", "office"),  # office, wfh, on_site
+        "client_id": data.get("client_id"),  # For on-site check-ins
+        "client_name": data.get("client_name"),
+        "project_id": data.get("project_id"),
+        "project_name": data.get("project_name"),
+        "latitude": latitude,
+        "longitude": longitude,
+        "location_accuracy": geo.get("accuracy"),
+        "location_address": geo.get("address") or data.get("location_address"),
+        "selfie": data.get("selfie"),  # Base64 selfie image
+        "remarks": data.get("remarks", "Self check-in"),
+        "working_hours": None,  # Calculated on check-out
+        "overtime_hours": 0,
+        "is_late": False,  # TODO: Calculate based on policy
+        "is_early_departure": False,
+        "source": "self_service",
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
+    }
+    
+    # Check for late arrival based on default policy (9:00 AM)
+    check_in_hour = now.hour
+    if check_in_hour >= 10:  # More than 1 hour late
+        attendance["is_late"] = True
+        attendance["late_minutes"] = (check_in_hour - 9) * 60 + now.minute
+    
+    await db.attendance.insert_one(attendance)
+    
+    # Remove selfie from response (too large)
+    attendance.pop("selfie", None)
+    attendance.pop("_id", None)
+    
+    return {
+        "message": "Checked in successfully",
+        "attendance": attendance
+    }
+
+
+@router.post("/check-out")
+async def self_check_out(data: dict = None, current_user: User = Depends(get_current_user)):
+    """
+    Self check-out for employees.
+    Updates attendance record with check-out time and calculates working hours.
+    Links to payroll for working hours and overtime calculation.
+    """
+    db = get_db()
+    data = data or {}
+    
+    # Get employee record
+    emp = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee record not found")
+    
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc)
+    
+    # Find today's attendance record
+    record = await db.attendance.find_one({"employee_id": emp["id"], "date": today}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=400, detail="No check-in record found for today")
+    
+    if record.get("check_out_time"):
+        raise HTTPException(status_code=400, detail="Already checked out today")
+    
+    # Calculate working hours
+    check_in_time = datetime.fromisoformat(record["check_in_time"].replace("Z", "+00:00"))
+    working_seconds = (now - check_in_time).total_seconds()
+    working_hours = round(working_seconds / 3600, 2)
+    
+    # Calculate overtime (anything over 9 hours)
+    overtime_hours = max(0, round(working_hours - 9, 2))
+    
+    # Check for early departure (before 6 PM = 18:00)
+    is_early_departure = now.hour < 18
+    
+    # Update attendance record
+    geo = data.get("geo_location", {})
+    update_data = {
+        "check_out_time": now.isoformat(),
+        "working_hours": working_hours,
+        "overtime_hours": overtime_hours,
+        "is_early_departure": is_early_departure,
+        "checkout_latitude": data.get("latitude") or geo.get("latitude"),
+        "checkout_longitude": data.get("longitude") or geo.get("longitude"),
+        "checkout_accuracy": geo.get("accuracy"),
+        "checkout_remarks": data.get("remarks"),
+        "updated_at": now.isoformat()
+    }
+    
+    await db.attendance.update_one(
+        {"id": record["id"]},
+        {"$set": update_data}
+    )
+    
+    # Update record with new data
+    record.update(update_data)
+    record.pop("selfie", None)
+    
+    return {
+        "message": "Checked out successfully",
+        "attendance": record,
+        "working_hours": working_hours,
+        "overtime_hours": overtime_hours
+    }
+
+
+@router.get("/attendance")
+async def get_my_attendance(
+    month: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get current user's attendance records for a month.
+    Used for attendance calendar/history view.
+    """
+    db = get_db()
+    
+    # Get employee record
+    emp = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0, "id": 1}
+    )
+    
+    if not emp:
+        return []
+    
+    # Default to current month
+    if not month:
+        month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    # Query attendance for the month
+    records = await db.attendance.find(
+        {
+            "employee_id": emp["id"],
+            "date": {"$regex": f"^{month}"}
+        },
+        {"_id": 0, "selfie": 0}
+    ).sort("date", -1).to_list(50)
+    
+    return records
+
+
 @router.get("/onboarding-status")
 async def get_onboarding_status(current_user: User = Depends(get_current_user)):
     """Check if user has completed the onboarding tour"""

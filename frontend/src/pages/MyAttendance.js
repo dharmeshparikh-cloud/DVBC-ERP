@@ -38,9 +38,10 @@ const MyAttendance = () => {
 
   // Check today's status
   const today = new Date().toISOString().split('T')[0];
-  const todayRecord = data?.records?.find(r => r.date === today);
-  const todayCheckedIn = !!todayRecord?.check_in_time;
-  const todayCheckedOut = !!todayRecord?.check_out_time;
+  const records = Array.isArray(data) ? data : data?.records || [];
+  const todayRecord = records.find(r => r.date === today);
+  const todayCheckedIn = !!todayRecord?.check_in_time || !!todayRecord?.check_in;
+  const todayCheckedOut = !!todayRecord?.check_out_time || !!todayRecord?.check_out;
 
   const s = data?.summary || {};
   const todayFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -125,7 +126,7 @@ const MyAttendance = () => {
 
       {loading ? (
         <div className="flex items-center justify-center h-40"><div className="text-zinc-500 dark:text-zinc-400">Loading...</div></div>
-      ) : !data?.records?.length ? (
+      ) : !records?.length ? (
         <Card className="border-zinc-200 dark:border-zinc-700 shadow-none rounded-sm">
           <CardContent className="flex flex-col items-center justify-center h-40">
             <CalendarDays className="w-10 h-10 text-zinc-300 dark:text-zinc-600 mb-3" />
@@ -146,10 +147,12 @@ const MyAttendance = () => {
               </tr>
             </thead>
             <tbody>
-              {(data?.records || []).map((r, i) => {
+              {records.map((r, i) => {
                 const st = STATUS_STYLES[r?.status] || STATUS_STYLES.present;
-                const checkIn = r?.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
-                const checkOut = r?.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
+                const checkInTime = r?.check_in_time || r?.check_in;
+                const checkOutTime = r?.check_out_time || r?.check_out;
+                const checkIn = checkInTime ? new Date(checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
+                const checkOut = checkOutTime ? new Date(checkOutTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
                 return (
                   <tr key={r?.id || i} className="border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                     <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300 font-medium">{r?.date}</td>
