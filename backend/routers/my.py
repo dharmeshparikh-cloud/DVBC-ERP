@@ -130,8 +130,8 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "check_out_time": None,
         "status": "present",
         "work_location": data.get("work_location", "office"),
-        "location_type": data.get("location_type", "office"),  # office, wfh, on_site
-        "client_id": data.get("client_id"),  # For on-site check-ins
+        "location_type": data.get("location_type", "office"),
+        "client_id": data.get("client_id"),
         "client_name": data.get("client_name"),
         "project_id": data.get("project_id"),
         "project_name": data.get("project_name"),
@@ -142,24 +142,27 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "location_locality": data.get("location_locality", ""),
         "location_area": data.get("location_area", ""),
         "location_city": data.get("location_city", ""),
-        "selfie": data.get("selfie"),  # Base64 selfie image
+        "selfie": data.get("selfie"),
         "remarks": data.get("remarks", "Self check-in"),
-        "working_hours": None,  # Calculated on check-out
-        "overtime_hours": 0,
+        "working_hours": None,
+        "overtime_minutes": 0,
         "is_late": False,
         "late_minutes": 0,
+        "early_login_minutes": 0,
+        "late_checkout_minutes": 0,
+        "is_half_day": False,
+        "half_day_type": None,  # "first_half" or "second_half"
         "is_early_departure": False,
         "source": "self_service",
         "created_at": now.isoformat(),
         "updated_at": now.isoformat()
     }
     
-    # Calculate late arrival: compare IST check-in time against shift start
-    # now is UTC, now_in_ist is the IST representation for late comparison
-    
-    # Fetch shift start from business policy
-    shift_start_str = "10:00"  # will be overridden by policy
-    late_threshold_minutes = 15
+    # ── GOVERNANCE: Fetch shift config from business policy ──
+    shift_start_str = "10:00"
+    half_day_cutoff_str = "15:00"
+    grace_minutes = 10
+    grace_days_per_month = 3
     try:
         att_policy = await db.business_policies.find_one(
             {"policy_type": "attendance", "scope": "company", "is_active": True},
@@ -168,19 +171,98 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         if att_policy:
             rules = {r["rule_id"]: r for r in att_policy.get("rules", [])}
             shift_start_str = rules.get("AT002", {}).get("value", "10:00")
-            late_threshold_minutes = rules.get("AT004", {}).get("numeric_value", 15)
+            grace_minutes = rules.get("AT004", {}).get("numeric_value", 10)
+            grace_days_per_month = rules.get("AT011", {}).get("numeric_value", 3)
     except Exception:
         pass
     
-    # Parse shift start and compare with IST check-in time
-    shift_h, shift_m = int(shift_start_str.split(":")[0]), int(shift_start_str.split(":")[1])
-    checkin_total_min = now_in_ist.hour * 60 + now_in_ist.minute
-    shift_total_min = shift_h * 60 + shift_m
-    late_by_min = checkin_total_min - shift_total_min
+    # Parse shift times
+    sh_h, sh_m = int(shift_start_str.split(":")[0]), int(shift_start_str.split(":")[1])
+    shift_start_min = sh_h * 60 + sh_m
+    hd_h, hd_m = int(half_day_cutoff_str.split(":")[0]), int(half_day_cutoff_str.split(":")[1])
+    half_day_cutoff_min = hd_h * 60 + hd_m
     
-    if late_by_min > late_threshold_minutes:
-        attendance["is_late"] = True
-        attendance["late_minutes"] = late_by_min
+    # ── GOVERNANCE: Late = max(0, in_time - shift_start) ──
+    checkin_min = now_in_ist.hour * 60 + now_in_ist.minute
+    late_by = max(0, checkin_min - shift_start_min)
+    
+    # ── GOVERNANCE: Early Login = max(0, shift_start - in_time) ──
+    early_login = max(0, shift_start_min - checkin_min)
+    
+    # Apply 10-min noise filter: ignore if < grace_minutes
+    if late_by > 0 and late_by <= grace_minutes:
+        # Check how many grace days used this month
+        month_prefix = today[:7]
+        grace_used = await db.attendance.count_documents({
+            "employee_id": emp["id"],
+            "date": {"$regex": f"^{month_prefix}"},
+            "grace_applied": True
+        })
+        if grace_used < grace_days_per_month:
+            attendance["grace_applied"] = True
+            late_by = 0
+        # else: grace exhausted, late counts
+    
+    if early_login > 0 and early_login <= grace_minutes:
+        early_login = 0  # noise filter for early too
+    
+    attendance["is_late"] = late_by > 0
+    attendance["late_minutes"] = late_by
+    attendance["early_login_minutes"] = early_login
+    
+    # ── GOVERNANCE: Half Day — check-in after 3 PM = first half absent ──
+    if checkin_min >= half_day_cutoff_min:
+        attendance["status"] = "half_day"
+        attendance["is_half_day"] = True
+        attendance["half_day_type"] = "first_half"  # first half absent
+        
+        # Auto-create half-day leave request
+        half_day_leave = {
+            "id": str(uuid.uuid4()),
+            "employee_id": emp["id"],
+            "employee_name": attendance["employee_name"],
+            "leave_type": "casual_leave",
+            "start_date": today,
+            "end_date": today,
+            "duration": 0.5,
+            "half_day": True,
+            "half_day_period": "first_half",
+            "reason": "Auto-generated: Check-in after 3:00 PM cutoff",
+            "status": "approved",
+            "auto_generated": True,
+            "approved_by": "system",
+            "approved_at": now.isoformat(),
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+        await db.leave_requests.insert_one(half_day_leave)
+        half_day_leave.pop("_id", None)
+    
+    # ── GOVERNANCE: Late Penalty — ₹100 flat per late day ──
+    if late_by > 0:
+        penalty_amount = 100
+        month_prefix = today[:7]
+        # Count lates this month (excluding this one)
+        monthly_late_count = await db.attendance.count_documents({
+            "employee_id": emp["id"],
+            "date": {"$regex": f"^{month_prefix}"},
+            "is_late": True
+        })
+        penalty_record = {
+            "id": str(uuid.uuid4()),
+            "employee_id": emp["id"],
+            "employee_name": attendance["employee_name"],
+            "date": today,
+            "attendance_id": attendance["id"],
+            "penalty_type": "late_arrival",
+            "late_minutes": late_by,
+            "late_count_this_month": monthly_late_count + 1,
+            "penalty_amount": penalty_amount,
+            "status": "pending_review",  # HR must approve/reject
+            "created_at": now.isoformat()
+        }
+        await db.attendance_penalties.insert_one(penalty_record)
+        penalty_record.pop("_id", None)
     
     await db.attendance.insert_one(attendance)
     
@@ -215,6 +297,7 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
     
     today = today_ist()
     now = datetime.now(timezone.utc)
+    now_in_ist = to_ist(now)
     
     # Find today's attendance record
     record = await db.attendance.find_one({"employee_id": emp["id"], "date": today}, {"_id": 0})
@@ -232,14 +315,16 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
     # Calculate working hours (both times in UTC for correct duration)
     check_in_raw = record.get("check_in_time") or record.get("check_in")
     check_in_time = datetime.fromisoformat(check_in_raw.replace("Z", "+00:00"))
-    # Ensure both are tz-aware for subtraction
     if check_in_time.tzinfo is None:
         check_in_time = check_in_time.replace(tzinfo=timezone.utc)
     working_seconds = (now - check_in_time).total_seconds()
     working_hours = round(working_seconds / 3600, 2)
     
-    # Fetch configured shift hours from business policy
-    standard_work_hours = 9  # default
+    # ── GOVERNANCE: Fetch shift config ──
+    shift_end_str = "19:00"
+    half_day_cutoff_str = "15:00"
+    standard_work_hours = 9
+    ot_cap_minutes = 120
     try:
         att_policy = await db.business_policies.find_one(
             {"policy_type": "attendance", "scope": "company", "is_active": True},
@@ -247,23 +332,78 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
         )
         if att_policy:
             rules = {r["rule_id"]: r for r in att_policy.get("rules", [])}
+            shift_end_str = rules.get("AT003", {}).get("value", "19:00")
             standard_work_hours = rules.get("AT001", {}).get("numeric_value", 9)
+            ot_cap_minutes = rules.get("AT013", {}).get("numeric_value", 120)
     except Exception:
         pass
     
-    # Calculate overtime beyond shift hours
-    overtime_hours = max(0, round(working_hours - standard_work_hours, 2))
+    # Parse shift end
+    se_h, se_m = int(shift_end_str.split(":")[0]), int(shift_end_str.split(":")[1])
+    shift_end_min = se_h * 60 + se_m
+    hd_h, hd_m = int(half_day_cutoff_str.split(":")[0]), int(half_day_cutoff_str.split(":")[1])
+    half_day_cutoff_min = hd_h * 60 + hd_m
     
-    # Check for early departure based on standard work hours
+    checkout_min = now_in_ist.hour * 60 + now_in_ist.minute
+    
+    # ── GOVERNANCE: Late Checkout = max(0, out_time - shift_end) ──
+    late_checkout = max(0, checkout_min - shift_end_min)
+    if late_checkout > 0 and late_checkout <= 10:
+        late_checkout = 0  # noise filter
+    
+    # ── GOVERNANCE: OT = Early Login + Late Checkout (informational, capped) ──
+    early_login = record.get("early_login_minutes", 0)
+    overtime_minutes = early_login + late_checkout
+    overtime_minutes = min(overtime_minutes, ot_cap_minutes)  # cap at max
+    
+    # If on leave or half-day, OT should be blocked
+    if record.get("status") == "on_leave" or record.get("is_half_day"):
+        overtime_minutes = 0
+    
+    # Check for early departure
     is_early_departure = working_hours < standard_work_hours
+    
+    # ── GOVERNANCE: Half Day — checkout before 3 PM = second half absent ──
+    is_half_day = record.get("is_half_day", False)
+    half_day_type = record.get("half_day_type")
+    
+    if checkout_min < half_day_cutoff_min and not is_half_day:
+        is_half_day = True
+        half_day_type = "second_half"  # second half absent
+        
+        # Auto-create half-day leave request
+        emp_name = record.get("employee_name", "")
+        half_day_leave = {
+            "id": str(uuid.uuid4()),
+            "employee_id": emp["id"],
+            "employee_name": emp_name,
+            "leave_type": "casual_leave",
+            "start_date": today,
+            "end_date": today,
+            "duration": 0.5,
+            "half_day": True,
+            "half_day_period": "second_half",
+            "reason": "Auto-generated: Check-out before 3:00 PM cutoff",
+            "status": "approved",
+            "auto_generated": True,
+            "approved_by": "system",
+            "approved_at": now.isoformat(),
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+        await db.leave_requests.insert_one(half_day_leave)
     
     # Update attendance record
     geo = data.get("geo_location", {})
     update_data = {
         "check_out_time": now.isoformat(),
         "working_hours": working_hours,
-        "overtime_hours": overtime_hours,
+        "overtime_minutes": overtime_minutes,
+        "late_checkout_minutes": late_checkout,
         "is_early_departure": is_early_departure,
+        "is_half_day": is_half_day,
+        "half_day_type": half_day_type,
+        "status": "half_day" if is_half_day else record.get("status", "present"),
         "checkout_latitude": data.get("latitude") or geo.get("latitude"),
         "checkout_longitude": data.get("longitude") or geo.get("longitude"),
         "checkout_accuracy": geo.get("accuracy"),
@@ -285,7 +425,10 @@ async def self_check_out(data: dict = None, current_user: User = Depends(get_cur
         "message": "Checked out successfully",
         "attendance": record,
         "working_hours": working_hours,
-        "overtime_hours": overtime_hours
+        "overtime_minutes": overtime_minutes,
+        "late_checkout_minutes": late_checkout,
+        "is_half_day": is_half_day,
+        "half_day_type": half_day_type
     }
 
 
@@ -356,8 +499,9 @@ async def get_my_attendance(
             r["leave_status"] = lv_info["leave_status"]
     
     # Fetch shift config for display
-    shift_config = {"standard_work_hours": 9, "overtime_threshold_hours": 10, "core_hours_start": "10:00", "core_hours_end": "19:00"}
-    late_threshold_minutes = 15
+    shift_config = {"standard_work_hours": 9, "core_hours_start": "10:00", "core_hours_end": "19:00"}
+    grace_minutes = 10
+    ot_cap_minutes = 120
     try:
         att_policy = await db.business_policies.find_one(
             {"policy_type": "attendance", "scope": "company", "is_active": True},
@@ -367,22 +511,24 @@ async def get_my_attendance(
             rules_map = {r["rule_id"]: r for r in att_policy.get("rules", [])}
             shift_config = {
                 "standard_work_hours": rules_map.get("AT001", {}).get("numeric_value", 9),
-                "overtime_threshold_hours": rules_map.get("AT008", {}).get("numeric_value", 10),
                 "core_hours_start": rules_map.get("AT002", {}).get("value", "10:00"),
                 "core_hours_end": rules_map.get("AT003", {}).get("value", "19:00"),
-                "late_threshold_minutes": rules_map.get("AT004", {}).get("numeric_value", 15),
-                "grace_period_minutes": rules_map.get("AT010", {}).get("numeric_value", 30),
+                "grace_minutes": rules_map.get("AT004", {}).get("numeric_value", 10),
                 "grace_days_per_month": rules_map.get("AT011", {}).get("numeric_value", 3),
                 "late_penalty_amount": rules_map.get("AT012", {}).get("numeric_value", 100),
+                "ot_cap_minutes": rules_map.get("AT013", {}).get("numeric_value", 120),
             }
-            late_threshold_minutes = shift_config.get("late_threshold_minutes", 15)
+            grace_minutes = shift_config.get("grace_minutes", 10)
     except Exception:
         pass
     
-    # Normalize field names and dynamically recalculate late status using IST
+    # Parse shift times for dynamic recalculation
     shift_start_str = shift_config.get("core_hours_start", "10:00")
-    shift_h, shift_m = int(shift_start_str.split(":")[0]), int(shift_start_str.split(":")[1])
-    shift_total_min = shift_h * 60 + shift_m
+    shift_end_str = shift_config.get("core_hours_end", "19:00")
+    sh_h, sh_m = int(shift_start_str.split(":")[0]), int(shift_start_str.split(":")[1])
+    shift_start_min = sh_h * 60 + sh_m
+    se_h, se_m = int(shift_end_str.split(":")[0]), int(shift_end_str.split(":")[1])
+    shift_end_min = se_h * 60 + se_m
     
     for r in records:
         # Normalize: ensure check_in_time is set (old records use check_in)
@@ -391,24 +537,80 @@ async def get_my_attendance(
         if not r.get("check_out_time") and r.get("check_out"):
             r["check_out_time"] = r["check_out"]
         
-        # Normalize naive timestamps: append IST offset so frontend displays correctly
-        # Old records stored as "09:00:00" (IST without offset) → add "+05:30"
+        # Normalize naive timestamps: append IST offset
         for field in ("check_in_time", "check_out_time"):
             val = r.get(field)
             if val and "+" not in val and "Z" not in val:
                 r[field] = val + "+05:30"
         
-        # Dynamically recalculate is_late based on check-in vs shift start (IST)
+        # ── GOVERNANCE: Dynamically recalculate from stored punch times ──
         cin = r.get("check_in_time")
-        if cin and r.get("status") == "present":
+        cout = r.get("check_out_time")
+        status = r.get("status", "")
+        
+        if cin and status in ("present", "half_day"):
             try:
                 ci_ist = to_ist(datetime.fromisoformat(cin.replace("Z", "+00:00")))
-                checkin_total_min = ci_ist.hour * 60 + ci_ist.minute
-                late_by = checkin_total_min - shift_total_min
-                r["is_late"] = late_by > late_threshold_minutes
-                r["late_minutes"] = max(0, late_by) if late_by > late_threshold_minutes else 0
+                ci_min = ci_ist.hour * 60 + ci_ist.minute
+                
+                # Late = max(0, in_time - shift_start)
+                late_by = max(0, ci_min - shift_start_min)
+                # Early Login = max(0, shift_start - in_time)
+                early_login = max(0, shift_start_min - ci_min)
+                
+                # Noise filter: ignore < grace_minutes
+                if 0 < late_by <= grace_minutes and r.get("grace_applied"):
+                    late_by = 0
+                if 0 < early_login <= 10:
+                    early_login = 0
+                
+                r["is_late"] = late_by > 0
+                r["late_minutes"] = late_by
+                r["early_login_minutes"] = early_login
             except Exception:
                 pass
+        
+        if cout and status in ("present", "half_day"):
+            try:
+                co_ist = to_ist(datetime.fromisoformat(cout.replace("Z", "+00:00")))
+                co_min = co_ist.hour * 60 + co_ist.minute
+                
+                # Late Checkout = max(0, out_time - shift_end)
+                late_checkout = max(0, co_min - shift_end_min)
+                if 0 < late_checkout <= 10:
+                    late_checkout = 0
+                
+                r["late_checkout_minutes"] = late_checkout
+                
+                # OT = Early Login + Late Checkout (informational, capped)
+                ot = r.get("early_login_minutes", 0) + late_checkout
+                ot = min(ot, ot_cap_minutes)
+                if r.get("is_half_day") or status == "on_leave":
+                    ot = 0
+                r["overtime_minutes"] = ot
+            except Exception:
+                pass
+        
+        # Ensure new fields have defaults
+        r.setdefault("early_login_minutes", 0)
+        r.setdefault("late_checkout_minutes", 0)
+        r.setdefault("overtime_minutes", 0)
+        r.setdefault("is_half_day", False)
+        r.setdefault("half_day_type", None)
+    
+    # ── Enrich half-day leave type from leave_requests ──
+    for r in records:
+        lv_info = leave_map.get(r.get("date"))
+        if lv_info:
+            if r.get("is_half_day"):
+                lt = lv_info["leave_type"].replace("_", " ").upper()[:2]
+                period = "1st Half" if r.get("half_day_type") == "first_half" else "2nd Half"
+                r["leave_display"] = f"{lt} ({period})"
+                r["leave_type"] = lv_info["leave_type"]
+                r["leave_status"] = lv_info["leave_status"]
+            elif r.get("status") not in ("present",):
+                r["leave_type"] = lv_info["leave_type"]
+                r["leave_status"] = lv_info["leave_status"]
     
     # Calculate summary (after recalculation)
     present = sum(1 for r in records if r.get("status") == "present")
@@ -418,7 +620,8 @@ async def get_my_attendance(
     on_leave = sum(1 for r in records if r.get("status") == "on_leave")
     late_count = sum(1 for r in records if r.get("is_late"))
     total_hours = sum(r.get("working_hours", 0) or 0 for r in records)
-    total_overtime = sum(r.get("overtime_hours", 0) or 0 for r in records)
+    total_overtime_min = sum(r.get("overtime_minutes", 0) or 0 for r in records)
+    total_early_login_min = sum(r.get("early_login_minutes", 0) or 0 for r in records)
     
     return {
         "records": records,
@@ -430,7 +633,8 @@ async def get_my_attendance(
             "on_leave": on_leave,
             "late_count": late_count,
             "total_hours": round(total_hours, 1),
-            "total_overtime": round(total_overtime, 1)
+            "total_overtime_min": total_overtime_min,
+            "total_early_login_min": total_early_login_min
         },
         "shift_config": shift_config,
         "employee": {
