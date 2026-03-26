@@ -12,7 +12,7 @@ import {
   FileCheck, CreditCard, Rocket, CheckCircle, 
   ChevronRight, ArrowLeft, Building2, Phone, Mail,
   Clock, AlertCircle, ExternalLink, Lock, Lightbulb,
-  Circle, CheckCircle2, Info, AlertTriangle, Plus
+  Circle, CheckCircle2, Info, AlertTriangle, Plus, Edit2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -555,19 +555,48 @@ const SalesFunnelOnboarding = () => {
                 {/* Step Status Banner */}
                 {isStepCompleted(FUNNEL_STEPS[currentStep].id) ? (
                   <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 mb-1">
-                      <CheckCircle className="w-5 h-5" />
-                      <span className="font-semibold">Step Completed</span>
-                    </div>
-                    {(() => {
-                      const details = getStepDetails(FUNNEL_STEPS[currentStep]);
-                      return details ? (
-                        <div className="text-sm text-emerald-600 dark:text-emerald-400 ml-7">
-                          <p className="font-medium">{details.title}</p>
-                          {details.subtitle && <p className="text-emerald-500">{details.subtitle}</p>}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 mb-1">
+                          <CheckCircle className="w-5 h-5" />
+                          <span className="font-semibold">Step Completed</span>
                         </div>
-                      ) : null;
-                    })()}
+                        {(() => {
+                          const details = getStepDetails(FUNNEL_STEPS[currentStep]);
+                          return details ? (
+                            <div className="text-sm text-emerald-600 dark:text-emerald-400 ml-7">
+                              <p className="font-medium">{details.title}</p>
+                              {details.subtitle && <p className="text-emerald-500">{details.subtitle}</p>}
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                      {/* Edit Button for completed steps - only before kickoff */}
+                      {!funnelStatus.kickoff_accepted && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300"
+                          onClick={() => {
+                            const step = FUNNEL_STEPS[currentStep];
+                            const routes = {
+                              'lead_capture': `/leads/edit/${leadId}`,
+                              'record_meeting': `/sales-funnel/meeting/record?leadId=${leadId}`,
+                              'pricing_plan': `/sales-funnel/pricing?planId=${funnelStatus.pricing_plan_id || ''}&leadId=${leadId}`,
+                              'scope_of_work': `/sales-funnel/sow/${funnelStatus.pricing_plan_id || ''}`,
+                              'quotation': `/sales-funnel/quotation?id=${funnelStatus.quotation_id || ''}&leadId=${leadId}`,
+                              'agreement': `/sales-funnel/agreement?id=${funnelStatus.agreement_id || ''}&leadId=${leadId}`
+                            };
+                            const route = routes[step.id];
+                            if (route) navigate(route);
+                          }}
+                          data-testid="edit-completed-step-btn"
+                        >
+                          <Edit2 className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
