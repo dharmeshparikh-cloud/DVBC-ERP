@@ -601,7 +601,12 @@ async def get_kickoff_request_details(
                 "id": sow.get("id") if sow else None,
                 "scopes_count": len(sow.get("scopes", [])) if sow else 0,
                 "scope_items_count": len(sow.get("scopes", [])) if sow else 0,
-                "deliverables_count": sum(len(s.get("deliverables", "").split(",")) for s in sow.get("scopes", [])) if sow else 0
+                "deliverables_count": sum(
+                    len(s.get("deliverables", "").split(",")) if isinstance(s.get("deliverables"), str) 
+                    else len(s.get("deliverables", [])) if isinstance(s.get("deliverables"), list) 
+                    else 0 
+                    for s in sow.get("scopes", [])
+                ) if sow else 0
             } if sow else None
         },
         "quotation": {

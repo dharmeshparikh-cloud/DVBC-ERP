@@ -70,11 +70,11 @@ const KickoffRequests = () => {
   const { data: requests = [], isLoading: loading, refetch: refetchRequests } = useFetch('/api/kickoff-requests');
 
   // Query: Fetch approved agreements (for sales role)
-  const { data: agreementsData = [] } = useFetch(
+  const { data: agreementsResponse = { data: [] } } = useFetch(
     isSalesRole ? '/api/agreements' : null,
     { params: { status: 'approved' }, enabled: isSalesRole }
   );
-  const agreements = agreementsData;
+  const agreements = Array.isArray(agreementsResponse) ? agreementsResponse : (agreementsResponse?.data || agreementsResponse?.items || []);
 
   // Query: Fetch project managers (for sales role)
   const { data: projectManagersData = [] } = useFetch(

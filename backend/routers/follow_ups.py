@@ -289,19 +289,23 @@ async def get_today_follow_ups(current_user: User = Depends(get_current_user)):
     follow_ups = await db.follow_ups.find(query, {"_id": 0}).sort("due_date", 1).to_list(50)
 
     # Annotate each with overdue status
+    # Strip timezone from today_start for comparison since we normalize due_dt to naive
+    today_start_naive = today_start.replace(tzinfo=None)
+    now_naive = now.replace(tzinfo=None)
+    
     for fu in follow_ups:
         due = fu.get("due_date")
         if isinstance(due, str):
             try:
                 due_dt = datetime.fromisoformat(due.replace("Z", "+00:00")).replace(tzinfo=None)
             except Exception:
-                due_dt = now
+                due_dt = now_naive
         elif isinstance(due, datetime):
             due_dt = due.replace(tzinfo=None) if due.tzinfo else due
         else:
-            due_dt = now
-        fu["is_overdue"] = due_dt < today_start
-        fu["days_overdue"] = max(0, (today_start - due_dt).days) if due_dt < today_start else 0
+            due_dt = now_naive
+        fu["is_overdue"] = due_dt < today_start_naive
+        fu["days_overdue"] = max(0, (today_start_naive - due_dt).days) if due_dt < today_start_naive else 0
 
     overdue_count = sum(1 for fu in follow_ups if fu["is_overdue"])
     today_count = sum(1 for fu in follow_ups if not fu["is_overdue"])
