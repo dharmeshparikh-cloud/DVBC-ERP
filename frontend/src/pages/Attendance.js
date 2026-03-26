@@ -897,14 +897,14 @@ const Attendance = () => {
                     </td>
                     <td className="px-3 py-2 text-center">
                       {r.check_in_time ? (
-                        <span className="text-xs text-emerald-700 font-medium">{(() => { try { return new Date(r.check_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }); } catch { return r.check_in_time; } })()}</span>
+                        <span className="text-xs text-emerald-700 font-medium">{(() => { try { return new Date(r.check_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }); } catch { return r.check_in_time; } })()}</span>
                       ) : (
                         <span className="text-zinc-400 text-xs">-</span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
                       {r.check_out_time ? (
-                        <span className="text-xs text-red-600 font-medium">{(() => { try { return new Date(r.check_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }); } catch { return r.check_out_time; } })()}</span>
+                        <span className="text-xs text-red-600 font-medium">{(() => { try { return new Date(r.check_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }); } catch { return r.check_out_time; } })()}</span>
                       ) : (
                         <span className="text-zinc-400 text-xs">-</span>
                       )}

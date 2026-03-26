@@ -7,26 +7,31 @@
 const IST_TZ = 'Asia/Kolkata';
 
 /**
- * Format a datetime string/Date to IST time (e.g., "03:28 pm")
+ * Format a datetime string/Date to IST time 24h (e.g., "15:28") — DEFAULT
  */
 export const fmtTimeIST = (t) => {
   if (!t) return '-';
   try {
     return new Date(t).toLocaleTimeString('en-IN', {
-      hour: '2-digit', minute: '2-digit', hour12: true,
+      hour: '2-digit', minute: '2-digit', hour12: false,
       timeZone: IST_TZ
     });
   } catch { return '-'; }
 };
 
 /**
- * Format a datetime string/Date to IST 24h time (e.g., "15:28")
+ * Format a datetime string/Date to IST 24h time (e.g., "15:28") — alias
  */
-export const fmtTime24IST = (t) => {
+export const fmtTime24IST = (t) => fmtTimeIST(t);
+
+/**
+ * Format a datetime string/Date to IST 12h time (e.g., "03:28 pm")
+ */
+export const fmtTime12IST = (t) => {
   if (!t) return '-';
   try {
     return new Date(t).toLocaleTimeString('en-IN', {
-      hour: '2-digit', minute: '2-digit', hour12: false,
+      hour: '2-digit', minute: '2-digit', hour12: true,
       timeZone: IST_TZ
     });
   } catch { return '-'; }

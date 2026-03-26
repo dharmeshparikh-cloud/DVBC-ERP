@@ -27,7 +27,9 @@ const STATUS_STYLES = {
 };
 
 const LEAVE_TYPE_MAP = {
-  casual_leave: 'CL', sick_leave: 'SL', earned_leave: 'EL', loss_of_pay: 'LOP', lop: 'LOP'
+  casual_leave: 'CL', sick_leave: 'SL', earned_leave: 'EL', privilege_leave: 'PL',
+  public_holiday: 'PH', half_day: 'HL', loss_of_pay: 'LOP', lop: 'LOP',
+  compensatory_off: 'CO', maternity_leave: 'ML', paternity_leave: 'PaL'
 };
 
 const fmtDate = (dateStr) => {
@@ -40,10 +42,15 @@ const fmtTime = (t) => {
   if (!t) return '-';
   try {
     return new Date(t).toLocaleTimeString('en-IN', {
-      hour: '2-digit', minute: '2-digit', hour12: true,
+      hour: '2-digit', minute: '2-digit', hour12: false,
       timeZone: 'Asia/Kolkata'
     });
   } catch { return '-'; }
+};
+
+const minToHrs = (m) => {
+  if (!m || m <= 0) return null;
+  return (m / 60).toFixed(2);
 };
 
 const MyAttendance = () => {
@@ -133,17 +140,17 @@ const MyAttendance = () => {
 
   const downloadCSV = () => {
     if (!filtered.length) { toast.error('No records'); return; }
-    const hdr = ['Date','Status','Location','Leave','Check In','Check Out','Late (min)','Early In (min)','Late Out (min)','Hours (h)','OT (min)','Half Day','Regularized'];
+    const hdr = ['Date','Status','Location','Leave','Check In (24h)','Check Out (24h)','Late (hrs)','Early In (hrs)','Late Out (hrs)','Hours (h)','OT (hrs)','Half Day','Regularized'];
     const rows = filtered.map(r => [
       fmtDate(r.date), STATUS_STYLES[r.status]?.label || '', r.work_location === 'in_office' ? 'Office' : r.work_location === 'onsite' ? 'On-Site' : r.work_location === 'wfh' ? 'WFH' : '',
       r.leave_display || LEAVE_TYPE_MAP[r.leave_type] || '',
       r.check_in_time ? fmtTime(r.check_in_time) : '', r.check_out_time ? fmtTime(r.check_out_time) : '',
-      r.late_minutes || 0, r.early_login_minutes || 0, r.late_checkout_minutes || 0,
-      r.working_hours ? r.working_hours.toFixed(1) : '', r.overtime_minutes || 0,
+      minToHrs(r.late_minutes) || 0, minToHrs(r.early_login_minutes) || 0, minToHrs(r.late_checkout_minutes) || 0,
+      r.working_hours ? r.working_hours.toFixed(1) : '', minToHrs(r.overtime_minutes) || 0,
       r.is_half_day ? (r.half_day_type === 'first_half' ? '1st Half Off' : '2nd Half Off') : '',
       r.regularized ? 'Yes' : 'No'
     ]);
-    rows.push(['','','','','','TOTAL', totals.late, totals.earlyMin, totals.lateOutMin, totals.h, totals.otMin, '', '']);
+    rows.push(['','','','','','TOTAL', totals.late, minToHrs(totals.earlyMin) || 0, minToHrs(totals.lateOutMin) || 0, totals.h, minToHrs(totals.otMin) || 0, '', '']);
     const csv = [hdr, ...rows].map(r => r.join(',')).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `attendance_${month}.csv`; a.click(); toast.success('CSV downloaded');
@@ -240,7 +247,7 @@ const MyAttendance = () => {
               { icon: Coffee, color: 'purple', label: 'Leave', val: s.on_leave },
               { icon: AlertTriangle, color: 'orange', label: 'Late', val: s.late_count },
               { icon: Clock, color: 'zinc', label: 'Total Hrs', val: s.total_hours },
-              { icon: Clock, color: 'blue', label: 'Overtime (min)', val: s.total_overtime_min || 0, accent: true },
+              { icon: Clock, color: 'blue', label: 'Overtime (hrs)', val: s.total_overtime_min ? (s.total_overtime_min / 60).toFixed(2) : 0, accent: true },
             ].map((c, i) => (
               <Card key={i} className={`border-zinc-200 shadow-none rounded-sm ${c.accent ? 'border-blue-200 bg-blue-50/30' : ''}`}>
                 <CardContent className="p-3 flex items-center gap-2">
@@ -268,13 +275,13 @@ const MyAttendance = () => {
                 <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
                 <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Location</th>
                 <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium whitespace-nowrap">Leave</th>
-                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium whitespace-nowrap">Check In</th>
-                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium whitespace-nowrap">Check Out</th>
-                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Late (min)</th>
-                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Early In (min)</th>
-                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Late Out (min)</th>
+                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium whitespace-nowrap">Check In (24h)</th>
+                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium whitespace-nowrap">Check Out (24h)</th>
+                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Late (hrs)</th>
+                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Early In (hrs)</th>
+                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Late Out (hrs)</th>
                 <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Hours (h)</th>
-                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">OT (min)</th>
+                <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">OT (hrs)</th>
                 {isHRAdmin && <th className="text-center px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500 font-medium">Actions</th>}
               </tr>
             </thead>
@@ -331,17 +338,17 @@ const MyAttendance = () => {
                       ) : <span className="text-zinc-600">{fmtTime(r?.check_out_time)}</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      {r?.is_late ? <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium" data-testid={`late-badge-${i}`}>{r.late_minutes}</span> : <span className="text-zinc-400">-</span>}
+                      {r?.is_late ? <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium" data-testid={`late-badge-${i}`}>{minToHrs(r.late_minutes)}</span> : <span className="text-zinc-400">-</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      {earlyIn > 0 ? <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium" data-testid={`early-badge-${i}`}>{earlyIn}</span> : <span className="text-zinc-400">-</span>}
+                      {earlyIn > 0 ? <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium" data-testid={`early-badge-${i}`}>{minToHrs(earlyIn)}</span> : <span className="text-zinc-400">-</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      {lateOut > 0 ? <span className="text-xs px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 font-medium" data-testid={`lateout-badge-${i}`}>{lateOut}</span> : <span className="text-zinc-400">-</span>}
+                      {lateOut > 0 ? <span className="text-xs px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 font-medium" data-testid={`lateout-badge-${i}`}>{minToHrs(lateOut)}</span> : <span className="text-zinc-400">-</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center text-zinc-700 font-medium">{hrs !== '-' ? hrs : '-'}</td>
                     <td className="px-3 py-2.5 text-center">
-                      {otMin > 0 ? <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium" data-testid={`ot-badge-${i}`}>{otMin}</span> : <span className="text-zinc-400">-</span>}
+                      {otMin > 0 ? <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium" data-testid={`ot-badge-${i}`}>{minToHrs(otMin)}</span> : <span className="text-zinc-400">-</span>}
                     </td>
                     {isHRAdmin && (
                       <td className="px-3 py-2.5 text-center whitespace-nowrap">
@@ -369,10 +376,10 @@ const MyAttendance = () => {
                 <td colSpan={2} />
                 <td colSpan={2} />
                 <td className="px-3 py-2.5 text-center">{totals.late > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium">{totals.late}</span>}</td>
-                <td className="px-3 py-2.5 text-center">{totals.earlyMin > 0 && <span className="text-xs font-medium text-emerald-700">{totals.earlyMin}</span>}</td>
-                <td className="px-3 py-2.5 text-center">{totals.lateOutMin > 0 && <span className="text-xs font-medium text-sky-700">{totals.lateOutMin}</span>}</td>
+                <td className="px-3 py-2.5 text-center">{totals.earlyMin > 0 && <span className="text-xs font-medium text-emerald-700">{minToHrs(totals.earlyMin)}</span>}</td>
+                <td className="px-3 py-2.5 text-center">{totals.lateOutMin > 0 && <span className="text-xs font-medium text-sky-700">{minToHrs(totals.lateOutMin)}</span>}</td>
                 <td className="px-3 py-2.5 text-center text-xs font-bold text-zinc-700">{totals.h}</td>
-                <td className="px-3 py-2.5 text-center">{totals.otMin > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">{totals.otMin}</span>}</td>
+                <td className="px-3 py-2.5 text-center">{totals.otMin > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">{minToHrs(totals.otMin)}</span>}</td>
                 {isHRAdmin && <td />}
               </tr>
             </tfoot>

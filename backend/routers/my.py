@@ -599,17 +599,24 @@ async def get_my_attendance(
         r.setdefault("half_day_type", None)
     
     # ── Enrich half-day leave type from leave_requests ──
+    LEAVE_SHORT = {
+        "casual_leave": "CL", "sick_leave": "SL", "privilege_leave": "PL",
+        "earned_leave": "EL", "public_holiday": "PH", "half_day": "HL",
+        "loss_of_pay": "LOP", "lop": "LOP", "compensatory_off": "CO",
+        "maternity_leave": "ML", "paternity_leave": "PaL"
+    }
     for r in records:
         lv_info = leave_map.get(r.get("date"))
         if lv_info:
+            lt_key = lv_info["leave_type"]
+            lt_short = LEAVE_SHORT.get(lt_key, lt_key.replace("_", " ").title()[:3])
             if r.get("is_half_day"):
-                lt = lv_info["leave_type"].replace("_", " ").upper()[:2]
                 period = "1st Half" if r.get("half_day_type") == "first_half" else "2nd Half"
-                r["leave_display"] = f"{lt} ({period})"
-                r["leave_type"] = lv_info["leave_type"]
+                r["leave_display"] = f"{lt_short} ({period})"
+                r["leave_type"] = lt_key
                 r["leave_status"] = lv_info["leave_status"]
             elif r.get("status") not in ("present",):
-                r["leave_type"] = lv_info["leave_type"]
+                r["leave_type"] = lt_key
                 r["leave_status"] = lv_info["leave_status"]
     
     # Calculate summary (after recalculation)

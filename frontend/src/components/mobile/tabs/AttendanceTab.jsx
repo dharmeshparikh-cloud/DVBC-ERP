@@ -43,7 +43,7 @@ export const AttendanceTab = memo(({
               </div>
               <p className="text-sm text-indigo-200">
                 {checkInStatus.check_in_time ? 
-                  `Since ${new Date(checkInStatus.check_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}` :
+                  `Since ${new Date(checkInStatus.check_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })}` :
                   'Today'}
               </p>
               {checkInStatus.geo_location?.address && (

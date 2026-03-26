@@ -415,7 +415,7 @@ const formatTime = (time) => {
   try {
     if (time.includes('T') || time.includes(':')) {
       const d = new Date(time.includes('T') ? time : `2000-01-01T${time}`);
-      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
     }
     return time;
   } catch {
