@@ -66,6 +66,20 @@ const AgreementView = () => {
   const getAgreementHTML = () => {
     const schedule = paymentSchedule.installments || paymentSchedule.schedule_breakdown || [];
     
+    // Helper function to format date as DD-MM-YYYY
+    const formatDateDDMMYYYY = (dateStr) => {
+      if (!dateStr) return '';
+      try {
+        const dt = new Date(dateStr);
+        const day = String(dt.getDate()).padStart(2, '0');
+        const month = String(dt.getMonth() + 1).padStart(2, '0');
+        const year = dt.getFullYear();
+        return `${day}-${month}-${year}`;
+      } catch (e) {
+        return dateStr;
+      }
+    };
+    
     // Helper function to calculate due dates
     const calculateDueDate = (startDateStr, idx, totalInstallments, durationMonths) => {
       if (!startDateStr || totalInstallments <= 1) return '';
@@ -74,11 +88,16 @@ const AgreementView = () => {
         const monthsPerInstallment = Math.floor(durationMonths / totalInstallments);
         const dueDt = new Date(startDt);
         dueDt.setMonth(dueDt.getMonth() + (idx * monthsPerInstallment));
-        return dueDt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        return formatDateDDMMYYYY(dueDt);
       } catch (e) {
         return '';
       }
     };
+    
+    // Calculate totals
+    let totalBasic = 0;
+    let totalGST = 0;
+    let totalNet = 0;
     
     const installmentsHTML = schedule.map((inst, idx) => {
       const amount = inst.amount || inst.net || inst.basic || 0;
@@ -86,6 +105,11 @@ const AgreementView = () => {
       const gst = inst.gst || 0;
       const basic = inst.basic || amount;
       const dueDate = inst.due_date || calculateDueDate(startDate, idx, schedule.length, durationMonths);
+      
+      totalBasic += basic;
+      totalGST += gst;
+      totalNet += amount;
+      
       return `
       <tr>
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${idx + 1}</td>
@@ -96,6 +120,19 @@ const AgreementView = () => {
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${dueDate}</td>
       </tr>`;
     }).join('');
+    
+    // Add total row
+    const totalsRowHTML = schedule.length > 0 ? `
+      <tr style="background:#f3f4f6;font-weight:700;">
+        <td colspan="2" style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">TOTAL</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(totalBasic)}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(totalGST)}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(totalNet)}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;"></td>
+      </tr>` : '';
+    
+    const startDateDisplay = formatDateDDMMYYYY(startDate);
+    const endDateDisplay = formatDateDDMMYYYY(endDate);
 
     const teamDeploymentHTML = teamDeployment.map((m, idx) => `
       <tr>
@@ -196,8 +233,8 @@ const AgreementView = () => {
         <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:12px;">
           <tr><td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;width:35%;">Total Investment</td><td style="border:1px solid #d1d5db;padding:10px 14px;font-size:14px;font-weight:700;">${formatINR(totalValue)}</td></tr>
           <tr><td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;">Project Duration</td><td style="border:1px solid #d1d5db;padding:10px 14px;">${durationMonths} Months</td></tr>
-          <tr><td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;">Commencement Date</td><td style="border:1px solid #d1d5db;padding:10px 14px;">${startDate || 'As mutually agreed'}</td></tr>
-          <tr><td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;">Completion Date</td><td style="border:1px solid #d1d5db;padding:10px 14px;">${endDate || 'As per project duration'}</td></tr>
+          <tr><td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;">Commencement Date</td><td style="border:1px solid #d1d5db;padding:10px 14px;">${startDateDisplay || 'As mutually agreed'}</td></tr>
+          <tr><td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;">Completion Date</td><td style="border:1px solid #d1d5db;padding:10px 14px;">${endDateDisplay || 'As per project duration'}</td></tr>
         </table>
 
         ${schedule.length > 0 ? `
@@ -207,15 +244,11 @@ const AgreementView = () => {
               <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:center;width:35px;">S.No</th>
               <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:left;">Description</th>
               <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">Basic (INR)</th>
-              <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">GST</th>
+              <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">GST @18%</th>
               <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">Net Amount</th>
               <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:center;">Due Date</th>
             </tr></thead>
-            <tbody>${installmentsHTML}</tbody>
-            <tfoot><tr style="background:#f3f4f6;font-weight:700;">
-              <td colspan="5" style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">Grand Total</td>
-              <td style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">${formatINR(schedule.reduce((s,i) => s + (i.amount || i.net || 0), 0))}</td>
-            </tr></tfoot>
+            <tbody>${installmentsHTML}${totalsRowHTML}</tbody>
           </table>` : ''}
 
         <h3 style="font-size:13px;font-weight:700;margin:20px 0 10px;color:#1a1a1a;">Key Payment Terms</h3>

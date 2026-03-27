@@ -883,12 +883,34 @@ async def send_agreement_email(
         months_per_installment = duration_months // total_installments
         return start_dt + relativedelta(months=idx * months_per_installment)
     
+    def format_date_ddmmyyyy(date_str):
+        """Convert date to DD-MM-YYYY format"""
+        if not date_str:
+            return ''
+        try:
+            if isinstance(date_str, str):
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
+            else:
+                dt = date_str
+            return dt.strftime("%d-%m-%Y")
+        except Exception:
+            return date_str
+    
     start_dt = None
     try:
         if start_date:
             start_dt = datetime.strptime(start_date, "%Y-%m-%d")
     except Exception:
         start_dt = datetime.now()
+    
+    # Format dates for display
+    start_date_display = format_date_ddmmyyyy(start_date)
+    end_date_display = format_date_ddmmyyyy(end_date)
+    
+    # Calculate totals for payment schedule
+    total_basic = 0
+    total_gst = 0
+    total_net = 0
     
     installments_html = ""
     for idx, inst in enumerate(schedule):
@@ -897,11 +919,15 @@ async def send_agreement_email(
         gst = inst.get("gst", 0)
         basic = inst.get("basic") or amount
         
+        total_basic += basic
+        total_gst += gst
+        total_net += amount
+        
         # Calculate due date - use from pricing plan if available, else calculate
         due_date_str = inst.get("due_date") or ""
         if not due_date_str and start_dt:
             due_dt = calculate_due_date(start_dt, idx, len(schedule), duration_months)
-            due_date_str = due_dt.strftime("%d %b %Y")
+            due_date_str = due_dt.strftime("%d-%m-%Y")
         
         installments_html += f"""<tr>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{idx+1}</td>
@@ -910,6 +936,16 @@ async def send_agreement_email(
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(gst) if gst else '-'}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">{fmt_inr(amount)}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{due_date_str}</td>
+        </tr>"""
+    
+    # Add total row
+    if schedule:
+        installments_html += f"""<tr style="background:#f3f4f6;font-weight:700;">
+            <td colspan="2" style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">TOTAL</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(total_basic)}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(total_gst)}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(total_net)}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;"></td>
         </tr>"""
     
     team_html = ""
@@ -1029,10 +1065,10 @@ async def send_agreement_email(
         <table style="width:100%;border-collapse:collapse;margin:8px 0;">
             <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;width:35%;">Total Investment</td><td style="border:1px solid #d1d5db;padding:10px;font-weight:700;">{fmt_inr(total_value)}</td></tr>
             <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">Duration</td><td style="border:1px solid #d1d5db;padding:10px;">{duration_months} Months</td></tr>
-            <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">Start Date</td><td style="border:1px solid #d1d5db;padding:10px;">{start_date}</td></tr>
-            <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">End Date</td><td style="border:1px solid #d1d5db;padding:10px;">{end_date}</td></tr>
+            <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">Start Date</td><td style="border:1px solid #d1d5db;padding:10px;">{start_date_display}</td></tr>
+            <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">End Date</td><td style="border:1px solid #d1d5db;padding:10px;">{end_date_display}</td></tr>
         </table>
-        {'<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;"><thead><tr style="background:#f3f4f6;"><th style="border:1px solid #d1d5db;padding:7px;width:35px;">S.No</th><th style="border:1px solid #d1d5db;padding:7px;">Description</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Basic</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">GST</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Net Amount</th><th style="border:1px solid #d1d5db;padding:7px;text-align:center;">Due Date</th></tr></thead><tbody>' + installments_html + '</tbody></table>' if installments_html else ''}
+        {'<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;"><thead><tr style="background:#f3f4f6;"><th style="border:1px solid #d1d5db;padding:7px;width:35px;">S.No</th><th style="border:1px solid #d1d5db;padding:7px;">Description</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Basic (INR)</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">GST @18%</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Net Amount</th><th style="border:1px solid #d1d5db;padding:7px;text-align:center;">Due Date</th></tr></thead><tbody>' + installments_html + '</tbody></table>' if installments_html else ''}
 
         <h3 style="font-size:13px;font-weight:700;margin:20px 0 10px;color:#1a1a1a;">Key Payment Terms</h3>
         <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11.5px;">
@@ -1236,9 +1272,9 @@ async def send_agreement_email(
         inv_table.rows[1].cells[0].text = "Duration"
         inv_table.rows[1].cells[1].text = f"{duration_months} Months"
         inv_table.rows[2].cells[0].text = "Start Date"
-        inv_table.rows[2].cells[1].text = start_date
+        inv_table.rows[2].cells[1].text = start_date_display
         inv_table.rows[3].cells[0].text = "End Date"
-        inv_table.rows[3].cells[1].text = end_date
+        inv_table.rows[3].cells[1].text = end_date_display
         
         # Payment schedule
         if schedule:
@@ -1249,20 +1285,26 @@ async def send_agreement_email(
             hdr = pay_table.rows[0].cells
             hdr[0].text = "S.No"
             hdr[1].text = "Description"
-            hdr[2].text = "Basic"
-            hdr[3].text = "GST"
+            hdr[2].text = "Basic (INR)"
+            hdr[3].text = "GST @18%"
             hdr[4].text = "Net Amount"
             hdr[5].text = "Due Date"
+            docx_total_basic = 0
+            docx_total_gst = 0
+            docx_total_net = 0
             for idx, inst in enumerate(schedule):
                 amount = inst.get("amount") or inst.get("net") or inst.get("basic") or 0
                 label = inst.get("label") or inst.get("frequency") or f"Installment {idx+1}"
                 gst = inst.get("gst", 0)
                 basic = inst.get("basic") or amount
+                docx_total_basic += basic
+                docx_total_gst += gst
+                docx_total_net += amount
                 # Calculate due date
                 due_date_str = inst.get("due_date") or ""
                 if not due_date_str and start_dt:
                     due_dt = calculate_due_date(start_dt, idx, len(schedule), duration_months)
-                    due_date_str = due_dt.strftime("%d %b %Y")
+                    due_date_str = due_dt.strftime("%d-%m-%Y")
                 row = pay_table.add_row().cells
                 row[0].text = str(idx + 1)
                 row[1].text = label
@@ -1270,6 +1312,18 @@ async def send_agreement_email(
                 row[3].text = fmt_inr(gst) if gst else "-"
                 row[4].text = fmt_inr(amount)
                 row[5].text = due_date_str
+            # Add total row
+            total_row = pay_table.add_row().cells
+            total_row[0].text = ""
+            total_row[1].text = "TOTAL"
+            total_row[1].paragraphs[0].runs[0].bold = True
+            total_row[2].text = fmt_inr(docx_total_basic)
+            total_row[2].paragraphs[0].runs[0].bold = True
+            total_row[3].text = fmt_inr(docx_total_gst)
+            total_row[3].paragraphs[0].runs[0].bold = True
+            total_row[4].text = fmt_inr(docx_total_net)
+            total_row[4].paragraphs[0].runs[0].bold = True
+            total_row[5].text = ""
         
         # Key Payment Terms
         doc.add_paragraph()
