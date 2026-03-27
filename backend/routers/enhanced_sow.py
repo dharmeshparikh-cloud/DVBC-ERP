@@ -407,6 +407,43 @@ async def update_simple_sow(
         }}
     )
     
+    # Auto-sync linked agreements
+    lead_id = sow.get("lead_id")
+    pricing_plan_id = sow.get("pricing_plan_id")
+    if lead_id or pricing_plan_id:
+        query = {"$or": []}
+        if lead_id:
+            query["$or"].append({"lead_id": lead_id})
+        if pricing_plan_id:
+            query["$or"].append({"pricing_plan_id": pricing_plan_id})
+        query["$or"].append({"sow_id": sow_id})
+        
+        linked_agreements = await db.agreements.find(query, {"_id": 0, "id": 1, "version": 1}).to_list(10)
+        
+        for agr in linked_agreements:
+            current_version = agr.get("version", 1)
+            version_snapshot = {
+                "version": current_version,
+                "archived_at": now.isoformat(),
+                "archived_by": current_user.id,
+                "archived_by_name": user_name,
+                "changes_in_next_version": ["auto_sync_sow_scopes"],
+                "trigger": "sow_update"
+            }
+            
+            await db.agreements.update_one(
+                {"id": agr["id"]},
+                {
+                    "$set": {
+                        "sow_scopes": scopes,
+                        "version": current_version + 1,
+                        "last_synced_at": now.isoformat(),
+                        "updated_at": now.isoformat()
+                    },
+                    "$push": {"version_history": version_snapshot}
+                }
+            )
+    
     # Get updated SOW
     updated_sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     

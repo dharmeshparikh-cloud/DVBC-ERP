@@ -231,6 +231,50 @@ async def update_pricing_plan(
         {"$set": update_data}
     )
     
+    # Auto-sync linked agreements
+    lead_id = existing.get("lead_id")
+    if lead_id:
+        linked_agreements = await db.agreements.find(
+            {"$or": [{"pricing_plan_id": plan_id}, {"lead_id": lead_id}]},
+            {"_id": 0, "id": 1, "version": 1}
+        ).to_list(10)
+        
+        for agr in linked_agreements:
+            # Trigger auto-sync for each linked agreement
+            current_version = agr.get("version", 1)
+            version_snapshot = {
+                "version": current_version,
+                "archived_at": datetime.now(timezone.utc).isoformat(),
+                "archived_by": current_user.id,
+                "archived_by_name": current_user.full_name,
+                "changes_in_next_version": ["auto_sync_pricing_plan"],
+                "trigger": "pricing_plan_update"
+            }
+            
+            # Get updated values
+            updated_plan = await db.pricing_plans.find_one({"id": plan_id}, {"_id": 0})
+            new_team = updated_plan.get("team_deployment", [])
+            new_payment = updated_plan.get("payment_plan", {})
+            new_total = updated_plan.get("total_amount")
+            new_tenure = updated_plan.get("tenure_months")
+            
+            await db.agreements.update_one(
+                {"id": agr["id"]},
+                {
+                    "$set": {
+                        "team_deployment": new_team,
+                        "payment_schedule": new_payment,
+                        "total_value": new_total,
+                        "duration_months": new_tenure,
+                        "project_tenure_months": new_tenure,
+                        "version": current_version + 1,
+                        "last_synced_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    },
+                    "$push": {"version_history": version_snapshot}
+                }
+            )
+    
     updated = await db.pricing_plans.find_one({"id": plan_id}, {"_id": 0})
     return updated
 

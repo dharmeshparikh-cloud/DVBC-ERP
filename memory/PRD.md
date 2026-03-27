@@ -52,7 +52,27 @@ Establish a unified and strict governance model across the ERP. Build customized
 - Professional email template with agreement summary
 - Dynamic recipient selection (email + name) from frontend dialog
 - API endpoint: `POST /api/agreements/{id}/send-email` with body `{recipient_email, recipient_name}`
-- Files: `email_service.py` (multiple attachment support), `agreements.py` (email endpoint)
+- **Key Payment Terms** (7 clauses): Fees & Taxes, Advance/Milestone, Payment Timeline (7 days), Delay & Suspension (18% p.a.), Non-Refundable, Discontinue Terms (30 days notice), Other Expenses
+- **Due Date column** in payment schedule (calculated from start date + duration)
+- **Date format**: DD-MM-YYYY throughout
+- **Total row** in payment schedule (Basic, GST @18%, Net Amount)
+
+### Agreements Management Page (28 Mar 2026)
+- **New page at `/agreements`** with table view: Agreement No, Client Name, Start Date, End Date, Version, Actions
+- **Navigation**: Under Sales dropdown in sidebar
+- **Actions**: View, Edit, Download (PDF/DOCX), Sync from Funnel
+- **Versioning**: 
+  - Version badge (v1, v2, v3...) with history dropdown
+  - Auto-increment on sync or edit
+  - Full version history stored with timestamps and change logs
+- **Auto-sync triggers**: When Pricing Plan, SOW, or Team data changes → Agreement auto-updates + version++
+- **RBAC**: Admin + Sales roles only | Consultant: 403 Forbidden
+- **Funnel page update**: Shows read-only preview with "View in Agreements Management" link
+- **API endpoints**:
+  - `GET /api/agreements/management/list` - Table data
+  - `POST /api/agreements/{id}/sync` - Manual sync from funnel
+  - `PUT /api/agreements/{id}/edit` - Edit metadata (creates new version)
+  - `GET /api/agreements/{id}/versions` - Version history
 
 ### Proforma Invoice Updates (28 Mar 2026)
 - Removed Team Deployment block from PDF

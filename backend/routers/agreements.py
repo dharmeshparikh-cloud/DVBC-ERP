@@ -210,6 +210,10 @@ async def create_agreement(
         "status": "active",
         "payments": [],
         "total_paid": 0,
+        # Versioning fields
+        "version": 1,
+        "version_history": [],
+        "last_synced_at": datetime.now(timezone.utc).isoformat(),
         "created_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
@@ -444,7 +448,353 @@ async def get_agreements(
     }
 
 
-@router.patch("/{agreement_id}/submit-for-approval")
+# ============================================================
+# AGREEMENTS MANAGEMENT PAGE ENDPOINTS
+# ============================================================
+
+# RBAC for Agreements Management: Admin + Sales only
+AGREEMENTS_MGMT_ROLES = ['admin', 'executive', 'sales_manager', 'manager', 'principal_consultant']
+
+
+class AgreementEditRequest(BaseModel):
+    """Request model for editing agreement - creates new version"""
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    total_value: Optional[float] = None
+    duration_months: Optional[int] = None
+    notes: Optional[str] = None
+
+
+@router.get("/management/list")
+async def get_agreements_for_management(
+    page: int = 1,
+    page_size: int = 25,
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get agreements list for management page.
+    Returns: Agreement No, Client Name, Start Date, End Date, Version, Actions
+    
+    RBAC: Admin + Sales roles only. Consultant: 403 Forbidden
+    """
+    db = get_db()
+    
+    # RBAC check - Admin + Sales only
+    if current_user.role not in AGREEMENTS_MGMT_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied. Only Admin and Sales roles can access Agreements Management.")
+    
+    query = {}  # Show all agreements
+    
+    if search:
+        query["$or"] = [
+            {"agreement_number": {"$regex": search, "$options": "i"}},
+            {"client_name": {"$regex": search, "$options": "i"}},
+        ]
+    
+    total = await db.agreements.count_documents(query)
+    skip = (page - 1) * page_size
+    
+    # Only fetch fields needed for the table
+    projection = {
+        "_id": 0,
+        "id": 1,
+        "agreement_number": 1,
+        "client_name": 1,
+        "start_date": 1,
+        "end_date": 1,
+        "total_value": 1,
+        "status": 1,
+        "version": 1,
+        "lead_id": 1,
+        "created_at": 1,
+        "updated_at": 1,
+        "last_synced_at": 1
+    }
+    
+    agreements = await db.agreements.find(query, projection).sort("created_at", -1).skip(skip).limit(page_size).to_list(page_size)
+    
+    # Add version default for older agreements
+    for agr in agreements:
+        if "version" not in agr:
+            agr["version"] = 1
+    
+    return {
+        "data": agreements,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size
+    }
+
+
+@router.post("/{agreement_id}/sync")
+async def sync_agreement_from_funnel(
+    agreement_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Sync agreement with latest funnel data (Pricing Plan, SOW, Team, Dates).
+    Auto-increments version and stores previous version in history.
+    
+    RBAC: Admin + Sales roles only
+    """
+    db = get_db()
+    
+    if current_user.role not in AGREEMENTS_MGMT_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    lead_id = agreement.get("lead_id")
+    
+    # Get latest pricing plan
+    pricing_plan = None
+    if agreement.get("pricing_plan_id"):
+        pricing_plan = await db.pricing_plans.find_one({"id": agreement["pricing_plan_id"]}, {"_id": 0})
+    if not pricing_plan and lead_id:
+        pricing_plan = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Get latest SOW
+    sow = None
+    if agreement.get("sow_id"):
+        sow = await db.enhanced_sow.find_one({"id": agreement["sow_id"]}, {"_id": 0})
+    if not sow and pricing_plan:
+        sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan.get("id")}, {"_id": 0})
+    if not sow and lead_id:
+        sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Build updated data from funnel
+    new_team_deployment = (pricing_plan.get("team_deployment") if pricing_plan else []) or []
+    new_sow_scopes = (sow.get("scopes") if sow else []) or []
+    new_payment_schedule = (pricing_plan.get("payment_plan") if pricing_plan else {}) or {}
+    new_total_value = (pricing_plan.get("total_amount") if pricing_plan else None) or agreement.get("total_value")
+    new_duration = (pricing_plan.get("tenure_months") if pricing_plan else None) or agreement.get("duration_months")
+    new_start_date = (pricing_plan.get("payment_plan", {}).get("start_date") if pricing_plan else None) or agreement.get("start_date")
+    
+    # Calculate new end date if start_date or duration changed
+    from dateutil.relativedelta import relativedelta
+    new_end_date = agreement.get("end_date")
+    if new_start_date and new_duration:
+        try:
+            start_dt = datetime.strptime(new_start_date, "%Y-%m-%d")
+            new_end_date = (start_dt + relativedelta(months=new_duration)).strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    
+    # Check if anything actually changed
+    changes = []
+    if new_team_deployment != agreement.get("team_deployment", []):
+        changes.append("team_deployment")
+    if new_sow_scopes != agreement.get("sow_scopes", []):
+        changes.append("sow_scopes")
+    if new_payment_schedule != agreement.get("payment_schedule", {}):
+        changes.append("payment_schedule")
+    if new_total_value != agreement.get("total_value"):
+        changes.append("total_value")
+    if new_duration != agreement.get("duration_months"):
+        changes.append("duration_months")
+    if new_start_date != agreement.get("start_date"):
+        changes.append("start_date")
+    if new_end_date != agreement.get("end_date"):
+        changes.append("end_date")
+    
+    if not changes:
+        return {"message": "No changes detected", "synced": False, "version": agreement.get("version", 1)}
+    
+    # Store current version in history
+    current_version = agreement.get("version", 1)
+    version_snapshot = {
+        "version": current_version,
+        "team_deployment": agreement.get("team_deployment"),
+        "sow_scopes": agreement.get("sow_scopes"),
+        "payment_schedule": agreement.get("payment_schedule"),
+        "total_value": agreement.get("total_value"),
+        "duration_months": agreement.get("duration_months"),
+        "start_date": agreement.get("start_date"),
+        "end_date": agreement.get("end_date"),
+        "archived_at": datetime.now(timezone.utc).isoformat(),
+        "archived_by": current_user.id,
+        "archived_by_name": current_user.full_name,
+        "changes_in_next_version": changes
+    }
+    
+    new_version = current_version + 1
+    
+    # Update agreement with new data
+    await db.agreements.update_one(
+        {"id": agreement_id},
+        {
+            "$set": {
+                "team_deployment": new_team_deployment,
+                "sow_scopes": new_sow_scopes,
+                "payment_schedule": new_payment_schedule,
+                "total_value": new_total_value,
+                "duration_months": new_duration,
+                "project_tenure_months": new_duration,
+                "start_date": new_start_date,
+                "end_date": new_end_date,
+                "version": new_version,
+                "last_synced_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$push": {
+                "version_history": version_snapshot
+            }
+        }
+    )
+    
+    return {
+        "message": f"Agreement synced successfully. Version updated from v{current_version} to v{new_version}",
+        "synced": True,
+        "version": new_version,
+        "changes": changes
+    }
+
+
+@router.put("/{agreement_id}/edit")
+async def edit_agreement(
+    agreement_id: str,
+    data: AgreementEditRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Edit agreement metadata (dates, value, notes). Creates new version.
+    
+    RBAC: Admin + Sales roles only
+    """
+    db = get_db()
+    
+    if current_user.role not in AGREEMENTS_MGMT_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Validate start date
+    if data.start_date:
+        today_str = now_ist().strftime("%Y-%m-%d")
+        if data.start_date < today_str:
+            raise HTTPException(status_code=400, detail="Start date cannot be earlier than today")
+    
+    # Build update dict
+    update_fields = {}
+    changes = []
+    
+    if data.start_date and data.start_date != agreement.get("start_date"):
+        update_fields["start_date"] = data.start_date
+        changes.append("start_date")
+    
+    if data.end_date and data.end_date != agreement.get("end_date"):
+        update_fields["end_date"] = data.end_date
+        changes.append("end_date")
+    
+    if data.total_value is not None and data.total_value != agreement.get("total_value"):
+        update_fields["total_value"] = data.total_value
+        changes.append("total_value")
+    
+    if data.duration_months is not None and data.duration_months != agreement.get("duration_months"):
+        update_fields["duration_months"] = data.duration_months
+        update_fields["project_tenure_months"] = data.duration_months
+        changes.append("duration_months")
+    
+    if data.notes:
+        update_fields["edit_notes"] = data.notes
+    
+    if not changes:
+        return {"message": "No changes detected", "updated": False, "version": agreement.get("version", 1)}
+    
+    # Store current version in history
+    current_version = agreement.get("version", 1)
+    version_snapshot = {
+        "version": current_version,
+        "start_date": agreement.get("start_date"),
+        "end_date": agreement.get("end_date"),
+        "total_value": agreement.get("total_value"),
+        "duration_months": agreement.get("duration_months"),
+        "archived_at": datetime.now(timezone.utc).isoformat(),
+        "archived_by": current_user.id,
+        "archived_by_name": current_user.full_name,
+        "edit_reason": data.notes or "Manual edit",
+        "changes_in_next_version": changes
+    }
+    
+    new_version = current_version + 1
+    update_fields["version"] = new_version
+    update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+    update_fields["last_edited_by"] = current_user.id
+    update_fields["last_edited_by_name"] = current_user.full_name
+    
+    await db.agreements.update_one(
+        {"id": agreement_id},
+        {
+            "$set": update_fields,
+            "$push": {"version_history": version_snapshot}
+        }
+    )
+    
+    return {
+        "message": f"Agreement updated. Version: v{new_version}",
+        "updated": True,
+        "version": new_version,
+        "changes": changes
+    }
+
+
+@router.get("/{agreement_id}/versions")
+async def get_agreement_versions(
+    agreement_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get version history for an agreement.
+    
+    RBAC: Admin + Sales roles only
+    """
+    db = get_db()
+    
+    if current_user.role not in AGREEMENTS_MGMT_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    agreement = await db.agreements.find_one(
+        {"id": agreement_id},
+        {"_id": 0, "id": 1, "agreement_number": 1, "version": 1, "version_history": 1, "created_at": 1, "updated_at": 1}
+    )
+    
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    current_version = agreement.get("version", 1)
+    version_history = agreement.get("version_history", [])
+    
+    # Add current version info
+    versions = [{
+        "version": current_version,
+        "is_current": True,
+        "created_at": agreement.get("updated_at") or agreement.get("created_at"),
+        "changes": "Current version"
+    }]
+    
+    # Add historical versions (reverse order - newest first)
+    for vh in reversed(version_history):
+        versions.append({
+            "version": vh.get("version"),
+            "is_current": False,
+            "created_at": vh.get("archived_at"),
+            "archived_by": vh.get("archived_by_name"),
+            "changes": ", ".join(vh.get("changes_in_next_version", [])),
+            "edit_reason": vh.get("edit_reason")
+        })
+    
+    return {
+        "agreement_id": agreement_id,
+        "agreement_number": agreement.get("agreement_number"),
+        "current_version": current_version,
+        "versions": versions
+    }
 async def submit_agreement_for_approval(agreement_id: str, current_user: User = Depends(get_current_user)):
     """
     Submit a draft agreement for Principal Consultant/Admin approval.

@@ -57,6 +57,7 @@ const SalesSOWList = lazy(() => import('./pages/sales-funnel/SalesSOWList'));
 const ProformaInvoice = lazy(() => import('./pages/sales-funnel/ProformaInvoice'));
 const Agreements = lazy(() => import('./pages/sales-funnel/Agreements'));
 const AgreementView = lazy(() => import('./pages/sales-funnel/AgreementView'));
+const AgreementsList = lazy(() => import('./pages/AgreementsList'));
 const PaymentVerification = lazy(() => import('./pages/sales-funnel/PaymentVerification'));
 const ManagerApprovals = lazy(() => import('./pages/sales-funnel/ManagerApprovals'));
 const ClientOnboarding = lazy(() => import('./pages/ClientOnboarding'));
@@ -318,6 +319,9 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/agreements" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><Agreements /></RoleGuard>} />
         <Route path="sales-funnel/agreement/:agreementId" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><AgreementView /></RoleGuard>} />
         <Route path="sales-funnel/agreement" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><AgreementView /></RoleGuard>} />
+        {/* Agreements Management Page - Admin + Sales only */}
+        <Route path="agreements" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><AgreementsList /></RoleGuard>} />
+        <Route path="agreements/:agreementId" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><AgreementView /></RoleGuard>} />
         <Route path="sales-funnel/payment-verification" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Finance', 'Consulting']}><PaymentVerification /></RoleGuard>} />
         <Route path="sales-funnel/approvals" element={<RoleGuard allowedRoles={['sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><ManagerApprovals /></RoleGuard>} />
         <Route path="client-onboarding" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><ClientOnboarding /></RoleGuard>} />

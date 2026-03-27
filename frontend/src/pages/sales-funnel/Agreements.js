@@ -519,11 +519,25 @@ const Agreements = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* Version Badge */}
+                      <span className="px-2 py-0.5 text-xs font-medium rounded bg-zinc-100 text-zinc-600">
+                        v{agreement.version || 1}
+                      </span>
                       <span className={`px-2 py-1 text-xs font-medium rounded-sm flex items-center gap-1 ${statusInfo.bg}`}>
                         <StatusIcon className="w-3 h-3" strokeWidth={1.5} />
                         {agreement.status.replace('_', ' ')}
                       </span>
                     </div>
+                  </div>
+                  {/* Link to Agreements Management (read-only indicator) */}
+                  <div className="mt-2 pt-2 border-t border-zinc-100">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/agreements/${agreement.id}`); }}
+                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                      <FileCheck className="w-3 h-3" />
+                      View in Agreements Management →
+                    </button>
                   </div>
                 </CardHeader>
                 <CardContent>
