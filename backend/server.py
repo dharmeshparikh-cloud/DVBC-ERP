@@ -438,6 +438,7 @@ from routers import tasks as tasks_router
 from routers import notifications as notifications_router
 from routers import approvals as approvals_router
 from routers import quotations as quotations_router
+from routers import gstin as gstin_router
 from routers import consultants as consultants_router
 from routers import reports as reports_router
 from routers import settings as settings_router
@@ -615,6 +616,7 @@ api_router.include_router(tasks_router.router)
 api_router.include_router(notifications_router.router)
 api_router.include_router(approvals_router.router)
 api_router.include_router(quotations_router.router)
+api_router.include_router(gstin_router.router)
 api_router.include_router(consultants_router.router)
 api_router.include_router(reports_router.router)
 api_router.include_router(settings_router.router)

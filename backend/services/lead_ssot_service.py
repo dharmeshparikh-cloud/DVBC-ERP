@@ -149,7 +149,9 @@ async def get_lead_master_data(
             "source": 1,
             "assigned_to": 1,
             "status": 1,
-            "created_by": 1
+            "created_by": 1,
+            "gstin": 1,
+            "gst_number": 1
         }
     )
     
@@ -176,6 +178,7 @@ async def get_lead_master_data(
         "lead_source": lead.get("lead_source") or lead.get("source", ""),
         "assigned_to": lead.get("assigned_to", ""),
         "status": lead.get("status", ""),
+        "gstin": lead.get("gstin") or lead.get("gst_number", ""),
         # Computed fields
         "client_name": lead.get("company", ""),
         "client_email": lead.get("email", ""),

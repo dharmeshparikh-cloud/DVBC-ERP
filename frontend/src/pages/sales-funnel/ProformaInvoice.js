@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
+import { validateGSTIN, matchGSTINCompany } from '../../utils/gstin';
 import SalesFunnelProgress from '../../components/SalesFunnelProgress';
 import ViewToggle from '../../components/ViewToggle';
 import PageHeader from '../../components/ui/page-header';
@@ -69,6 +70,26 @@ const ProformaInvoice = () => {
 
   // SSOT: Track selected lead master data for display
   const [selectedLeadMasterData, setSelectedLeadMasterData] = useState(null);
+
+  // GSTIN validation state
+  const [gstinValidation, setGstinValidation] = useState(null);
+
+  // Validate GSTIN whenever it changes
+  useEffect(() => {
+    const gstin = formData.client_gstin;
+    if (!gstin || gstin.length === 0) {
+      setGstinValidation(null);
+      return;
+    }
+    const result = validateGSTIN(gstin);
+    if (result.valid) {
+      const companyName = selectedLeadMasterData?.company || selectedLead?.company || '';
+      const companyMatch = matchGSTINCompany(gstin, companyName);
+      setGstinValidation({ ...result, companyMatch });
+    } else {
+      setGstinValidation(result);
+    }
+  }, [formData.client_gstin, selectedLeadMasterData, selectedLead]);
 
   // Company details (can be moved to config)
   const companyDetails = {
@@ -1001,6 +1022,10 @@ const ProformaInvoice = () => {
                 }}
                 onMasterDataLoad={(masterData) => {
                   setSelectedLeadMasterData(masterData);
+                  // Auto-populate GSTIN from lead if available and field is empty
+                  if (masterData?.gstin && !formData.client_gstin) {
+                    setFormData(prev => ({ ...prev, client_gstin: masterData.gstin }));
+                  }
                 }}
                 required={true}
                 placeholder="Search for a lead with pricing plan..."
@@ -1101,13 +1126,63 @@ const ProformaInvoice = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Client GSTIN</Label>
-              <Input
-                value={formData.client_gstin}
-                onChange={(e) => setFormData({ ...formData, client_gstin: e.target.value })}
-                placeholder="e.g. 24XXXXX1234X1Z5"
-                className="rounded-sm border-zinc-200"
-                data-testid="client-gstin-input"
-              />
+              <div className="relative">
+                <Input
+                  value={formData.client_gstin}
+                  onChange={(e) => setFormData({ ...formData, client_gstin: e.target.value.toUpperCase() })}
+                  placeholder="e.g. 24AABCT1234F1ZP"
+                  className={`rounded-sm pr-10 font-mono tracking-wider ${
+                    gstinValidation?.valid ? 'border-emerald-400 focus:ring-emerald-500' :
+                    gstinValidation && !gstinValidation.valid ? 'border-red-400 focus:ring-red-500' :
+                    'border-zinc-200'
+                  }`}
+                  maxLength={15}
+                  data-testid="client-gstin-input"
+                />
+                {gstinValidation && (
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                    {gstinValidation.valid ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* GSTIN Validation Details */}
+              {gstinValidation && (
+                <div className={`text-xs p-2.5 rounded-sm border ${
+                  gstinValidation.valid ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+                }`} data-testid="gstin-validation-result">
+                  {gstinValidation.valid ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-4">
+                        <span className="text-emerald-700 font-medium">Valid GSTIN</span>
+                        <span className="text-emerald-600">State: {gstinValidation.stateName} ({gstinValidation.stateCode})</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-emerald-600">
+                        <span>PAN: <span className="font-mono font-medium">{gstinValidation.pan}</span></span>
+                      </div>
+                      {gstinValidation.companyMatch && (
+                        <div className={`flex items-center gap-1.5 mt-1 ${
+                          gstinValidation.companyMatch.match ? 'text-emerald-700' : 'text-amber-700'
+                        }`}>
+                          {gstinValidation.companyMatch.match ? (
+                            <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                          ) : (
+                            <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                          )}
+                          <span>{gstinValidation.companyMatch.hint}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-red-600">
+                      {gstinValidation.errors.map((err, i) => <p key={i}>{err}</p>)}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Terms of Delivery</Label>
@@ -1147,10 +1222,10 @@ const ProformaInvoice = () => {
           <div className="flex items-center justify-between px-5 py-2.5 border-b border-zinc-200 bg-white sticky top-0 z-10">
             <span className="text-xs font-medium text-zinc-500">Invoice Preview</span>
             <div className="flex gap-2">
-              <Button onClick={handleDownloadPDF} size="sm" variant="outline" className="rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs h-7 px-3">
+              <Button onClick={() => handleDownloadPDF()} size="sm" variant="outline" className="rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs h-7 px-3">
                 <Download className="w-3 h-3 mr-1.5" /> PDF
               </Button>
-              <Button onClick={handleDownloadPDF} size="sm" variant="outline" className="rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs h-7 px-3">
+              <Button onClick={() => handleDownloadPDF()} size="sm" variant="outline" className="rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs h-7 px-3">
                 <Send className="w-3 h-3 mr-1.5" /> Send
               </Button>
             </div>
