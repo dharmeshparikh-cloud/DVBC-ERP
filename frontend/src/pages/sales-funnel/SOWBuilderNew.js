@@ -27,7 +27,7 @@ import {
   Check, Loader2, FileText, Lock, ArrowRight, PlusCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import SalesFunnelProgress from '../../components/SalesFunnelProgress';
+import FunnelStepperHeader from '../../components/FunnelStepperHeader';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -366,7 +366,7 @@ const SOWBuilderNew = () => {
       </div>
 
       {/* Funnel Progress */}
-      {lead && <SalesFunnelProgress lead={lead} currentStep="sow" />}
+      {(leadId || plan?.lead_id) && <FunnelStepperHeader leadId={leadId || plan?.lead_id} currentStepId="scope_of_work" />}
 
       {/* SOW Table */}
       <Card>

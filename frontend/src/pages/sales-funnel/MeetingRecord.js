@@ -21,6 +21,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import MeetingLocationPicker from '../../components/MeetingLocationPicker';
 import AISuggestButton from '../../components/AISuggestButton';
+import FunnelStepperHeader from '../../components/FunnelStepperHeader';
 
 // Draft storage key prefix
 const DRAFT_KEY_PREFIX = 'mom_draft_';
@@ -468,6 +469,7 @@ const MeetingRecord = () => {
 
   return (
     <div className="max-w-5xl mx-auto" data-testid="meeting-record-page">
+      {leadId && <FunnelStepperHeader leadId={leadId} currentStepId="record_meeting" />}
       {/* Header */}
       <div className="mb-6">
         <Button

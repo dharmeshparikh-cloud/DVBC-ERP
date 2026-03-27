@@ -15,7 +15,7 @@ import {
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
 import { validateGSTIN, matchGSTINCompany } from '../../utils/gstin';
-import SalesFunnelProgress from '../../components/SalesFunnelProgress';
+import FunnelStepperHeader from '../../components/FunnelStepperHeader';
 import ViewToggle from '../../components/ViewToggle';
 import PageHeader from '../../components/ui/page-header';
 import { useFetch, useMutate } from '../../hooks/useApi';
@@ -591,17 +591,9 @@ const ProformaInvoice = () => {
 
   return (
     <div className="max-w-6xl mx-auto" data-testid="proforma-invoice-page">
-      {/* Progress Bar - Show when we have a pricing plan context */}
-      {pricingPlanIdFromUrl && (
-        <SalesFunnelProgress
-          currentStep={3}
-          pricingPlanId={pricingPlanIdFromUrl}
-          leadId={currentLeadId}
-          quotationId={currentInvoice?.id}
-          sowCompleted={!!sowData}
-          proformaCompleted={hasProformaInvoice}
-          agreementCompleted={false}
-        />
+      {/* 9-Step Funnel Stepper */}
+      {currentLeadId && (
+        <FunnelStepperHeader leadId={currentLeadId} currentStepId="quotation" />
       )}
 
       <div className="mb-6">

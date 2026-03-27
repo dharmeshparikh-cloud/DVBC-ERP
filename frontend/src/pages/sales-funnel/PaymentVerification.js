@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
+import FunnelStepperHeader from '../../components/FunnelStepperHeader';
 
 const PAYMENT_MODES = [
   { value: 'bank_transfer', label: 'Bank Transfer / NEFT / RTGS' },
@@ -196,8 +197,12 @@ const PaymentVerification = () => {
     );
   }
 
+  const leadIdFromUrl = searchParams.get('leadId');
+  const paymentLeadId = leadIdFromUrl || selectedAgreement?.lead_id;
+
   return (
     <div className="max-w-4xl mx-auto" data-testid="payment-verification-page">
+      {paymentLeadId && <FunnelStepperHeader leadId={paymentLeadId} currentStepId="record_payment" />}
       {/* Header */}
       <div className="mb-6">
         <Button

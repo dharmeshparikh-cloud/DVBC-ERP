@@ -18,6 +18,7 @@ import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
 import LeadSelector, { LockedField } from '../../components/LeadSelector';
 import { useFunnelEligibility, getFunnelTooltip } from '../../hooks/useFunnelEligibility';
+import FunnelStepperHeader from '../../components/FunnelStepperHeader';
 import { AgreementsTable } from '../../components/sales';
 
 const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];
@@ -414,6 +415,7 @@ const Agreements = () => {
 
   return (
     <div className="max-w-6xl mx-auto" data-testid="agreements-page">
+      {leadId && <FunnelStepperHeader leadId={leadId} currentStepId="agreement" />}
       <div className="mb-6">
         <Button
           onClick={() => navigate('/sales-funnel/proforma-invoices')}

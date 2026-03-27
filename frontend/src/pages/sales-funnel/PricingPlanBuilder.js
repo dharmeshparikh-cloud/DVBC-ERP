@@ -17,6 +17,7 @@ import DraftSelector, { DraftIndicator } from '../../components/DraftSelector';
 import { StageResumeBar } from '../../components/sales-funnel/BusinessLogicUI';
 import { useQuery } from '@tanstack/react-query';
 import { useFunnelEligibility, getFunnelTooltip } from '../../hooks/useFunnelEligibility';
+import FunnelStepperHeader from '../../components/FunnelStepperHeader';
 
 // Duration type to months mapping
 const DURATION_TYPE_MONTHS = {
@@ -765,6 +766,7 @@ const PricingPlanBuilder = () => {
 
   return (
     <div className="max-w-6xl mx-auto" data-testid="pricing-plan-builder">
+      {leadId && <FunnelStepperHeader leadId={leadId} currentStepId="pricing_plan" />}
       {/* Draft Selector */}
       <DraftSelector
         drafts={drafts}

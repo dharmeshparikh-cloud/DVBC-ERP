@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
-import SalesFunnelProgress from '../../components/SalesFunnelProgress';
+import FunnelStepperHeader from '../../components/FunnelStepperHeader';
 import { KickoffRequestPanel } from '../../components/sales-funnel/BusinessLogicUI';
 
 const AgreementView = () => {
@@ -474,14 +474,9 @@ const AgreementView = () => {
   return (
     <div className="max-w-5xl mx-auto" data-testid="agreement-view-page">
       {/* Progress Bar */}
-      <SalesFunnelProgress
-        currentStep={4}
-        pricingPlanId={pricingPlanId || pricingPlan?.id}
-        leadId={lead?.id}
-        sowCompleted={!!sow}
-        proformaCompleted={!!quotation}
-        agreementCompleted={agreement?.status === 'signed'}
-      />
+      {(lead?.id || agreement?.lead_id) && (
+        <FunnelStepperHeader leadId={lead?.id || agreement?.lead_id} currentStepId="agreement" />
+      )}
 
       {/* Header */}
       <div className="mb-6">
