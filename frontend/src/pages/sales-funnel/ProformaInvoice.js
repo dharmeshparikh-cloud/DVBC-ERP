@@ -319,9 +319,6 @@ const ProformaInvoice = () => {
         <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:8px;">Bill To</h3>
         <div style="border-left:2px solid #09090b;padding-left:12px;">
           <p style="font-weight:700;color:#09090b;font-size:12px;">${lead?.company || invoice?.client_name || 'Client'}</p>
-          <p style="color:#52525b;margin-top:2px;">${lead?.first_name || ''} ${lead?.last_name || ''}</p>
-          ${lead?.email ? `<p style="color:#a1a1aa;margin-top:2px;">${lead.email}</p>` : ''}
-          ${lead?.phone ? `<p style="color:#a1a1aa;">${lead.phone}</p>` : ''}
           ${clientGstin ? `
             <p style="color:#71717a;font-family:'Courier New',monospace;margin-top:4px;">GSTIN: ${clientGstin}</p>
             ${gstinEntityType ? `<p style="color:#a1a1aa;font-size:9px;">Entity: ${gstinEntityType} | PAN: ${gstinPan}</p>` : ''}
@@ -337,29 +334,6 @@ const ProformaInvoice = () => {
         <p style="color:#a1a1aa;">State: ${companyDetails.state} | Code: ${companyDetails.stateCode}</p>
       </div>
     </div>
-
-    ${teamData.length > 0 ? `
-    <!-- Team Deployment -->
-    <div style="margin-top:16px;">
-      <h3 style="font-size:9px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:6px;">Team Deployment</h3>
-      <table style="font-size:10px;">
-        <thead>
-          <tr style="border-bottom:2px solid #09090b;">
-            <th style="text-align:left;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;">Role</th>
-            <th style="text-align:left;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Meeting Type</th>
-            <th style="text-align:center;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Count</th>
-            <th style="text-align:center;padding:6px 0;font-size:9px;font-weight:700;color:#71717a;text-transform:uppercase;">Meetings</th>
-          </tr>
-        </thead>
-        <tbody>${teamRows}</tbody>
-        <tfoot>
-          <tr style="border-top:2px solid #09090b;">
-            <td style="padding:6px 0;font-weight:700;color:#09090b;" colspan="3">Total</td>
-            <td style="padding:6px 0;text-align:center;font-weight:700;color:#09090b;">${totalMeetings}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>` : ''}
 
     <!-- Pricing Summary -->
     <div style="margin-top:16px;">

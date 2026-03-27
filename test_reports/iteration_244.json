@@ -1,0 +1,35 @@
+{
+  "iteration": 244,
+  "timestamp": "2026-03-27T18:35:00Z",
+  "overall_status": "PASS",
+  "summary": "Major funnel overhaul - blockers removed, auto project creation, agreement revamp",
+  "backend_tests": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "results": [
+      {"test": "Agreement creates with status=active", "status": "PASS", "details": "No approval flow, immediately usable"},
+      {"test": "GET /agreements/{id}/full returns inherited data", "status": "PASS", "details": "team_deployment, sow_scopes, payment_schedule, first_installment=590000"},
+      {"test": "Kickoff without verified payment returns 400", "status": "PASS", "details": "First installment not verified -> Cannot create kickoff request"},
+      {"test": "Kickoff auto-creates project with PR-DDMMYY-XXX format", "status": "PASS", "details": "Created PR-270326-001, lead set to closed"},
+      {"test": "Funnel progress has no blocking fields", "status": "PASS", "details": "is_blocked and blocked_reason removed"},
+      {"test": "Payment verification includes active agreements", "status": "PASS", "details": "Filter includes active, approved, signed, sent statuses"}
+    ]
+  },
+  "frontend_tests": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "results": [
+      {"test": "Agreement renders professional PDF template", "status": "PASS", "details": "Logo, parties, SOW table, team deployment, legal clauses, signatures all visible"},
+      {"test": "Print/PDF and Download .docx buttons visible", "status": "PASS", "details": "Both action buttons present in top bar"},
+      {"test": "Webpack compilation clean", "status": "PASS", "details": "Compiled with 1 warning only"},
+      {"test": "Start date validation on date inputs", "status": "PASS", "details": "min attribute set to today on PricingPlanBuilder and MeetingRecord"}
+    ]
+  },
+  "test_credentials": {
+    "admin": "EMP001 / admin123",
+    "sales": "EMP003 / sales123",
+    "consultant": "EMP004 / consultant123"
+  }
+}

@@ -287,7 +287,7 @@ const Agreements = () => {
     e.preventDefault();
     try {
       await axios.post(`${API}/agreements`, formData);
-      toast.success('Agreement created and sent for approval');
+      toast.success('Agreement created successfully');
       setDialogOpen(false);
       setFormData({
         quotation_id: '',
@@ -386,6 +386,7 @@ const Agreements = () => {
     const styles = {
       draft: { bg: 'bg-zinc-100 text-zinc-600', icon: Clock },
       pending_approval: { bg: 'bg-yellow-50 text-yellow-700', icon: Clock },
+      active: { bg: 'bg-blue-50 text-blue-700', icon: CheckCircle },
       approved: { bg: 'bg-emerald-50 text-emerald-700', icon: CheckCircle },
       rejected: { bg: 'bg-red-50 text-red-700', icon: XCircle },
       sent: { bg: 'bg-blue-50 text-blue-700', icon: Send },

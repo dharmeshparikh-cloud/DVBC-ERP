@@ -1484,64 +1484,45 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
     # Step 6: Agreement - check if agreement exists
     agreement = await db.agreements.find_one({"lead_id": lead_id}, {"_id": 0})
     
-    # Track blocking status for agreement
-    agreement_blocked = False
-    blocked_reason = None
-    blocked_at_step = None
-    
     if agreement:
         completed_steps.append("agreement")
         linked_data["agreement_id"] = agreement.get("id")
         linked_data["agreement_number"] = agreement.get("agreement_number")
         linked_data["agreement_status"] = agreement.get("status")
         
-        # Check if agreement is blocking further progress
-        agreement_status = (agreement.get("status") or "").lower()
-        if agreement_status in ["pending", "draft", "review", "rejected"]:
-            agreement_blocked = True
-            blocked_at_step = "agreement"
-            if agreement_status == "rejected":
-                blocked_reason = f"Agreement #{agreement.get('agreement_number', 'N/A')} has been rejected. Please revise and resubmit the agreement before proceeding."
-            else:
-                blocked_reason = f"Agreement #{agreement.get('agreement_number', 'N/A')} is {agreement_status}. Please get the agreement approved before proceeding to payment and kickoff."
+        # Step 7: Payment - check for verified payments
+        payments = await db.payment_verifications.find(
+            {"agreement_id": agreement.get("id"), "status": "verified"},
+            {"_id": 0}
+        ).to_list(100)
         
-        # Step 7: Payment - only check if agreement is NOT blocking
-        if not agreement_blocked:
-            payments = await db.payment_verifications.find(
-                {"agreement_id": agreement.get("id"), "status": "verified"},
-                {"_id": 0}
-            ).to_list(100)
-            
-            if payments:
-                linked_data["payment_count"] = len(payments)
-                linked_data["total_paid"] = sum(p.get("received_amount", 0) for p in payments)
-                completed_steps.append("record_payment")
-            elif agreement.get("payment_status") == "paid" or agreement.get("payment_received"):
-                completed_steps.append("record_payment")
+        if payments:
+            linked_data["payment_count"] = len(payments)
+            linked_data["total_paid"] = sum(p.get("received_amount", 0) for p in payments)
+            completed_steps.append("record_payment")
+        elif agreement.get("payment_status") == "paid" or agreement.get("payment_received"):
+            completed_steps.append("record_payment")
     
-    # Step 8: Kickoff Request - only check if agreement is NOT blocking
-    kickoff = None
-    if not agreement_blocked:
-        kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id}, {"_id": 0})
-        if not kickoff and agreement:
-            # Also check by agreement_id
-            kickoff = await db.kickoff_requests.find_one({"agreement_id": agreement.get("id")}, {"_id": 0})
+    # Step 8: Kickoff Request
+    kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id}, {"_id": 0})
+    if not kickoff and agreement:
+        kickoff = await db.kickoff_requests.find_one({"agreement_id": agreement.get("id")}, {"_id": 0})
+    
+    if kickoff:
+        completed_steps.append("kickoff_request")
+        linked_data["kickoff_id"] = kickoff.get("id")
+        linked_data["kickoff_status"] = kickoff.get("status")
         
-        if kickoff:
-            completed_steps.append("kickoff_request")
-            linked_data["kickoff_id"] = kickoff.get("id")
-            linked_data["kickoff_status"] = kickoff.get("status")
-            
-            # Step 9: Project Created - verify project ACTUALLY exists in DB
-            if kickoff.get("status") in ["approved", "accepted", "converted"] and kickoff.get("project_id"):
-                project = await db.projects.find_one({"id": kickoff.get("project_id")}, {"_id": 0, "id": 1, "name": 1})
-                if project:
-                    completed_steps.append("project_created")
-                    linked_data["project_id"] = project.get("id")
-                    linked_data["project_name"] = project.get("name") or kickoff.get("project_name")
+        # Step 9: Project Created - verify project ACTUALLY exists in DB
+        if kickoff.get("status") in ["approved", "accepted", "converted"] and kickoff.get("project_id"):
+            project = await db.projects.find_one({"id": kickoff.get("project_id")}, {"_id": 0, "id": 1, "name": 1})
+            if project:
+                completed_steps.append("project_created")
+                linked_data["project_id"] = project.get("id")
+                linked_data["project_name"] = project.get("name") or kickoff.get("project_name")
     
-    # Also check if lead status indicates completion (only if not blocked)
-    if not agreement_blocked and lead.get("status") in ["won", "closed_won", "converted"]:
+    # Also check if lead status indicates completion
+    if lead.get("status") in ["won", "closed_won", "converted"]:
         if "project_created" not in completed_steps:
             completed_steps.append("project_created")
     
@@ -1594,13 +1575,8 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
         "total_steps": len(FUNNEL_STEPS),
         "completed_count": len(completed_steps),
         "progress_percentage": round(progress_percentage, 1),
-        "status": current_status,  # Use updated status
+        "status": current_status,
         "lead_score": lead.get("score", 0),
-        # Blocking status - prevents progress past agreement if not approved
-        "is_blocked": agreement_blocked,
-        "blocked_reason": blocked_reason,
-        "blocked_at_step": blocked_at_step,
-        # Linked data for downstream steps
         **linked_data
     }
 

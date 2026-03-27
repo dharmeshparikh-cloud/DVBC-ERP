@@ -1200,7 +1200,15 @@ const PricingPlanBuilder = () => {
                 <Input
                   type="date"
                   value={paymentPlan.start_date}
-                  onChange={(e) => setPaymentPlan({ ...paymentPlan, start_date: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    if (e.target.value < today) {
+                      toast.error('Start date cannot be earlier than today');
+                      return;
+                    }
+                    setPaymentPlan({ ...paymentPlan, start_date: e.target.value });
+                  }}
                   className="rounded-sm border-zinc-200"
                   data-testid="start-date-input"
                 />

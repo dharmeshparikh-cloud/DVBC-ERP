@@ -146,9 +146,9 @@ async def auto_create_project_sow(db, project_id: str, lead_id: str, approved_by
         return None
 
 async def generate_project_id(db) -> str:
-    """Generate Project ID in format: PROJ-YYYYMMDD-XXXX"""
-    today = now_ist().strftime("%Y%m%d")
-    prefix = f"PROJ-{today}-"
+    """Generate Project ID in format: PR-DDMMYY-XXX"""
+    today = now_ist().strftime("%d%m%y")
+    prefix = f"PR-{today}-"
     
     # Find highest sequence for today
     existing = await db.projects.find(
@@ -162,7 +162,7 @@ async def generate_project_id(db) -> str:
     else:
         next_seq = 1
     
-    return f"{prefix}{next_seq:04d}"
+    return f"{prefix}{next_seq:03d}"
 
 
 async def generate_client_id(db) -> str:
@@ -194,9 +194,8 @@ async def create_kickoff_request(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new kickoff request (Sales to Consulting handoff).
-    Sends real-time email + WebSocket notification to assigned Senior/Principal Consultant.
-    Also sends HTML summary email to sales managers.
+    """Create kickoff request and auto-create project if first installment is verified.
+    No approval flow needed — project is created immediately.
     """
     db = get_db()
     
@@ -211,8 +210,9 @@ async def create_kickoff_request(
     
     # Get lead details
     lead = None
-    if agreement.get("lead_id"):
-        lead = await db.leads.find_one({"id": agreement["lead_id"]}, {"_id": 0})
+    lead_id = agreement.get("lead_id")
+    if lead_id:
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     
     # CRITICAL: Verify first installment payment before allowing kickoff request
     first_payment = await db.payment_verifications.find_one({
@@ -226,14 +226,17 @@ async def create_kickoff_request(
             detail="First installment payment must be verified before creating kickoff request. Please record the advance payment first."
         )
     
-    # GOVERNANCE: Prevent duplicate kickoff requests for the same lead/agreement
-    lead_id = agreement.get("lead_id")
-    existing_kickoff = None
+    # Validate start date is not in the past
+    if kickoff_create.expected_start_date:
+        start_date_str = str(kickoff_create.expected_start_date)[:10]
+        today_str = now_ist().strftime("%Y-%m-%d")
+        if start_date_str < today_str:
+            raise HTTPException(status_code=400, detail="Expected start date cannot be earlier than today")
     
-    # Check by agreement_id first
+    # GOVERNANCE: Prevent duplicate kickoff requests for the same lead/agreement
     existing_kickoff = await db.kickoff_requests.find_one({
         "agreement_id": kickoff_create.agreement_id,
-        "status": {"$nin": ["cancelled", "rejected"]}  # Allow re-creation if cancelled/rejected
+        "status": {"$nin": ["cancelled", "rejected"]}
     }, {"_id": 0, "id": 1, "status": 1, "project_id": 1})
     
     if existing_kickoff:
@@ -243,19 +246,56 @@ async def create_kickoff_request(
                    (f"Project ID: {existing_kickoff.get('project_id')}" if existing_kickoff.get('project_id') else "")
         )
     
-    # Also check by lead_id to prevent duplicates from different routes
     if lead_id:
         existing_by_lead = await db.kickoff_requests.find_one({
             "lead_id": lead_id,
             "status": {"$nin": ["cancelled", "rejected"]}
         }, {"_id": 0, "id": 1, "status": 1})
-        
         if existing_by_lead:
             raise HTTPException(
                 status_code=400,
                 detail=f"A kickoff request already exists for this lead. Status: {existing_by_lead.get('status')}"
             )
     
+    # AUTO-CREATE PROJECT immediately
+    project_id = await generate_project_id(db)
+    client_id = await generate_client_id(db)
+    
+    # Determine start date
+    confirmed_start = None
+    if kickoff_create.expected_start_date:
+        confirmed_start = str(kickoff_create.expected_start_date)[:10]
+    if not confirmed_start:
+        confirmed_start = now_ist().strftime("%Y-%m-%d")
+    
+    tenure_months = kickoff_create.project_tenure_months or agreement.get("tenure_months") or 12
+    start_dt = datetime.strptime(confirmed_start, "%Y-%m-%d")
+    end_dt = start_dt + relativedelta(months=tenure_months)
+    
+    # Create project record
+    project_doc = {
+        "id": project_id,
+        "name": kickoff_create.project_name,
+        "client_name": kickoff_create.client_name,
+        "client_id": client_id,
+        "lead_id": lead_id,
+        "agreement_id": kickoff_create.agreement_id,
+        "project_type": kickoff_create.project_type or "mixed",
+        "start_date": confirmed_start,
+        "end_date": end_dt.strftime("%Y-%m-%d"),
+        "tenure_months": tenure_months,
+        "total_meetings_committed": kickoff_create.total_meetings or 0,
+        "project_value": kickoff_create.project_value,
+        "status": "active",
+        "approved_by": current_user.id,
+        "approved_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "consultant_assignments": []
+    }
+    await db.projects.insert_one(project_doc)
+    
+    # Create kickoff request record (already approved)
     kickoff_dict = kickoff_create.model_dump()
     kickoff = KickoffRequest(
         **kickoff_dict,
@@ -263,120 +303,87 @@ async def create_kickoff_request(
         requested_by_name=current_user.full_name
     )
     
-    # Add lead_id to kickoff
     kickoff_doc = kickoff.model_dump()
-    kickoff_doc['lead_id'] = agreement.get("lead_id")
+    kickoff_doc['lead_id'] = lead_id
+    kickoff_doc['project_id'] = project_id
+    kickoff_doc['status'] = 'approved'
     kickoff_doc['created_at'] = kickoff_doc['created_at'].isoformat()
-    kickoff_doc['updated_at'] = kickoff_doc['updated_at'].isoformat()
+    kickoff_doc['updated_at'] = datetime.now(timezone.utc).isoformat()
     if kickoff_doc.get('expected_start_date'):
         kickoff_doc['expected_start_date'] = kickoff_doc['expected_start_date'].isoformat()
     
     await db.kickoff_requests.insert_one(kickoff_doc)
     
-    # Get requester email
-    requester_user = await db.users.find_one({"id": current_user.id})
-    requester_email = requester_user.get("email", "") if requester_user else ""
-    
-    # Get PM details
-    pm_user = None
-    pm_name = "Not Assigned"
-    if kickoff.assigned_pm_id:
-        pm_user = await db.users.find_one(
-            {"id": kickoff.assigned_pm_id}, 
-            {"_id": 0, "id": 1, "full_name": 1, "email": 1}
+    # Update lead status to closed
+    if lead_id:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "status": "closed",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
         )
-        if pm_user:
-            pm_name = pm_user.get("full_name", "Project Manager")
     
-    # Get meeting count and key commitments for the lead
-    meetings_count = 0
-    key_commitments = []
-    if lead:
-        meetings = await db.meetings.find({"lead_id": lead.get("id")}, {"_id": 0}).to_list(50)
-        meetings_count = len(meetings)
-        for m in meetings:
-            key_commitments.extend(m.get("key_commitments", []) or [])
-        key_commitments = list(set([k for k in key_commitments if k]))[:5]
-    
-    # Send real-time approval notification (email + WebSocket) to PM if assigned
-    if pm_user:
-        ws_manager = get_ws_manager()
-        kickoff_details = {
-            "Project Name": kickoff.project_name,
-            "Client": kickoff.client_name,
-            "Project Type": kickoff.project_type or "Mixed",
-            "Project Value": f"₹{kickoff.project_value:,.0f}" if kickoff.project_value else "Not specified",
-            "Expected Start": str(kickoff.expected_start_date)[:10] if kickoff.expected_start_date else "TBD",
-            "Total Meetings": kickoff.total_meetings or "Not specified"
-        }
-        
-        try:
-            await send_approval_notification(
-                db=db,
-                ws_manager=ws_manager,
-                record_type="kickoff",
-                record_id=kickoff.id,
-                requester_id=current_user.id,
-                requester_name=current_user.full_name,
-                requester_email=requester_email,
-                approver_id=pm_user["id"],
-                approver_name=pm_user.get("full_name", "Project Manager"),
-                approver_email=pm_user.get("email", ""),
-                details=kickoff_details,
-                link="/kickoff-requests"
-            )
-        except Exception as e:
-            print(f"Error sending kickoff notification to PM: {e}")
-    
-    # Get client email
+    # Create client user account
     client_email = lead.get("email", "") if lead else ""
+    temp_password = generate_random_password()
+    hashed_password = pwd_context.hash(temp_password)
     
-    # Send HTML summary email to team + client in background
-    async def send_kickoff_sent_notification():
+    client_user = {
+        "id": str(uuid.uuid4()),
+        "client_id": client_id,
+        "email": client_email,
+        "hashed_password": hashed_password,
+        "full_name": kickoff_create.client_name,
+        "company_name": kickoff_create.client_name,
+        "phone": lead.get("phone") if lead else None,
+        "lead_id": lead_id,
+        "project_ids": [project_id],
+        "agreement_ids": [kickoff_create.agreement_id],
+        "is_active": True,
+        "must_change_password": True,
+        "role": "client",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.client_users.insert_one(client_user)
+    
+    # Auto-create PROJECT_SOW from SOW_MASTER in background
+    background_tasks.add_task(
+        auto_create_project_sow, db, project_id, lead_id, current_user.id, current_user.full_name
+    )
+    
+    # Send notification emails in background
+    async def send_notifications():
         try:
-            # Get emails: Lead Owner, Manager, Sales Head, Senior Manager, Principal Consultant
             team_emails = await get_kickoff_notification_emails(db, current_user.id)
-            
-            email_data = kickoff_sent_email(
+            email_data = kickoff_accepted_email(
                 lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() if lead else "N/A",
-                company=kickoff.client_name or (lead.get("company") if lead else "Unknown"),
-                project_name=kickoff.project_name,
-                project_type=kickoff.project_type or "Mixed",
-                start_date=str(kickoff.expected_start_date)[:10] if kickoff.expected_start_date else "TBD",
-                assigned_pm=pm_name,
-                contract_value=kickoff.project_value or 0,
-                currency="INR",
-                meetings_count=meetings_count,
-                key_commitments=key_commitments,
+                company=kickoff_create.client_name,
+                project_id=project_id,
+                project_name=kickoff_create.project_name,
+                start_date=confirmed_start,
                 salesperson_name=current_user.full_name,
-                approver_name=pm_name,
-                client_email=client_email,
+                client_id=client_id,
                 app_url=APP_URL
             )
-            
-            # Send to team
             for email in team_emails:
-                await send_email(
-                    to_email=email,
-                    subject=email_data["subject"],
-                    html_content=email_data["html"],
-                    plain_content=email_data["plain"]
-                )
-            
-            # Send to client
+                await send_email(to_email=email, **email_data)
             if client_email:
-                await send_email(
-                    to_email=client_email,
-                    subject=f"Project Kickoff Initiated - {kickoff.project_name}",
-                    html_content=email_data["html"],
-                    plain_content=email_data["plain"]
-                )
+                await send_email(to_email=client_email, **email_data)
         except Exception as e:
-            print(f"Failed to send kickoff sent notification: {e}")
+            print(f"Error sending kickoff notifications: {e}")
     
-    background_tasks.add_task(send_kickoff_sent_notification)
+    background_tasks.add_task(send_notifications)
     
-    return kickoff
+    return {
+        "id": kickoff.id,
+        "message": f"Project created successfully! Project ID: {project_id}",
+        "status": "approved",
+        "project_id": project_id,
+        "client_id": client_id,
+        "lead_status": "closed"
+    }
 
 
 @router.get("")

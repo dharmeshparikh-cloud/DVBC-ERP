@@ -101,24 +101,14 @@ async def create_agreement(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Create a new agreement.
-    
-    ACCESS: All sales roles (including Sales Executive) can create agreements.
+    Create a new agreement — immediately active (no approval flow).
     
     FUNNEL PREREQUISITE: Quotation must exist for this lead.
-    
-    WORKFLOW:
-    1. Sales Executive creates agreement → status: 'draft'
-    2. Sales Executive reviews and submits for approval → status: 'pending_approval'
-    3. ONLY Principal Consultant or Admin can approve → status: 'approved'
-    4. Only after PC approval can the agreement be sent to client
-    
-    NOTE: Agreements start in 'draft' status. They must be explicitly submitted
-    for approval before PC/Admin can approve them.
+    All data is inherited from Lead + Pricing Plan + SOW + Quotation.
     """
     db = get_db()
     
-    # Role-based access check - all sales roles can create agreements
+    # Role-based access check
     if current_user.role not in AGREEMENT_CREATE_ROLES:
         raise HTTPException(status_code=403, detail="Access denied. Only sales roles can create agreements.")
     
@@ -126,68 +116,93 @@ async def create_agreement(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     
+    # Validate start date is not in the past
+    if data.start_date:
+        today_str = now_ist().strftime("%Y-%m-%d")
+        if data.start_date < today_str:
+            raise HTTPException(status_code=400, detail="Agreement start date cannot be earlier than today")
+    
     # FUNNEL VALIDATION: Check if quotation exists for this lead
     quotation = await db.quotations.find_one({"lead_id": data.lead_id}, {"_id": 0})
     if not quotation:
         raise HTTPException(
             status_code=400,
-            detail="Cannot create agreement: A Quotation must be created first. Please complete the Quotation step in the sales funnel."
+            detail="Cannot create agreement: A Quotation must be created first."
         )
     
-    # Use quotation_id from data if provided
     if data.quotation_id:
         specific_quotation = await db.quotations.find_one({"id": data.quotation_id}, {"_id": 0})
         if specific_quotation:
             quotation = specific_quotation
     
+    # Get pricing plan for inherited data
+    pricing_plan = None
+    if quotation.get("pricing_plan_id"):
+        pricing_plan = await db.pricing_plans.find_one({"id": quotation["pricing_plan_id"]}, {"_id": 0})
+    if not pricing_plan:
+        pricing_plan = await db.pricing_plans.find_one({"lead_id": data.lead_id}, {"_id": 0})
+    
+    # Get SOW for inherited data
+    sow = None
+    if pricing_plan:
+        sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan.get("id")}, {"_id": 0})
+    if not sow:
+        sow = await db.enhanced_sow.find_one({"lead_id": data.lead_id}, {"_id": 0})
+    
     agreement_id = str(uuid.uuid4())
     agreement_number = f"AGR-{now_ist().strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
     
-    # All agreements start as 'draft' - must be submitted for PC/Admin approval
-    initial_status = "draft"
+    # Inherit from pricing plan
+    tenure = data.project_tenure_months or (pricing_plan.get("tenure_months") if pricing_plan else None) or data.duration_months or 12
+    total_value = data.total_value or (pricing_plan.get("total_amount") if pricing_plan else None) or quotation.get("grand_total") or quotation.get("total") or quotation.get("total_amount") or 0
+    team_deployment = data.team_deployment or (pricing_plan.get("team_deployment") if pricing_plan else []) or []
+    payment_schedule = (pricing_plan.get("payment_plan") if pricing_plan else None) or {}
+    start_date = data.start_date or (pricing_plan.get("payment_plan", {}).get("start_date") if pricing_plan else None) or now_ist().strftime("%Y-%m-%d")
     
-    # Use project_tenure_months if provided, else duration_months
-    tenure = data.project_tenure_months or data.duration_months or 12
-    
-    # Calculate end date
     from dateutil.relativedelta import relativedelta
-    start = datetime.strptime(data.start_date, "%Y-%m-%d") if data.start_date else datetime.now(timezone.utc)
-    end_date_str = data.end_date
-    if not end_date_str:
-        end_date_str = (start + relativedelta(months=tenure)).strftime("%Y-%m-%d")
+    start = datetime.strptime(start_date, "%Y-%m-%d") if start_date else datetime.now(timezone.utc)
+    end_date_str = data.end_date or (start + relativedelta(months=tenure)).strftime("%Y-%m-%d")
     
-    # SSOT: All client fields ALWAYS come from Lead
+    # SSOT: Client fields from Lead
     client_name = lead.get("company", "") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
     client_email = lead.get("email", "")
     client_phone = lead.get("phone", "") or lead.get("mobile", "")
     client_address = lead.get("address", "") or lead.get("company_address", "")
     client_gstin = lead.get("gstin", "") or lead.get("gst_number", "")
     
+    # SOW scopes
+    sow_scopes = []
+    if sow:
+        sow_scopes = sow.get("scopes") or sow.get("scope_items") or sow.get("items") or []
+    
     agreement_doc = {
         "id": agreement_id,
         "agreement_number": agreement_number,
         "lead_id": data.lead_id,
         "quotation_id": data.quotation_id or quotation.get("id"),
-        "title": data.title,
+        "pricing_plan_id": pricing_plan.get("id") if pricing_plan else None,
+        "sow_id": sow.get("id") if sow else None,
+        "title": data.title or f"Service Agreement - {client_name}",
         "client_name": client_name,
         "client_address": client_address,
         "client_email": client_email,
         "client_phone": client_phone,
         "client_gstin": client_gstin,
         "services_description": data.services_description,
-        "total_value": data.total_value or quotation.get("grand_total") or quotation.get("total") or 0,
+        "total_value": total_value,
         "payment_terms": data.payment_terms,
-        "start_date": data.start_date,
+        "payment_schedule": payment_schedule,
+        "start_date": start_date,
         "end_date": end_date_str,
         "duration_months": tenure,
+        "project_tenure_months": tenure,
         "sections": data.sections or [],
         "agreement_type": data.agreement_type or "standard",
         "special_conditions": data.special_conditions or "",
         "meeting_frequency": data.meeting_frequency or "Monthly",
-        "project_tenure_months": tenure,
-        "team_deployment": data.team_deployment or [],
-        "status": initial_status,
-        "requires_admin_approval": current_user.role not in ADMIN_ROLES,
+        "team_deployment": team_deployment,
+        "sow_scopes": sow_scopes,
+        "status": "active",
         "payments": [],
         "total_paid": 0,
         "created_by": current_user.id,
@@ -217,7 +232,7 @@ async def create_agreement(
                 currency="INR",
                 start_date=data.start_date or "TBD",
                 end_date=end_date_str,
-                status=initial_status,
+                status="active",
                 salesperson_name=current_user.full_name,
                 client_email=client_email,
                 app_url=APP_URL
@@ -250,18 +265,83 @@ async def create_agreement(
 
 @router.get("/{agreement_id}/full")
 async def get_agreement_full(agreement_id: str, current_user: User = Depends(get_current_user)):
-    """Get full agreement details"""
+    """Get full agreement with all inherited data from Lead, Pricing Plan, SOW, Quotation."""
     db = get_db()
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
     if not agreement:
         raise HTTPException(status_code=404, detail="Agreement not found")
     
-    lead = await db.leads.find_one({"id": agreement.get("lead_id")}, {"_id": 0})
+    lead_id = agreement.get("lead_id")
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0}) if lead_id else None
+    
+    # Get pricing plan
+    pricing_plan = None
+    if agreement.get("pricing_plan_id"):
+        pricing_plan = await db.pricing_plans.find_one({"id": agreement["pricing_plan_id"]}, {"_id": 0})
+    if not pricing_plan and lead_id:
+        pricing_plan = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Get SOW
+    sow = None
+    if agreement.get("sow_id"):
+        sow = await db.enhanced_sow.find_one({"id": agreement["sow_id"]}, {"_id": 0})
+    if not sow and pricing_plan:
+        sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan.get("id")}, {"_id": 0})
+    if not sow and lead_id:
+        sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Get quotation
+    quotation = None
+    if agreement.get("quotation_id"):
+        quotation = await db.quotations.find_one({"id": agreement["quotation_id"]}, {"_id": 0})
+    if not quotation and lead_id:
+        quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Get meetings for this lead
+    meetings = []
+    if lead_id:
+        meetings = await db.meetings.find({"lead_id": lead_id}, {"_id": 0}).to_list(50)
+    
+    # Build comprehensive team deployment (from pricing plan if not on agreement)
+    team_deployment = agreement.get("team_deployment") or []
+    if not team_deployment and pricing_plan:
+        team_deployment = pricing_plan.get("team_deployment") or []
+    
+    # Build SOW scopes
+    sow_scopes = agreement.get("sow_scopes") or []
+    if not sow_scopes and sow:
+        sow_scopes = sow.get("scopes") or sow.get("scope_items") or sow.get("items") or []
+    
+    # Payment schedule
+    payment_schedule = agreement.get("payment_schedule") or {}
+    if not payment_schedule and pricing_plan:
+        payment_schedule = pricing_plan.get("payment_plan") or {}
+    
+    # Get first installment amount from pricing plan payment schedule
+    first_installment_amount = 0
+    if payment_schedule:
+        schedule = payment_schedule.get("installments") or payment_schedule.get("schedule_breakdown") or []
+        if schedule and len(schedule) > 0:
+            first_installment_amount = schedule[0].get("amount") or schedule[0].get("net") or schedule[0].get("basic") or 0
     
     return {
         "agreement": agreement,
-        "lead": lead
+        "lead": lead,
+        "pricing_plan": pricing_plan,
+        "sow": sow,
+        "quotation": quotation,
+        "meetings": meetings,
+        "inherited": {
+            "team_deployment": team_deployment,
+            "sow_scopes": sow_scopes,
+            "payment_schedule": payment_schedule,
+            "first_installment_amount": first_installment_amount,
+            "total_value": agreement.get("total_value") or (pricing_plan.get("total_amount") if pricing_plan else 0),
+            "duration_months": agreement.get("duration_months") or agreement.get("project_tenure_months") or (pricing_plan.get("tenure_months") if pricing_plan else 12),
+            "start_date": agreement.get("start_date"),
+            "end_date": agreement.get("end_date")
+        }
     }
 
 

@@ -1,1292 +1,377 @@
-import React, { useState, useRef, useContext, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useRef, useContext, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { API, AuthContext } from '../../App';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { 
-  ArrowLeft, Download, FileText, Users, Calendar, Building2, 
-  MapPin, Phone, Mail, Plus, Trash2, Edit2, Check, X,
-  FileSignature, Send, Loader2, CheckCircle, ArrowRight, UserCheck, Rocket, Upload
-} from 'lucide-react';
+import { ArrowLeft, Download, FileText, Printer } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatINR, numberToWords } from '../../utils/currency';
+import { formatINR } from '../../utils/currency';
 import FunnelStepperHeader from '../../components/FunnelStepperHeader';
-import { KickoffRequestPanel } from '../../components/sales-funnel/BusinessLogicUI';
+import { saveAs } from 'file-saver';
 
 const AgreementView = () => {
   const { agreementId } = useParams();
   const [searchParams] = useSearchParams();
-  const quotationId = searchParams.get('quotationId');
-  const pricingPlanId = searchParams.get('pricing_plan_id');
-  
+  const leadId = searchParams.get('leadId');
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const agreementRef = useRef(null);
-  
-  // Milestones
-  const [milestones, setMilestones] = useState([]);
-  const [newMilestone, setNewMilestone] = useState({ description: '', amount: '', due_date: '' });
-  
-  // E-signature
-  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
-  const [signatureData, setSignatureData] = useState({
-    signer_name: '',
-    signer_designation: '',
-    signer_email: '',
-    signature_date: new Date().toISOString().split('T')[0],
-    signature_image: null
-  });
-  const [saving, setSaving] = useState(false);
-  const canvasRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSignature, setHasSignature] = useState(false);
+  const printRef = useRef(null);
 
-  // PM Selection for Kickoff
-  const [pmSelectionDialogOpen, setPmSelectionDialogOpen] = useState(false);
-  const [selectedPmId, setSelectedPmId] = useState('');
-  const [kickoffNotes, setKickoffNotes] = useState('');
-  const [creatingKickoff, setCreatingKickoff] = useState(false);
-
-  // Upload Signed Agreement
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploadFile, setUploadFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-
-  // Send to Client
-  const [sendDialogOpen, setSendDialogOpen] = useState(false);
-  const [clientEmail, setClientEmail] = useState('');
-  const [sendingEmail, setSendingEmail] = useState(false);
-
-  // Fetch consultants using React Query
-  const { data: consultants = [] } = useQuery({
-    queryKey: ['consulting-team'],
-    queryFn: async () => {
-      const response = await axios.get(`${API}/sales-funnel/consulting-team`);
-      return response.data.consultants || [];
-    },
-    staleTime: 5 * 60 * 1000
+  const { data: fullData, isLoading } = useQuery({
+    queryKey: ['agreement-full', agreementId],
+    queryFn: () => axios.get(`${API}/agreements/${agreementId}/full`).then(r => r.data),
+    enabled: !!agreementId
   });
 
-  // Fetch agreement data using React Query
-  const { data: agreementData, isLoading: loading, refetch: refetchAgreement } = useQuery({
-    queryKey: ['agreement', agreementId],
-    queryFn: async () => {
-      const response = await axios.get(`${API}/agreements/${agreementId}/full`);
-      return response.data;
-    },
-    enabled: !!agreementId,
-    staleTime: 2 * 60 * 1000,
-    onError: () => toast.error('Failed to load agreement'),
-    onSuccess: (data) => {
-      setMilestones(data.agreement?.milestones || []);
-    }
-  });
+  const agreement = fullData?.agreement || {};
+  const lead = fullData?.lead || {};
+  const inherited = fullData?.inherited || {};
+  const pricingPlan = fullData?.pricing_plan || {};
+  const sowData = fullData?.sow || {};
 
-  // Fetch data for new agreement using React Query
-  const { data: newAgreementData, isLoading: newAgreementLoading } = useQuery({
-    queryKey: ['new-agreement-data', quotationId, pricingPlanId],
-    queryFn: async () => {
-      const [quotationsRes, plansRes, leadsRes] = await Promise.all([
-        axios.get(`${API}/quotations`),
-        axios.get(`${API}/pricing-plans`),
-        axios.get(`${API}/leads`)
-      ]);
+  const teamDeployment = inherited.team_deployment || [];
+  const sowScopes = inherited.sow_scopes || [];
+  const paymentSchedule = inherited.payment_schedule || {};
+  const totalValue = inherited.total_value || agreement.total_value || 0;
+  const durationMonths = inherited.duration_months || 12;
+  const startDate = inherited.start_date || agreement.start_date || '';
+  const endDate = inherited.end_date || agreement.end_date || '';
 
-      const allQuotations = quotationsRes?.data?.data || quotationsRes?.data || [];
-      const allPlans = Array.isArray(plansRes?.data?.data) ? plansRes.data.data : (Array.isArray(plansRes?.data) ? plansRes.data : []);
-      const allLeads = leadsRes?.data?.data || leadsRes?.data?.items || leadsRes?.data || [];
+  const today = new Date();
+  const todayFormatted = today.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
-      let targetQuotation = null;
-      let targetPlan = null;
-      let targetLead = null;
-      let targetSow = null;
+  // NDA/NCA enforcement date: 24 months from agreement creation
+  const agreementCreatedDate = agreement.created_at ? new Date(agreement.created_at) : today;
+  const ndaEndDate = new Date(agreementCreatedDate);
+  ndaEndDate.setMonth(ndaEndDate.getMonth() + 24);
+  const ndaEndFormatted = ndaEndDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
-      if (quotationId) {
-        targetQuotation = (allQuotations || []).find(q => q.id === quotationId);
-        if (targetQuotation) {
-          targetPlan = (allPlans || []).find(p => p.id === targetQuotation.pricing_plan_id);
-          targetLead = (allLeads || []).find(l => l.id === targetQuotation.lead_id);
-        }
-      } else if (pricingPlanId) {
-        targetPlan = (allPlans || []).find(p => p.id === pricingPlanId);
-        if (targetPlan) {
-          targetLead = (allLeads || []).find(l => l.id === targetPlan.lead_id);
-          targetQuotation = (allQuotations || []).find(q => q.pricing_plan_id === pricingPlanId);
-        }
-      }
+  const clientCompany = agreement.client_name || lead.company || '';
+  const clientAddress = agreement.client_address || lead.address || lead.company_address || '';
+  const clientGSTIN = agreement.client_gstin || lead.gstin || lead.gst_number || '';
+  const clientContactName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
+  const clientPhone = agreement.client_phone || lead.phone || '';
+  const clientEmail = agreement.client_email || lead.email || '';
 
-      if (targetPlan?.sow_id) {
-        try {
-          const sowRes = await axios.get(`${API}/enhanced-sow/${targetPlan.sow_id}`);
-          targetSow = sowRes.data;
-        } catch (e) {
-          console.log('SOW not found');
-        }
-      }
+  // Compute total meetings
+  const totalMeetings = useMemo(() => {
+    return teamDeployment.reduce((sum, m) => sum + ((m.committed_meetings || m.total_meetings || m.meetings || 0) * (m.count || 1)), 0);
+  }, [teamDeployment]);
 
-      return { quotation: targetQuotation, pricingPlan: targetPlan, lead: targetLead, sow: targetSow };
-    },
-    enabled: !agreementId && (!!quotationId || !!pricingPlanId),
-    staleTime: 2 * 60 * 1000,
-    onError: () => toast.error('Failed to load data'),
-    onSuccess: (data) => {
-      if (data.pricingPlan?.payment_plan?.installments) {
-        const defaultMilestones = (data?.pricingPlan?.payment_plan?.installments || []).map((inst, idx) => ({
-          id: `milestone-${idx + 1}`,
-          description: inst.description || `Milestone ${idx + 1}`,
-          amount: inst.amount || 0,
-          due_date: inst.due_date || '',
-          status: 'pending'
-        }));
-        setMilestones(defaultMilestones);
-      }
-    }
-  });
+  const logoUrl = window.location.origin + '/assets/dv-logo.png';
 
-  // Derive data from queries
-  const agreement = agreementData?.agreement || null;
-  const quotation = agreementData?.quotation || newAgreementData?.quotation || null;
-  const pricingPlan = agreementData?.pricing_plan || newAgreementData?.pricingPlan || null;
-  const sow = agreementData?.sow || newAgreementData?.sow || null;
-  const lead = agreementData?.lead || newAgreementData?.lead || null;
+  const getAgreementHTML = () => {
+    const schedule = paymentSchedule.installments || paymentSchedule.schedule_breakdown || [];
+    const installmentsHTML = schedule.map((inst, idx) => {
+      const amount = inst.amount || inst.net || inst.basic || 0;
+      const label = inst.label || inst.frequency || `Installment ${idx + 1}`;
+      const dueDate = inst.due_date ? new Date(inst.due_date).toLocaleDateString('en-IN') : '-';
+      const gst = inst.gst || 0;
+      const basic = inst.basic || amount;
+      return `
+      <tr>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${idx + 1}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;">${label}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(basic)}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${gst ? formatINR(gst) : '-'}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">${formatINR(amount)}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${dueDate}</td>
+      </tr>
+    `;
+    }).join('');
 
-  const addMilestone = () => {
-    if (!newMilestone.description || !newMilestone.amount) {
-      toast.error('Please fill milestone description and amount');
-      return;
-    }
-    setMilestones([...milestones, {
-      id: `milestone-${Date.now()}`,
-      ...newMilestone,
-      amount: parseFloat(newMilestone.amount),
-      status: 'pending'
-    }]);
-    setNewMilestone({ description: '', amount: '', due_date: '' });
+    const teamDeploymentHTML = teamDeployment.map((m, idx) => `
+      <tr>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${idx + 1}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;">${m.role || m.role_name || '-'}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;">${m.meeting_type || m.type || '-'}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${m.count || m.quantity || 1}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${(m.committed_meetings || m.total_meetings || m.meetings || 0) * (m.count || 1)}</td>
+      </tr>
+    `).join('');
+
+    const scopeHTML = sowScopes.map((scope, idx) => {
+      const items = scope.items || scope.deliverables || scope.scope_items || [];
+      const itemsList = Array.isArray(items) ? items.map(i => typeof i === 'string' ? i : (i.name || i.title || i.description || '')).filter(Boolean) : [];
+      return `
+        <tr>
+          <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${idx + 1}</td>
+          <td style="border:1px solid #d1d5db;padding:8px 12px;font-weight:600;">${scope.category || scope.name || scope.title || '-'}</td>
+          <td style="border:1px solid #d1d5db;padding:8px 12px;">${scope.scope_name || scope.description || '-'}</td>
+          <td style="border:1px solid #d1d5db;padding:8px 12px;">${itemsList.length > 0 ? '<ul style="margin:0;padding-left:16px;">' + itemsList.map(i => `<li>${i}</li>`).join('') + '</ul>' : '-'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;color:#1a1a1a;line-height:1.6;font-size:13px;">
+        <!-- Logo -->
+        <div style="text-align:center;margin-bottom:24px;padding-top:20px;">
+          <img src="${logoUrl}" alt="D&V Business Consulting" style="height:70px;max-width:280px;object-fit:contain;" />
+        </div>
+        
+        <!-- Title -->
+        <h1 style="text-align:center;font-size:22px;font-weight:700;margin:16px 0 6px;text-transform:uppercase;letter-spacing:1.5px;border-bottom:3px solid #1a1a1a;padding-bottom:10px;">
+          Service Agreement
+        </h1>
+        <p style="text-align:center;font-size:12px;color:#555;margin:4px 0 20px;">
+          Agreement No: <strong>${agreement.agreement_number || '-'}</strong>
+        </p>
+
+        <!-- Made Between -->
+        <div style="margin:16px 0;padding:14px 18px;background:#f9fafb;border-left:4px solid #1a1a1a;font-size:13px;">
+          <p style="margin:0;">This Service Agreement (<strong>"Agreement"</strong>) is made and entered into on <strong>${todayFormatted}</strong>, by and between:</p>
+        </div>
+
+        <!-- Parties -->
+        <table style="width:100%;border-collapse:collapse;margin:12px 0 20px;">
+          <tr>
+            <td style="width:48%;vertical-align:top;padding:12px 16px;border:1px solid #e5e7eb;background:#f9fafb;">
+              <p style="font-weight:700;font-size:14px;margin:0 0 6px;color:#111;">Party A (Service Provider)</p>
+              <p style="margin:2px 0;"><strong>D&V Business Consulting LLP</strong></p>
+              <p style="margin:2px 0;font-size:12px;color:#555;">Mumbai, Maharashtra, India</p>
+            </td>
+            <td style="width:4%;text-align:center;vertical-align:middle;font-weight:700;font-size:16px;">AND</td>
+            <td style="width:48%;vertical-align:top;padding:12px 16px;border:1px solid #e5e7eb;background:#f9fafb;">
+              <p style="font-weight:700;font-size:14px;margin:0 0 6px;color:#111;">Party B (Client)</p>
+              <p style="margin:2px 0;"><strong>${clientCompany}</strong></p>
+              ${clientAddress ? `<p style="margin:2px 0;font-size:12px;color:#555;">${clientAddress}</p>` : ''}
+              ${clientGSTIN ? `<p style="margin:2px 0;font-size:12px;">GSTIN: <strong>${clientGSTIN}</strong></p>` : ''}
+            </td>
+          </tr>
+        </table>
+
+        <!-- Section 1: Scope of Work -->
+        <h2 style="font-size:15px;font-weight:700;margin:24px 0 10px;padding:6px 12px;background:#1a1a1a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">1. Scope of Work</h2>
+        <p style="margin:0 0 10px;">The Service Provider shall deliver the following consulting services to the Client as defined in the approved Scope of Work:</p>
+        ${sowScopes.length > 0 ? `
+          <table style="width:100%;border-collapse:collapse;margin:8px 0;">
+            <thead>
+              <tr style="background:#f3f4f6;">
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;width:40px;">S.No</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left;">Category</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left;">Scope</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left;">Deliverables</th>
+              </tr>
+            </thead>
+            <tbody>${scopeHTML}</tbody>
+          </table>
+        ` : '<p style="color:#777;font-style:italic;">Scope of Work details to be defined as per the agreed Statement of Work.</p>'}
+
+        <!-- Section 2: Team Deployment -->
+        <h2 style="font-size:15px;font-weight:700;margin:24px 0 10px;padding:6px 12px;background:#1a1a1a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">2. Team Deployment &amp; Meeting Schedule</h2>
+        <p style="margin:0 0 10px;">The following consulting team shall be deployed for the engagement:</p>
+        ${teamDeployment.length > 0 ? `
+          <table style="width:100%;border-collapse:collapse;margin:8px 0;">
+            <thead>
+              <tr style="background:#f3f4f6;">
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;width:40px;">S.No</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left;">Role</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left;">Meeting Type</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">Count</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">Total Meetings</th>
+              </tr>
+            </thead>
+            <tbody>${teamDeploymentHTML}</tbody>
+            <tfoot>
+              <tr style="background:#f3f4f6;font-weight:700;">
+                <td colspan="4" style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">Total Meetings</td>
+                <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${totalMeetings}</td>
+              </tr>
+            </tfoot>
+          </table>
+        ` : '<p style="color:#777;font-style:italic;">Team deployment details as per the approved Pricing Plan.</p>'}
+
+        <!-- Section 3: Investment & Payment -->
+        <h2 style="font-size:15px;font-weight:700;margin:24px 0 10px;padding:6px 12px;background:#1a1a1a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">3. Investment, Payment Terms &amp; Schedule</h2>
+        
+        <table style="width:100%;border-collapse:collapse;margin:8px 0;">
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;width:35%;">Total Investment</td>
+            <td style="border:1px solid #d1d5db;padding:10px 14px;font-size:15px;font-weight:700;">${formatINR(totalValue)}</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;">Project Duration</td>
+            <td style="border:1px solid #d1d5db;padding:10px 14px;">${durationMonths} Months</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;">Start Date</td>
+            <td style="border:1px solid #d1d5db;padding:10px 14px;">${startDate || 'As mutually agreed'}</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px 14px;font-weight:600;background:#f9fafb;">End Date</td>
+            <td style="border:1px solid #d1d5db;padding:10px 14px;">${endDate || 'As per project duration'}</td>
+          </tr>
+        </table>
+
+        ${schedule.length > 0 ? `
+          <h3 style="font-size:14px;font-weight:600;margin:16px 0 8px;">Payment Schedule</h3>
+          <table style="width:100%;border-collapse:collapse;margin:8px 0;">
+            <thead>
+              <tr style="background:#f3f4f6;">
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;width:40px;">S.No</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left;">Description</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">Basic</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">GST</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">Net Amount</th>
+                <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">Due Date</th>
+              </tr>
+            </thead>
+            <tbody>${installmentsHTML}</tbody>
+            <tfoot>
+              <tr style="background:#f3f4f6;font-weight:700;">
+                <td colspan="4" style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">Total</td>
+                <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(totalValue)}</td>
+                <td style="border:1px solid #d1d5db;padding:8px 12px;"></td>
+              </tr>
+            </tfoot>
+          </table>
+        ` : ''}
+
+        <!-- Section 4: Legal Clauses -->
+        <h2 style="font-size:15px;font-weight:700;margin:24px 0 10px;padding:6px 12px;background:#1a1a1a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">4. Terms &amp; Conditions</h2>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.1 Confidentiality &amp; Non-Disclosure Agreement (NDA)</h3>
+        <p style="margin:0 0 8px;text-align:justify;">Both parties agree to maintain strict confidentiality regarding all proprietary information, trade secrets, business strategies, client data, financial records, and any other confidential material shared during the term of this Agreement. Neither party shall disclose, publish, or otherwise reveal any confidential information to any third party without the prior written consent of the disclosing party. This obligation of confidentiality shall survive the termination of this Agreement and remain in full force and effect until <strong>${ndaEndFormatted}</strong> (24 months from the date of this Agreement).</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.2 Non-Compete Agreement (NCA)</h3>
+        <p style="margin:0 0 8px;text-align:justify;">During the term of this Agreement and for a period of twenty-four (24) months following its termination (i.e., until <strong>${ndaEndFormatted}</strong>), neither party shall, directly or indirectly, engage in any business activity that competes with the core consulting services provided under this Agreement within the same geographic market or industry vertical. This includes soliciting or attempting to solicit business from any client, prospect, or entity that has been serviced or engaged by either party during the term of this Agreement.</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.3 Anti-Poaching</h3>
+        <p style="margin:0 0 8px;text-align:justify;">Both parties mutually agree that during the tenure of this Agreement and for a period of twenty-four (24) months from the date of its termination, neither party shall directly or indirectly solicit, recruit, hire, or engage any employee, consultant, or contractor of the other party without prior written consent. Any breach of this clause shall entitle the aggrieved party to seek compensation equivalent to twelve (12) months of the concerned individual's last drawn compensation, in addition to any other legal remedies available.</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.4 Intellectual Property</h3>
+        <p style="margin:0 0 8px;text-align:justify;">All intellectual property, frameworks, methodologies, templates, and proprietary tools used or developed by the Service Provider in the course of delivering services under this Agreement shall remain the exclusive property of the Service Provider. The Client shall have a non-exclusive, non-transferable license to use the deliverables produced under this Agreement for its internal business purposes only.</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.5 Limitation of Liability</h3>
+        <p style="margin:0 0 8px;text-align:justify;">In no event shall either party be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or relating to this Agreement, regardless of the cause of action or theory of liability. The aggregate liability of the Service Provider under this Agreement shall not exceed the total fees paid by the Client under this Agreement.</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.6 Termination</h3>
+        <p style="margin:0 0 8px;text-align:justify;">Either party may terminate this Agreement by providing thirty (30) days written notice to the other party. In the event of termination, the Client shall pay for all services rendered up to the effective date of termination. Any advance payments for services not yet rendered shall be refunded on a pro-rata basis within thirty (30) days of termination.</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.7 Dispute Resolution</h3>
+        <p style="margin:0 0 8px;text-align:justify;">Any dispute arising out of or in connection with this Agreement shall first be attempted to be resolved through good-faith negotiation. If the dispute cannot be resolved within thirty (30) days, it shall be referred to arbitration in accordance with the Arbitration and Conciliation Act, 1996, and the seat of arbitration shall be Mumbai, Maharashtra, India.</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.8 Governing Law</h3>
+        <p style="margin:0 0 8px;text-align:justify;">This Agreement shall be governed by and construed in accordance with the laws of India. The courts of Mumbai, Maharashtra shall have exclusive jurisdiction over any proceedings arising out of this Agreement.</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.9 Force Majeure</h3>
+        <p style="margin:0 0 8px;text-align:justify;">Neither party shall be held liable for any failure or delay in performing its obligations under this Agreement if such failure or delay results from circumstances beyond the reasonable control of that party, including but not limited to natural disasters, acts of government, pandemic, or other force majeure events.</p>
+
+        <h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;">4.10 Entire Agreement</h3>
+        <p style="margin:0 0 8px;text-align:justify;">This Agreement, together with its annexures and schedules, constitutes the entire agreement between the parties with respect to the subject matter hereof and supersedes all prior negotiations, representations, warranties, commitments, offers, and agreements, whether written or oral.</p>
+
+        <!-- Signature Block -->
+        <h2 style="font-size:15px;font-weight:700;margin:30px 0 10px;padding:6px 12px;background:#1a1a1a;color:#fff;text-transform:uppercase;letter-spacing:0.5px;">5. Signatures</h2>
+        <p style="margin:0 0 16px;">IN WITNESS WHEREOF, the parties hereto have executed this Agreement as of the date first written above.</p>
+
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="width:48%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;">
+              <p style="font-weight:700;font-size:14px;margin:0 0 24px;color:#111;">For D&V Business Consulting LLP</p>
+              <div style="height:60px;border-bottom:1px solid #999;margin-bottom:8px;"></div>
+              <p style="margin:4px 0;font-size:12px;">Authorized Signatory</p>
+              <p style="margin:4px 0;font-size:12px;">Name: ____________________________</p>
+              <p style="margin:4px 0;font-size:12px;">Designation: _______________________</p>
+              <p style="margin:4px 0;font-size:12px;">Date: _____________________________</p>
+            </td>
+            <td style="width:4%;"></td>
+            <td style="width:48%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;">
+              <p style="font-weight:700;font-size:14px;margin:0 0 24px;color:#111;">For ${clientCompany}</p>
+              <div style="height:60px;border-bottom:1px solid #999;margin-bottom:8px;"></div>
+              <p style="margin:4px 0;font-size:12px;">Authorized Signatory</p>
+              <p style="margin:4px 0;font-size:12px;">Name: ____________________________</p>
+              <p style="margin:4px 0;font-size:12px;">Designation: _______________________</p>
+              <p style="margin:4px 0;font-size:12px;">Date: _____________________________</p>
+            </td>
+          </tr>
+        </table>
+
+        <p style="text-align:center;font-size:11px;color:#888;margin-top:24px;">
+          This is a computer-generated document. Agreement No: ${agreement.agreement_number || '-'}
+        </p>
+      </div>
+    `;
   };
 
-  const removeMilestone = (index) => {
-    setMilestones((milestones || []).filter((_, i) => i !== index));
-  };
-
-  const handleSaveAgreement = async () => {
-    setSaving(true);
-    try {
-      const agreementData = {
-        quotation_id: quotation?.id,
-        lead_id: lead?.id,
-        agreement_type: 'standard',
-        payment_terms: 'As per milestone schedule',
-        start_date: pricingPlan?.payment_plan?.start_date,
-        end_date: null,
-        meeting_frequency: pricingPlan?.project_duration_type || 'Monthly',
-        project_tenure_months: pricingPlan?.project_duration_months || 12,
-        team_deployment: pricingPlan?.team_deployment || [],
-        milestones: milestones,
-        special_conditions: ''
-      };
-
-      if (agreementId) {
-        await axios.put(`${API}/agreements/${agreementId}`, agreementData);
-        toast.success('Agreement updated');
-      } else {
-        const response = await axios.post(`${API}/agreements`, agreementData);
-        toast.success('Agreement created');
-        navigate(`/sales-funnel/agreement/${response.data.id}`);
-      }
-    } catch (error) {
-      const detail = error.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        const msg = (detail || []).map(e => e.msg || e.message || 'Validation error').join(', ');
-        toast.error(msg);
-      } else if (typeof detail === 'string') {
-        toast.error(detail);
-      } else {
-        toast.error('Failed to save agreement');
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDownloadPDF = () => {
-    if (!agreementRef.current) return;
-    
-    const printContent = agreementRef.current.innerHTML;
+  const handlePrint = () => {
+    const html = getAgreementHTML();
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>Agreement - ${agreement?.agreement_number || 'Draft'}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-              margin: 40px; 
-              font-size: 11px;
-              color: #18181b;
-              line-height: 1.6;
-            }
-            h1 { font-size: 24px; margin-bottom: 20px; text-align: center; }
-            h2 { font-size: 14px; margin: 20px 0 10px; border-bottom: 1px solid #e4e4e7; padding-bottom: 5px; }
-            h3 { font-size: 12px; margin: 15px 0 8px; }
-            p { margin: 8px 0; }
-            table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-            th, td { border: 1px solid #d4d4d8; padding: 8px; text-align: left; font-size: 10px; }
-            th { background-color: #f4f4f5; font-weight: 600; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .font-bold { font-weight: 700; }
-            .section { margin: 20px 0; padding: 15px; border: 1px solid #e4e4e7; border-radius: 4px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .logo { font-size: 28px; font-weight: 800; }
-            .parties { display: flex; justify-content: space-between; margin: 20px 0; }
-            .party-box { width: 48%; padding: 15px; background: #fafafa; border-radius: 4px; }
-            .signature-box { margin-top: 40px; display: flex; justify-content: space-between; }
-            .signature-line { width: 200px; border-top: 1px solid #18181b; margin-top: 50px; padding-top: 5px; text-align: center; }
-            @media print {
-              body { margin: 20px; }
-              .page-break { page-break-before: always; }
-            }
-          </style>
-        </head>
-        <body>${printContent}</body>
-      </html>
+      <html><head><title>Agreement - ${agreement.agreement_number || ''}</title>
+      <style>
+        @media print {
+          body { margin: 0; padding: 20px 40px; }
+          @page { margin: 20mm 15mm; }
+        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; }
+      </style>
+      </head><body>${html}</body></html>
     `);
     printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
+    printWindow.onload = () => { printWindow.print(); };
   };
 
-  // Canvas signature functions
-  const startDrawing = (e) => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    ctx.beginPath();
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
-    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
-    ctx.moveTo(x, y);
-    setIsDrawing(true);
-  };
-
-  const draw = (e) => {
-    if (!isDrawing || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
-    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    setHasSignature(true);
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearSignature = () => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasSignature(false);
-    setSignatureData(prev => ({ ...prev, signature_image: null }));
-  };
-
-  const getSignatureImage = () => {
-    if (!canvasRef.current || !hasSignature) return null;
-    return canvasRef.current.toDataURL('image/png');
-  };
-
-  const initCanvas = () => {
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      ctx.strokeStyle = '#18181b';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-    }
-  };
-
-  // Initialize canvas when dialog opens
-  useEffect(() => {
-    if (signatureDialogOpen) {
-      setTimeout(initCanvas, 100);
-    }
-  }, [signatureDialogOpen]);
-
-  const handleESignature = async () => {
-    if (!signatureData.signer_name || !signatureData.signer_email) {
-      toast.error('Please fill signer name and email');
-      return;
-    }
-
-    if (!hasSignature) {
-      toast.error('Please draw your signature');
-      return;
-    }
-    
-    setSaving(true);
+  const handleDownloadDocx = () => {
     try {
-      const signatureImage = getSignatureImage();
-      await axios.post(`${API}/agreements/${agreementId}/sign`, {
-        ...signatureData,
-        signature_image: signatureImage,
-        signed_at: new Date().toISOString()
-      });
-      toast.success('Agreement signed successfully! Now select a Project Manager for kickoff.');
-      setSignatureDialogOpen(false);
-      await refetchAgreement();
-      // Open PM selection dialog after successful signing
-      setPmSelectionDialogOpen(true);
-    } catch (error) {
-      const detail = error.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        const msg = (detail || []).map(e => e.msg || e.message || 'Validation error').join(', ');
-        toast.error(msg);
-      } else if (typeof detail === 'string') {
-        toast.error(detail);
-      } else {
-        toast.error('Failed to sign agreement');
-      }
-    } finally {
-      setSaving(false);
+      const html = getAgreementHTML();
+      const docContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"><title>Agreement</title>
+        <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+        <style>
+          @page { size: A4; margin: 20mm 15mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; }
+          table { border-collapse: collapse; }
+        </style>
+        </head><body>${html}</body></html>
+      `;
+      const blob = new Blob(['\ufeff', docContent], { type: 'application/msword' });
+      saveAs(blob, `Agreement_${agreement.agreement_number || agreementId}.docx`);
+      toast.success('Agreement downloaded as .docx');
+    } catch (err) {
+      console.error('DOCX download error:', err);
+      toast.error('Failed to generate document');
     }
   };
 
-  const handleCreateKickoffRequest = async () => {
-    if (!selectedPmId) {
-      toast.error('Please select a Senior/Principal Consultant');
-      return;
-    }
-
-    setCreatingKickoff(true);
-    try {
-      // Use new endpoint that requires Admin approval
-      const response = await axios.post(`${API}/sales-funnel/request-kickoff`, {
-        lead_id: lead?.id || agreement?.lead_id,
-        agreement_id: agreementId,
-        assigned_consultant_id: selectedPmId,
-        notes: kickoffNotes || `Kickoff request for Agreement ${agreement?.agreement_number}`
-      });
-      
-      toast.success('Kickoff request submitted! Awaiting Admin approval.');
-      setPmSelectionDialogOpen(false);
-      setSelectedPmId('');
-      setKickoffNotes('');
-      
-    } catch (error) {
-      const detail = error.response?.data?.detail;
-      if (typeof detail === 'string') {
-        toast.error(detail);
-      } else {
-        toast.error('Failed to submit kickoff request');
-      }
-    } finally {
-      setCreatingKickoff(false);
-    }
-  };
-
-  // Upload signed agreement document
-  const handleUploadSignedAgreement = async () => {
-    if (!uploadFile) {
-      toast.error('Please select a file to upload');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', uploadFile);
-      formData.append('agreement_id', agreementId);
-
-      await axios.post(`${API}/agreements/${agreementId}/upload-signed`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      toast.success('Signed agreement uploaded successfully');
-      setUploadDialogOpen(false);
-      setUploadFile(null);
-      await refetchAgreement();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to upload document');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Send agreement to client via email
-  const handleSendToClient = async () => {
-    if (!clientEmail) {
-      toast.error('Please enter client email');
-      return;
-    }
-
-    setSendingEmail(true);
-    try {
-      await axios.post(`${API}/agreements/${agreementId}/send-to-client`, {
-        client_email: clientEmail,
-        client_name: lead?.first_name || 'Client'
-      });
-
-      toast.success('Agreement sent to client successfully');
-      setSendDialogOpen(false);
-      
-      // Update agreement status to 'sent'
-      await refetchAgreement();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to send agreement');
-    } finally {
-      setSendingEmail(false);
-    }
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'TBD';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
-  };
-
-  // Calculate totals
-  const totalAmount = quotation?.grand_total || 
-    (pricingPlan?.total_investment || pricingPlan?.total_amount || 0);
-  const gstAmount = totalAmount * 0.18;
-  const grandTotal = totalAmount + gstAmount;
-  const milestoneTotalAmount = (milestones || []).reduce((sum, m) => sum + (m.amount || 0), 0);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+      <div className="flex items-center justify-center h-96" data-testid="agreement-loading">
+        <div className="text-zinc-500">Loading agreement...</div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto" data-testid="agreement-view-page">
-      {/* Progress Bar */}
-      {(lead?.id || agreement?.lead_id) && (
-        <FunnelStepperHeader leadId={lead?.id || agreement?.lead_id} currentStepId="agreement" />
+    <div className="max-w-[900px] mx-auto px-4 py-6" data-testid="agreement-view">
+      {leadId && (
+        <FunnelStepperHeader leadId={leadId} currentStep="agreement" />
       )}
 
-      {/* Header */}
-      <div className="mb-6">
-        <Button
-          onClick={() => {
-            const backLeadId = lead?.id || agreement?.lead_id;
-            if (backLeadId) {
-              navigate(`/sales-funnel-onboarding?leadId=${backLeadId}`);
-            } else {
-              navigate('/sales-funnel/agreements');
-            }
-          }}
-          variant="ghost"
-          className="mb-4 hover:bg-zinc-100 rounded-sm"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
-          Back to Funnel
+      {/* Action Bar */}
+      <div className="flex items-center justify-between mb-6 no-print">
+        <Button variant="ghost" onClick={() => navigate(-1)} data-testid="agreement-back-btn">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-              {agreementId ? 'Agreement' : 'Create Agreement'}
-            </h1>
-            <p className="text-zinc-500">
-              {agreement?.agreement_number || 'Draft Agreement'} • {lead?.company || 'Client'}
-            </p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              onClick={handleDownloadPDF}
-              variant="outline"
-              className="rounded-sm"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download PDF
-            </Button>
-            
-            {/* Send to Client button - available for draft/created agreements */}
-            {agreement && !['signed', 'sent'].includes(agreement.status) && (
-              <Button
-                onClick={() => {
-                  setClientEmail(lead?.email || '');
-                  setSendDialogOpen(true);
-                }}
-                variant="outline"
-                className="rounded-sm border-blue-200 text-blue-600 hover:bg-blue-50"
-              >
-                <Send className="w-4 h-4 mr-2" />
-                Send to Client
-              </Button>
-            )}
-
-            {/* Upload Signed Agreement - for sent agreements */}
-            {agreement?.status === 'sent' && (
-              <Button
-                onClick={() => setUploadDialogOpen(true)}
-                variant="outline"
-                className="rounded-sm border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Upload Signed Copy
-              </Button>
-            )}
-
-            {agreement?.status !== 'signed' && (
-              <Button
-                onClick={() => setSignatureDialogOpen(true)}
-                className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
-              >
-                <FileSignature className="w-4 h-4 mr-2" />
-                E-Sign Agreement
-              </Button>
-            )}
-            {agreement?.status === 'signed' && (
-              <Button
-                onClick={() => setPmSelectionDialogOpen(true)}
-                className="bg-orange-500 text-white hover:bg-orange-600 rounded-sm shadow-none"
-                data-testid="create-kickoff-from-signed-btn"
-              >
-                <UserCheck className="w-4 h-4 mr-2" />
-                Create Project Kickoff
-              </Button>
-            )}
-            
-            {/* Client Onboarding Button - for signed agreements */}
-            {agreement?.status === 'signed' && (
-              <Button
-                onClick={() => navigate(`/client-onboarding?agreementId=${agreementId}&leadId=${agreement?.lead_id}`)}
-                className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
-                data-testid="client-onboarding-btn"
-              >
-                <UserCheck className="w-4 h-4 mr-2" />
-                Client Onboarding
-              </Button>
-            )}
-          </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint} data-testid="agreement-print-btn">
+            <Printer className="w-4 h-4 mr-2" /> Print / PDF
+          </Button>
+          <Button onClick={handleDownloadDocx} data-testid="agreement-download-docx-btn">
+            <Download className="w-4 h-4 mr-2" /> Download .docx
+          </Button>
         </div>
       </div>
 
-      {/* Agreement Content */}
-      <Card className="border-zinc-200 shadow-none rounded-sm">
-        <CardContent className="p-0">
-          <div ref={agreementRef} className="p-8 bg-white">
-            {/* Agreement Header */}
-            <div className="text-center mb-8 border-b border-zinc-200 pb-6">
-              <div className="flex justify-center items-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-zinc-900 rounded-sm flex items-center justify-center">
-                  <span className="text-2xl font-black text-white tracking-tighter">D&V</span>
-                </div>
-                <div className="text-left">
-                  <h1 className="text-2xl font-bold text-zinc-900">D&V®</h1>
-                  <p className="text-zinc-500 text-sm">Business Consulting</p>
-                </div>
-              </div>
-              <h2 className="text-xl font-semibold text-zinc-800 mt-4">CONSULTING SERVICES AGREEMENT</h2>
-              <p className="text-zinc-500 text-sm mt-2">
-                Agreement No: {agreement?.agreement_number || 'AGR-DRAFT'}
-              </p>
-            </div>
-
-            {/* Parties Section */}
-            <div className="grid grid-cols-2 gap-6 mb-8">
-              {/* First Party */}
-              <div className="p-4 bg-zinc-50 rounded-sm">
-                <h3 className="text-xs uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
-                  <Building2 className="w-4 h-4" /> First Party (Consultant)
-                </h3>
-                <p className="font-semibold text-zinc-900">D & V Business Consulting</p>
-                <p className="text-sm text-zinc-600 flex items-center gap-1 mt-1">
-                  <MapPin className="w-3 h-3" />
-                  626, Iconic Shyamal, Shyamal Cross Road, Ahmedabad - 380015
-                </p>
-                <p className="text-sm text-zinc-600">Gujarat, India</p>
-                <p className="text-sm text-zinc-600 flex items-center gap-1 mt-1">
-                  <Phone className="w-3 h-3" /> +91-9824009829
-                </p>
-                <p className="text-sm text-zinc-500 mt-2">GSTIN: 24ASLPP4013H1ZV</p>
-              </div>
-
-              {/* Second Party */}
-              <div className="p-4 bg-blue-50 rounded-sm">
-                <h3 className="text-xs uppercase tracking-wider text-blue-600 mb-3 flex items-center gap-2">
-                  <Users className="w-4 h-4" /> Second Party (Client)
-                </h3>
-                <p className="font-semibold text-zinc-900">{lead?.company || 'Client Company'}</p>
-                <p className="text-sm text-zinc-600 mt-1">
-                  {lead?.first_name} {lead?.last_name}
-                </p>
-                <p className="text-sm text-zinc-600 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {lead?.address || 'Address not provided'}
-                </p>
-                <p className="text-sm text-zinc-600">{lead?.city || 'City'}, {lead?.state || 'State'}</p>
-                <p className="text-sm text-zinc-600 flex items-center gap-1 mt-1">
-                  <Mail className="w-3 h-3" /> {lead?.email}
-                </p>
-                {lead?.gstin && (
-                  <p className="text-sm text-zinc-500 mt-2">GSTIN: {lead.gstin}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Agreement Date & Duration */}
-            <div className="grid grid-cols-3 gap-4 mb-8 p-4 bg-amber-50 border border-amber-200 rounded-sm">
-              <div>
-                <p className="text-xs uppercase text-amber-700">Agreement Date</p>
-                <p className="font-semibold text-zinc-900">{formatDate(agreement?.created_at || new Date())}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-amber-700">Project Start Date</p>
-                <p className="font-semibold text-zinc-900">{formatDate(pricingPlan?.payment_plan?.start_date)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-amber-700">Project Duration</p>
-                <p className="font-semibold text-zinc-900">{pricingPlan?.project_duration_months || 12} Months</p>
-              </div>
-            </div>
-
-            {/* Whereas Clauses */}
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold text-zinc-800 mb-3 border-b pb-2">WHEREAS:</h3>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-zinc-700">
-                <li>The First Party is engaged in the business of providing consulting services in the areas of Human Resources, Operations, Marketing, Sales, and Business Strategy.</li>
-                <li>The Second Party desires to engage the First Party to provide certain consulting services as described herein.</li>
-                <li>The First Party agrees to provide such services subject to the terms and conditions set forth in this Agreement.</li>
-              </ol>
-            </div>
-
-            {/* Pricing Summary */}
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold text-zinc-800 mb-3 border-b pb-2">PRICING SUMMARY</h3>
-              <div className="bg-zinc-50 p-4 rounded-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-zinc-500">Consulting Fees (Before Tax)</p>
-                    <p className="text-lg font-bold text-zinc-900">{formatINR(totalAmount)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-zinc-500">GST @ 18%</p>
-                    <p className="text-lg font-bold text-zinc-900">{formatINR(gstAmount)}</p>
-                  </div>
-                </div>
-                <div className="border-t border-zinc-200 mt-4 pt-4">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm font-semibold text-zinc-700">Grand Total</p>
-                    <p className="text-2xl font-bold text-emerald-600">{formatINR(grandTotal)}</p>
-                  </div>
-                  <p className="text-xs text-zinc-500 mt-1">
-                    ({numberToWords(grandTotal)} Only)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Team Deployment Structure */}
-            {pricingPlan?.team_deployment && pricingPlan.team_deployment.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-sm font-semibold text-zinc-800 mb-3 border-b pb-2">TEAM DEPLOYMENT STRUCTURE</h3>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-zinc-100">
-                      <th className="p-2 text-left">Role</th>
-                      <th className="p-2 text-left">Meeting Type</th>
-                      <th className="p-2 text-left">Frequency</th>
-                      <th className="p-2 text-center">Count</th>
-                      <th className="p-2 text-center">Meetings</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(pricingPlan?.team_deployment || []).map((member, idx) => (
-                      <tr key={idx} className="border-b border-zinc-100">
-                        <td className="p-2 font-medium">{member.role}</td>
-                        <td className="p-2">{member.meeting_type}</td>
-                        <td className="p-2">{member.frequency}</td>
-                        <td className="p-2 text-center">{member.count || 1}</td>
-                        <td className="p-2 text-center font-semibold">{member.committed_meetings || member.meetings || 0}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Scope of Work Summary */}
-            {sow?.scopes && sow.scopes.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-sm font-semibold text-zinc-800 mb-3 border-b pb-2">SCOPE OF WORK SUMMARY</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {(sow?.scopes || []).slice(0, 10).map((scope, idx) => (
-                    <div key={idx} className="p-2 bg-zinc-50 rounded-sm text-sm">
-                      <span className="text-zinc-500 mr-2">{idx + 1}.</span>
-                      {scope.name}
-                    </div>
-                  ))}
-                  {sow.scopes.length > 10 && (
-                    <div className="p-2 text-zinc-500 text-sm">
-                      + {sow.scopes.length - 10} more scopes...
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-zinc-500 mt-2 italic">
-                  * Detailed Scope of Work attached as Annexure 1
-                </p>
-              </div>
-            )}
-
-            {/* Milestones Table */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-3 border-b pb-2">
-                <h3 className="text-sm font-semibold text-zinc-800">PAYMENT MILESTONES</h3>
-                {!agreement?.status?.includes('signed') && (
-                  <span className="text-xs text-zinc-500">(Editable)</span>
-                )}
-              </div>
-              
-              <table className="w-full text-sm mb-4">
-                <thead>
-                  <tr className="bg-zinc-100">
-                    <th className="p-2 text-left w-12">#</th>
-                    <th className="p-2 text-left">Milestone Description</th>
-                    <th className="p-2 text-right w-32">Amount (₹)</th>
-                    <th className="p-2 text-center w-32">Due Date</th>
-                    {!agreement?.status?.includes('signed') && (
-                      <th className="p-2 text-center w-16"></th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(milestones || []).map((milestone, idx) => (
-                    <tr key={milestone.id} className="border-b border-zinc-100">
-                      <td className="p-2">{idx + 1}</td>
-                      <td className="p-2">{milestone.description}</td>
-                      <td className="p-2 text-right font-medium">{formatINR(milestone.amount)}</td>
-                      <td className="p-2 text-center">{formatDate(milestone.due_date)}</td>
-                      {!agreement?.status?.includes('signed') && (
-                        <td className="p-2 text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeMilestone(idx)}
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                  <tr className="bg-emerald-50 font-semibold">
-                    <td className="p-2" colSpan={2}>Total</td>
-                    <td className="p-2 text-right text-emerald-700">{formatINR(milestoneTotalAmount)}</td>
-                    <td className="p-2" colSpan={agreement?.status?.includes('signed') ? 1 : 2}></td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* Add Milestone Form */}
-              {!agreement?.status?.includes('signed') && (
-                <div className="flex gap-2 items-end p-3 bg-zinc-50 rounded-sm">
-                  <div className="flex-1">
-                    <Label className="text-xs text-zinc-500">Description</Label>
-                    <Input
-                      value={newMilestone.description}
-                      onChange={(e) => setNewMilestone({...newMilestone, description: e.target.value})}
-                      placeholder="e.g., Initial Payment"
-                      className="h-9 text-sm rounded-sm"
-                    />
-                  </div>
-                  <div className="w-32">
-                    <Label className="text-xs text-zinc-500">Amount (₹)</Label>
-                    <Input
-                      type="number"
-                      value={newMilestone.amount}
-                      onChange={(e) => setNewMilestone({...newMilestone, amount: e.target.value})}
-                      placeholder="0"
-                      className="h-9 text-sm rounded-sm"
-                    />
-                  </div>
-                  <div className="w-36">
-                    <Label className="text-xs text-zinc-500">Due Date</Label>
-                    <Input
-                      type="date"
-                      value={newMilestone.due_date}
-                      onChange={(e) => setNewMilestone({...newMilestone, due_date: e.target.value})}
-                      className="h-9 text-sm rounded-sm"
-                    />
-                  </div>
-                  <Button onClick={addMilestone} size="sm" className="h-9">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Terms & Conditions */}
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold text-zinc-800 mb-3 border-b pb-2">TERMS & CONDITIONS</h3>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-zinc-700">
-                <li>All payments to be made via bank transfer or cheques.</li>
-                <li>Payment refund is not permissible once the engagement has commenced.</li>
-                <li>Any breach of confidential information is subject to violation of this agreement.</li>
-                <li>TDS amount to be deducted as per applicable rates and challans to be submitted to the consultant.</li>
-                <li>All disputes shall be subject to Ahmedabad jurisdiction.</li>
-                <li>This agreement may be terminated by either party with 30 days written notice.</li>
-                <li>Any modifications to the scope of work must be agreed upon in writing.</li>
-              </ol>
-            </div>
-
-            {/* Bank Details */}
-            <div className="mb-8 p-4 bg-blue-50 rounded-sm">
-              <h3 className="text-sm font-semibold text-blue-800 mb-3">COMPANY BANK DETAILS</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-zinc-500">Account Holder</p>
-                  <p className="font-medium">D & V Business Consulting</p>
-                </div>
-                <div>
-                  <p className="text-zinc-500">Bank Name</p>
-                  <p className="font-medium">ICICI Bank</p>
-                </div>
-                <div>
-                  <p className="text-zinc-500">Account Number</p>
-                  <p className="font-medium">034405500698</p>
-                </div>
-                <div>
-                  <p className="text-zinc-500">IFSC Code</p>
-                  <p className="font-medium">ICIC0000344</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Signatures */}
-            <div className="grid grid-cols-2 gap-8 mt-12 pt-8 border-t border-zinc-200">
-              <div className="text-center">
-                <div className="h-16 border-b border-zinc-300 mb-2"></div>
-                <p className="font-medium text-zinc-900">For D & V Business Consulting</p>
-                <p className="text-sm text-zinc-500">Authorized Signatory</p>
-              </div>
-              <div className="text-center">
-                <div className="h-16 border-b border-zinc-300 mb-2">
-                  {agreement?.client_signature && (
-                    <div className="flex flex-col items-center justify-end h-full pb-2">
-                      <CheckCircle className="w-6 h-6 text-emerald-500 mb-1" />
-                      <span className="text-xs text-emerald-600">Signed</span>
-                    </div>
-                  )}
-                </div>
-                <p className="font-medium text-zinc-900">For {lead?.company || 'Client'}</p>
-                <p className="text-sm text-zinc-500">
-                  {agreement?.client_signature?.signer_name || 'Authorized Signatory'}
-                </p>
-                {agreement?.client_signature?.signed_at && (
-                  <p className="text-xs text-zinc-400">
-                    Signed on: {formatDate(agreement.client_signature.signed_at)}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-3 mt-6">
-        <Button
-          onClick={() => navigate('/sales-funnel/proforma-invoice')}
-          variant="outline"
-          className="rounded-sm"
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSaveAgreement}
-          disabled={saving}
-          className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <ArrowRight className="w-4 h-4 mr-2" />
-              {agreementId ? 'Save Agreement' : 'Save & Create Agreement'}
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* E-Signature Dialog */}
-      <Dialog open={signatureDialogOpen} onOpenChange={setSignatureDialogOpen}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 flex items-center gap-2">
-              <FileSignature className="w-5 h-5" />
-              E-Sign Agreement
-            </DialogTitle>
-            <DialogDescription className="text-zinc-500">
-              Add your digital signature to this agreement
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Full Name *</Label>
-                <Input
-                  value={signatureData.signer_name}
-                  onChange={(e) => setSignatureData({...signatureData, signer_name: e.target.value})}
-                  placeholder="Enter your full name"
-                  className="rounded-sm"
-                  data-testid="signer-name-input"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Designation</Label>
-                <Input
-                  value={signatureData.signer_designation}
-                  onChange={(e) => setSignatureData({...signatureData, signer_designation: e.target.value})}
-                  placeholder="e.g., Director, CEO"
-                  className="rounded-sm"
-                  data-testid="signer-designation-input"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Email *</Label>
-                <Input
-                  type="email"
-                  value={signatureData.signer_email}
-                  onChange={(e) => setSignatureData({...signatureData, signer_email: e.target.value})}
-                  placeholder="your@email.com"
-                  className="rounded-sm"
-                  data-testid="signer-email-input"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Date</Label>
-                <Input
-                  type="date"
-                  value={signatureData.signature_date}
-                  onChange={(e) => setSignatureData({...signatureData, signature_date: e.target.value})}
-                  className="rounded-sm"
-                  data-testid="signature-date-input"
-                />
-              </div>
-            </div>
-            
-            {/* Canvas Signature Pad */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Draw Your Signature *</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearSignature}
-                  className="text-xs text-zinc-500 hover:text-zinc-900"
-                  data-testid="clear-signature-btn"
-                >
-                  <X className="w-3 h-3 mr-1" /> Clear
-                </Button>
-              </div>
-              <div className="border-2 border-dashed border-zinc-300 rounded-sm bg-white">
-                <canvas
-                  ref={canvasRef}
-                  width={460}
-                  height={120}
-                  className="w-full cursor-crosshair touch-none"
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={stopDrawing}
-                  data-testid="signature-canvas"
-                />
-              </div>
-              <p className="text-xs text-zinc-500 text-center">
-                {hasSignature ? 'Signature captured' : 'Draw your signature above using mouse or touch'}
-              </p>
-            </div>
-            
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm text-sm text-amber-800">
-              By clicking "Sign Agreement", you acknowledge that this constitutes your electronic signature and consent to this agreement.
-            </div>
-            
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSignatureDialogOpen(false);
-                  clearSignature();
-                }}
-                className="flex-1 rounded-sm"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleESignature}
-                disabled={saving || !hasSignature || !signatureData.signer_name || !signatureData.signer_email}
-                className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm disabled:opacity-50"
-                data-testid="sign-agreement-btn"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Sign Agreement
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* PM Selection Dialog for Kickoff */}
-      <Dialog open={pmSelectionDialogOpen} onOpenChange={setPmSelectionDialogOpen}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-zinc-950 flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-emerald-600" />
-              Create Kickoff Request
-            </DialogTitle>
-            <DialogDescription className="text-zinc-500">
-              Agreement signed! Now assign a consultant as Project Manager to kickoff the project.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {/* Success Banner */}
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-sm flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
-              <div>
-                <p className="text-sm font-medium text-emerald-800">Agreement Signed Successfully!</p>
-                <p className="text-xs text-emerald-600">{agreement?.agreement_number}</p>
-              </div>
-            </div>
-
-            {/* Project Summary */}
-            <div className="p-3 bg-zinc-50 rounded-sm space-y-2">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="text-zinc-500">Client:</span>
-                  <span className="ml-2 font-medium">{lead?.company}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-500">Duration:</span>
-                  <span className="ml-2 font-medium">{agreement?.project_tenure_months || pricingPlan?.project_duration_months || 12} months</span>
-                </div>
-                <div>
-                  <span className="text-zinc-500">Frequency:</span>
-                  <span className="ml-2 font-medium">{agreement?.meeting_frequency || 'Monthly'}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-500">Team Size:</span>
-                  <span className="ml-2 font-medium">{agreement?.team_deployment?.length || pricingPlan?.team_deployment?.length || 0} members</span>
-                </div>
-              </div>
-            </div>
-
-            {/* PM Selection */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
-                <UserCheck className="w-4 h-4" />
-                Select Consultant (Senior/Principal only) *
-              </Label>
-              <Select value={selectedPmId} onValueChange={setSelectedPmId}>
-                <SelectTrigger className="rounded-sm" data-testid="pm-select">
-                  <SelectValue placeholder="Select a consultant" />
-                </SelectTrigger>
-                <SelectContent>
-                  {consultants.length === 0 ? (
-                    <SelectItem value="no-consultants" disabled>No Senior/Principal Consultants available</SelectItem>
-                  ) : (
-                    (consultants || []).map((consultant) => (
-                      <SelectItem 
-                        key={consultant.id} 
-                        value={consultant.id}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{consultant.full_name}</span>
-                          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
-                            {consultant.role === 'principal_consultant' ? 'Principal' : 'Senior'}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-zinc-500">
-                Only Senior Consultants and Principal Consultants can be assigned. Admin approval required.
-              </p>
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Notes (Optional)</Label>
-              <textarea
-                value={kickoffNotes}
-                onChange={(e) => setKickoffNotes(e.target.value)}
-                placeholder="Add any special instructions or notes for the consulting team..."
-                rows={3}
-                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-                data-testid="kickoff-notes-input"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPmSelectionDialogOpen(false);
-                navigate('/sales-funnel/agreements');
-              }}
-              className="rounded-sm"
-            >
-              Skip for Now
-            </Button>
-            <Button
-              onClick={handleCreateKickoffRequest}
-              disabled={!selectedPmId || creatingKickoff}
-              className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm"
-              data-testid="create-kickoff-btn"
-            >
-              {creatingKickoff ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Rocket className="w-4 h-4 mr-2" />
-              )}
-              Create Kickoff Request
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Signed Agreement Dialog */}
-      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-500" />
-              Upload Signed Agreement
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-zinc-600">
-              Upload the signed agreement document received from the client.
-            </p>
-            <div className="border-2 border-dashed border-zinc-200 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                className="hidden"
-                id="signed-agreement-file"
-              />
-              <label htmlFor="signed-agreement-file" className="cursor-pointer">
-                <FileText className="w-10 h-10 text-zinc-400 mx-auto mb-2" />
-                <p className="text-sm text-zinc-600">
-                  {uploadFile ? uploadFile.name : 'Click to select file'}
-                </p>
-                <p className="text-xs text-zinc-400 mt-1">PDF, DOC, DOCX, PNG, JPG</p>
-              </label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUploadSignedAgreement}
-              disabled={!uploadFile || uploading}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Send to Client Dialog */}
-      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Send className="w-5 h-5 text-blue-500" />
-              Send Agreement to Client
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-zinc-600">
-              Send this agreement to the client for review and signature.
-            </p>
-            <div className="space-y-2">
-              <Label>Client Email</Label>
-              <Input
-                type="email"
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                placeholder="client@company.com"
-                className="rounded-sm"
-              />
-            </div>
-            <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-              <p className="font-medium">Email Preview:</p>
-              <p className="mt-1">Subject: Agreement for Review - {agreement?.agreement_number}</p>
-              <p className="mt-1">The client will receive a professional email with the agreement PDF attached.</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSendDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSendToClient}
-              disabled={!clientEmail || sendingEmail}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {sendingEmail ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Send Email
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Agreement Document */}
+      <div 
+        ref={printRef}
+        className="bg-white border border-zinc-200 rounded-lg shadow-sm p-8"
+        data-testid="agreement-document"
+        dangerouslySetInnerHTML={{ __html: getAgreementHTML() }}
+      />
     </div>
   );
 };

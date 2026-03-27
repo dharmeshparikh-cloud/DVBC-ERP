@@ -521,7 +521,12 @@ const MeetingRecord = () => {
                 <Input
                   type="date"
                   value={formData.meeting_date}
-                  onChange={(e) => setFormData({...formData, meeting_date: e.target.value})}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    if (e.target.value < today) return;
+                    setFormData({...formData, meeting_date: e.target.value});
+                  }}
                   className="rounded-sm"
                   data-testid="meeting-date-input"
                 />
