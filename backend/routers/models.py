@@ -39,11 +39,14 @@ class ProjectType(str):
 
 class LeadStatus(str):
     NEW = "new"
-    CONTACTED = "contacted"
-    QUALIFIED = "qualified"
-    PROPOSAL = "proposal"
-    AGREEMENT = "agreement"
-    CLOSED = "closed"
+    CONTACTED = "contacted"        # Meeting recorded
+    PRICING = "pricing"            # Pricing plan created
+    SOW = "sow"                    # Scope of work created
+    PROPOSAL = "proposal"          # Proforma invoice created
+    AGREEMENT = "agreement"        # Agreement created
+    PAYMENT = "payment"            # Payment recorded
+    KICKOFF = "kickoff"            # Kickoff requested
+    CLOSED = "closed"              # Project created / funnel complete
     LOST = "lost"
 
 

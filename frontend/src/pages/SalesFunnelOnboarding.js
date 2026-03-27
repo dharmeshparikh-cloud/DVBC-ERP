@@ -100,6 +100,7 @@ const SalesFunnelOnboarding = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const leadId = searchParams.get('leadId');
+  const isReadOnly = searchParams.get('readOnly') === 'true';
 
   const [currentStep, setCurrentStep] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -435,7 +436,14 @@ const SalesFunnelOnboarding = () => {
                 Sales Funnel
               </h1>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                Complete all steps to onboard <span className="font-medium text-zinc-700 dark:text-zinc-300">{lead.company || `${lead.first_name} ${lead.last_name}`}</span>
+                {isReadOnly ? (
+                  <span className="inline-flex items-center gap-1.5 text-amber-600">
+                    <Lock className="w-3.5 h-3.5" />
+                    Read-only view for <span className="font-medium text-zinc-700 dark:text-zinc-300">{lead.company || `${lead.first_name} ${lead.last_name}`}</span>
+                  </span>
+                ) : (
+                  <>Complete all steps to onboard <span className="font-medium text-zinc-700 dark:text-zinc-300">{lead.company || `${lead.first_name} ${lead.last_name}`}</span></>
+                )}
               </p>
             </div>
             
@@ -689,8 +697,8 @@ const SalesFunnelOnboarding = () => {
                               Review Agreement
                             </Button>
                             
-                            {/* Approve button - only for managers */}
-                            {canApproveAgreement && funnelStatus.agreement_status?.toLowerCase() !== 'rejected' && (
+                            {/* Approve button - only for managers and not read-only */}
+                            {!isReadOnly && canApproveAgreement && funnelStatus.agreement_status?.toLowerCase() !== 'rejected' && (
                               <Button
                                 size="sm"
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -727,14 +735,14 @@ const SalesFunnelOnboarding = () => {
                           ? <span><strong>{funnelStatus.meeting_count}</strong> meeting{funnelStatus.meeting_count !== 1 ? 's' : ''} recorded</span>
                           : 'No meetings recorded yet.'}
                       </p>
-                      <Button
+                      {!isReadOnly && <Button
                         onClick={() => navigate(`/sales-funnel/meeting/record?leadId=${leadId}`)}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                         data-testid="record-new-meeting-btn"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Record Meeting ({(funnelStatus.meeting_count || 0) + 1})
-                      </Button>
+                      </Button>}
                     </div>
                     {funnelStatus.meetings && funnelStatus.meetings.length > 0 && (
                       <div className="space-y-2">

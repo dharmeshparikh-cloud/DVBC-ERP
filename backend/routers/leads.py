@@ -103,11 +103,15 @@ def calculate_lead_score(lead_data: dict) -> tuple:
     status_score = {
         LeadStatus.NEW: 5,
         LeadStatus.CONTACTED: 10,
-        LeadStatus.QUALIFIED: 20,
-        LeadStatus.PROPOSAL: 25,
-        LeadStatus.AGREEMENT: 30,
+        LeadStatus.PRICING: 15,
+        LeadStatus.SOW: 18,
+        LeadStatus.PROPOSAL: 20,
+        LeadStatus.AGREEMENT: 25,
+        LeadStatus.PAYMENT: 27,
+        LeadStatus.KICKOFF: 28,
         LeadStatus.CLOSED: 30,
-        LeadStatus.LOST: 0
+        LeadStatus.LOST: 0,
+        "qualified": 15,  # legacy fallback
     }.get(status, 5)
     
     breakdown['engagement_score'] = status_score
@@ -474,47 +478,89 @@ async def get_leads(
             lead['enriched_at'] = datetime.fromisoformat(lead['enriched_at'])
     
     # Auto-sync funnel stage with lead status for accurate display
-    FUNNEL_STATUS_MAP = {
-        "lead_capture": LeadStatus.NEW,
-        "record_meeting": LeadStatus.CONTACTED,
-        "pricing_plan": LeadStatus.QUALIFIED,
-        "scope_of_work": LeadStatus.QUALIFIED,
-        "quotation": LeadStatus.PROPOSAL,
-        "agreement": LeadStatus.AGREEMENT,
-    }
-    for lead in leads:
-        lead_id = lead.get("id")
-        current_status = lead.get("status", LeadStatus.NEW)
-        # Skip if already in terminal state
-        if current_status in ["won", "lost", "closed_won", "closed_lost", "paused"]:
-            continue
+    # BATCH approach: Query all related collections ONCE instead of per-lead (N+1 fix)
+    active_leads = [l for l in leads if l.get("status") not in ["won", "lost", "closed_won", "closed_lost", "paused"]]
+    if active_leads:
+        active_ids = [l["id"] for l in active_leads if l.get("id")]
         
-        # Quick check for furthest completed step
-        expected_status = LeadStatus.NEW
-        if lead_id:
-            has_meeting = await db.meetings.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
-            if has_meeting:
-                expected_status = LeadStatus.CONTACTED
-                has_pricing = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
-                if has_pricing:
-                    expected_status = LeadStatus.QUALIFIED
-                    has_sow = await db.enhanced_sows.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
-                    if not has_sow:
-                        has_sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
-                    if has_sow:
-                        has_quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
-                        if has_quotation:
-                            expected_status = LeadStatus.PROPOSAL
-                            has_agreement = await db.agreements.find_one({"lead_id": lead_id}, {"_id": 0, "id": 1})
-                            if has_agreement:
-                                expected_status = LeadStatus.AGREEMENT
+        # Batch lookups - one query per collection
+        meeting_leads = set()
+        async for doc in db.meetings.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
+            meeting_leads.add(doc["lead_id"])
+        
+        pricing_leads = set()
+        pricing_by_lead = {}
+        async for doc in db.pricing_plans.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "id": 1, "_id": 0}):
+            pricing_leads.add(doc["lead_id"])
+            pricing_by_lead.setdefault(doc["lead_id"], []).append(doc["id"])
+        
+        # enhanced_sow: check by lead_id AND by pricing_plan_id
+        sow_leads = set()
+        all_pp_ids = [pp_id for pp_list in pricing_by_lead.values() for pp_id in pp_list]
+        async for doc in db.enhanced_sow.find({"$or": [{"lead_id": {"$in": active_ids}}, {"pricing_plan_id": {"$in": all_pp_ids}}]}, {"lead_id": 1, "pricing_plan_id": 1, "_id": 0}):
+            if doc.get("lead_id"):
+                sow_leads.add(doc["lead_id"])
+            elif doc.get("pricing_plan_id"):
+                for lid, pp_list in pricing_by_lead.items():
+                    if doc["pricing_plan_id"] in pp_list:
+                        sow_leads.add(lid)
+        # Also check legacy sow collection
+        async for doc in db.sow.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
+            sow_leads.add(doc["lead_id"])
+        
+        quotation_leads = set()
+        async for doc in db.quotations.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
+            quotation_leads.add(doc["lead_id"])
+        
+        agreement_leads = set()
+        async for doc in db.agreements.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
+            agreement_leads.add(doc["lead_id"])
+        
+        payment_leads = set()
+        async for doc in db.payment_verifications.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
+            payment_leads.add(doc["lead_id"])
+        
+        kickoff_leads = set()
+        async for doc in db.kickoff_requests.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
+            kickoff_leads.add(doc["lead_id"])
+        
+        project_leads = set()
+        async for doc in db.projects.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
+            project_leads.add(doc["lead_id"])
+        
+        # Determine expected status for each lead and batch-update
+        updates = []
+        for lead in active_leads:
+            lid = lead.get("id")
+            if not lid:
+                continue
+            expected = LeadStatus.NEW
+            if lid in meeting_leads:
+                expected = LeadStatus.CONTACTED
+            if lid in pricing_leads:
+                expected = LeadStatus.PRICING
+            if lid in sow_leads:
+                expected = LeadStatus.SOW
+            if lid in quotation_leads:
+                expected = LeadStatus.PROPOSAL
+            if lid in agreement_leads:
+                expected = LeadStatus.AGREEMENT
+            if lid in payment_leads:
+                expected = LeadStatus.PAYMENT
+            if lid in kickoff_leads:
+                expected = LeadStatus.KICKOFF
+            if lid in project_leads:
+                expected = LeadStatus.CLOSED
             
-            if current_status != expected_status:
-                await db.leads.update_one(
-                    {"id": lead_id},
-                    {"$set": {"status": expected_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
-                )
-                lead["status"] = expected_status
+            if lead.get("status") != expected:
+                updates.append({"id": lid, "status": expected})
+                lead["status"] = expected
+        
+        # Batch update changed leads
+        if updates:
+            from pymongo import UpdateOne
+            ops = [UpdateOne({"id": u["id"]}, {"$set": {"status": u["status"], "updated_at": datetime.now(timezone.utc).isoformat()}}) for u in updates]
+            await db.leads.bulk_write(ops)
     
     # Return standardized response for SalesDataTable
     return {
@@ -604,8 +650,17 @@ async def get_all_leads_progress(current_user: User = Depends(get_current_user))
     # Fetch related data in bulk
     meetings = await db.meetings.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(10000)
     pricing_plans = await db.pricing_plans.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
-    sows = await db.sows.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
-    enhanced_sows = await db.enhanced_sows.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
+    sows = await db.sow.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
+    enhanced_sow_docs = await db.enhanced_sow.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
+    # Also check enhanced_sow by pricing_plan_id for docs without lead_id
+    pp_ids = [p.get("id") for p in pricing_plans if p.get("id")]
+    if pp_ids:
+        pp_sows = await db.enhanced_sow.find({"pricing_plan_id": {"$in": pp_ids}}, {"pricing_plan_id": 1, "_id": 0}).to_list(1000)
+        pp_to_lead = {p.get("id"): p["lead_id"] for p in pricing_plans if p.get("id")}
+        for s in pp_sows:
+            lid = pp_to_lead.get(s.get("pricing_plan_id"))
+            if lid:
+                enhanced_sow_docs.append({"lead_id": lid})
     quotations = await db.quotations.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
     agreements = await db.agreements.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "status": 1, "_id": 0}).to_list(1000)
     kickoffs = await db.kickoff_requests.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "status": 1, "project_id": 1, "_id": 0}).to_list(1000)
@@ -613,7 +668,7 @@ async def get_all_leads_progress(current_user: User = Depends(get_current_user))
     # Create lookup sets
     meeting_leads = set(m["lead_id"] for m in meetings)
     pricing_leads = set(p["lead_id"] for p in pricing_plans)
-    sow_leads = set(s["lead_id"] for s in sows) | set(s["lead_id"] for s in enhanced_sows)
+    sow_leads = set(s["lead_id"] for s in sows if s.get("lead_id")) | set(s["lead_id"] for s in enhanced_sow_docs if s.get("lead_id"))
     quotation_leads = set(q["lead_id"] for q in quotations)
     agreement_map = {a["lead_id"]: a for a in agreements}
     kickoff_map = {k["lead_id"]: k for k in kickoffs}
@@ -771,13 +826,13 @@ async def update_lead(
     )
     
     # A4: LEAD STAGE VALIDATION - Prevent skipping stages
-    # Valid progression: new → contacted → qualified → proposal → negotiation → closed_won
+    # Valid progression: new → contacted → pricing → sow → proposal → agreement → payment → kickoff → closed
     if status_changed_to_won:
-        valid_pre_won_stages = ["negotiation", "proposal", "qualified"]
+        valid_pre_won_stages = ["agreement", "payment", "kickoff", "proposal", "qualified"]
         if old_status and old_status.lower() not in valid_pre_won_stages:
             raise HTTPException(
                 status_code=400,
-                detail=f"A4: Cannot mark lead as won from '{old_status}' stage. Lead must progress through proper stages (qualified → proposal → negotiation → closed_won)."
+                detail=f"A4: Cannot mark lead as won from '{old_status}' stage. Lead must progress through proper stages."
             )
     
     # Recalculate lead score with updated data
@@ -904,7 +959,7 @@ async def reassign_lead(
             ("meetings", "created_by"),
             ("pricing_plans", "created_by"),
             ("sows", "created_by"),
-            ("enhanced_sows", "created_by"),
+            ("enhanced_sow", "created_by"),
             ("quotations", "created_by"),
             ("agreements", "created_by"),
         ]
@@ -1088,7 +1143,7 @@ async def resume_lead(
         raise HTTPException(status_code=400, detail="Lead is not paused")
     
     now = datetime.now(timezone.utc).isoformat()
-    resume_to = lead.get("previous_status", "qualified")
+    resume_to = lead.get("previous_status", "new")
     
     await db.leads.update_one(
         {"id": lead_id},
@@ -1382,7 +1437,7 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
     
     # Step 4: SOW - check if SOW exists (check both sows and enhanced_sow collections)
     # enhanced_sow is linked via pricing_plan_id, not directly via lead_id
-    sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0})
+    sow = await db.sow.find_one({"lead_id": lead_id}, {"_id": 0})
     if not sow and pricing:
         # Check enhanced_sow via pricing_plan_id
         sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing.get("id")}, {"_id": 0})
@@ -1481,12 +1536,12 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
     FUNNEL_TO_STATUS_MAP = {
         "lead_capture": LeadStatus.NEW,
         "record_meeting": LeadStatus.CONTACTED,
-        "pricing_plan": LeadStatus.QUALIFIED,
-        "scope_of_work": LeadStatus.QUALIFIED,
+        "pricing_plan": LeadStatus.PRICING,
+        "scope_of_work": LeadStatus.SOW,
         "quotation": LeadStatus.PROPOSAL,
         "agreement": LeadStatus.AGREEMENT,
-        "record_payment": LeadStatus.AGREEMENT,
-        "kickoff_request": LeadStatus.AGREEMENT,
+        "record_payment": LeadStatus.PAYMENT,
+        "kickoff_request": LeadStatus.KICKOFF,
         "project_created": LeadStatus.CLOSED
     }
     
@@ -1550,7 +1605,7 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
     if not sow:
         sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
     if not sow:
-        sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0})
+        sow = await db.sow.find_one({"lead_id": lead_id}, {"_id": 0})
     quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0})
     agreement = await db.agreements.find_one({"lead_id": lead_id}, {"_id": 0})
     kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id}, {"_id": 0})

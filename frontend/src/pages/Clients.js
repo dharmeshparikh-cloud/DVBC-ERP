@@ -9,10 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { 
   Building2, Plus, Search, Eye, Edit2, Trash2, 
   User, Phone, Mail, MapPin, Calendar, DollarSign,
-  Globe, Users as UsersIcon, TrendingUp, Upload, Download, FileSpreadsheet
+  Globe, Users as UsersIcon, TrendingUp, Upload, Download, FileSpreadsheet,
+  CheckCircle, ExternalLink, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { isAdmin as checkIsAdmin, isFinance as checkIsFinance, isSales as checkIsSales, isConsulting as checkIsConsulting, canManageClients } from '../utils/roles';
 
 const INDUSTRIES = [
@@ -24,8 +26,10 @@ const INDUSTRIES = [
 const Clients = () => {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
+  const [activeTab, setActiveTab] = useState('master');
 
   // Dialogs
   const [createDialog, setCreateDialog] = useState(false);
@@ -158,6 +162,19 @@ const Clients = () => {
   const clients = clientsData?.clients || [];
   const users = clientsData?.users || [];
   const stats = clientsData?.stats;
+
+  // Fetch onboarded clients (leads with completed funnel)
+  const { data: onboardedData, isLoading: onboardedLoading } = useQuery({
+    queryKey: ['onboarded-clients'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/leads?page_size=100`);
+      const allLeads = res.data?.data || [];
+      return allLeads.filter(l => ['closed', 'closed_won', 'kickoff'].includes(l.status));
+    },
+    staleTime: 3 * 60 * 1000,
+    enabled: activeTab === 'onboarded',
+  });
+  const onboardedClients = onboardedData || [];
 
   const invalidateData = () => {
     queryClient.invalidateQueries({ queryKey: ['clients-all'] });
@@ -414,6 +431,98 @@ const Clients = () => {
         </h1>
         <p className="text-zinc-500">{pageDesc}</p>
       </div>
+
+      {/* Tab Navigation */}
+      <div className="flex gap-1 mb-6 border-b border-zinc-200">
+        <button
+          onClick={() => setActiveTab('master')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'master'
+              ? 'border-zinc-950 text-zinc-950'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700'
+          }`}
+          data-testid="tab-client-master"
+        >
+          Client Master
+        </button>
+        <button
+          onClick={() => setActiveTab('onboarded')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'onboarded'
+              ? 'border-zinc-950 text-zinc-950'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700'
+          }`}
+          data-testid="tab-onboarded-clients"
+        >
+          Onboarded Clients
+          {onboardedClients.length > 0 && (
+            <span className="ml-2 bg-emerald-100 text-emerald-700 text-xs px-1.5 py-0.5 rounded-full">
+              {onboardedClients.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === 'onboarded' ? (
+        /* Onboarded Clients Tab */
+        <div data-testid="onboarded-clients-section">
+          {onboardedLoading ? (
+            <div className="flex items-center justify-center h-48 text-zinc-500">Loading...</div>
+          ) : onboardedClients.length === 0 ? (
+            <div className="text-center py-16 text-zinc-500">
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
+              <p className="font-medium">No onboarded clients yet</p>
+              <p className="text-sm mt-1">Leads that complete the full 9-step sales funnel will appear here.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {onboardedClients.map(lead => (
+                <Card key={lead.id} className="border-zinc-200 shadow-none rounded-sm hover:border-emerald-300 transition-colors" data-testid={`onboarded-client-${lead.id}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-sm bg-emerald-50 flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-zinc-950 text-sm">{lead.company || `${lead.first_name} ${lead.last_name}`}</h3>
+                          <p className="text-xs text-zinc-500">{lead.first_name} {lead.last_name}</p>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        lead.status === 'closed' ? 'bg-emerald-100 text-emerald-700' :
+                        lead.status === 'kickoff' ? 'bg-violet-100 text-violet-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {lead.status === 'closed' ? 'Complete' : lead.status === 'kickoff' ? 'Kickoff' : 'Won'}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 text-xs text-zinc-500 mb-4">
+                      {lead.email && <div className="flex items-center gap-2"><Mail className="w-3 h-3" />{lead.email}</div>}
+                      {lead.phone && <div className="flex items-center gap-2"><Phone className="w-3 h-3" />{lead.phone}</div>}
+                      {lead.deal_value && <div className="flex items-center gap-2"><DollarSign className="w-3 h-3" />Deal: {Number(lead.deal_value).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</div>}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 rounded-sm border-zinc-200 text-xs h-8"
+                        onClick={() => navigate(`/sales-funnel-onboarding?leadId=${lead.id}&readOnly=true`)}
+                        data-testid={`view-funnel-${lead.id}`}
+                      >
+                        <Eye className="w-3 h-3 mr-1.5" />
+                        View Funnel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+      /* Client Master Tab - Original Content */
+      <>
 
       {/* Stats Cards */}
       {stats && (
@@ -1111,6 +1220,8 @@ const Clients = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   );
 };

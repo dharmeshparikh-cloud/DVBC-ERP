@@ -16,20 +16,26 @@ import { Badge } from '../ui/badge';
 //   lead_capture → new, record_meeting → contacted, pricing_plan/sow → qualified,
 //   quotation → proposal, agreement/payment/kickoff → agreement, project → closed
 const FUNNEL_STAGES = [
-  { key: 'new', label: 'New Lead', color: 'bg-zinc-400' },
-  { key: 'contacted', label: 'Meeting', color: 'bg-orange-500' },
-  { key: 'qualified', label: 'Pricing/SOW', color: 'bg-amber-500' },
-  { key: 'proposal', label: 'Proforma Invoice', color: 'bg-cyan-500' },
+  { key: 'new', label: 'Lead', color: 'bg-zinc-400' },
+  { key: 'contacted', label: 'Meeting', color: 'bg-orange-400' },
+  { key: 'pricing', label: 'Pricing', color: 'bg-amber-400' },
+  { key: 'sow', label: 'SOW', color: 'bg-yellow-500' },
+  { key: 'proposal', label: 'Proforma', color: 'bg-cyan-500' },
   { key: 'agreement', label: 'Agreement', color: 'bg-blue-500' },
+  { key: 'payment', label: 'Payment', color: 'bg-indigo-500' },
+  { key: 'kickoff', label: 'Kickoff', color: 'bg-violet-500' },
   { key: 'closed', label: 'Complete', color: 'bg-emerald-500' },
 ];
 
 const getFunnelStageIndex = (status) => {
+  // Handle legacy status values
+  if (status === 'qualified') status = 'pricing';
   const idx = FUNNEL_STAGES.findIndex(s => s.key === status);
   return idx >= 0 ? idx : 0;
 };
 
 const getFunnelStageInfo = (status) => {
+  if (status === 'qualified') status = 'pricing';
   return FUNNEL_STAGES.find(s => s.key === status) || FUNNEL_STAGES[0];
 };
 
@@ -84,14 +90,13 @@ const LEADS_COLUMNS = [
     width: '120px',
     filterOptions: [
       { value: 'new', label: 'New' },
-      { value: 'meeting', label: 'Meeting' },
-      { value: 'pricing_plan', label: 'Pricing Plan' },
+      { value: 'contacted', label: 'Meeting' },
+      { value: 'pricing', label: 'Pricing Plan' },
       { value: 'sow', label: 'SOW' },
-      { value: 'quotation', label: 'Proforma Invoice' },
+      { value: 'proposal', label: 'Proforma Invoice' },
       { value: 'agreement', label: 'Agreement' },
       { value: 'payment', label: 'Payment' },
-      { value: 'kickoff_request', label: 'Kickoff Request' },
-      { value: 'kick_accept', label: 'Kick Accept' },
+      { value: 'kickoff', label: 'Kickoff' },
       { value: 'closed', label: 'Closed' },
       { value: 'paused', label: 'Paused' },
       { value: 'lost', label: 'Lost' },

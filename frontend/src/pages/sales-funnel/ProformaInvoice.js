@@ -271,6 +271,14 @@ const ProformaInvoice = () => {
     const validUntil = invoice?.valid_until ? fmtDate(invoice.valid_until) : fmtDate(new Date(new Date(invoice?.created_at).getTime() + (invoice?.validity_days || 30)*86400000));
     const clientGstin = invoice?.client_gstin || lead?.gstin || '';
 
+    // Extract GSTIN details for Bill To section (inline - no imports needed in HTML builder)
+    const gstinStateCode = clientGstin.length === 15 ? clientGstin.substring(0, 2) : '';
+    const STATE_CODES = {'01':'Jammu & Kashmir','02':'Himachal Pradesh','03':'Punjab','04':'Chandigarh','05':'Uttarakhand','06':'Haryana','07':'Delhi','08':'Rajasthan','09':'Uttar Pradesh','10':'Bihar','11':'Sikkim','12':'Arunachal Pradesh','13':'Nagaland','14':'Manipur','15':'Mizoram','16':'Tripura','17':'Meghalaya','18':'Assam','19':'West Bengal','20':'Jharkhand','21':'Odisha','22':'Chhattisgarh','23':'Madhya Pradesh','24':'Gujarat','25':'Daman & Diu','26':'Dadra & Nagar Haveli','27':'Maharashtra','28':'Andhra Pradesh','29':'Karnataka','30':'Goa','31':'Lakshadweep','32':'Kerala','33':'Tamil Nadu','34':'Puducherry','35':'Andaman & Nicobar','36':'Telangana','37':'Andhra Pradesh (New)','38':'Ladakh'};
+    const gstinStateName = STATE_CODES[gstinStateCode] || '';
+    const gstinPan = clientGstin.length === 15 ? clientGstin.substring(2, 12) : '';
+    const PAN_TYPES = {'C':'Company','P':'Individual','H':'HUF','F':'Firm','A':'AOP','T':'Trust'};
+    const gstinEntityType = gstinPan.length === 10 ? (PAN_TYPES[gstinPan[3]] || '') : '';
+
     // Parse terms
     const termsText = invoice?.terms_and_conditions || '1) Payment via Bank transfer or cheques only\n2) Payment refund is not permissible\n3) Breach of information subject to agreement violation\n4) TDS to be paid regularly; submit challan to biller\n5) Disputes subject to Ahmedabad jurisdiction';
     const termsLines = termsText.split('\n').map(t => t.replace(/^\d+\)\s*/, '').trim()).filter(Boolean);
@@ -327,8 +335,11 @@ const ProformaInvoice = () => {
           <p style="color:#52525b;margin-top:2px;">${lead?.first_name || ''} ${lead?.last_name || ''}</p>
           ${lead?.email ? `<p style="color:#a1a1aa;margin-top:2px;">${lead.email}</p>` : ''}
           ${lead?.phone ? `<p style="color:#a1a1aa;">${lead.phone}</p>` : ''}
-          ${clientGstin ? `<p style="color:#71717a;font-family:'Courier New',monospace;margin-top:2px;">GSTIN: ${clientGstin}</p>` : ''}
-          <p style="color:#a1a1aa;">State: Gujarat | Code: 24</p>
+          ${clientGstin ? `
+            <p style="color:#71717a;font-family:'Courier New',monospace;margin-top:4px;">GSTIN: ${clientGstin}</p>
+            ${gstinEntityType ? `<p style="color:#a1a1aa;font-size:9px;">Entity: ${gstinEntityType} | PAN: ${gstinPan}</p>` : ''}
+          ` : ''}
+          <p style="color:#a1a1aa;">${gstinStateName ? `State: ${gstinStateName} | Code: ${gstinStateCode}` : 'State: Gujarat | Code: 24'}</p>
         </div>
       </div>
       <div>
@@ -1264,8 +1275,23 @@ const ProformaInvoice = () => {
                     <p className="text-zinc-600 mt-0.5">{selectedLead?.first_name} {selectedLead?.last_name}</p>
                     {selectedLead?.email && <p className="text-zinc-400 mt-0.5">{selectedLead.email}</p>}
                     {selectedLead?.phone && <p className="text-zinc-400">{selectedLead.phone}</p>}
-                    {(selectedInvoice?.client_gstin || selectedLead?.gstin) && <p className="text-zinc-500 font-mono mt-0.5">GSTIN: {selectedInvoice?.client_gstin || selectedLead?.gstin}</p>}
-                    <p className="text-zinc-400">State: Gujarat | Code: 24</p>
+                    {(() => {
+                      const gstin = selectedInvoice?.client_gstin || selectedLead?.gstin;
+                      if (!gstin) return null;
+                      const gstinVal = validateGSTIN(gstin);
+                      return (
+                        <>
+                          <p className="text-zinc-500 font-mono mt-1">GSTIN: {gstin}</p>
+                          {gstinVal.valid && (
+                            <p className="text-zinc-400 text-[9px]">
+                              PAN: {gstinVal.pan} | Entity: {({'C':'Company','P':'Individual','H':'HUF','F':'Firm','A':'AOP','T':'Trust'})[gstinVal.pan?.[3]] || ''}
+                            </p>
+                          )}
+                          <p className="text-zinc-400">{gstinVal.valid ? `State: ${gstinVal.stateName} | Code: ${gstinVal.stateCode}` : 'State: Gujarat | Code: 24'}</p>
+                        </>
+                      );
+                    })()}
+                    {!(selectedInvoice?.client_gstin || selectedLead?.gstin) && <p className="text-zinc-400">State: Gujarat | Code: 24</p>}
                   </div>
                 </div>
                 <div>
