@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://unified-erp-gov.preview.emergentagent.com",
+      "value": "https://funnel-governance.preview.emergentagent.com",
       "type": "string"
     },
     {
