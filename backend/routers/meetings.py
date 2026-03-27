@@ -199,9 +199,40 @@ async def get_meetings(
     """Get all meetings with filters, sorting, and pagination.
     
     SALES DATATABLE API - Supports Excel-like filtering.
+    RBAC: Sales users can only see sales meetings, Consulting users can see consulting meetings.
     """
     db = get_db()
     query = {}
+    
+    # RBAC: Filter meetings based on user role
+    # Sales roles can only see sales meetings (meetings with lead_id)
+    # Consulting roles can see consulting meetings (meetings with project_id)
+    # Admin can see all
+    SALES_ROLES = ['executive', 'sales_manager']
+    CONSULTING_ROLES = ['consultant', 'senior_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']
+    ADMIN_ROLES = ['admin', 'manager']
+    
+    if current_user.role in SALES_ROLES and current_user.role not in ADMIN_ROLES:
+        # Sales users can only see sales meetings (with lead_id)
+        if project_id and not lead_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied. Sales users cannot access consulting meetings."
+            )
+        query["lead_id"] = {"$exists": True, "$ne": None}
+    elif current_user.role in CONSULTING_ROLES and current_user.role not in ADMIN_ROLES:
+        # Consulting users can only see their assigned meetings or consulting meetings
+        if lead_id and not project_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied. Consulting users cannot access sales meetings."
+            )
+        # Can see meetings where they are involved or project meetings
+        query["$or"] = [
+            {"project_id": {"$exists": True, "$ne": None}},
+            {"created_by": current_user.id},
+            {"attendees": current_user.id}
+        ]
     
     # Basic filters
     if project_id:
@@ -213,20 +244,31 @@ async def get_meetings(
     if status:
         query['status'] = status
     if assigned_to:
-        query['$or'] = [
-            {"scheduled_by": assigned_to},
-            {"created_by": assigned_to},
-            {"attendees": assigned_to}
-        ]
+        if "$or" in query:
+            query["$and"] = [{"$or": query.pop("$or")}, {"$or": [
+                {"scheduled_by": assigned_to},
+                {"created_by": assigned_to},
+                {"attendees": assigned_to}
+            ]}]
+        else:
+            query['$or'] = [
+                {"scheduled_by": assigned_to},
+                {"created_by": assigned_to},
+                {"attendees": assigned_to}
+            ]
     
     # Text search
     if search:
         search_regex = {"$regex": search, "$options": "i"}
-        query["$or"] = query.get("$or", []) + [
+        search_or = [
             {"title": search_regex},
             {"client_name": search_regex},
             {"project_name": search_regex}
         ]
+        if "$or" in query:
+            query["$and"] = query.get("$and", []) + [{"$or": query.pop("$or")}, {"$or": search_or}]
+        else:
+            query["$or"] = search_or
     
     # Date range
     if date_from or date_to:

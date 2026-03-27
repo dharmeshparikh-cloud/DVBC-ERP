@@ -279,7 +279,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="all-projects" element={<AllProjects />} />
         {/* sales-meetings route removed - meetings accessed via Lead funnel, MOM via dashboard */}
         <Route path="sales-meetings" element={<Navigate to="/leads" replace />} />
-        <Route path="consulting-meetings" element={<ConsultingMeetings />} />
+        <Route path="consulting-meetings" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager', 'admin']} allowedDepts={['Consulting', 'Delivery', 'Admin']}><ConsultingMeetings /></RoleGuard>} />
         <Route path="meeting/:meetingId" element={<MeetingDetail />} />
         <Route path="meeting-calendar" element={<MeetingCalendar />} />
         <Route path="org-chart" element={<OrgChart />} />
@@ -301,25 +301,26 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="project-roadmap" element={<ProjectRoadmap />} />
         <Route path="consultant-performance" element={<ConsultantPerformance />} />
         <Route path="email-templates" element={<EmailTemplates />} />
-        <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
-        <Route path="sales-funnel/meeting/record" element={<MeetingRecord />} />
+        {/* Sales Funnel Routes - Protected by RoleGuard */}
+        <Route path="sales-funnel/pricing-plans" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><PricingPlanBuilder /></RoleGuard>} />
+        <Route path="sales-funnel/meeting/record" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><MeetingRecord /></RoleGuard>} />
         <Route path="sales-funnel/sow" element={<Navigate to="/sales-funnel/sow-list" replace />} />
-        <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
-        <Route path="sales-funnel/scope-selection/:pricingPlanId" element={<SalesScopeSelection />} />
-        <Route path="sales-funnel/sow-review/:pricingPlanId" element={<ConsultingScopeView />} />
-        <Route path="sales-funnel/sow-list" element={<SalesSOWList />} />
-        <Route path="sales-funnel/proforma-invoices" element={<ProformaInvoice />} />
+        <Route path="sales-funnel/sow/:pricingPlanId" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><SOWBuilder /></RoleGuard>} />
+        <Route path="sales-funnel/scope-selection/:pricingPlanId" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><SalesScopeSelection /></RoleGuard>} />
+        <Route path="sales-funnel/sow-review/:pricingPlanId" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><ConsultingScopeView /></RoleGuard>} />
+        <Route path="sales-funnel/sow-list" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><SalesSOWList /></RoleGuard>} />
+        <Route path="sales-funnel/proforma-invoices" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><ProformaInvoice /></RoleGuard>} />
         {/* Redirects for old routes */}
         <Route path="sales-funnel/quotations" element={<Navigate to="/sales-funnel/proforma-invoices" replace />} />
         <Route path="sales-funnel/quotation" element={<Navigate to="/sales-funnel/proforma-invoices" replace />} />
         <Route path="sales-funnel/proforma-invoice" element={<Navigate to="/sales-funnel/proforma-invoices" replace />} />
-        <Route path="sales-funnel/agreements" element={<Agreements />} />
-        <Route path="sales-funnel/agreement/:agreementId" element={<AgreementView />} />
-        <Route path="sales-funnel/agreement" element={<AgreementView />} />
-        <Route path="sales-funnel/payment-verification" element={<PaymentVerification />} />
-        <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
-        <Route path="client-onboarding" element={<ClientOnboarding />} />
-        <Route path="sales-funnel-onboarding" element={<SalesFunnelOnboarding />} />
+        <Route path="sales-funnel/agreements" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><Agreements /></RoleGuard>} />
+        <Route path="sales-funnel/agreement/:agreementId" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><AgreementView /></RoleGuard>} />
+        <Route path="sales-funnel/agreement" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><AgreementView /></RoleGuard>} />
+        <Route path="sales-funnel/payment-verification" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin', 'Finance']}><PaymentVerification /></RoleGuard>} />
+        <Route path="sales-funnel/approvals" element={<RoleGuard allowedRoles={['sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><ManagerApprovals /></RoleGuard>} />
+        <Route path="client-onboarding" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><ClientOnboarding /></RoleGuard>} />
+        <Route path="sales-funnel-onboarding" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><SalesFunnelOnboarding /></RoleGuard>} />
         <Route path="consulting/projects" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingSOWList /></RoleGuard>} />
         {/* consulting/my-projects route removed - access via Clients page */}
         <Route path="consulting/my-projects" element={<Navigate to="/clients" replace />} />

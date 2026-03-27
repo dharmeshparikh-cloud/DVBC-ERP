@@ -10,7 +10,7 @@ from utils.timezone import today_ist, current_month_ist, now_ist
 import uuid
 import os
 from pydantic import BaseModel
-from .deps import get_db, get_role_group, has_role
+from .deps import get_db, get_role_group, has_role, SALES_ROLES, ADMIN_ROLES
 from .models import User
 from .deps import get_current_user
 from services.email_service import send_email
@@ -19,6 +19,9 @@ from services.funnel_notifications import proforma_generated_email, get_sales_ma
 router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
 APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://unified-erp-gov.preview.emergentagent.com").replace("/api", "")
+
+# RBAC: Define roles that can access quotations
+QUOTATION_VIEW_ROLES = list(set(SALES_ROLES + ADMIN_ROLES + ["principal_consultant", "senior_consultant"]))
 
 
 class QuotationCreate(BaseModel):
@@ -293,8 +296,16 @@ async def get_quotations(
     """Get quotations with filters, sorting, and pagination.
     
     SALES DATATABLE API - Supports Excel-like filtering.
+    RBAC: Only sales team, admin, and senior consulting can view.
     """
     db = get_db()
+    
+    # RBAC: Check if user has permission to view quotations
+    if current_user.role not in QUOTATION_VIEW_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Only sales team and authorized roles can view quotations."
+        )
     
     query = {}
     if lead_id:
