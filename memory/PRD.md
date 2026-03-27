@@ -9,42 +9,34 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **AI**: GPT-4o-mini via Emergent LLM Key
 - **Maps**: Google Maps API (Places Autocomplete)
 
-## Core Modules
-1. **HR Module** - Attendance, Leaves, Salary Slips, Expenses, Penalty Management
-2. **Consulting Module** - Meetings, Consultant Management
-3. **Sales Module** - Full E2E Sales Funnel, Proforma Invoices, Agreements, Onboarded Clients
-
 ## What's Been Implemented
 
 ### Sales Funnel (COMPLETE)
 - 9-step funnel: Lead → Meeting → Pricing → SOW → Proforma Invoice → Agreement → Payment → Kickoff → Project
 - Funnel progress bar shows X/9 with all 9 stages mapped
 - LeadStatus: new, contacted, pricing, sow, proposal, agreement, payment, kickoff, closed
-- Batch auto-sync (N+1 query optimization) for funnel stage updates
-- **No manual closed_won shortcut** — lead status is fully managed by funnel completion
-- Only `closed` (project created) = onboarded; `kickoff` stays in leads page
+- Batch auto-sync for funnel stage updates (N+1 → batch queries)
+- No manual closed_won shortcut — status fully managed by funnel completion
+- Only `closed` (project created) = onboarded
+
+### Proforma Invoice (COMPLETE - 27 Mar 2026)
+- **Finalize function removed** — no longer a gate to Agreement. Just create invoice → proceed
+- **Lead-scoped** — when navigating from funnel, only shows that lead's invoices, lead+pricing plan selectors locked
+- **SOW detection fixed** — now queries `/api/enhanced-sow/by-pricing-plan/` (was using wrong endpoint)
+- GSTIN validation with state/PAN/company match in Bill To section
+- PDF amounts fixed (was ₹0.00)
+- Versioning kept for any changes
 
 ### Onboarded Clients (COMPLETE - 27 Mar 2026)
 - Standalone page at `/onboarded-clients` in Sales sidebar (next to Leads)
-- Shows ONLY leads with completed 9-step funnel (status: closed = project created)
-- "View Funnel" button opens SalesFunnelOnboarding in read-only mode
+- Only leads with completed 9-step funnel (status=closed = project created)
+- View Funnel button opens SalesFunnelOnboarding in read-only mode
 - Onboarded leads excluded from main Leads page
-- Search by company, name, email
 
-### Proforma Invoice (COMPLETE - 27 Mar 2026)
-- B&W minimalist design with D&V logo
-- Client GSTIN with real-time validation (format, state code, PAN extraction, company name matching)
-- GSTIN details in Bill To section (PAN, Entity Type, State)
-- FIXED: PDF amounts no longer show ₹0.00
-
-### Unified Penalty Management (COMPLETE - 26 Mar 2026)
-- Single collection: `employee_penalties`
-- Single UI: `/penalty-management` with 4 tabs
-- Auto-detection + payroll engine integration
-
-### Performance Optimization (27 Mar 2026)
-- Leads endpoint: Batch queries replaced N+1 pattern
+### Performance (27 Mar 2026)
+- Leads endpoint: batch queries replaced N+1 pattern
 - Fixed collection name: `enhanced_sow` (was `enhanced_sows`)
+- Fixed collection name: `sow` (was `sows`)
 
 ## Credentials
 | Role | Employee ID | Password |
@@ -54,11 +46,12 @@ Establish a unified and strict governance model across the ERP. Build customized
 | Consultant | EMP004 | consultant123 |
 
 ## Key Files
+- `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - Invoice UI, lead-scoped, no finalize
 - `/app/frontend/src/pages/OnboardedClients.js` - Onboarded clients page
-- `/app/frontend/src/components/sales/LeadsTable.jsx` - 9-stage funnel progress bar
-- `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - Proforma Invoice UI + PDF
-- `/app/frontend/src/utils/gstin.js` - GSTIN validation utility
-- `/app/backend/routers/leads.py` - Leads with batch auto-sync, no manual won shortcut
+- `/app/frontend/src/components/sales/LeadsTable.jsx` - 9-stage funnel bar
+- `/app/backend/routers/leads.py` - Batch auto-sync, no manual won
+- `/app/backend/routers/quotations.py` - Invoice CRUD
+- `/app/backend/routers/gstin.py` - GSTIN validation API
 
 ## P1 - Upcoming Tasks
 - Consultant Notifications: System notifications when assigned to project/SOW
@@ -66,4 +59,3 @@ Establish a unified and strict governance model across the ERP. Build customized
 ## P2 - Future/Backlog
 - Refactor ConsultingMeetings.js (>2300 lines)
 - Governance Dashboard UI for /api/governance/* endpoints
-- Realtime penalty badges in attendance/leave tables

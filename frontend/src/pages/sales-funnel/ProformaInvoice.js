@@ -129,7 +129,7 @@ const ProformaInvoice = () => {
 
   // Query: Fetch SOW data if we have a pricing plan ID
   const { data: sowData } = useFetch(
-    pricingPlanIdFromUrl ? `/api/enhanced-sow/${pricingPlanIdFromUrl}` : null,
+    pricingPlanIdFromUrl ? `/api/enhanced-sow/by-pricing-plan/${pricingPlanIdFromUrl}` : null,
     { enabled: !!pricingPlanIdFromUrl }
   );
 
@@ -157,7 +157,6 @@ const ProformaInvoice = () => {
   // Check if proforma invoice exists for current pricing plan
   const currentInvoice = (invoices || []).find(inv => inv.pricing_plan_id === pricingPlanIdFromUrl);
   const hasProformaInvoice = !!currentInvoice;
-  const isProformaFinalized = currentInvoice?.is_final || false;
 
   const handlePlanSelect = (planId) => {
     const plan = (pricingPlans || []).find(p => p.id === planId);
@@ -223,22 +222,10 @@ const ProformaInvoice = () => {
     createInvoiceMutation.mutate(formData);
   };
 
-  // Mutation: Finalize proforma invoice
-  const finalizeMutation = useMutation({
-    mutationFn: async (invoiceId) => {
-      return axios.patch(`${API}/api/quotations/${invoiceId}/finalize`);
-    },
-    onSuccess: () => {
-      toast.success('Proforma Invoice finalized');
-      queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
-    },
-    onError: () => {
-      toast.error('Failed to finalize proforma invoice');
-    }
-  });
-
-  const handleFinalize = async (invoiceId) => {
-    finalizeMutation.mutate(invoiceId);
+  // Version label — show version number for each invoice
+  const getVersionLabel = (invoice) => {
+    const version = invoice.version || 1;
+    return `v${version}`;
   };
 
   const openViewDialog = (invoice) => {
@@ -612,13 +599,13 @@ const ProformaInvoice = () => {
           leadId={currentLeadId}
           quotationId={currentInvoice?.id}
           sowCompleted={!!sowData}
-          proformaCompleted={isProformaFinalized}
+          proformaCompleted={hasProformaInvoice}
           agreementCompleted={false}
         />
       )}
 
       <div className="mb-6">
-        {/* Flow Navigation Alert */}
+        {/* Flow Navigation Alert - No invoice yet */}
         {pricingPlanIdFromUrl && !hasProformaInvoice && (
           <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-sm flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -631,34 +618,14 @@ const ProformaInvoice = () => {
           </div>
         )}
 
-        {/* Success Message when Invoice is Created */}
-        {pricingPlanIdFromUrl && hasProformaInvoice && !isProformaFinalized && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-sm flex items-start gap-3">
-            <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-800">Proforma Invoice Created</p>
-              <p className="text-sm text-blue-700 mt-1">
-                Finalize the invoice to proceed to the Agreement step.
-              </p>
-            </div>
-            <Button
-              onClick={() => handleFinalize(currentInvoice.id)}
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-sm"
-            >
-              Finalize Now
-            </Button>
-          </div>
-        )}
-
-        {/* Ready for Agreement */}
-        {pricingPlanIdFromUrl && isProformaFinalized && (
+        {/* Invoice created — proceed to Agreement */}
+        {pricingPlanIdFromUrl && hasProformaInvoice && (
           <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-sm flex items-start gap-3">
             <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-emerald-800">Ready for Agreement</p>
+              <p className="text-sm font-medium text-emerald-800">Proforma Invoice Created</p>
               <p className="text-sm text-emerald-700 mt-1">
-                Proforma Invoice is finalized. You can now proceed to create the Agreement.
+                You can now proceed to create the Agreement.
               </p>
             </div>
             <Button
@@ -830,7 +797,7 @@ const ProformaInvoice = () => {
                               )}
                             </div>
                             <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(invoice.status, invoice.is_final)}`}>
-                              {invoice.is_final ? 'Finalized' : invoice.status}
+                              {invoice.status}
                             </span>
                           </div>
                           
@@ -863,18 +830,7 @@ const ProformaInvoice = () => {
                               <Eye className="w-4 h-4 mr-1" />
                               View
                             </Button>
-                            {!invoice.is_final && canEdit && (
-                              <Button
-                                onClick={() => handleFinalize(invoice.id)}
-                                size="sm"
-                                variant="outline"
-                                className="rounded-sm h-8"
-                              >
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Finalize
-                              </Button>
-                            )}
-                            {invoice.is_final && canEdit && !usedInAgreement && (
+                            {isLatest && canEdit && !usedInAgreement && (
                               <Button
                                 onClick={() => navigate(`/sales-funnel/agreements?quotationId=${invoice.id}&leadId=${invoice.lead_id}`)}
                                 size="sm"
@@ -897,6 +853,7 @@ const ProformaInvoice = () => {
       ) : viewMode === 'list' ? (
         /* List View - Using SalesDataTable (GOVERNANCE: No manual tables) */
         <ProformaInvoiceTable
+          leadId={leadId}
           onView={(invoice) => openViewDialog(invoice)}
           onEdit={(invoice) => {
             setSelectedInvoice(invoice);
@@ -942,7 +899,7 @@ const ProformaInvoice = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(invoice.status, invoice.is_final)}`}>
-                      {invoice.is_final ? 'Finalized' : invoice.status}
+                      {invoice.status}
                     </span>
                   </div>
                 </div>
@@ -977,18 +934,7 @@ const ProformaInvoice = () => {
                     <Eye className="w-4 h-4 mr-2" strokeWidth={1.5} />
                     View Invoice
                   </Button>
-                  {!invoice.is_final && canEdit && (
-                    <Button
-                      onClick={() => handleFinalize(invoice.id)}
-                      size="sm"
-                      variant="outline"
-                      className="rounded-sm border-zinc-200"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                      Finalize
-                    </Button>
-                  )}
-                  {invoice.is_final && canEdit && (
+                  {canEdit && (
                     <Button
                       onClick={() => navigate(`/sales-funnel/agreements?quotationId=${invoice.id}&leadId=${invoice.lead_id}`)}
                       size="sm"
@@ -1042,7 +988,11 @@ const ProformaInvoice = () => {
                 placeholder="Search for a lead with pricing plan..."
                 funnelStage="has_pricing_plan"
                 noEligibleMessage="No leads with pricing plans found"
+                disabled={!!currentLeadId}
               />
+              {currentLeadId && (
+                <p className="text-xs text-zinc-400 mt-1">Lead auto-selected from funnel flow</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -1051,7 +1001,7 @@ const ProformaInvoice = () => {
                 value={formData.pricing_plan_id}
                 onChange={(e) => handlePlanSelect(e.target.value)}
                 required
-                disabled={!formData.lead_id}
+                disabled={!formData.lead_id || !!pricingPlanIdFromUrl}
                 className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm disabled:bg-zinc-100 disabled:cursor-not-allowed"
                 data-testid="pricing-plan-select"
               >
