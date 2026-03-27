@@ -84,6 +84,7 @@ const UserManagement = lazy(() => import('./pages/UserManagement'));
 const Employees = lazy(() => import('./pages/Employees'));
 const ApprovalsCenter = lazy(() => import('./pages/ApprovalsCenter'));
 const Clients = lazy(() => import('./pages/Clients'));
+const OnboardedClients = lazy(() => import('./pages/OnboardedClients'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Reports = lazy(() => import('./pages/Reports'));
 const CustomReportBuilder = lazy(() => import('./pages/CustomReportBuilder'));
@@ -352,6 +353,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="target-management" element={<RoleGuard allowedRoles={['sales_manager', 'principal_consultant']} allowedDepts={['Sales']}><TargetManagement /></RoleGuard>} />
         <Route path="targets" element={<Navigate to="/target-management" replace />} />
         <Route path="clients" element={<Clients />} />
+        <Route path="onboarded-clients" element={<OnboardedClients />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="travel-reimbursement" element={<TravelReimbursement />} />
         <Route path="reports" element={<Reports />} />

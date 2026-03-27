@@ -45,6 +45,7 @@ export const useLeads = (filters = {}) => {
       const params = new URLSearchParams();
       params.append('page', page);
       params.append('page_size', pageSize);
+      params.append('exclude_onboarded', 'true');
       if (status) params.append('status', status);
       if (assigned_to) params.append('assigned_to', assigned_to);
       if (search) params.append('search', search);

@@ -337,6 +337,7 @@ async def get_leads(
     created_from: Optional[str] = Query(None, description="Created date from (YYYY-MM-DD)"),
     created_to: Optional[str] = Query(None, description="Created date to (YYYY-MM-DD)"),
     days_since_activity: Optional[int] = Query(None, description="Days since last activity (stuck deals)"),
+    exclude_onboarded: bool = Query(False, description="Exclude onboarded leads (closed, closed_won, kickoff)"),
     sort_field: Optional[str] = Query("created_at", description="Sort field"),
     sort_direction: Optional[str] = Query("desc", description="Sort direction (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number"),
@@ -368,9 +369,16 @@ async def get_leads(
     
     query = {}
     
+    # Exclude onboarded leads from the main leads view
+    if exclude_onboarded:
+        query['status'] = {'$nin': ['closed', 'closed_won', 'kickoff']}
+    
     # Basic filters
     if status:
-        query['status'] = status
+        if exclude_onboarded and status in ['closed', 'closed_won', 'kickoff']:
+            pass  # Don't override the exclusion
+        else:
+            query['status'] = status
     if assigned_to:
         query['assigned_to'] = assigned_to
     if source:

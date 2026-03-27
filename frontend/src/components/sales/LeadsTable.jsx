@@ -265,7 +265,7 @@ export const LeadsTable = ({
   
   return (
     <SalesDataTable
-      endpoint="/api/leads"
+      endpoint="/api/leads?exclude_onboarded=true"
       columns={LEADS_COLUMNS}
       queryKey="sales-leads-table"
       title="Sales Leads"

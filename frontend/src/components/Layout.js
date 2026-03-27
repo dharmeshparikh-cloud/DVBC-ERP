@@ -390,6 +390,7 @@ const Layout = () => {
   const fullSalesFlowItems = [
     { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3, stage: null },
     { name: 'Leads', href: '/leads', icon: Users, stage: 'LEAD' },
+    { name: 'Onboarded Clients', href: '/onboarded-clients', icon: CheckCircle2, stage: null },
     { name: 'Team Dashboard', href: '/manager-leads', icon: Users, managerOnly: true, stage: null },
     { name: 'Kickoff Requests', href: '/kickoff-requests', icon: Briefcase, stage: 'KICKOFF' },
     { name: 'Clients', href: '/clients', icon: Building2, stage: null },
