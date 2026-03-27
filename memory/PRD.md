@@ -12,39 +12,42 @@ Establish a unified and strict governance model across the ERP. Build customized
 ## What's Been Implemented
 
 ### Sales Funnel (COMPLETE)
-- 9-step funnel: Lead → Meeting → Pricing → SOW → Proforma Invoice → Agreement → Payment → Kickoff → Project
+- 9-step funnel: Lead -> Meeting -> Pricing -> SOW -> Proforma Invoice -> Agreement -> Payment -> Kickoff -> Project
 - **Unified 9-step stepper header** on ALL funnel pages with "Next action" guide
 - Funnel progress bar shows X/9 on leads table
 - Batch auto-sync for stage updates
-- No manual closed_won — status managed by funnel
+- No manual closed_won - status managed by funnel
 - Only `closed` (project created) = onboarded
 
 ### FunnelStepperHeader Component (27 Mar 2026)
 - 9-step stepper with green checkmarks for completed steps
-- "Next: [Step] — [What to do]" guide with Go button
-- Shows on: MeetingRecord, PricingPlanBuilder, SOWBuilderNew, ProformaInvoice, Agreements, AgreementView, PaymentVerification
+- "Next: [Step] - [What to do]" guide with Go button
 - Clickable completed/current steps for navigation
-- "Full Funnel View" link
 
 ### Proforma Invoice (COMPLETE - 27 Mar 2026)
-- Finalize function removed — just create invoice → proceed
-- Lead-scoped when from funnel (locked lead+pricing selectors)
-- SOW detection fixed (correct endpoint)
 - GSTIN validation + Bill To details
 - PDF amounts fixed
+- Lead-scoped when from funnel
 
 ### Onboarded Clients (COMPLETE - 27 Mar 2026)
 - Standalone page at `/onboarded-clients`
 - Only leads with completed 9-step funnel (status=closed)
-- Read-only funnel view
 
 ### VVS Lead Fix (COMPLETE - 28 Mar 2026)
-- Fixed project auto-creation order: project now created BEFORE kickoff status update
-- Fixed funnel-progress to verify project actually EXISTS in DB (not just kickoff status)
-- Fixed PaymentVerification model: added lead_id field, auto-populated from agreement
-- Fixed SOW detection: enhanced_sow checked FIRST before legacy sow; added `items` field fallback
-- Fixed bulk auto-sync payment detection via agreement_id chain
-- Database repair: created missing project PROJ-20260325-0001 for VVS, backfilled payment lead_id
+- Fixed project auto-creation order
+- Fixed funnel-progress to verify project EXISTS in DB
+- Fixed PaymentVerification model, SOW detection, bulk auto-sync
+
+### Sales Dashboard Scorecard Fix (COMPLETE - 28 Mar 2026)
+- **Root cause**: 3 critical data source mismatches in analytics.py
+  - `meeting_records` (0 docs) -> `meetings` (44 docs)
+  - `agreement_payments` (0 docs) -> `payment_verifications` (3 docs)
+  - kickoff status `"accepted"` -> `["approved", "accepted", "converted"]`
+- Fixed all 7 analytics endpoints (funnel-summary, my-funnel-summary, funnel-trends, bottleneck-analysis, forecasting, win-loss, velocity)
+- Added follow-up stats integration to dashboard scorecards
+- Admin now sees ALL leads in team view (not filtered by employee ownership)
+- Frontend: Added Follow-ups card to team overview, Meetings + Follow-ups stats to ProfilePerformanceCard
+- Test results: 15/15 backend tests passed, 100% frontend verified
 
 ## Credentials
 | Role | Employee ID | Password |
@@ -54,16 +57,13 @@ Establish a unified and strict governance model across the ERP. Build customized
 | Consultant | EMP004 | consultant123 |
 
 ## Key Files
-- `/app/frontend/src/components/FunnelStepperHeader.js` - Unified 9-step stepper
-- `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - Invoice UI
-- `/app/frontend/src/pages/OnboardedClients.js` - Onboarded clients
-- `/app/frontend/src/components/sales/LeadsTable.jsx` - 9-stage funnel bar
-- `/app/backend/routers/leads.py` - Batch auto-sync, funnel progress
-- `/app/backend/routers/kickoff.py` - Kickoff & project creation (FIXED)
-- `/app/backend/routers/payments.py` - Payment verification (FIXED)
+- `/app/frontend/src/pages/SalesDashboard.js` - Dashboard UI with scorecards
+- `/app/frontend/src/components/ProfilePerformanceCard.jsx` - Profile + stats card
+- `/app/backend/routers/analytics.py` - All analytics endpoints (FIXED)
+- `/app/backend/routers/leads.py` - SSOT for funnel progress
+- `/app/backend/routers/kickoff.py` - Kickoff & project creation
 
 ## P1 - Upcoming Tasks
-- Sales Dashboard vs Reality gap analysis (user uploaded screenshot)
 - Consultant Notifications when assigned to project/SOW
 
 ## P2 - Future/Backlog
