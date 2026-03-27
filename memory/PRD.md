@@ -38,6 +38,14 @@ Establish a unified and strict governance model across the ERP. Build customized
 - Only leads with completed 9-step funnel (status=closed)
 - Read-only funnel view
 
+### VVS Lead Fix (COMPLETE - 28 Mar 2026)
+- Fixed project auto-creation order: project now created BEFORE kickoff status update
+- Fixed funnel-progress to verify project actually EXISTS in DB (not just kickoff status)
+- Fixed PaymentVerification model: added lead_id field, auto-populated from agreement
+- Fixed SOW detection: enhanced_sow checked FIRST before legacy sow; added `items` field fallback
+- Fixed bulk auto-sync payment detection via agreement_id chain
+- Database repair: created missing project PROJ-20260325-0001 for VVS, backfilled payment lead_id
+
 ## Credentials
 | Role | Employee ID | Password |
 |---|---|---|
@@ -50,11 +58,15 @@ Establish a unified and strict governance model across the ERP. Build customized
 - `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - Invoice UI
 - `/app/frontend/src/pages/OnboardedClients.js` - Onboarded clients
 - `/app/frontend/src/components/sales/LeadsTable.jsx` - 9-stage funnel bar
-- `/app/backend/routers/leads.py` - Batch auto-sync
+- `/app/backend/routers/leads.py` - Batch auto-sync, funnel progress
+- `/app/backend/routers/kickoff.py` - Kickoff & project creation (FIXED)
+- `/app/backend/routers/payments.py` - Payment verification (FIXED)
 
 ## P1 - Upcoming Tasks
+- Sales Dashboard vs Reality gap analysis (user uploaded screenshot)
 - Consultant Notifications when assigned to project/SOW
 
 ## P2 - Future/Backlog
 - Refactor ConsultingMeetings.js (>2300 lines)
 - Governance Dashboard UI
+- Onboarding timeline view in Onboarded Clients page
