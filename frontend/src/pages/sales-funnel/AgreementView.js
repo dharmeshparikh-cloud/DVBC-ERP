@@ -222,7 +222,7 @@ const AgreementView = () => {
         <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11.5px;">
           <tr>
             <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;width:25%;vertical-align:top;">1. Fees & Taxes</td>
-            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All fees as per SOW; GST @18% extra. TDS applicable as per law.</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">GST and TDS applicable as per law.</td>
           </tr>
           <tr>
             <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">2. Advance / Milestone Payment</td>
@@ -230,7 +230,7 @@ const AgreementView = () => {
           </tr>
           <tr>
             <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">3. Payment Timeline</td>
-            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Invoices payable within 7 days of issue date.</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Due amount payable within 7 days of proforma issue date.</td>
           </tr>
           <tr>
             <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">4. Delay & Suspension</td>
@@ -238,7 +238,15 @@ const AgreementView = () => {
           </tr>
           <tr>
             <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">5. Non-Refundable</td>
-            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All payments are strictly non-refundable, irrespective of stoppage from any stage.</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All payments are strictly non-refundable, irrespective of service stoppage from any stage.</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">6. Discontinue Terms</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">30 days written notice to be given from either side before next due date or due installment to be paid by client.</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">7. Other Expenses</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Train or flight tickets, local conveyance, miscellaneous travel expenses and stay expenses extra and payable separately as per client policy and mutually agreed separately.</td>
           </tr>
         </table>
 

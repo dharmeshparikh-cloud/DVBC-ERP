@@ -1038,7 +1038,7 @@ async def send_agreement_email(
         <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11.5px;">
             <tr>
                 <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;width:25%;vertical-align:top;">1. Fees & Taxes</td>
-                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All fees as per SOW; GST @18% extra. TDS applicable as per law.</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">GST and TDS applicable as per law.</td>
             </tr>
             <tr>
                 <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">2. Advance / Milestone Payment</td>
@@ -1046,7 +1046,7 @@ async def send_agreement_email(
             </tr>
             <tr>
                 <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">3. Payment Timeline</td>
-                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Invoices payable within 7 days of issue date.</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Due amount payable within 7 days of proforma issue date.</td>
             </tr>
             <tr>
                 <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">4. Delay & Suspension</td>
@@ -1054,7 +1054,15 @@ async def send_agreement_email(
             </tr>
             <tr>
                 <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">5. Non-Refundable</td>
-                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All payments are strictly non-refundable, irrespective of stoppage from any stage.</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All payments are strictly non-refundable, irrespective of service stoppage from any stage.</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">6. Discontinue Terms</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">30 days written notice to be given from either side before next due date or due installment to be paid by client.</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">7. Other Expenses</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Train or flight tickets, local conveyance, miscellaneous travel expenses and stay expenses extra and payable separately as per client policy and mutually agreed separately.</td>
             </tr>
         </table>
 
@@ -1266,18 +1274,22 @@ async def send_agreement_email(
         # Key Payment Terms
         doc.add_paragraph()
         doc.add_paragraph("Key Payment Terms:").runs[0].bold = True
-        terms_table = doc.add_table(rows=5, cols=2)
+        terms_table = doc.add_table(rows=7, cols=2)
         terms_table.style = 'Table Grid'
         terms_table.rows[0].cells[0].text = "1. Fees & Taxes"
-        terms_table.rows[0].cells[1].text = "All fees as per SOW; GST @18% extra. TDS applicable as per law."
+        terms_table.rows[0].cells[1].text = "GST and TDS applicable as per law."
         terms_table.rows[1].cells[0].text = "2. Advance / Milestone Payment"
         terms_table.rows[1].cells[1].text = "Payments to be made in advance as per defined milestones."
         terms_table.rows[2].cells[0].text = "3. Payment Timeline"
-        terms_table.rows[2].cells[1].text = "Invoices payable within 7 days of issue date."
+        terms_table.rows[2].cells[1].text = "Due amount payable within 7 days of proforma issue date."
         terms_table.rows[3].cells[0].text = "4. Delay & Suspension"
         terms_table.rows[3].cells[1].text = "Delay beyond 7 days attracts 18% p.a. interest + right to suspend services immediately."
         terms_table.rows[4].cells[0].text = "5. Non-Refundable"
-        terms_table.rows[4].cells[1].text = "All payments are strictly non-refundable, irrespective of stoppage from any stage."
+        terms_table.rows[4].cells[1].text = "All payments are strictly non-refundable, irrespective of service stoppage from any stage."
+        terms_table.rows[5].cells[0].text = "6. Discontinue Terms"
+        terms_table.rows[5].cells[1].text = "30 days written notice to be given from either side before next due date or due installment to be paid by client."
+        terms_table.rows[6].cells[0].text = "7. Other Expenses"
+        terms_table.rows[6].cells[1].text = "Train or flight tickets, local conveyance, miscellaneous travel expenses and stay expenses extra and payable separately as per client policy and mutually agreed separately."
         
         # 4. Terms & Conditions
         doc.add_heading('4. TERMS & CONDITIONS', level=2)
