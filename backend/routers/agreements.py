@@ -857,8 +857,17 @@ async def send_agreement_email(
         except Exception:
             return f"INR {amount}"
     
-    # Company logo URL (hosted asset)
+    # Company logo - download and convert to base64 for reliable PDF embedding
+    import base64
+    import requests
     logo_url = "https://customer-assets.emergentagent.com/job_30a69dc1-a599-4a88-9d0e-e1c06b1b2008/artifacts/tbs0jexj_1001419196.png"
+    logo_base64 = ""
+    try:
+        logo_response = requests.get(logo_url, timeout=10)
+        if logo_response.status_code == 200:
+            logo_base64 = base64.b64encode(logo_response.content).decode('utf-8')
+    except Exception as logo_err:
+        print(f"Logo download error: {logo_err}")
     
     # Build agreement HTML for PDF/DOCX
     schedule = payment_schedule.get("installments") or payment_schedule.get("schedule_breakdown") or []
@@ -954,9 +963,7 @@ async def send_agreement_email(
     
     agreement_html = f"""
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;color:#1a1a1a;line-height:1.7;font-size:12.5px;">
-        <div style="text-align:center;margin-bottom:20px;padding-top:10px;">
-            <img src="{logo_url}" alt="D&V Business Consulting" style="height:70px;max-width:280px;object-fit:contain;" />
-        </div>
+        {'<div style="text-align:center;margin-bottom:20px;padding-top:10px;"><img src="data:image/png;base64,' + logo_base64 + '" alt="D&V Business Consulting" style="height:70px;max-width:280px;object-fit:contain;" /></div>' if logo_base64 else ''}
         <h1 style="text-align:center;font-size:20px;font-weight:700;margin:12px 0 4px;text-transform:uppercase;letter-spacing:2px;border-bottom:2px solid #9ca3af;padding-bottom:10px;">Service Agreement</h1>
         <p style="text-align:center;font-size:11px;color:#6b7280;margin:4px 0 16px;">Agreement No: <strong>{agreement_number}</strong></p>
         <div style="margin:12px 0;padding:12px 16px;background:#f3f4f6;border-left:4px solid #6b7280;">
@@ -1007,8 +1014,8 @@ async def send_agreement_email(
         {consultant_obligations_html}
 
         {sh('6','Signatures')}
-        <div style="page-break-inside:avoid;">
-        <table style="width:100%;page-break-inside:avoid;"><tr>
+        <div class="signature-block">
+        <table style="width:100%;"><tr>
             <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;"><p style="font-weight:700;">For D&V Business Consulting</p><div style="height:50px;border-bottom:1px solid #999;"></div><p style="font-size:11px;">Authorized Signatory</p></td>
             <td style="width:6%;"></td>
             <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;"><p style="font-weight:700;">For {client_name}</p><div style="height:50px;border-bottom:1px solid #999;"></div><p style="font-size:11px;">Authorized Signatory</p></td>
@@ -1028,8 +1035,8 @@ async def send_agreement_email(
         full_html = f"""<html><head><meta charset="utf-8"><style>
             @page {{ size: A4; margin: 15mm 12mm; }}
             body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 12.5px; }}
-            table {{ border-collapse: collapse; page-break-inside: avoid; }}
-            div {{ page-break-inside: avoid; }}
+            table {{ border-collapse: collapse; }}
+            .signature-block {{ page-break-inside: avoid; }}
         </style></head><body>{agreement_html}</body></html>"""
         HTML(string=full_html).write_pdf(pdf_path)
     except Exception as e:
