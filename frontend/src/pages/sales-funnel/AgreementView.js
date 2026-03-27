@@ -4,6 +4,9 @@ import axios from 'axios';
 import { API, AuthContext } from '../../App';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { ArrowLeft, Download, Printer, Mail, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
@@ -17,6 +20,9 @@ const AgreementView = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [sending, setSending] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientName, setRecipientName] = useState('');
 
   const { data: fullData, isLoading } = useQuery({
     queryKey: ['agreement-full', agreementId],
@@ -288,15 +294,32 @@ const AgreementView = () => {
   };
 
   const handleSendEmail = async () => {
+    if (!recipientEmail || !recipientEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
     setSending(true);
     try {
-      const res = await axios.post(`${API}/agreements/${agreementId}/send-email`);
+      const res = await axios.post(`${API}/agreements/${agreementId}/send-email`, {
+        recipient_email: recipientEmail,
+        recipient_name: recipientName || 'Sir/Madam'
+      });
       toast.success(res.data?.message || 'Agreement sent via email');
+      setShowEmailDialog(false);
+      setRecipientEmail('');
+      setRecipientName('');
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to send email');
     } finally {
       setSending(false);
     }
+  };
+
+  const openEmailDialog = () => {
+    // Pre-fill with client email if available
+    setRecipientEmail(clientEmail || '');
+    setRecipientName(clientContactName || '');
+    setShowEmailDialog(true);
   };
 
   if (isLoading) {
@@ -317,13 +340,52 @@ const AgreementView = () => {
           <Button variant="outline" onClick={handleDownloadDocx} data-testid="agreement-download-docx-btn">
             <Download className="w-4 h-4 mr-2" /> Download .docx
           </Button>
-          <Button onClick={handleSendEmail} disabled={sending} data-testid="agreement-send-email-btn">
-            {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-            {sending ? 'Sending...' : 'Send via Email'}
+          <Button onClick={openEmailDialog} data-testid="agreement-send-email-btn">
+            <Mail className="w-4 h-4 mr-2" /> Send via Email
           </Button>
         </div>
       </div>
       <div className="bg-white border border-zinc-200 rounded-lg shadow-sm p-8" data-testid="agreement-document" dangerouslySetInnerHTML={{ __html: getAgreementHTML() }} />
+      
+      {/* Email Recipient Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Agreement via Email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="recipient-email">Recipient Email *</Label>
+              <Input
+                id="recipient-email"
+                type="email"
+                placeholder="Enter email address"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                data-testid="email-recipient-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="recipient-name">Recipient Name (Optional)</Label>
+              <Input
+                id="recipient-name"
+                type="text"
+                placeholder="Enter recipient name"
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                data-testid="email-recipient-name-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Cancel</Button>
+            <Button onClick={handleSendEmail} disabled={sending || !recipientEmail} data-testid="email-send-confirm-btn">
+              {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+              {sending ? 'Sending...' : 'Send Email'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

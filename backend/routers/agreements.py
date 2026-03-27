@@ -86,6 +86,11 @@ class SendToClientRequest(BaseModel):
     message: Optional[str] = ""
 
 
+class SendAgreementEmailRequest(BaseModel):
+    recipient_email: str
+    recipient_name: Optional[str] = ""
+
+
 class AgreementPaymentRecord(BaseModel):
     amount: float
     payment_date: str
@@ -784,15 +789,20 @@ async def download_agreement(agreement_id: str, format: str = "pdf", current_use
 @router.post("/{agreement_id}/send-email")
 async def send_agreement_email(
     agreement_id: str,
+    data: SendAgreementEmailRequest,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
-    """Send agreement via email with PDF and DOCX attachments to dharmesh.parikh@dvconsulting.co.in"""
+    """Send agreement via email with PDF and DOCX attachments to specified recipient"""
     db = get_db()
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
     if not agreement:
         raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Get recipient from request body (dynamic)
+    to_email = data.recipient_email
+    recipient_name = data.recipient_name or "Sir/Madam"
     
     lead_id = agreement.get("lead_id")
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0}) if lead_id else None
@@ -847,6 +857,9 @@ async def send_agreement_email(
         except Exception:
             return f"INR {amount}"
     
+    # Company logo URL (hosted asset)
+    logo_url = "https://customer-assets.emergentagent.com/job_30a69dc1-a599-4a88-9d0e-e1c06b1b2008/artifacts/tbs0jexj_1001419196.png"
+    
     # Build agreement HTML for PDF/DOCX
     schedule = payment_schedule.get("installments") or payment_schedule.get("schedule_breakdown") or []
     
@@ -891,8 +904,59 @@ async def send_agreement_email(
     
     sh = lambda n, t: f'<h2 style="font-size:14px;font-weight:700;margin:28px 0 10px;padding:8px 14px;background:#e5e7eb;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;">{n}. {t}</h2>'
     
+    # Consultant Undertaking & Obligations content (from DV_Consultant_Obligations.docx)
+    consultant_obligations_html = f"""
+        {sh('5','Consultant Undertaking & Obligations')}
+        <p style="margin:0 0 10px;text-align:justify;font-style:italic;">This section outlines the obligations of D&V Business Consulting, a consulting firm incorporated under applicable laws of India (hereinafter referred to as the "Consultant"), towards the Client (as defined in this Agreement).</p>
+        
+        <h3 style="font-size:12px;font-weight:700;margin:16px 0 8px;color:#1a1a1a;">5.1 Confidentiality Obligation</h3>
+        <p style="margin:0 0 6px;text-align:justify;">The Consultant shall:</p>
+        <ul style="margin:0 0 10px;padding-left:20px;font-size:12px;">
+            <li>Maintain strict confidentiality of all information, documents, data, and materials received from the Client, including financial data, employee information, operational processes, business strategies, and system access credentials ("Client Confidential Information")</li>
+            <li>Use such information solely for execution of services under this Agreement</li>
+            <li>Not disclose, publish, or transfer any Client Confidential Information to any third party without prior written consent of the Client</li>
+        </ul>
+        
+        <h3 style="font-size:12px;font-weight:700;margin:16px 0 8px;color:#1a1a1a;">5.2 Data Protection & Security</h3>
+        <p style="margin:0 0 6px;text-align:justify;">The Consultant agrees to:</p>
+        <ul style="margin:0 0 10px;padding-left:20px;font-size:12px;">
+            <li>Implement reasonable safeguards to protect Client data from unauthorized access, loss, or misuse</li>
+            <li>Ensure all personnel engaged are bound by confidentiality obligations</li>
+            <li>Not retain or use Client data post completion, except for statutory or agreed purposes</li>
+        </ul>
+        
+        <h3 style="font-size:12px;font-weight:700;margin:16px 0 8px;color:#1a1a1a;">5.3 Non-Solicitation</h3>
+        <p style="margin:0 0 10px;text-align:justify;">The Consultant shall not, during the term of this Agreement and for 12 months thereafter: solicit or hire any key employee of the Client, or induce employees to leave the Client organization.</p>
+        
+        <h3 style="font-size:12px;font-weight:700;margin:16px 0 8px;color:#1a1a1a;">5.4 Standard of Performance</h3>
+        <p style="margin:0 0 6px;text-align:justify;">The Consultant shall:</p>
+        <ul style="margin:0 0 10px;padding-left:20px;font-size:12px;">
+            <li>Perform services professionally and ethically</li>
+            <li>Deploy qualified personnel</li>
+            <li>Act in good faith to achieve project objectives</li>
+        </ul>
+        
+        <h3 style="font-size:12px;font-weight:700;margin:16px 0 8px;color:#1a1a1a;">5.5 Limitation of Liability</h3>
+        <p style="margin:0 0 6px;text-align:justify;">The Consultant shall not be liable for:</p>
+        <ul style="margin:0 0 10px;padding-left:20px;font-size:12px;">
+            <li>Incorrect or incomplete data provided by the Client</li>
+            <li>Non-implementation of recommendations</li>
+            <li>Indirect or consequential damages</li>
+            <li>External factors beyond control</li>
+        </ul>
+        
+        <h3 style="font-size:12px;font-weight:700;margin:16px 0 8px;color:#1a1a1a;">5.6 Survival</h3>
+        <p style="margin:0 0 10px;text-align:justify;">Confidentiality and Data Protection obligations survive for 3 years post termination. Non-Solicitation survives for 12 months post termination.</p>
+        
+        <h3 style="font-size:12px;font-weight:700;margin:16px 0 8px;color:#1a1a1a;">5.7 Governing Law</h3>
+        <p style="margin:0 0 10px;text-align:justify;">This Agreement shall be governed by laws of India. Jurisdiction: Ahmedabad, Gujarat.</p>
+    """
+    
     agreement_html = f"""
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;color:#1a1a1a;line-height:1.7;font-size:12.5px;">
+        <div style="text-align:center;margin-bottom:20px;padding-top:10px;">
+            <img src="{logo_url}" alt="D&V Business Consulting" style="height:70px;max-width:280px;object-fit:contain;" />
+        </div>
         <h1 style="text-align:center;font-size:20px;font-weight:700;margin:12px 0 4px;text-transform:uppercase;letter-spacing:2px;border-bottom:2px solid #9ca3af;padding-bottom:10px;">Service Agreement</h1>
         <p style="text-align:center;font-size:11px;color:#6b7280;margin:4px 0 16px;">Agreement No: <strong>{agreement_number}</strong></p>
         <div style="margin:12px 0;padding:12px 16px;background:#f3f4f6;border-left:4px solid #6b7280;">
@@ -940,7 +1004,9 @@ async def send_agreement_email(
         {sh('4','Terms & Conditions')}
         <p style="text-align:justify;">This agreement includes NDA, NCA, Anti-Poaching clauses enforced for 24 months until {nda_end_str}. Early termination requires 30 days written notice or mutual agreement. Full terms as per the signed agreement document.</p>
 
-        {sh('5','Signatures')}
+        {consultant_obligations_html}
+
+        {sh('6','Signatures')}
         <table style="width:100%;"><tr>
             <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;"><p style="font-weight:700;">For D&V Business Consulting LLP</p><div style="height:50px;border-bottom:1px solid #999;"></div><p style="font-size:11px;">Authorized Signatory</p></td>
             <td style="width:6%;"></td>
@@ -1019,7 +1085,7 @@ async def send_agreement_email(
         </div>
     </div>"""
     
-    email_plain = f"""Dear Sir/Madam,
+    email_plain = f"""Dear {recipient_name},
 
 Please find attached the Service Agreement ({agreement_number}) for {client_name}.
 
@@ -1030,8 +1096,7 @@ Warm Regards,
 {current_user.full_name}
 D&V Business Consulting LLP"""
     
-    # Send email
-    to_email = "dharmesh.parikh@dvconsulting.co.in"
+    # Send email to specified recipient
     result = await send_email(
         to_email=to_email,
         subject=f"Service Agreement - {client_name} [{agreement_number}]",
