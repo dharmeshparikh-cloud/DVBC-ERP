@@ -49,9 +49,13 @@ async def verify_installment_payment(
     if duplicate_txn:
         raise HTTPException(status_code=400, detail="Transaction ID already exists in another payment record")
     
+    # Auto-populate lead_id from agreement
+    lead_id = agreement.get("lead_id")
+    
     # Create payment verification record
     payment = PaymentVerification(
         **payment_data.model_dump(),
+        lead_id=lead_id,
         verified_by=current_user.id,
         verified_by_name=current_user.full_name
     )

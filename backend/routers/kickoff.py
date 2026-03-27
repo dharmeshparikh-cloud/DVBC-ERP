@@ -1288,7 +1288,62 @@ async def client_confirm_approval(
     
     await db.client_users.insert_one(client_user)
     
-    # Update kickoff request
+    # Create/Update project record FIRST (before marking kickoff as approved)
+    project_id = kickoff.get("project_id")
+    project_created_ok = False
+    
+    try:
+        existing_project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+        
+        if not existing_project:
+            # Create new project
+            tenure_months = kickoff.get("project_tenure_months", 12)
+            start_dt = datetime.strptime(confirmed_start, "%Y-%m-%d")
+            end_dt = start_dt + relativedelta(months=tenure_months)
+            
+            project_doc = {
+                "id": project_id,
+                "name": kickoff.get("project_name"),
+                "client_name": kickoff.get("client_name"),
+                "client_id": client_id,
+                "lead_id": kickoff.get("lead_id"),
+                "agreement_id": kickoff.get("agreement_id"),
+                "kickoff_request_id": kickoff.get("id"),
+                "project_type": kickoff.get("project_type", "mixed"),
+                "start_date": confirmed_start,
+                "end_date": end_dt.strftime("%Y-%m-%d"),
+                "tenure_months": tenure_months,
+                "total_meetings_committed": kickoff.get("total_meetings", 0),
+                "project_value": kickoff.get("project_value"),
+                "status": "active",
+                "internal_approved_by": kickoff.get("internal_approved_by"),
+                "internal_approved_by_name": kickoff.get("internal_approved_by_name"),
+                "client_approved_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "consultant_assignments": []  # Will be assigned manually by Principal Consultant
+            }
+            await db.projects.insert_one(project_doc)
+            project_created_ok = True
+            print(f"[KICKOFF] Project {project_id} created for lead {kickoff.get('lead_id')}")
+        else:
+            # Update existing project
+            await db.projects.update_one(
+                {"id": project_id},
+                {"$set": {
+                    "client_id": client_id,
+                    "start_date": confirmed_start,
+                    "status": "active",
+                    "client_approved_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            project_created_ok = True
+    except Exception as e:
+        print(f"[KICKOFF] ERROR creating project {project_id}: {str(e)}")
+        # Still continue — kickoff is approved, project can be fixed later
+    
+    # NOW update kickoff request status to approved (after project creation attempt)
     await db.kickoff_requests.update_one(
         {"id": kickoff.get("id")},
         {"$set": {
@@ -1297,52 +1352,17 @@ async def client_confirm_approval(
             "client_approved_at": datetime.now(timezone.utc).isoformat(),
             "confirmed_start_date": confirmed_start,
             "status": "approved",
+            "project_created": project_created_ok,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
-    # Create/Update project record
-    project_id = kickoff.get("project_id")
-    existing_project = await db.projects.find_one({"id": project_id}, {"_id": 0})
-    
-    if not existing_project:
-        # Create new project
-        tenure_months = kickoff.get("project_tenure_months", 12)
-        start_dt = datetime.strptime(confirmed_start, "%Y-%m-%d")
-        end_dt = start_dt + relativedelta(months=tenure_months)
-        
-        project_doc = {
-            "id": project_id,
-            "name": kickoff.get("project_name"),
-            "client_name": kickoff.get("client_name"),
-            "client_id": client_id,
-            "lead_id": kickoff.get("lead_id"),
-            "agreement_id": kickoff.get("agreement_id"),
-            "kickoff_request_id": kickoff.get("id"),
-            "project_type": kickoff.get("project_type", "mixed"),
-            "start_date": confirmed_start,
-            "end_date": end_dt.strftime("%Y-%m-%d"),
-            "tenure_months": tenure_months,
-            "total_meetings_committed": kickoff.get("total_meetings", 0),
-            "project_value": kickoff.get("project_value"),
-            "status": "active",
-            "internal_approved_by": kickoff.get("internal_approved_by"),
-            "internal_approved_by_name": kickoff.get("internal_approved_by_name"),
-            "client_approved_at": datetime.now(timezone.utc).isoformat(),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "consultant_assignments": []  # Will be assigned manually by Principal Consultant
-        }
-        await db.projects.insert_one(project_doc)
-    else:
-        # Update existing project
-        await db.projects.update_one(
-            {"id": project_id},
+    # Update lead status to closed if project was created
+    if project_created_ok and kickoff.get("lead_id"):
+        await db.leads.update_one(
+            {"id": kickoff.get("lead_id")},
             {"$set": {
-                "client_id": client_id,
-                "start_date": confirmed_start,
-                "status": "active",
-                "client_approved_at": datetime.now(timezone.utc).isoformat(),
+                "status": "closed",
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )

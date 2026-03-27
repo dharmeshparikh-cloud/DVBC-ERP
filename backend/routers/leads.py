@@ -527,6 +527,18 @@ async def get_leads(
         payment_leads = set()
         async for doc in db.payment_verifications.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
             payment_leads.add(doc["lead_id"])
+        # Also check payments by agreement_id for records missing lead_id
+        agreement_ids_by_lead = {}
+        async for doc in db.agreements.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "id": 1, "_id": 0}):
+            agreement_ids_by_lead[doc["id"]] = doc["lead_id"]
+        if agreement_ids_by_lead:
+            async for doc in db.payment_verifications.find(
+                {"agreement_id": {"$in": list(agreement_ids_by_lead.keys())}, "status": "verified"},
+                {"agreement_id": 1, "_id": 0}
+            ):
+                lid = agreement_ids_by_lead.get(doc.get("agreement_id"))
+                if lid:
+                    payment_leads.add(lid)
         
         kickoff_leads = set()
         async for doc in db.kickoff_requests.find({"lead_id": {"$in": active_ids}}, {"lead_id": 1, "_id": 0}):
@@ -670,8 +682,33 @@ async def get_all_leads_progress(current_user: User = Depends(get_current_user))
             if lid:
                 enhanced_sow_docs.append({"lead_id": lid})
     quotations = await db.quotations.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
-    agreements = await db.agreements.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "status": 1, "_id": 0}).to_list(1000)
+    agreements = await db.agreements.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "id": 1, "status": 1, "_id": 0}).to_list(1000)
     kickoffs = await db.kickoff_requests.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "status": 1, "project_id": 1, "_id": 0}).to_list(1000)
+    
+    # Fetch payments - by lead_id AND by agreement_id chain
+    payment_leads_set = set()
+    payments_by_lead = await db.payment_verifications.find({"lead_id": {"$in": lead_ids}, "status": "verified"}, {"lead_id": 1, "_id": 0}).to_list(1000)
+    for p in payments_by_lead:
+        if p.get("lead_id"):
+            payment_leads_set.add(p["lead_id"])
+    # Also resolve via agreement_id
+    agreement_id_to_lead = {a["id"]: a["lead_id"] for a in agreements if a.get("id") and a.get("lead_id")}
+    if agreement_id_to_lead:
+        payments_by_agr = await db.payment_verifications.find(
+            {"agreement_id": {"$in": list(agreement_id_to_lead.keys())}, "status": "verified"},
+            {"agreement_id": 1, "_id": 0}
+        ).to_list(1000)
+        for p in payments_by_agr:
+            lid = agreement_id_to_lead.get(p.get("agreement_id"))
+            if lid:
+                payment_leads_set.add(lid)
+    
+    # Fetch projects to verify they actually exist
+    project_ids_from_kickoffs = [k.get("project_id") for k in kickoffs if k.get("project_id")]
+    existing_project_ids = set()
+    if project_ids_from_kickoffs:
+        existing_projects = await db.projects.find({"id": {"$in": project_ids_from_kickoffs}}, {"id": 1, "_id": 0}).to_list(1000)
+        existing_project_ids = set(p["id"] for p in existing_projects)
     
     # Create lookup sets
     meeting_leads = set(m["lead_id"] for m in meetings)
@@ -698,15 +735,18 @@ async def get_all_leads_progress(current_user: User = Depends(get_current_user))
         agreement = agreement_map.get(lead_id)
         if agreement:
             completed_steps.append("agreement")
-            if agreement.get("status") == "approved":
-                # Could add payment check here
-                pass
+        
+        # Payment check via resolved set
+        if lead_id in payment_leads_set:
+            completed_steps.append("record_payment")
         
         kickoff = kickoff_map.get(lead_id)
         if kickoff:
             completed_steps.append("kickoff_request")
+            # Only mark project_created if the project ACTUALLY exists
             if kickoff.get("status") in ["approved", "accepted", "converted"] and kickoff.get("project_id"):
-                completed_steps.append("project_created")
+                if kickoff.get("project_id") in existing_project_ids:
+                    completed_steps.append("project_created")
         
         # Calculate current stage
         completed_count = len(completed_steps)
@@ -1413,20 +1453,21 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
         linked_data["pricing_plan_id"] = pricing.get("id")
         linked_data["pricing_plan_total"] = pricing.get("grand_total", 0)
     
-    # Step 4: SOW - check if SOW exists (check both sows and enhanced_sow collections)
-    # enhanced_sow is linked via pricing_plan_id, not directly via lead_id
-    sow = await db.sow.find_one({"lead_id": lead_id}, {"_id": 0})
+    # Step 4: SOW - check enhanced_sow FIRST (preferred), then legacy sow
+    sow = None
+    # Check enhanced_sow by lead_id first (primary source)
+    sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
     if not sow and pricing:
         # Check enhanced_sow via pricing_plan_id
         sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing.get("id")}, {"_id": 0})
     if not sow:
-        # Fallback: check enhanced_sow by lead_id (in case it has lead_id field)
-        sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
+        # Fallback to legacy sow collection
+        sow = await db.sow.find_one({"lead_id": lead_id}, {"_id": 0})
     
-    # Get scopes from either scope_items (legacy) or scopes (enhanced_sow)
+    # Get scopes from either scope_items (legacy) or scopes (enhanced_sow) or items (old legacy)
     sow_scopes = []
     if sow:
-        sow_scopes = sow.get("scopes") or sow.get("scope_items") or []
+        sow_scopes = sow.get("scopes") or sow.get("scope_items") or sow.get("items") or []
     
     if sow and len(sow_scopes) > 0:
         completed_steps.append("scope_of_work")
@@ -1491,11 +1532,13 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
             linked_data["kickoff_id"] = kickoff.get("id")
             linked_data["kickoff_status"] = kickoff.get("status")
             
-            # Step 9: Project Created - check if kickoff approved/accepted
-            if kickoff.get("status") in ["approved", "accepted", "converted"]:
-                completed_steps.append("project_created")
-                linked_data["project_id"] = kickoff.get("project_id")
-                linked_data["project_name"] = kickoff.get("project_name")
+            # Step 9: Project Created - verify project ACTUALLY exists in DB
+            if kickoff.get("status") in ["approved", "accepted", "converted"] and kickoff.get("project_id"):
+                project = await db.projects.find_one({"id": kickoff.get("project_id")}, {"_id": 0, "id": 1, "name": 1})
+                if project:
+                    completed_steps.append("project_created")
+                    linked_data["project_id"] = project.get("id")
+                    linked_data["project_name"] = project.get("name") or kickoff.get("project_name")
     
     # Also check if lead status indicates completion (only if not blocked)
     if not agreement_blocked and lead.get("status") in ["won", "closed_won", "converted"]:
@@ -1592,10 +1635,10 @@ async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(g
     offline_meetings = [m for m in meetings if m.get("mode") == "offline" or m.get("meeting_type", "").lower() == "offline"]
     has_offline_attachment = any(m.get("has_attachments") for m in offline_meetings)
     
-    # Get scopes from SOW (enhanced_sow uses 'scopes', legacy uses 'scope_items')
+    # Get scopes from SOW (enhanced_sow uses 'scopes', legacy uses 'scope_items' or 'items')
     sow_scopes = []
     if sow:
-        sow_scopes = sow.get("scopes") or sow.get("scope_items") or []
+        sow_scopes = sow.get("scopes") or sow.get("scope_items") or sow.get("items") or []
     
     checklist = {
         "lead_capture": {

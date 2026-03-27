@@ -626,6 +626,7 @@ class PaymentVerification(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     agreement_id: str
+    lead_id: Optional[str] = None
     pricing_plan_id: Optional[str] = None
     installment_number: int = 1
     expected_amount: float
