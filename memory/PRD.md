@@ -18,35 +18,33 @@ Establish a unified and strict governance model across the ERP. Build customized
 
 ### Sales Funnel (COMPLETE)
 - 9-step funnel: Lead → Meeting → Pricing → SOW → Proforma Invoice → Agreement → Payment → Kickoff → Project
-- Funnel progress bar now shows X/9 (was X/6) with all 9 stages mapped
-- LeadStatus expanded: new, contacted, pricing, sow, proposal, agreement, payment, kickoff, closed
+- Funnel progress bar shows X/9 with all 9 stages mapped
+- LeadStatus: new, contacted, pricing, sow, proposal, agreement, payment, kickoff, closed
 - Batch auto-sync (N+1 query optimization) for funnel stage updates
-- Fixed collection name: `enhanced_sow` (was wrongly `enhanced_sows`)
+- **No manual closed_won shortcut** — lead status is fully managed by funnel completion
+- Only `closed` (project created) = onboarded; `kickoff` stays in leads page
 
 ### Onboarded Clients (COMPLETE - 27 Mar 2026)
-- Separate page at `/onboarded-clients` in Sales sidebar (next to Leads)
-- Shows leads with completed funnel (status: closed, closed_won, kickoff)
+- Standalone page at `/onboarded-clients` in Sales sidebar (next to Leads)
+- Shows ONLY leads with completed 9-step funnel (status: closed = project created)
 - "View Funnel" button opens SalesFunnelOnboarding in read-only mode
-- Onboarded leads excluded from main Leads page (`exclude_onboarded=true`)
+- Onboarded leads excluded from main Leads page
 - Search by company, name, email
 
 ### Proforma Invoice (COMPLETE - 27 Mar 2026)
 - B&W minimalist design with D&V logo
 - Client GSTIN with real-time validation (format, state code, PAN extraction, company name matching)
 - GSTIN details in Bill To section (PAN, Entity Type, State)
-- GSTIN auto-populates from lead data when lead is selected
-- Backend GSTIN validation API: POST /api/gstin/validate
-- FIXED: PDF amounts no longer show ₹0.00 (was passing React event as invoice)
+- FIXED: PDF amounts no longer show ₹0.00
 
 ### Unified Penalty Management (COMPLETE - 26 Mar 2026)
 - Single collection: `employee_penalties`
 - Single UI: `/penalty-management` with 4 tabs
 - Auto-detection + payroll engine integration
-- 21 violation types across 5 categories
 
 ### Performance Optimization (27 Mar 2026)
-- Leads endpoint: Batch queries replaced N+1 pattern (5-6 queries per lead → 1 per collection)
-- Agreement page: No longer hangs (was caused by slow leads N+1 auto-sync)
+- Leads endpoint: Batch queries replaced N+1 pattern
+- Fixed collection name: `enhanced_sow` (was `enhanced_sows`)
 
 ## Credentials
 | Role | Employee ID | Password |
@@ -60,9 +58,7 @@ Establish a unified and strict governance model across the ERP. Build customized
 - `/app/frontend/src/components/sales/LeadsTable.jsx` - 9-stage funnel progress bar
 - `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - Proforma Invoice UI + PDF
 - `/app/frontend/src/utils/gstin.js` - GSTIN validation utility
-- `/app/backend/routers/gstin.py` - GSTIN validation API
-- `/app/backend/routers/leads.py` - Leads with batch auto-sync
-- `/app/backend/routers/models.py` - LeadStatus with 9 stages
+- `/app/backend/routers/leads.py` - Leads with batch auto-sync, no manual won shortcut
 
 ## P1 - Upcoming Tasks
 - Consultant Notifications: System notifications when assigned to project/SOW

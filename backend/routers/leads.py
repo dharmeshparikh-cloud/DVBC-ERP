@@ -371,11 +371,11 @@ async def get_leads(
     
     # Exclude onboarded leads from the main leads view
     if exclude_onboarded:
-        query['status'] = {'$nin': ['closed', 'closed_won', 'kickoff']}
+        query['status'] = {'$nin': ['closed']}
     
     # Basic filters
     if status:
-        if exclude_onboarded and status in ['closed', 'closed_won', 'kickoff']:
+        if exclude_onboarded and status == 'closed':
             pass  # Don't override the exclusion
         else:
             query['status'] = status
@@ -487,7 +487,7 @@ async def get_leads(
     
     # Auto-sync funnel stage with lead status for accurate display
     # BATCH approach: Query all related collections ONCE instead of per-lead (N+1 fix)
-    active_leads = [l for l in leads if l.get("status") not in ["won", "lost", "closed_won", "closed_lost", "paused"]]
+    active_leads = [l for l in leads if l.get("status") not in ["lost", "closed_lost", "paused"]]
     if active_leads:
         active_ids = [l["id"] for l in active_leads if l.get("id")]
         
@@ -824,24 +824,13 @@ async def update_lead(
     update_data = lead_update.model_dump(exclude_unset=True)
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
-    # Track status change for auto-kickoff (closed_won triggers kickoff)
-    old_status = lead_data.get("status")
+    # GOVERNANCE: Block manual closed_won/won status — funnel must complete organically
     new_status = update_data.get("status")
-    status_changed_to_won = (
-        new_status and 
-        new_status.lower() in ["closed_won", "closedwon", "won"] and
-        old_status != new_status
-    )
-    
-    # A4: LEAD STAGE VALIDATION - Prevent skipping stages
-    # Valid progression: new → contacted → pricing → sow → proposal → agreement → payment → kickoff → closed
-    if status_changed_to_won:
-        valid_pre_won_stages = ["agreement", "payment", "kickoff", "proposal", "qualified"]
-        if old_status and old_status.lower() not in valid_pre_won_stages:
-            raise HTTPException(
-                status_code=400,
-                detail=f"A4: Cannot mark lead as won from '{old_status}' stage. Lead must progress through proper stages."
-            )
+    if new_status and new_status.lower() in ["closed_won", "closedwon", "won", "closed"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Lead status is managed by the sales funnel. Complete all 9 steps (Lead → Meeting → Pricing → SOW → Proforma → Agreement → Payment → Kickoff → Project) to close a deal."
+        )
     
     # Recalculate lead score with updated data
     merged_data = {**lead_data, **update_data}
@@ -857,21 +846,6 @@ async def update_lead(
     # Invalidate Redis cache for this lead
     await CacheInvalidation.lead(lead_id)
     
-    # AUTO-KICKOFF: If deal is won, create kickoff request
-    kickoff_result = None
-    if status_changed_to_won:
-        updated_lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
-        kickoff_result = await auto_create_kickoff_from_won_deal(
-            db, updated_lead, current_user, background_tasks
-        )
-        
-        # Add kickoff info to update response
-        if kickoff_result.get("action") == "created":
-            await db.leads.update_one(
-                {"id": lead_id},
-                {"$set": {"auto_kickoff_result": kickoff_result}}
-            )
-    
     updated_lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if isinstance(updated_lead_data.get('created_at'), str):
         updated_lead_data['created_at'] = datetime.fromisoformat(updated_lead_data['created_at'])
@@ -879,10 +853,6 @@ async def update_lead(
         updated_lead_data['updated_at'] = datetime.fromisoformat(updated_lead_data['updated_at'])
     if updated_lead_data.get('enriched_at') and isinstance(updated_lead_data['enriched_at'], str):
         updated_lead_data['enriched_at'] = datetime.fromisoformat(updated_lead_data['enriched_at'])
-    
-    # Include kickoff result in response metadata
-    if kickoff_result:
-        updated_lead_data['_kickoff_result'] = kickoff_result
     
     return Lead(**updated_lead_data)
 
@@ -1559,9 +1529,9 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
         if step in completed_steps:
             expected_status = FUNNEL_TO_STATUS_MAP.get(step, LeadStatus.NEW)
     
-    # Update lead status if it doesn't match (and not already won/lost)
+    # Update lead status if it doesn't match (and not already lost)
     current_status = lead.get("status", LeadStatus.NEW)
-    if current_status not in ["won", "lost", "closed_won", "closed_lost"]:
+    if current_status not in ["lost", "closed_lost"]:
         if current_status != expected_status:
             await db.leads.update_one(
                 {"id": lead_id},

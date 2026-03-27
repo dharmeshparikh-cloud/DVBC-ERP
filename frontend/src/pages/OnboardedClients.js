@@ -13,15 +13,11 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 const FUNNEL_LABELS = {
-  closed: 'Complete',
-  closed_won: 'Won',
-  kickoff: 'Kickoff',
+  closed: 'Onboarded',
 };
 
 const FUNNEL_COLORS = {
   closed: 'bg-emerald-100 text-emerald-700',
-  closed_won: 'bg-blue-100 text-blue-700',
-  kickoff: 'bg-violet-100 text-violet-700',
 };
 
 export default function OnboardedClients() {
@@ -34,7 +30,7 @@ export default function OnboardedClients() {
     queryFn: async () => {
       const res = await axios.get(`${API}/leads?page_size=200`);
       const allLeads = res.data?.data || [];
-      return allLeads.filter(l => ['closed', 'closed_won', 'kickoff'].includes(l.status));
+      return allLeads.filter(l => l.status === 'closed');
     },
     staleTime: 3 * 60 * 1000,
   });
