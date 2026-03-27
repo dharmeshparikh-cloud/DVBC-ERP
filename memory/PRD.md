@@ -42,6 +42,14 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Print/PDF**: Direct browser print
 - Logo centered on top, no headers/footers
 
+### Agreement Email with Attachments (28 Mar 2026)
+- **Send via Email button** on Agreement view page
+- Backend generates PDF (via `weasyprint`) and DOCX attachments
+- Professional email template with agreement summary (Agreement No, Client, Total Investment, Duration, Meetings)
+- Email sent to `dharmesh.parikh@dvconsulting.co.in` with both PDF and DOCX attached
+- API endpoint: `POST /api/agreements/{id}/send-email`
+- Files: `email_service.py` (multiple attachment support), `agreements.py` (email endpoint)
+
 ### Proforma Invoice Updates (28 Mar 2026)
 - Removed Team Deployment block from PDF
 - Bill To shows client company name + GSTIN only (no personal details)

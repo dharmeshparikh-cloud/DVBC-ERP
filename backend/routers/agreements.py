@@ -21,7 +21,7 @@ from services.funnel_notifications import agreement_created_email, get_agreement
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://funnel-governance.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-governance-hub-3.preview.emergentagent.com").replace("/api", "")
 
 # RBAC: Role-based access for agreements
 # TODO: Make configurable via Role & Permission page
@@ -778,3 +778,276 @@ async def download_agreement(agreement_id: str, format: str = "pdf", current_use
         "format": format,
         "message": "Document generation endpoint - requires document_generator integration"
     }
+
+
+
+@router.post("/{agreement_id}/send-email")
+async def send_agreement_email(
+    agreement_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """Send agreement via email with PDF and DOCX attachments to dharmesh.parikh@dvconsulting.co.in"""
+    db = get_db()
+    
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    lead_id = agreement.get("lead_id")
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0}) if lead_id else None
+    
+    # Get inherited data
+    pricing_plan = None
+    if agreement.get("pricing_plan_id"):
+        pricing_plan = await db.pricing_plans.find_one({"id": agreement["pricing_plan_id"]}, {"_id": 0})
+    if not pricing_plan and lead_id:
+        pricing_plan = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    sow = None
+    if agreement.get("sow_id"):
+        sow = await db.enhanced_sow.find_one({"id": agreement["sow_id"]}, {"_id": 0})
+    if not sow and pricing_plan:
+        sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan.get("id")}, {"_id": 0})
+    if not sow and lead_id:
+        sow = await db.enhanced_sow.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Build data
+    team_deployment = agreement.get("team_deployment") or (pricing_plan.get("team_deployment") if pricing_plan else []) or []
+    sow_scopes = agreement.get("sow_scopes") or (sow.get("scopes") if sow else []) or []
+    payment_schedule = agreement.get("payment_schedule") or (pricing_plan.get("payment_plan") if pricing_plan else {}) or {}
+    total_value = agreement.get("total_value") or (pricing_plan.get("total_amount") if pricing_plan else 0)
+    duration_months = agreement.get("duration_months") or (pricing_plan.get("tenure_months") if pricing_plan else 12) or 12
+    start_date = agreement.get("start_date", "")
+    end_date = agreement.get("end_date", "")
+    
+    client_name = agreement.get("client_name") or (lead.get("company") if lead else "")
+    client_address = agreement.get("client_address") or (lead.get("address") if lead else "")
+    client_gstin = agreement.get("client_gstin") or (lead.get("gstin") if lead else "")
+    client_email_addr = agreement.get("client_email") or (lead.get("email") if lead else "")
+    client_phone = agreement.get("client_phone") or (lead.get("phone") if lead else "")
+    client_contact = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() if lead else ""
+    
+    agreement_number = agreement.get("agreement_number", "N/A")
+    today_str = now_ist().strftime("%d %B %Y")
+    
+    # NDA end date (24 months)
+    created_at = agreement.get("created_at", "")
+    try:
+        from dateutil.relativedelta import relativedelta
+        created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00")) if created_at else datetime.now(timezone.utc)
+        nda_end_dt = created_dt + relativedelta(months=24)
+        nda_end_str = nda_end_dt.strftime("%d %B %Y")
+    except Exception:
+        nda_end_str = "24 months from date of Agreement"
+    
+    def fmt_inr(amount):
+        try:
+            return f"INR {amount:,.2f}"
+        except Exception:
+            return f"INR {amount}"
+    
+    # Build agreement HTML for PDF/DOCX
+    schedule = payment_schedule.get("installments") or payment_schedule.get("schedule_breakdown") or []
+    
+    installments_html = ""
+    for idx, inst in enumerate(schedule):
+        amount = inst.get("amount") or inst.get("net") or inst.get("basic") or 0
+        label = inst.get("label") or inst.get("frequency") or f"Installment {idx+1}"
+        gst = inst.get("gst", 0)
+        basic = inst.get("basic") or amount
+        installments_html += f"""<tr>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{idx+1}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;">{label}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(basic)}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(gst) if gst else '-'}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">{fmt_inr(amount)}</td>
+        </tr>"""
+    
+    team_html = ""
+    total_meetings = 0
+    for idx, m in enumerate(team_deployment):
+        meetings = (m.get("committed_meetings") or m.get("total_meetings") or 0) * (m.get("count") or 1)
+        total_meetings += meetings
+        team_html += f"""<tr>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{idx+1}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;">{m.get('role','')}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;">{m.get('meeting_type','')}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{m.get('count',1)}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{meetings}</td>
+        </tr>"""
+    
+    scope_html = ""
+    for idx, s in enumerate(sow_scopes):
+        deliverables = s.get("deliverables") or s.get("items") or []
+        items_list = [d if isinstance(d, str) else d.get("name", "") for d in deliverables]
+        items_str = "<ul style='margin:0;padding-left:16px;'>" + "".join(f"<li>{i}</li>" for i in items_list if i) + "</ul>" if items_list else "-"
+        scope_html += f"""<tr>
+            <td style="border:1px solid #d1d5db;padding:7px 10px;text-align:center;">{idx+1}</td>
+            <td style="border:1px solid #d1d5db;padding:7px 10px;font-weight:600;">{s.get('category','')}</td>
+            <td style="border:1px solid #d1d5db;padding:7px 10px;">{s.get('name','')}</td>
+            <td style="border:1px solid #d1d5db;padding:7px 10px;">{items_str}</td>
+        </tr>"""
+    
+    sh = lambda n, t: f'<h2 style="font-size:14px;font-weight:700;margin:28px 0 10px;padding:8px 14px;background:#e5e7eb;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;">{n}. {t}</h2>'
+    
+    agreement_html = f"""
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;color:#1a1a1a;line-height:1.7;font-size:12.5px;">
+        <h1 style="text-align:center;font-size:20px;font-weight:700;margin:12px 0 4px;text-transform:uppercase;letter-spacing:2px;border-bottom:2px solid #9ca3af;padding-bottom:10px;">Service Agreement</h1>
+        <p style="text-align:center;font-size:11px;color:#6b7280;margin:4px 0 16px;">Agreement No: <strong>{agreement_number}</strong></p>
+        <div style="margin:12px 0;padding:12px 16px;background:#f3f4f6;border-left:4px solid #6b7280;">
+            <p style="margin:0;">This Service Agreement is made on <strong>{today_str}</strong>, between:</p>
+        </div>
+        <table style="width:100%;border-collapse:collapse;margin:10px 0 18px;">
+            <tr>
+                <td style="width:47%;vertical-align:top;padding:12px;border:1px solid #e5e7eb;background:#f9fafb;">
+                    <p style="font-weight:700;margin:0 0 4px;">Party A (Service Provider)</p>
+                    <p style="margin:2px 0;font-weight:600;">D&V Business Consulting LLP</p>
+                    <p style="margin:2px 0;font-size:11px;color:#555;">301, Business Hub, Prahlad Nagar, Ahmedabad - 380015, Gujarat, India</p>
+                </td>
+                <td style="width:6%;text-align:center;vertical-align:middle;font-weight:700;">AND</td>
+                <td style="width:47%;vertical-align:top;padding:12px;border:1px solid #e5e7eb;background:#f9fafb;">
+                    <p style="font-weight:700;margin:0 0 4px;">Party B (Client)</p>
+                    <p style="margin:2px 0;font-weight:600;">{client_name}</p>
+                    {'<p style="margin:2px 0;font-size:11px;color:#555;">' + client_address + '</p>' if client_address else ''}
+                    {'<p style="margin:2px 0;font-size:11px;">GSTIN: <strong>' + client_gstin + '</strong></p>' if client_gstin else ''}
+                </td>
+            </tr>
+        </table>
+
+        {sh('1','Scope of Work')}
+        <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;">
+            <thead><tr style="background:#f3f4f6;"><th style="border:1px solid #d1d5db;padding:7px;width:35px;">S.No</th><th style="border:1px solid #d1d5db;padding:7px;">Category</th><th style="border:1px solid #d1d5db;padding:7px;">Scope</th><th style="border:1px solid #d1d5db;padding:7px;">Deliverables</th></tr></thead>
+            <tbody>{scope_html}</tbody>
+        </table>
+
+        {sh('2','Team Deployment & Meeting Schedule')}
+        <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;">
+            <thead><tr style="background:#f3f4f6;"><th style="border:1px solid #d1d5db;padding:7px;width:35px;">S.No</th><th style="border:1px solid #d1d5db;padding:7px;">Role</th><th style="border:1px solid #d1d5db;padding:7px;">Meeting Type</th><th style="border:1px solid #d1d5db;padding:7px;text-align:center;">Count</th><th style="border:1px solid #d1d5db;padding:7px;text-align:center;">Total Meetings</th></tr></thead>
+            <tbody>{team_html}</tbody>
+            <tfoot><tr style="background:#f3f4f6;font-weight:700;"><td colspan="4" style="border:1px solid #d1d5db;padding:7px;text-align:right;">Total</td><td style="border:1px solid #d1d5db;padding:7px;text-align:center;">{total_meetings}</td></tr></tfoot>
+        </table>
+
+        {sh('3','Investment & Payment Schedule')}
+        <table style="width:100%;border-collapse:collapse;margin:8px 0;">
+            <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;width:35%;">Total Investment</td><td style="border:1px solid #d1d5db;padding:10px;font-weight:700;">{fmt_inr(total_value)}</td></tr>
+            <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">Duration</td><td style="border:1px solid #d1d5db;padding:10px;">{duration_months} Months</td></tr>
+            <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">Start Date</td><td style="border:1px solid #d1d5db;padding:10px;">{start_date}</td></tr>
+            <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">End Date</td><td style="border:1px solid #d1d5db;padding:10px;">{end_date}</td></tr>
+        </table>
+        {'<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;"><thead><tr style="background:#f3f4f6;"><th style="border:1px solid #d1d5db;padding:7px;width:35px;">S.No</th><th style="border:1px solid #d1d5db;padding:7px;">Description</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Basic</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">GST</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Net Amount</th></tr></thead><tbody>' + installments_html + '</tbody></table>' if installments_html else ''}
+
+        {sh('4','Terms & Conditions')}
+        <p style="text-align:justify;">This agreement includes NDA, NCA, Anti-Poaching clauses enforced for 24 months until {nda_end_str}. Early termination requires 30 days written notice or mutual agreement. Full terms as per the signed agreement document.</p>
+
+        {sh('5','Signatures')}
+        <table style="width:100%;"><tr>
+            <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;"><p style="font-weight:700;">For D&V Business Consulting LLP</p><div style="height:50px;border-bottom:1px solid #999;"></div><p style="font-size:11px;">Authorized Signatory</p></td>
+            <td style="width:6%;"></td>
+            <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;"><p style="font-weight:700;">For {client_name}</p><div style="height:50px;border-bottom:1px solid #999;"></div><p style="font-size:11px;">Authorized Signatory</p></td>
+        </tr></table>
+    </div>"""
+    
+    # Generate PDF and DOCX files
+    import tempfile
+    temp_dir = tempfile.mkdtemp()
+    pdf_path = os.path.join(temp_dir, f"Agreement_{agreement_number}.pdf")
+    docx_path = os.path.join(temp_dir, f"Agreement_{agreement_number}.docx")
+    
+    # Generate PDF using weasyprint
+    try:
+        from weasyprint import HTML
+        full_html = f"""<html><head><meta charset="utf-8"><style>
+            @page {{ size: A4; margin: 15mm 12mm; }}
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 12.5px; }}
+            table {{ border-collapse: collapse; }}
+        </style></head><body>{agreement_html}</body></html>"""
+        HTML(string=full_html).write_pdf(pdf_path)
+    except Exception as e:
+        print(f"PDF generation error: {e}")
+        pdf_path = None
+    
+    # Generate DOCX (Word-compatible HTML)
+    try:
+        docx_content = f"""<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8">
+        <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+        <style>@page{{size:A4;margin:20mm 15mm;}}body{{font-family:'Segoe UI',Arial,sans-serif;font-size:12.5px;}}table{{border-collapse:collapse;}}</style>
+        </head><body>{agreement_html}</body></html>"""
+        with open(docx_path, 'w', encoding='utf-8') as f:
+            f.write('\ufeff' + docx_content)
+    except Exception as e:
+        print(f"DOCX generation error: {e}")
+        docx_path = None
+    
+    # Build attachments list
+    file_attachments = []
+    if pdf_path and os.path.exists(pdf_path):
+        file_attachments.append({"path": pdf_path, "name": f"Agreement_{agreement_number}.pdf"})
+    if docx_path and os.path.exists(docx_path):
+        file_attachments.append({"path": docx_path, "name": f"Agreement_{agreement_number}.docx"})
+    
+    # Professional email body
+    email_html = f"""
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+        <div style="background:#f8f9fa;padding:24px 32px;border-bottom:3px solid #1a1a1a;">
+            <h2 style="margin:0;font-size:18px;color:#1a1a1a;">D&V Business Consulting LLP</h2>
+            <p style="margin:4px 0 0;font-size:12px;color:#666;">Business Advisory &amp; Consulting Services</p>
+        </div>
+        <div style="padding:24px 32px;">
+            <p style="margin:0 0 16px;">Dear Sir/Madam,</p>
+            <p style="margin:0 0 12px;">Please find attached the Service Agreement for your review and records. The details of the agreement are summarized below:</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
+                <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:600;width:40%;">Agreement No.</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">{agreement_number}</td></tr>
+                <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:600;">Client</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">{client_name}</td></tr>
+                <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:600;">Total Investment</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">{fmt_inr(total_value)}</td></tr>
+                <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:600;">Duration</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">{duration_months} Months ({start_date} to {end_date})</td></tr>
+                <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:600;">Total Meetings</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">{total_meetings}</td></tr>
+            </table>
+            <p style="margin:16px 0 8px;">The agreement includes the following attachments:</p>
+            <ul style="margin:0 0 16px;padding-left:20px;">
+                <li><strong>Agreement PDF</strong> - For review and signing</li>
+                <li><strong>Agreement DOCX</strong> - Editable version for any amendments</li>
+            </ul>
+            <p style="margin:0 0 12px;">Kindly review the agreement at your earliest convenience. Should you have any queries or require any modifications, please do not hesitate to reach out.</p>
+            <p style="margin:16px 0 0;">Warm Regards,</p>
+            <p style="margin:4px 0 0;font-weight:600;">{current_user.full_name}</p>
+            <p style="margin:2px 0 0;font-size:12px;color:#666;">D&V Business Consulting LLP</p>
+        </div>
+        <div style="background:#f8f9fa;padding:12px 32px;border-top:1px solid #e5e7eb;font-size:11px;color:#999;">
+            <p style="margin:0;">This is a system-generated email from D&V Business Consulting ERP. Agreement No: {agreement_number}</p>
+        </div>
+    </div>"""
+    
+    email_plain = f"""Dear Sir/Madam,
+
+Please find attached the Service Agreement ({agreement_number}) for {client_name}.
+
+Total Investment: {fmt_inr(total_value)}
+Duration: {duration_months} Months ({start_date} to {end_date})
+
+Warm Regards,
+{current_user.full_name}
+D&V Business Consulting LLP"""
+    
+    # Send email
+    to_email = "dharmesh.parikh@dvconsulting.co.in"
+    result = await send_email(
+        to_email=to_email,
+        subject=f"Service Agreement - {client_name} [{agreement_number}]",
+        html_content=email_html,
+        plain_content=email_plain,
+        attachments=file_attachments
+    )
+    
+    # Cleanup temp files
+    import shutil
+    try:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    except Exception:
+        pass
+    
+    if result.get("status") == "sent":
+        return {"message": f"Agreement sent successfully to {to_email}", "status": "sent"}
+    else:
+        raise HTTPException(status_code=500, detail=result.get("message", "Failed to send email"))

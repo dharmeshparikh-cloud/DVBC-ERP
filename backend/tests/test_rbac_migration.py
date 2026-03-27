@@ -15,7 +15,7 @@ import os
 from typing import Optional
 
 # Get API URL from environment or use default
-API_URL = os.environ.get("API_URL", "https://funnel-governance.preview.emergentagent.com/api")
+API_URL = os.environ.get("API_URL", "https://erp-governance-hub-3.preview.emergentagent.com/api")
 
 # Test credentials
 CREDENTIALS = {

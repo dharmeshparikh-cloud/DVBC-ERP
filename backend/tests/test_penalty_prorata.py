@@ -8,7 +8,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://funnel-governance.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-governance-hub-3.preview.emergentagent.com')
 
 class TestPenaltyManagementAPIs:
     """Tests for Penalty Management APIs - 5 categories, 21 violation types"""

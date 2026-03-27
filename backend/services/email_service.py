@@ -37,7 +37,8 @@ async def send_email(
     plain_content: Optional[str] = None,
     reply_to: Optional[str] = None,
     attachment_path: Optional[str] = None,
-    attachment_name: Optional[str] = None
+    attachment_name: Optional[str] = None,
+    attachments: Optional[list] = None
 ) -> dict:
     """
     Send an email via SMTP.
@@ -48,8 +49,9 @@ async def send_email(
         html_content: HTML body content
         plain_content: Plain text alternative (optional)
         reply_to: Reply-to address (optional)
-        attachment_path: Path to attachment file (optional)
-        attachment_name: Name for the attachment (optional)
+        attachment_path: Path to single attachment file (optional)
+        attachment_name: Name for single attachment (optional)
+        attachments: List of dicts [{"path": "...", "name": "..."}] for multiple attachments (optional)
     
     Returns:
         dict with status and message
@@ -66,8 +68,9 @@ async def send_email(
         }
     
     try:
-        # Create message
-        msg = MIMEMultipart('alternative')
+        # Create message - use 'mixed' type when attachments present
+        has_attachments = attachment_path or attachments
+        msg = MIMEMultipart('mixed' if has_attachments else 'alternative')
         msg['Subject'] = subject
         msg['From'] = f"{SENDER_NAME} <{SMTP_USER}>"
         msg['To'] = to_email
@@ -75,16 +78,14 @@ async def send_email(
         if reply_to:
             msg['Reply-To'] = reply_to
         
-        # Add plain text part
+        # Create body part
+        body_part = MIMEMultipart('alternative')
         if plain_content:
-            part1 = MIMEText(plain_content, 'plain', 'utf-8')
-            msg.attach(part1)
+            body_part.attach(MIMEText(plain_content, 'plain', 'utf-8'))
+        body_part.attach(MIMEText(html_content, 'html', 'utf-8'))
+        msg.attach(body_part)
         
-        # Add HTML part
-        part2 = MIMEText(html_content, 'html', 'utf-8')
-        msg.attach(part2)
-        
-        # Add attachment if provided
+        # Add single attachment if provided
         if attachment_path and os.path.exists(attachment_path):
             with open(attachment_path, 'rb') as f:
                 attachment = MIMEBase('application', 'octet-stream')
@@ -95,6 +96,19 @@ async def send_email(
                     f'attachment; filename="{attachment_name or os.path.basename(attachment_path)}"'
                 )
                 msg.attach(attachment)
+        
+        # Add multiple attachments
+        if attachments:
+            for att in attachments:
+                att_path = att.get('path', '')
+                att_name = att.get('name', os.path.basename(att_path))
+                if att_path and os.path.exists(att_path):
+                    with open(att_path, 'rb') as f:
+                        attachment = MIMEBase('application', 'octet-stream')
+                        attachment.set_payload(f.read())
+                        encoders.encode_base64(attachment)
+                        attachment.add_header('Content-Disposition', f'attachment; filename="{att_name}"')
+                        msg.attach(attachment)
         
         # Send email
         await aiosmtplib.send(
