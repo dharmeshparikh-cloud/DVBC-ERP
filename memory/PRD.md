@@ -22,11 +22,13 @@ Establish a unified and strict governance model across the ERP. Build customized
 - SOW Builder (SOWBuilderNew.js is the primary handler)
 - Agreement creation and approval workflow
 
-### Proforma Invoice (COMPLETE - 26 Mar 2026)
+### Proforma Invoice (COMPLETE - 27 Mar 2026)
 - B&W minimalist design with D&V logo
-- Client GSTIN field in create/edit dialog
+- Client GSTIN field with real-time validation (format, state code, PAN extraction, company name matching)
+- GSTIN auto-populates from lead data when lead is selected
+- Backend GSTIN validation API: POST /api/gstin/validate
 - Payment Terms & Conditions box at bottom (replaced Amount Due black box)
-- Data-driven PDF export (self-contained HTML, inline styles, no DOM cloning)
+- Data-driven PDF export (self-contained HTML, inline styles, no DOM cloning) - FIXED: amounts no longer show ₹0.00
 - Amount, Meetings, Version columns in table
 
 ### Unified Penalty Management (COMPLETE - 26 Mar 2026)
@@ -55,7 +57,9 @@ Establish a unified and strict governance model across the ERP. Build customized
 - `/app/frontend/src/pages/PenaltyManagement.js` - Unified penalty UI
 - `/app/backend/routers/penalties.py` - All penalty CRUD + approve/reject/bulk
 - `/app/backend/services/payroll_engine.py` - Simplified penalty deduction logic
-- `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js`
+- `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - Proforma Invoice UI + PDF generation
+- `/app/frontend/src/utils/gstin.js` - GSTIN format validation utility
+- `/app/backend/routers/gstin.py` - GSTIN validation API endpoint
 - `/app/backend/routers/quotations.py`
 
 ## P1 - Upcoming Tasks
