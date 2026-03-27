@@ -121,7 +121,7 @@ const AgreementView = () => {
           <tr>
             <td style="width:47%;vertical-align:top;padding:12px 14px;border:1px solid #e5e7eb;background:#f9fafb;">
               <p style="font-weight:700;font-size:13px;margin:0 0 6px;color:#111;">Party A (Service Provider)</p>
-              <p style="margin:2px 0;font-weight:600;">D&V Business Consulting LLP</p>
+              <p style="margin:2px 0;font-weight:600;">D&V Business Consulting</p>
               <p style="margin:2px 0;font-size:11.5px;color:#4b5563;">301, Business Hub, Prahlad Nagar,</p>
               <p style="margin:2px 0;font-size:11.5px;color:#4b5563;">Ahmedabad - 380015, Gujarat, India</p>
             </td>
@@ -201,7 +201,7 @@ const AgreementView = () => {
           </table>` : ''}
 
         <h3 style="font-size:13px;font-weight:600;margin:16px 0 8px;">Payment Terms &amp; Conditions</h3>
-        <p style="margin:0 0 6px;text-align:justify;">3.1. All invoices shall be raised on the first working day of the applicable quarter and are payable within fifteen (15) business days from the date of receipt of the invoice. The Client shall make payment via NEFT, RTGS, or cheque drawn in favour of "D&V Business Consulting LLP".</p>
+        <p style="margin:0 0 6px;text-align:justify;">3.1. All invoices shall be raised on the first working day of the applicable quarter and are payable within fifteen (15) business days from the date of receipt of the invoice. The Client shall make payment via NEFT, RTGS, or cheque drawn in favour of "D&V Business Consulting".</p>
         <p style="margin:0 0 6px;text-align:justify;">3.2. All amounts stated herein are exclusive of applicable Goods and Services Tax (GST) unless explicitly stated otherwise. GST shall be charged at the prevailing rate (currently ${paymentSchedule.gst_percentage || 18}%) and shall be borne by the Client in addition to the consulting fees.</p>
         <p style="margin:0 0 6px;text-align:justify;">3.3. In the event of delayed payment beyond the stipulated due date, a late payment interest of 1.5% per month (18% per annum) shall be applicable on the outstanding amount from the due date until the date of actual receipt of payment. The Service Provider reserves the right to suspend services if payment remains overdue for more than thirty (30) days.</p>
         <p style="margin:0 0 6px;text-align:justify;">3.4. The first installment constitutes the advance payment and is non-refundable. It must be received and verified prior to the commencement of services and deployment of the consulting team. Subsequent installments shall be payable as per the schedule above.</p>
@@ -242,7 +242,7 @@ const AgreementView = () => {
         <table style="width:100%;border-collapse:collapse;">
           <tr>
             <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;">
-              <p style="font-weight:700;font-size:13px;margin:0 0 24px;color:#111;">For D&V Business Consulting LLP</p>
+              <p style="font-weight:700;font-size:13px;margin:0 0 24px;color:#111;">For D&V Business Consulting</p>
               <div style="height:60px;border-bottom:1px solid #999;margin-bottom:8px;"></div>
               <p style="margin:4px 0;font-size:11.5px;">Authorized Signatory</p>
               <p style="margin:4px 0;font-size:11.5px;">Name: ____________________________</p>

@@ -966,7 +966,7 @@ async def send_agreement_email(
             <tr>
                 <td style="width:47%;vertical-align:top;padding:12px;border:1px solid #e5e7eb;background:#f9fafb;">
                     <p style="font-weight:700;margin:0 0 4px;">Party A (Service Provider)</p>
-                    <p style="margin:2px 0;font-weight:600;">D&V Business Consulting LLP</p>
+                    <p style="margin:2px 0;font-weight:600;">D&V Business Consulting</p>
                     <p style="margin:2px 0;font-size:11px;color:#555;">301, Business Hub, Prahlad Nagar, Ahmedabad - 380015, Gujarat, India</p>
                 </td>
                 <td style="width:6%;text-align:center;vertical-align:middle;font-weight:700;">AND</td>
@@ -1007,11 +1007,13 @@ async def send_agreement_email(
         {consultant_obligations_html}
 
         {sh('6','Signatures')}
-        <table style="width:100%;"><tr>
-            <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;"><p style="font-weight:700;">For D&V Business Consulting LLP</p><div style="height:50px;border-bottom:1px solid #999;"></div><p style="font-size:11px;">Authorized Signatory</p></td>
+        <div style="page-break-inside:avoid;">
+        <table style="width:100%;page-break-inside:avoid;"><tr>
+            <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;"><p style="font-weight:700;">For D&V Business Consulting</p><div style="height:50px;border-bottom:1px solid #999;"></div><p style="font-size:11px;">Authorized Signatory</p></td>
             <td style="width:6%;"></td>
             <td style="width:47%;vertical-align:top;padding:16px;border:1px solid #e5e7eb;"><p style="font-weight:700;">For {client_name}</p><div style="height:50px;border-bottom:1px solid #999;"></div><p style="font-size:11px;">Authorized Signatory</p></td>
         </tr></table>
+        </div>
     </div>"""
     
     # Generate PDF and DOCX files
@@ -1026,24 +1028,231 @@ async def send_agreement_email(
         full_html = f"""<html><head><meta charset="utf-8"><style>
             @page {{ size: A4; margin: 15mm 12mm; }}
             body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 12.5px; }}
-            table {{ border-collapse: collapse; }}
+            table {{ border-collapse: collapse; page-break-inside: avoid; }}
+            div {{ page-break-inside: avoid; }}
         </style></head><body>{agreement_html}</body></html>"""
         HTML(string=full_html).write_pdf(pdf_path)
     except Exception as e:
         print(f"PDF generation error: {e}")
         pdf_path = None
     
-    # Generate DOCX (Word-compatible HTML)
+    # Generate DOCX using python-docx
     try:
-        docx_content = f"""<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-        <head><meta charset="utf-8">
-        <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
-        <style>@page{{size:A4;margin:20mm 15mm;}}body{{font-family:'Segoe UI',Arial,sans-serif;font-size:12.5px;}}table{{border-collapse:collapse;}}</style>
-        </head><body>{agreement_html}</body></html>"""
-        with open(docx_path, 'w', encoding='utf-8') as f:
-            f.write('\ufeff' + docx_content)
+        from docx import Document
+        from docx.shared import Pt, Inches, Cm, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.enum.table import WD_TABLE_ALIGNMENT
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+        import requests
+        from io import BytesIO
+        
+        doc = Document()
+        
+        # Set default font
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = 'Segoe UI'
+        font.size = Pt(11)
+        
+        # Add logo
+        try:
+            logo_response = requests.get(logo_url, timeout=10)
+            if logo_response.status_code == 200:
+                logo_stream = BytesIO(logo_response.content)
+                logo_para = doc.add_paragraph()
+                logo_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                logo_run = logo_para.add_run()
+                logo_run.add_picture(logo_stream, width=Inches(2.5))
+        except Exception as logo_err:
+            print(f"Logo load error: {logo_err}")
+        
+        # Title
+        title = doc.add_heading('SERVICE AGREEMENT', level=1)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Agreement number
+        agr_num_para = doc.add_paragraph()
+        agr_num_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        agr_num_run = agr_num_para.add_run(f"Agreement No: {agreement_number}")
+        agr_num_run.font.size = Pt(10)
+        agr_num_run.font.color.rgb = RGBColor(107, 114, 128)
+        
+        # Date intro
+        intro = doc.add_paragraph()
+        intro.add_run(f"This Service Agreement is made on ").font.size = Pt(11)
+        intro.add_run(f"{today_str}").bold = True
+        intro.add_run(", between:")
+        
+        # Parties table
+        parties_table = doc.add_table(rows=1, cols=3)
+        parties_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        row = parties_table.rows[0]
+        
+        # Party A cell
+        cell_a = row.cells[0]
+        cell_a.text = ""
+        p1 = cell_a.paragraphs[0]
+        p1.add_run("Party A (Service Provider)").bold = True
+        cell_a.add_paragraph("D&V Business Consulting").runs[0].bold = True
+        cell_a.add_paragraph("301, Business Hub, Prahlad Nagar, Ahmedabad - 380015, Gujarat, India")
+        
+        # AND cell
+        row.cells[1].text = "AND"
+        row.cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Party B cell
+        cell_b = row.cells[2]
+        cell_b.text = ""
+        p2 = cell_b.paragraphs[0]
+        p2.add_run("Party B (Client)").bold = True
+        cell_b.add_paragraph(client_name).runs[0].bold = True
+        if client_address:
+            cell_b.add_paragraph(client_address)
+        if client_gstin:
+            cell_b.add_paragraph(f"GSTIN: {client_gstin}")
+        
+        doc.add_paragraph()
+        
+        # 1. Scope of Work
+        doc.add_heading('1. SCOPE OF WORK', level=2)
+        if sow_scopes:
+            scope_table = doc.add_table(rows=1, cols=4)
+            scope_table.style = 'Table Grid'
+            hdr = scope_table.rows[0].cells
+            hdr[0].text = "S.No"
+            hdr[1].text = "Category"
+            hdr[2].text = "Scope"
+            hdr[3].text = "Deliverables"
+            for idx, s in enumerate(sow_scopes):
+                row = scope_table.add_row().cells
+                row[0].text = str(idx + 1)
+                row[1].text = s.get('category', '') or ''
+                row[2].text = s.get('name', '') or ''
+                deliverables = s.get("deliverables") or s.get("items") or []
+                items_list = [d if isinstance(d, str) else d.get("name", "") for d in deliverables]
+                row[3].text = ", ".join([i for i in items_list if i])
+        
+        # 2. Team Deployment
+        doc.add_heading('2. TEAM DEPLOYMENT & MEETING SCHEDULE', level=2)
+        if team_deployment:
+            team_table = doc.add_table(rows=1, cols=5)
+            team_table.style = 'Table Grid'
+            hdr = team_table.rows[0].cells
+            hdr[0].text = "S.No"
+            hdr[1].text = "Role"
+            hdr[2].text = "Meeting Type"
+            hdr[3].text = "Count"
+            hdr[4].text = "Total Meetings"
+            for idx, m in enumerate(team_deployment):
+                meetings = (m.get("committed_meetings") or m.get("total_meetings") or 0) * (m.get("count") or 1)
+                row = team_table.add_row().cells
+                row[0].text = str(idx + 1)
+                row[1].text = m.get('role', '') or ''
+                row[2].text = m.get('meeting_type', '') or ''
+                row[3].text = str(m.get('count', 1))
+                row[4].text = str(meetings)
+            # Total row
+            total_row = team_table.add_row().cells
+            total_row[0].text = ""
+            total_row[1].text = ""
+            total_row[2].text = ""
+            total_row[3].text = "Total"
+            total_row[3].paragraphs[0].runs[0].bold = True
+            total_row[4].text = str(total_meetings)
+            total_row[4].paragraphs[0].runs[0].bold = True
+        
+        # 3. Investment & Payment Schedule
+        doc.add_heading('3. INVESTMENT & PAYMENT SCHEDULE', level=2)
+        inv_table = doc.add_table(rows=4, cols=2)
+        inv_table.style = 'Table Grid'
+        inv_table.rows[0].cells[0].text = "Total Investment"
+        inv_table.rows[0].cells[1].text = fmt_inr(total_value)
+        inv_table.rows[1].cells[0].text = "Duration"
+        inv_table.rows[1].cells[1].text = f"{duration_months} Months"
+        inv_table.rows[2].cells[0].text = "Start Date"
+        inv_table.rows[2].cells[1].text = start_date
+        inv_table.rows[3].cells[0].text = "End Date"
+        inv_table.rows[3].cells[1].text = end_date
+        
+        # Payment schedule
+        if schedule:
+            doc.add_paragraph()
+            doc.add_paragraph("Payment Schedule:").runs[0].bold = True
+            pay_table = doc.add_table(rows=1, cols=5)
+            pay_table.style = 'Table Grid'
+            hdr = pay_table.rows[0].cells
+            hdr[0].text = "S.No"
+            hdr[1].text = "Description"
+            hdr[2].text = "Basic"
+            hdr[3].text = "GST"
+            hdr[4].text = "Net Amount"
+            for idx, inst in enumerate(schedule):
+                amount = inst.get("amount") or inst.get("net") or inst.get("basic") or 0
+                label = inst.get("label") or inst.get("frequency") or f"Installment {idx+1}"
+                gst = inst.get("gst", 0)
+                basic = inst.get("basic") or amount
+                row = pay_table.add_row().cells
+                row[0].text = str(idx + 1)
+                row[1].text = label
+                row[2].text = fmt_inr(basic)
+                row[3].text = fmt_inr(gst) if gst else "-"
+                row[4].text = fmt_inr(amount)
+        
+        # 4. Terms & Conditions
+        doc.add_heading('4. TERMS & CONDITIONS', level=2)
+        doc.add_paragraph(f"This agreement includes NDA, NCA, Anti-Poaching clauses enforced for 24 months until {nda_end_str}. Early termination requires 30 days written notice or mutual agreement. Full terms as per the signed agreement document.")
+        
+        # 5. Consultant Undertaking & Obligations
+        doc.add_heading('5. CONSULTANT UNDERTAKING & OBLIGATIONS', level=2)
+        doc.add_paragraph("This section outlines the obligations of D&V Business Consulting towards the Client.")
+        
+        doc.add_paragraph("5.1 Confidentiality Obligation").runs[0].bold = True
+        doc.add_paragraph("The Consultant shall maintain strict confidentiality of all information received from the Client, use such information solely for execution of services, and not disclose to any third party without prior written consent.")
+        
+        doc.add_paragraph("5.2 Data Protection & Security").runs[0].bold = True
+        doc.add_paragraph("The Consultant agrees to implement reasonable safeguards to protect Client data, ensure all personnel are bound by confidentiality obligations, and not retain Client data post completion.")
+        
+        doc.add_paragraph("5.3 Non-Solicitation").runs[0].bold = True
+        doc.add_paragraph("The Consultant shall not solicit or hire any key employee of the Client during the term and for 12 months thereafter.")
+        
+        doc.add_paragraph("5.4 Standard of Performance").runs[0].bold = True
+        doc.add_paragraph("The Consultant shall perform services professionally and ethically, deploy qualified personnel, and act in good faith.")
+        
+        doc.add_paragraph("5.5 Limitation of Liability").runs[0].bold = True
+        doc.add_paragraph("The Consultant shall not be liable for incorrect/incomplete data provided by Client, non-implementation of recommendations, indirect damages, or external factors beyond control.")
+        
+        doc.add_paragraph("5.6 Survival").runs[0].bold = True
+        doc.add_paragraph("Confidentiality and Data Protection obligations survive for 3 years post termination. Non-Solicitation survives for 12 months.")
+        
+        doc.add_paragraph("5.7 Governing Law").runs[0].bold = True
+        doc.add_paragraph("This Agreement shall be governed by laws of India. Jurisdiction: Ahmedabad, Gujarat.")
+        
+        # 6. Signatures
+        doc.add_heading('6. SIGNATURES', level=2)
+        sig_table = doc.add_table(rows=4, cols=2)
+        sig_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        
+        sig_table.rows[0].cells[0].text = "For D&V Business Consulting"
+        sig_table.rows[0].cells[0].paragraphs[0].runs[0].bold = True
+        sig_table.rows[0].cells[1].text = f"For {client_name}"
+        sig_table.rows[0].cells[1].paragraphs[0].runs[0].bold = True
+        
+        sig_table.rows[1].cells[0].text = ""
+        sig_table.rows[1].cells[1].text = ""
+        
+        sig_table.rows[2].cells[0].text = "_________________________"
+        sig_table.rows[2].cells[1].text = "_________________________"
+        
+        sig_table.rows[3].cells[0].text = "Authorized Signatory"
+        sig_table.rows[3].cells[1].text = "Authorized Signatory"
+        
+        # Save DOCX
+        doc.save(docx_path)
     except Exception as e:
         print(f"DOCX generation error: {e}")
+        import traceback
+        traceback.print_exc()
         docx_path = None
     
     # Build attachments list
@@ -1057,7 +1266,7 @@ async def send_agreement_email(
     email_html = f"""
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;color:#333;">
         <div style="background:#f8f9fa;padding:24px 32px;border-bottom:3px solid #1a1a1a;">
-            <h2 style="margin:0;font-size:18px;color:#1a1a1a;">D&V Business Consulting LLP</h2>
+            <h2 style="margin:0;font-size:18px;color:#1a1a1a;">D&V Business Consulting</h2>
             <p style="margin:4px 0 0;font-size:12px;color:#666;">Business Advisory &amp; Consulting Services</p>
         </div>
         <div style="padding:24px 32px;">
@@ -1078,7 +1287,7 @@ async def send_agreement_email(
             <p style="margin:0 0 12px;">Kindly review the agreement at your earliest convenience. Should you have any queries or require any modifications, please do not hesitate to reach out.</p>
             <p style="margin:16px 0 0;">Warm Regards,</p>
             <p style="margin:4px 0 0;font-weight:600;">{current_user.full_name}</p>
-            <p style="margin:2px 0 0;font-size:12px;color:#666;">D&V Business Consulting LLP</p>
+            <p style="margin:2px 0 0;font-size:12px;color:#666;">D&V Business Consulting</p>
         </div>
         <div style="background:#f8f9fa;padding:12px 32px;border-top:1px solid #e5e7eb;font-size:11px;color:#999;">
             <p style="margin:0;">This is a system-generated email from D&V Business Consulting ERP. Agreement No: {agreement_number}</p>
@@ -1094,7 +1303,7 @@ Duration: {duration_months} Months ({start_date} to {end_date})
 
 Warm Regards,
 {current_user.full_name}
-D&V Business Consulting LLP"""
+D&V Business Consulting"""
     
     # Send email to specified recipient
     result = await send_email(
