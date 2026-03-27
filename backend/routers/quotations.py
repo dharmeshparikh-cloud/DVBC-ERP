@@ -20,8 +20,9 @@ router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
 APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://unified-erp-gov.preview.emergentagent.com").replace("/api", "")
 
-# RBAC: Define roles that can access quotations
-QUOTATION_VIEW_ROLES = list(set(SALES_ROLES + ADMIN_ROLES + ["principal_consultant", "senior_consultant"]))
+# RBAC: Only Sales team and Admin can access quotations/proforma invoices
+# Consulting roles are NOT allowed - they see payments via project dashboards
+QUOTATION_VIEW_ROLES = ['executive', 'sales_manager', 'manager', 'admin']
 
 
 class QuotationCreate(BaseModel):
