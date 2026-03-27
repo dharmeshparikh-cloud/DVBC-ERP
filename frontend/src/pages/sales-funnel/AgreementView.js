@@ -65,11 +65,27 @@ const AgreementView = () => {
 
   const getAgreementHTML = () => {
     const schedule = paymentSchedule.installments || paymentSchedule.schedule_breakdown || [];
+    
+    // Helper function to calculate due dates
+    const calculateDueDate = (startDateStr, idx, totalInstallments, durationMonths) => {
+      if (!startDateStr || totalInstallments <= 1) return '';
+      try {
+        const startDt = new Date(startDateStr);
+        const monthsPerInstallment = Math.floor(durationMonths / totalInstallments);
+        const dueDt = new Date(startDt);
+        dueDt.setMonth(dueDt.getMonth() + (idx * monthsPerInstallment));
+        return dueDt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch (e) {
+        return '';
+      }
+    };
+    
     const installmentsHTML = schedule.map((inst, idx) => {
       const amount = inst.amount || inst.net || inst.basic || 0;
       const label = inst.label || inst.frequency || `Installment ${idx + 1}`;
       const gst = inst.gst || 0;
       const basic = inst.basic || amount;
+      const dueDate = inst.due_date || calculateDueDate(startDate, idx, schedule.length, durationMonths);
       return `
       <tr>
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${idx + 1}</td>
@@ -77,6 +93,7 @@ const AgreementView = () => {
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(basic)}</td>
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${gst ? formatINR(gst) : '-'}</td>
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">${formatINR(amount)}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${dueDate}</td>
       </tr>`;
     }).join('');
 
@@ -192,13 +209,38 @@ const AgreementView = () => {
               <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">Basic (INR)</th>
               <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">GST</th>
               <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">Net Amount</th>
+              <th style="border:1px solid #d1d5db;padding:7px 10px;text-align:center;">Due Date</th>
             </tr></thead>
             <tbody>${installmentsHTML}</tbody>
             <tfoot><tr style="background:#f3f4f6;font-weight:700;">
-              <td colspan="4" style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">Grand Total</td>
+              <td colspan="5" style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">Grand Total</td>
               <td style="border:1px solid #d1d5db;padding:7px 10px;text-align:right;">${formatINR(schedule.reduce((s,i) => s + (i.amount || i.net || 0), 0))}</td>
             </tr></tfoot>
           </table>` : ''}
+
+        <h3 style="font-size:13px;font-weight:700;margin:20px 0 10px;color:#1a1a1a;">Key Payment Terms</h3>
+        <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11.5px;">
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;width:25%;vertical-align:top;">1. Fees & Taxes</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All fees as per SOW; GST @18% extra. TDS applicable as per law.</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">2. Advance / Milestone Payment</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Payments to be made in advance as per defined milestones.</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">3. Payment Timeline</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Invoices payable within 7 days of issue date.</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">4. Delay & Suspension</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Delay beyond 7 days attracts 18% p.a. interest + right to suspend services immediately.</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">5. Non-Refundable</td>
+            <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All payments are strictly non-refundable, irrespective of stoppage from any stage.</td>
+          </tr>
+        </table>
 
         <h3 style="font-size:13px;font-weight:600;margin:16px 0 8px;">Payment Terms &amp; Conditions</h3>
         <p style="margin:0 0 6px;text-align:justify;">3.1. All invoices shall be raised on the first working day of the applicable quarter and are payable within fifteen (15) business days from the date of receipt of the invoice. The Client shall make payment via NEFT, RTGS, or cheque drawn in favour of "D&V Business Consulting".</p>

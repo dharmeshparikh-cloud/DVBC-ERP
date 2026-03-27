@@ -872,18 +872,44 @@ async def send_agreement_email(
     # Build agreement HTML for PDF/DOCX
     schedule = payment_schedule.get("installments") or payment_schedule.get("schedule_breakdown") or []
     
+    # Calculate due dates for installments
+    from dateutil.relativedelta import relativedelta
+    
+    def calculate_due_date(start_dt, idx, total_installments, duration_months):
+        """Calculate due date based on installment index and duration"""
+        if total_installments <= 1:
+            return start_dt
+        # Spread installments evenly across duration
+        months_per_installment = duration_months // total_installments
+        return start_dt + relativedelta(months=idx * months_per_installment)
+    
+    start_dt = None
+    try:
+        if start_date:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    except Exception:
+        start_dt = datetime.now()
+    
     installments_html = ""
     for idx, inst in enumerate(schedule):
         amount = inst.get("amount") or inst.get("net") or inst.get("basic") or 0
         label = inst.get("label") or inst.get("frequency") or f"Installment {idx+1}"
         gst = inst.get("gst", 0)
         basic = inst.get("basic") or amount
+        
+        # Calculate due date - use from pricing plan if available, else calculate
+        due_date_str = inst.get("due_date") or ""
+        if not due_date_str and start_dt:
+            due_dt = calculate_due_date(start_dt, idx, len(schedule), duration_months)
+            due_date_str = due_dt.strftime("%d %b %Y")
+        
         installments_html += f"""<tr>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{idx+1}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;">{label}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(basic)}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(gst) if gst else '-'}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">{fmt_inr(amount)}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{due_date_str}</td>
         </tr>"""
     
     team_html = ""
@@ -1006,7 +1032,31 @@ async def send_agreement_email(
             <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">Start Date</td><td style="border:1px solid #d1d5db;padding:10px;">{start_date}</td></tr>
             <tr><td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;">End Date</td><td style="border:1px solid #d1d5db;padding:10px;">{end_date}</td></tr>
         </table>
-        {'<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;"><thead><tr style="background:#f3f4f6;"><th style="border:1px solid #d1d5db;padding:7px;width:35px;">S.No</th><th style="border:1px solid #d1d5db;padding:7px;">Description</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Basic</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">GST</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Net Amount</th></tr></thead><tbody>' + installments_html + '</tbody></table>' if installments_html else ''}
+        {'<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;"><thead><tr style="background:#f3f4f6;"><th style="border:1px solid #d1d5db;padding:7px;width:35px;">S.No</th><th style="border:1px solid #d1d5db;padding:7px;">Description</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Basic</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">GST</th><th style="border:1px solid #d1d5db;padding:7px;text-align:right;">Net Amount</th><th style="border:1px solid #d1d5db;padding:7px;text-align:center;">Due Date</th></tr></thead><tbody>' + installments_html + '</tbody></table>' if installments_html else ''}
+
+        <h3 style="font-size:13px;font-weight:700;margin:20px 0 10px;color:#1a1a1a;">Key Payment Terms</h3>
+        <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11.5px;">
+            <tr>
+                <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;width:25%;vertical-align:top;">1. Fees & Taxes</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All fees as per SOW; GST @18% extra. TDS applicable as per law.</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">2. Advance / Milestone Payment</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Payments to be made in advance as per defined milestones.</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">3. Payment Timeline</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Invoices payable within 7 days of issue date.</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">4. Delay & Suspension</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">Delay beyond 7 days attracts 18% p.a. interest + right to suspend services immediately.</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #d1d5db;padding:10px;font-weight:600;background:#f9fafb;vertical-align:top;">5. Non-Refundable</td>
+                <td style="border:1px solid #d1d5db;padding:10px;text-align:justify;">All payments are strictly non-refundable, irrespective of stoppage from any stage.</td>
+            </tr>
+        </table>
 
         {sh('4','Terms & Conditions')}
         <p style="text-align:justify;">This agreement includes NDA, NCA, Anti-Poaching clauses enforced for 24 months until {nda_end_str}. Early termination requires 30 days written notice or mutual agreement. Full terms as per the signed agreement document.</p>
@@ -1186,7 +1236,7 @@ async def send_agreement_email(
         if schedule:
             doc.add_paragraph()
             doc.add_paragraph("Payment Schedule:").runs[0].bold = True
-            pay_table = doc.add_table(rows=1, cols=5)
+            pay_table = doc.add_table(rows=1, cols=6)
             pay_table.style = 'Table Grid'
             hdr = pay_table.rows[0].cells
             hdr[0].text = "S.No"
@@ -1194,17 +1244,40 @@ async def send_agreement_email(
             hdr[2].text = "Basic"
             hdr[3].text = "GST"
             hdr[4].text = "Net Amount"
+            hdr[5].text = "Due Date"
             for idx, inst in enumerate(schedule):
                 amount = inst.get("amount") or inst.get("net") or inst.get("basic") or 0
                 label = inst.get("label") or inst.get("frequency") or f"Installment {idx+1}"
                 gst = inst.get("gst", 0)
                 basic = inst.get("basic") or amount
+                # Calculate due date
+                due_date_str = inst.get("due_date") or ""
+                if not due_date_str and start_dt:
+                    due_dt = calculate_due_date(start_dt, idx, len(schedule), duration_months)
+                    due_date_str = due_dt.strftime("%d %b %Y")
                 row = pay_table.add_row().cells
                 row[0].text = str(idx + 1)
                 row[1].text = label
                 row[2].text = fmt_inr(basic)
                 row[3].text = fmt_inr(gst) if gst else "-"
                 row[4].text = fmt_inr(amount)
+                row[5].text = due_date_str
+        
+        # Key Payment Terms
+        doc.add_paragraph()
+        doc.add_paragraph("Key Payment Terms:").runs[0].bold = True
+        terms_table = doc.add_table(rows=5, cols=2)
+        terms_table.style = 'Table Grid'
+        terms_table.rows[0].cells[0].text = "1. Fees & Taxes"
+        terms_table.rows[0].cells[1].text = "All fees as per SOW; GST @18% extra. TDS applicable as per law."
+        terms_table.rows[1].cells[0].text = "2. Advance / Milestone Payment"
+        terms_table.rows[1].cells[1].text = "Payments to be made in advance as per defined milestones."
+        terms_table.rows[2].cells[0].text = "3. Payment Timeline"
+        terms_table.rows[2].cells[1].text = "Invoices payable within 7 days of issue date."
+        terms_table.rows[3].cells[0].text = "4. Delay & Suspension"
+        terms_table.rows[3].cells[1].text = "Delay beyond 7 days attracts 18% p.a. interest + right to suspend services immediately."
+        terms_table.rows[4].cells[0].text = "5. Non-Refundable"
+        terms_table.rows[4].cells[1].text = "All payments are strictly non-refundable, irrespective of stoppage from any stage."
         
         # 4. Terms & Conditions
         doc.add_heading('4. TERMS & CONDITIONS', level=2)
