@@ -150,7 +150,9 @@ const SalesDashboard = () => {
           revenue: myFunnelData?.targets?.revenue?.achieved || 0,
           conversionRate: myFunnelData?.conversion_rate || 0,
           targetAchievement: myFunnelData?.targets?.revenue?.percentage || 0,
-          trend: (myFunnelData?.targets?.revenue?.percentage || 0) >= 50 ? 'up' : 'down'
+          trend: (myFunnelData?.targets?.revenue?.percentage || 0) >= 50 ? 'up' : 'down',
+          followUps: myFunnelData?.follow_ups || { total: 0, open: 0, closed: 0, overdue: 0 },
+          meetingsAchieved: myFunnelData?.targets?.meetings?.achieved || 0
         }}
         variant="default"
         data-testid="profile-performance-card"
@@ -280,7 +282,7 @@ const SalesDashboard = () => {
       {isManager && funnelData && (
         <>
           {/* Team Overview Cards */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <Card 
               className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
               onClick={() => navigate('/leads')}
@@ -369,6 +371,28 @@ const SalesDashboard = () => {
                 </div>
                 <p className="text-xs text-indigo-600 mt-2 flex items-center gap-1">
                   View analytics <ArrowRight className="w-3 h-3" />
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-orange-300 transition-all"
+              data-testid="followups-card"
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Follow-ups</p>
+                    <p className="text-3xl font-bold text-orange-600 mt-1">
+                      {funnelData.summary.follow_ups?.open || 0}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                  </div>
+                </div>
+                <p className="text-xs text-orange-600 mt-2 flex items-center gap-1">
+                  {funnelData.summary.follow_ups?.overdue || 0} overdue &middot; {funnelData.summary.follow_ups?.total || 0} total
                 </p>
               </CardContent>
             </Card>

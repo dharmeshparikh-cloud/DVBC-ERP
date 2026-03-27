@@ -121,7 +121,10 @@ async def get_funnel_summary(
     
     # Get all leads for the employees in date range
     lead_query = {"created_at": {"$gte": date_start, "$lte": date_end + "T23:59:59"}}
-    if employee_ids:
+    if current_user.role == "admin":
+        # Admin sees ALL leads regardless of ownership
+        pass
+    elif employee_ids:
         lead_query["$or"] = [
             {"created_by": {"$in": employee_ids}},
             {"assigned_to": {"$in": employee_ids}}
@@ -142,7 +145,7 @@ async def get_funnel_summary(
         # Determine current stage
         current_stage = "lead"
         
-        meeting = await db.meeting_records.find_one({"lead_id": lead_id})
+        meeting = await db.meetings.find_one({"lead_id": lead_id})
         if meeting:
             current_stage = "meeting"
         
@@ -163,19 +166,15 @@ async def get_funnel_summary(
         
         agreement = await db.agreements.find_one({"lead_id": lead_id})
         if agreement:
-            if agreement.get("status") == "signed":
-                current_stage = "agreement"
-            else:
-                current_stage = "quotation"
+            current_stage = "agreement"
         
-        if agreement:
-            payment = await db.agreement_payments.find_one({"agreement_id": agreement.get("id")})
-            if payment:
-                current_stage = "payment"
+        payment = await db.payment_verifications.find_one({"lead_id": lead_id, "status": "verified"})
+        if payment:
+            current_stage = "payment"
         
         kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id})
         if kickoff:
-            if kickoff.get("status") == "accepted":
+            if kickoff.get("status") in ["approved", "accepted", "converted"] and kickoff.get("project_id"):
                 current_stage = "complete"
             else:
                 current_stage = "kickoff"
@@ -201,6 +200,16 @@ async def get_funnel_summary(
     total_leads = sum(stage_counts.values())
     completed = stage_counts.get("complete", 0)
     
+    # Follow-up stats for team
+    followup_query = {}
+    if lead_ids:
+        followup_query["lead_id"] = {"$in": lead_ids}
+    team_followups = await db.follow_ups.find(followup_query, {"_id": 0, "status": 1, "scheduled_date": 1}).to_list(1000)
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    total_followups = len(team_followups)
+    open_followups = sum(1 for f in team_followups if f.get("status") == "open")
+    overdue_followups = sum(1 for f in team_followups if f.get("status") == "open" and f.get("scheduled_date") and f["scheduled_date"] < today_str)
+    
     return {
         "period": period,
         "date_range": {"start": date_start, "end": date_end},
@@ -208,7 +217,12 @@ async def get_funnel_summary(
             "total_leads": total_leads,
             "completed": completed,
             "conversion_rate": round((completed / total_leads * 100) if total_leads > 0 else 0, 1),
-            "in_progress": total_leads - completed
+            "in_progress": total_leads - completed,
+            "follow_ups": {
+                "total": total_followups,
+                "open": open_followups,
+                "overdue": overdue_followups
+            }
         },
         "stage_counts": stage_counts,
         "funnel_stages": funnel_stages,
@@ -265,7 +279,7 @@ async def get_my_funnel_summary(
         lead_id = lead["id"]
         stage = "lead"
         
-        if await db.meeting_records.find_one({"lead_id": lead_id}):
+        if await db.meetings.find_one({"lead_id": lead_id}):
             stage = "meeting"
         if await db.pricing_plans.find_one({"lead_id": lead_id}):
             stage = "pricing"
@@ -273,15 +287,16 @@ async def get_my_funnel_summary(
             stage = "sow"
         if await db.quotations.find_one({"lead_id": lead_id}):
             stage = "quotation"
-        agreement = await db.agreements.find_one({"lead_id": lead_id})
-        if agreement and agreement.get("status") == "signed":
+        if await db.agreements.find_one({"lead_id": lead_id}):
             stage = "agreement"
-        if agreement:
-            if await db.agreement_payments.find_one({"agreement_id": agreement.get("id")}):
-                stage = "payment"
+        if await db.payment_verifications.find_one({"lead_id": lead_id, "status": "verified"}):
+            stage = "payment"
         kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id})
         if kickoff:
-            stage = "kickoff" if kickoff.get("status") != "accepted" else "complete"
+            if kickoff.get("status") in ["approved", "accepted", "converted"] and kickoff.get("project_id"):
+                stage = "complete"
+            else:
+                stage = "kickoff"
         
         stage_counts[stage] += 1
     
@@ -305,7 +320,7 @@ async def get_my_funnel_summary(
             revenue_target = monthly
     
     month_start = datetime(now.year, now.month, 1).strftime("%Y-%m-%d")
-    meetings_achieved = await db.meeting_records.count_documents({
+    meetings_achieved = await db.meetings.count_documents({
         "created_by": {"$in": [user_id, emp_id, current_user.id]},
         "meeting_date": {"$gte": month_start}
     })
@@ -319,6 +334,20 @@ async def get_my_funnel_summary(
     }, {"_id": 0, "total_value": 1}).to_list(100)
     for agr in completed_agreements:
         revenue_achieved += agr.get("total_value", 0)
+    
+    # Follow-up stats
+    my_followups = await db.follow_ups.find({
+        "lead_id": {"$in": lead_ids}
+    }, {"_id": 0, "status": 1, "scheduled_date": 1}).to_list(500)
+    
+    total_followups = len(my_followups)
+    open_followups = sum(1 for f in my_followups if f.get("status") == "open")
+    closed_followups = sum(1 for f in my_followups if f.get("status") == "closed")
+    overdue_followups = 0
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    for f in my_followups:
+        if f.get("status") == "open" and f.get("scheduled_date") and f["scheduled_date"] < today_str:
+            overdue_followups += 1
     
     return {
         "period": period,
@@ -341,6 +370,12 @@ async def get_my_funnel_summary(
                 "achieved": revenue_achieved,
                 "percentage": round((revenue_achieved / revenue_target * 100) if revenue_target > 0 else 0, 1)
             }
+        },
+        "follow_ups": {
+            "total": total_followups,
+            "open": open_followups,
+            "closed": closed_followups,
+            "overdue": overdue_followups
         },
         "conversion_rate": round((closures_achieved / len(my_leads) * 100) if len(my_leads) > 0 else 0, 1)
     }
@@ -387,11 +422,11 @@ async def get_funnel_trends(
         })
         
         completed = await db.kickoff_requests.count_documents({
-            "status": "accepted",
+            "status": {"$in": ["approved", "accepted", "converted"]},
             "updated_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}
         })
         
-        meetings = await db.meeting_records.count_documents({
+        meetings = await db.meetings.count_documents({
             "meeting_date": {"$gte": month_start.strftime("%Y-%m-%d"), "$lt": month_end.strftime("%Y-%m-%d")}
         })
         
@@ -444,7 +479,7 @@ async def get_bottleneck_analysis(
     
     # Stage 2: Meeting
     meeting_leads = set()
-    meetings = await db.meeting_records.find(
+    meetings = await db.meetings.find(
         {"lead_id": {"$in": lead_ids}},
         {"_id": 0, "lead_id": 1}
     ).to_list(1000)
@@ -545,15 +580,13 @@ async def get_bottleneck_analysis(
     
     # Stage 8: Payment Received
     payment_leads = set()
-    agreement_ids = [v["id"] for v in agreement_map.values()]
-    payments = await db.agreement_payments.find(
-        {"agreement_id": {"$in": agreement_ids}},
-        {"_id": 0, "agreement_id": 1}
+    payments = await db.payment_verifications.find(
+        {"lead_id": {"$in": lead_ids}, "status": "verified"},
+        {"_id": 0, "lead_id": 1}
     ).to_list(1000)
-    paid_agreement_ids = set(p.get("agreement_id") for p in payments)
-    for lead_id, agr in agreement_map.items():
-        if agr.get("id") in paid_agreement_ids:
-            payment_leads.add(lead_id)
+    for p in payments:
+        if p.get("lead_id"):
+            payment_leads.add(p.get("lead_id"))
     payment_count = len(payment_leads)
     stage_data.append({
         "stage": "payment",
@@ -571,7 +604,7 @@ async def get_bottleneck_analysis(
     ).to_list(1000)
     for k in kickoffs:
         kickoff_leads.add(k.get("lead_id"))
-        if k.get("status") == "accepted":
+        if k.get("status") in ["approved", "accepted", "converted"]:
             kickoff_accepted_leads.add(k.get("lead_id"))
     kickoff_count = len(kickoff_leads)
     stage_data.append({
@@ -675,7 +708,7 @@ async def get_sales_forecasting(
     
     # Build lookup sets
     meeting_leads = set()
-    meetings = await db.meeting_records.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)
+    meetings = await db.meetings.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)
     for m in meetings:
         meeting_leads.add(m.get("lead_id"))
     
@@ -705,11 +738,11 @@ async def get_sales_forecasting(
     for a in agreements_db:
         agreement_map[a.get("lead_id")] = a
     
-    agreement_ids = [a.get("id") for a in agreements_db]
-    paid_agreements = set()
-    payments = await db.agreement_payments.find({"agreement_id": {"$in": agreement_ids}}, {"_id": 0, "agreement_id": 1}).to_list(1000)
+    paid_leads = set()
+    payments = await db.payment_verifications.find({"lead_id": {"$in": lead_ids}, "status": "verified"}, {"_id": 0, "lead_id": 1}).to_list(1000)
     for p in payments:
-        paid_agreements.add(p.get("agreement_id"))
+        if p.get("lead_id"):
+            paid_leads.add(p.get("lead_id"))
     
     kickoff_map = {}
     kickoffs = await db.kickoff_requests.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "status": 1}).to_list(1000)
@@ -717,11 +750,11 @@ async def get_sales_forecasting(
         kickoff_map[k.get("lead_id")] = k.get("status")
     
     for lead_id in lead_ids:
-        if lead_id in kickoff_map and kickoff_map[lead_id] == "accepted":
+        if lead_id in kickoff_map and kickoff_map[lead_id] in ["approved", "accepted", "converted"]:
             stage_counts["complete"] += 1
         elif lead_id in kickoff_map:
             stage_counts["kickoff"] += 1
-        elif lead_id in agreement_map and agreement_map[lead_id].get("id") in paid_agreements:
+        elif lead_id in paid_leads:
             stage_counts["payment"] += 1
         elif lead_id in agreement_map and agreement_map[lead_id].get("status") == "signed":
             stage_counts["signed"] += 1
@@ -869,7 +902,7 @@ async def get_time_in_stage_analytics(
             # Skip leads with invalid date formats
             continue
         
-        meeting = await db.meeting_records.find_one({"lead_id": lead_id}, {"_id": 0, "created_at": 1, "meeting_date": 1})
+        meeting = await db.meetings.find_one({"lead_id": lead_id}, {"_id": 0, "created_at": 1, "meeting_date": 1})
         if meeting:
             try:
                 meeting_ts = meeting.get("created_at") or meeting.get("meeting_date")
@@ -949,7 +982,7 @@ async def get_win_loss_analysis(
     stale_leads = []
     active_leads = []
     
-    meetings = {m["lead_id"]: m for m in await db.meeting_records.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "created_at": 1}).to_list(1000)}
+    meetings = {m["lead_id"]: m for m in await db.meetings.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "created_at": 1}).to_list(1000)}
     pricing = {p["lead_id"]: p for p in await db.pricing_plans.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "id": 1}).to_list(1000)}
     sows = {s["lead_id"]: s for s in await db.enhanced_sow.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)}
     quotations = {q["lead_id"]: q for q in await db.quotations.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)}
@@ -988,7 +1021,7 @@ async def get_win_loss_analysis(
         if lead_id in kickoffs:
             kf = kickoffs[lead_id]
             current_stage = "kickoff"
-            if kf.get("status") == "accepted":
+            if kf.get("status") in ["approved", "accepted", "converted"]:
                 won_leads.append({
                     "lead_id": lead_id,
                     "company": lead.get("company") or lead.get("last_name"),
@@ -1068,7 +1101,7 @@ async def get_velocity_metrics(
     db = get_db()
     
     kickoffs = await db.kickoff_requests.find(
-        {"status": "accepted"},
+        {"status": {"$in": ["approved", "accepted", "converted"]}},
         {"_id": 0, "lead_id": 1, "created_at": 1, "updated_at": 1}
     ).to_list(500)
     
@@ -1206,7 +1239,7 @@ async def get_mom_scorecard(
         query["assigned_to"] = current_user.id
     
     # Get all meetings in the period
-    meetings = await db.meeting_records.find(query, {"_id": 0}).to_list(1000)
+    meetings = await db.meetings.find(query, {"_id": 0}).to_list(1000)
     
     total_meetings = len(meetings)
     meetings_with_mom = sum(1 for m in meetings if m.get("mom") or m.get("mom_generated"))
@@ -1353,7 +1386,7 @@ async def get_manager_mom_review(
     reportee_ids = list(employee_map.keys())
     
     # Get all meetings for reportees in the date range
-    meetings = await db.meeting_records.find(
+    meetings = await db.meetings.find(
         {
             "assigned_to": {"$in": reportee_ids},
             "created_at": {"$gte": date_start}

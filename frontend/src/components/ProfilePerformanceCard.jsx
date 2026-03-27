@@ -74,7 +74,9 @@ const ProfilePerformanceCard = ({
     conversionRate = 0,
     targetAchievement = 0,
     momCompliance = 0,
-    trend = 'up' // up, down, stable
+    trend = 'up', // up, down, stable
+    followUps = { total: 0, open: 0, closed: 0, overdue: 0 },
+    meetingsAchieved = 0
   } = stats;
 
   // Format currency
@@ -170,7 +172,7 @@ const ProfilePerformanceCard = ({
 
           {/* Right: Stats Section */}
           {showDetailedStats && (
-            <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex-1 grid grid-cols-3 md:grid-cols-6 gap-4">
               {/* Deals Won */}
               <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
@@ -207,8 +209,28 @@ const ProfilePerformanceCard = ({
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">In Progress</p>
               </div>
 
+              {/* Meetings */}
+              <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Calendar className="h-5 w-5 text-cyan-500" />
+                </div>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{meetingsAchieved}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Meetings</p>
+              </div>
+
+              {/* Follow-ups */}
+              <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Users className="h-5 w-5 text-orange-500" />
+                </div>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{followUps.open}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Open Follow-ups{followUps.overdue > 0 && <span className="text-red-500 ml-1">({followUps.overdue} overdue)</span>}
+                </p>
+              </div>
+
               {/* Target Achievement Progress */}
-              <div className="col-span-2 md:col-span-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4">
+              <div className="col-span-3 md:col-span-6 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Target Achievement</span>
                   <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{targetAchievement}%</span>
@@ -218,7 +240,7 @@ const ProfilePerformanceCard = ({
 
               {/* MOM Compliance (if applicable) */}
               {momCompliance > 0 && (
-                <div className="col-span-2 md:col-span-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4">
+                <div className="col-span-3 md:col-span-6 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">MOM Compliance</span>
                     <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{momCompliance}%</span>
