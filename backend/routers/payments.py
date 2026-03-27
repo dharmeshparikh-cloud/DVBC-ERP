@@ -115,8 +115,47 @@ async def get_agreement_payments(
     agreement_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all payment verifications for an agreement."""
+    """Get all payment verifications for an agreement.
+    
+    RBAC:
+    - Admin/Sales/Principal Consultant: Full access
+    - Senior Consultant: Only if agreement is linked to their projects/reportees
+    - Consultant: No access
+    """
     db = get_db()
+    
+    # RBAC: Define roles
+    FULL_ACCESS_ROLES = ['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']
+    LIMITED_ACCESS_ROLES = ['senior_consultant']
+    
+    if current_user.role not in FULL_ACCESS_ROLES + LIMITED_ACCESS_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied. You don't have permission to view payments.")
+    
+    # For senior_consultant, verify they have access to this agreement
+    if current_user.role in LIMITED_ACCESS_ROLES:
+        # Check if agreement is linked to user's projects
+        project = await db.projects.find_one({
+            "agreement_id": agreement_id,
+            "$or": [
+                {"project_manager_id": current_user.id},
+                {"team_members": current_user.id},
+                {"assigned_consultants": current_user.id}
+            ]
+        })
+        
+        # Check if agreement was created by reportees
+        if not project:
+            agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0, "created_by": 1})
+            if agreement:
+                reportees = await db.employees.find(
+                    {"reporting_to": current_user.id},
+                    {"_id": 0, "id": 1}
+                ).to_list(50)
+                reportee_ids = [r["id"] for r in reportees] + [current_user.id]
+                if agreement.get("created_by") not in reportee_ids:
+                    raise HTTPException(status_code=403, detail="Access denied. This agreement is not linked to your projects or reportees.")
+            else:
+                raise HTTPException(status_code=403, detail="Access denied. Agreement not found in your scope.")
     
     payments = await db.payment_verifications.find(
         {"agreement_id": agreement_id},

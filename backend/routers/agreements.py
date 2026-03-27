@@ -23,8 +23,13 @@ router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
 APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://unified-erp-gov.preview.emergentagent.com").replace("/api", "")
 
-# Role constants for this router - now using RBAC service as source of truth
-AGREEMENT_VIEW_ROLES = SALES_ROLES + SENIOR_CONSULTING_ROLES  # sales, admin, principal_consultant
+# RBAC: Role-based access for agreements
+# TODO: Make configurable via Role & Permission page
+# Principal Consultant: Full access
+# Senior Consultant: View access for own agreements + reportees
+# Consultant: No access
+AGREEMENT_FULL_ACCESS_ROLES = ['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']
+AGREEMENT_VIEW_ROLES = AGREEMENT_FULL_ACCESS_ROLES + ['senior_consultant']
 AGREEMENT_CREATE_ROLES = SALES_ROLES  # All sales roles including executive can create agreements
 # AGREEMENT_APPROVE_ROLES now fetched from database via get_role_group("AGREEMENT_APPROVE_ROLES")
 
@@ -273,7 +278,12 @@ async def get_agreements(
     current_user: User = Depends(get_current_user)
 ):
     """Get all agreements with optional filters, pagination, and sorting.
-    Access: sales, admin, principal_consultant"""
+    
+    RBAC:
+    - Admin/Sales/Principal Consultant: Full access
+    - Senior Consultant: Own agreements + reportees' agreements only
+    - Consultant: No access
+    """
     db = get_db()
     
     # Role-based access check
@@ -281,6 +291,36 @@ async def get_agreements(
         raise HTTPException(status_code=403, detail="Access denied. You don't have permission to view agreements.")
     
     query = {}
+    
+    # RBAC: Senior Consultant can only see agreements linked to their projects/reportees
+    if current_user.role == 'senior_consultant':
+        # Get projects where this user is assigned
+        user_projects = await db.projects.find(
+            {"$or": [
+                {"project_manager_id": current_user.id},
+                {"team_members": current_user.id},
+                {"assigned_consultants": current_user.id}
+            ]},
+            {"_id": 0, "agreement_id": 1, "lead_id": 1}
+        ).to_list(100)
+        
+        # Get reportees
+        reportees = await db.employees.find(
+            {"reporting_to": current_user.id},
+            {"_id": 0, "id": 1}
+        ).to_list(50)
+        reportee_ids = [r["id"] for r in reportees]
+        
+        # Filter: agreements linked to user's projects OR created by reportees
+        project_agreement_ids = [p.get("agreement_id") for p in user_projects if p.get("agreement_id")]
+        project_lead_ids = [p.get("lead_id") for p in user_projects if p.get("lead_id")]
+        
+        query["$or"] = [
+            {"id": {"$in": project_agreement_ids}},
+            {"lead_id": {"$in": project_lead_ids}},
+            {"created_by": {"$in": reportee_ids + [current_user.id]}}
+        ]
+    
     if status:
         query["status"] = status
     if lead_id:
@@ -288,10 +328,14 @@ async def get_agreements(
     if agreement_type:
         query["agreement_type"] = agreement_type
     if search:
-        query["$or"] = [
+        search_query = [
             {"agreement_number": {"$regex": search, "$options": "i"}},
             {"client_name": {"$regex": search, "$options": "i"}},
         ]
+        if "$or" in query:
+            query["$and"] = [{"$or": query.pop("$or")}, {"$or": search_query}]
+        else:
+            query["$or"] = search_query
     
     # Sorting
     sort_dir = -1 if sort_direction == "desc" else 1

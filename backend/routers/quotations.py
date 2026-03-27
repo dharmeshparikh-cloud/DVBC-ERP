@@ -20,9 +20,12 @@ router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
 APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://unified-erp-gov.preview.emergentagent.com").replace("/api", "")
 
-# RBAC: Only Sales team and Admin can access quotations/proforma invoices
-# Consulting roles are NOT allowed - they see payments via project dashboards
-QUOTATION_VIEW_ROLES = ['executive', 'sales_manager', 'manager', 'admin']
+# RBAC: Role-based access for quotations/proforma invoices
+# TODO: Make configurable via Role & Permission page
+# Principal Consultant: Full access (same as admin)
+# Senior Consultant: No access to proforma invoices
+# Consultant: No access
+QUOTATION_VIEW_ROLES = ['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']
 
 
 class QuotationCreate(BaseModel):
