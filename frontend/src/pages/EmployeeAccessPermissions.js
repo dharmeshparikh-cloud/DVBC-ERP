@@ -153,7 +153,7 @@ const EmployeeAccessPermissions = () => {
   const { data: pendingChanges = [] } = useQuery({
     queryKey: ['permission-change-requests'],
     queryFn: async () => {
-      const res = await axios.get(`${API}/permission-change-requests?status=pending`);
+      const res = await axios.get(`${API}/permission-config/change-requests?status=pending`);
       return res.data || [];
     },
     enabled: activeTab === 'approvals' && canManage
@@ -253,7 +253,7 @@ const EmployeeAccessPermissions = () => {
   // Submit for Approval
   const submitApprovalMutation = useMutation({
     mutationFn: async () => {
-      return axios.post(`${API}/permission-change-requests`, {
+      return axios.post(`${API}/permission-config/change-requests`, {
         employee_id: selectedEmployee.employee_id,
         requested_permissions: permissions,
         requested_role: assignedRole,
@@ -273,7 +273,7 @@ const EmployeeAccessPermissions = () => {
   // Approve Request
   const approveRequestMutation = useMutation({
     mutationFn: async (requestId) => {
-      return axios.post(`${API}/permission-change-requests/${requestId}/approve`);
+      return axios.post(`${API}/permission-config/change-requests/${requestId}/approve`);
     },
     onSuccess: () => {
       toast.success('Request approved');
@@ -286,7 +286,7 @@ const EmployeeAccessPermissions = () => {
   // Reject Request
   const rejectRequestMutation = useMutation({
     mutationFn: async (requestId) => {
-      return axios.post(`${API}/permission-change-requests/${requestId}/reject`);
+      return axios.post(`${API}/permission-config/change-requests/${requestId}/reject`);
     },
     onSuccess: () => {
       toast.success('Request rejected');

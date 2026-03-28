@@ -616,3 +616,190 @@ async def delete_designation_mapping(
     
     return {"message": "Mapping deleted"}
 
+
+
+# ============== Permission Change Requests ==============
+
+class PermissionChangeRequestCreate(BaseModel):
+    employee_id: str
+    requested_permissions: Dict[str, Any] = {}
+    requested_role: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.post("/change-requests")
+async def submit_permission_change_request(
+    data: PermissionChangeRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit a permission/role change request for admin approval."""
+    db = get_db()
+    
+    # Look up the employee
+    employee = await db.employees.find_one(
+        {"employee_id": data.employee_id},
+        {"_id": 0, "id": 1, "employee_id": 1, "full_name": 1, "department": 1, "designation": 1, "role": 1}
+    )
+    if not employee:
+        # Try by internal id
+        employee = await db.employees.find_one(
+            {"id": data.employee_id},
+            {"_id": 0, "id": 1, "employee_id": 1, "full_name": 1, "department": 1, "designation": 1, "role": 1}
+        )
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    user_record = await db.users.find_one(
+        {"employee_id": employee.get("employee_id")},
+        {"_id": 0, "role": 1}
+    )
+    
+    now = datetime.now(timezone.utc).isoformat()
+    request_id = str(uuid.uuid4())
+    
+    change_request = {
+        "id": request_id,
+        "employee_id": employee.get("employee_id"),
+        "employee_internal_id": employee.get("id"),
+        "employee_name": employee.get("full_name"),
+        "department": employee.get("department"),
+        "designation": employee.get("designation"),
+        "current_role": user_record.get("role") if user_record else employee.get("role"),
+        "requested_role": data.requested_role,
+        "current_permissions": employee.get("special_permissions", {}),
+        "requested_permissions": data.requested_permissions,
+        "notes": data.notes,
+        "status": "pending",
+        "submitted_by": current_user.id,
+        "submitted_by_name": current_user.full_name,
+        "submitted_at": now,
+        "created_at": now,
+        "updated_at": now,
+    }
+    
+    await db.permission_change_requests.insert_one(change_request)
+    
+    # Notify admins
+    admin_users = await db.users.find({"role": "admin", "is_active": True}, {"_id": 0, "id": 1}).to_list(100)
+    for admin in admin_users:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": admin["id"],
+            "type": "permission_change_request",
+            "title": "Permission Change Request",
+            "message": f"{current_user.full_name} requested role/permission change for {employee.get('full_name')} ({employee.get('employee_id')})",
+            "reference_type": "permission_change_request",
+            "reference_id": request_id,
+            "is_read": False,
+            "created_at": now
+        })
+    
+    return {"message": "Permission change request submitted", "request_id": request_id, "status": "pending"}
+
+
+@router.get("/change-requests")
+async def get_permission_change_requests(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get permission change requests. Admins see all, HR sees own submissions."""
+    db = get_db()
+    
+    query = {}
+    if status:
+        query["status"] = status
+    
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    if not has_role(current_user.role, admin_roles):
+        query["submitted_by"] = current_user.id
+    
+    requests = await db.permission_change_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return requests
+
+
+@router.post("/change-requests/{request_id}/approve")
+async def approve_permission_change_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a permission change request. Admin only."""
+    db = get_db()
+    
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Only Admin can approve permission changes")
+    
+    change_req = await db.permission_change_requests.find_one({"id": request_id}, {"_id": 0})
+    if not change_req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if change_req["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"Request already {change_req['status']}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Apply role change
+    if change_req.get("requested_role"):
+        await db.users.update_one(
+            {"employee_id": change_req["employee_id"]},
+            {"$set": {"role": change_req["requested_role"], "updated_at": now}}
+        )
+        await db.employees.update_one(
+            {"employee_id": change_req["employee_id"]},
+            {"$set": {"role": change_req["requested_role"], "updated_at": now}}
+        )
+    
+    # Apply permission changes
+    if change_req.get("requested_permissions"):
+        await db.employees.update_one(
+            {"employee_id": change_req["employee_id"]},
+            {"$set": {"special_permissions": change_req["requested_permissions"], "updated_at": now}}
+        )
+    
+    # Update request status
+    await db.permission_change_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": now,
+            "updated_at": now
+        }}
+    )
+    
+    return {"message": f"Permission change approved for {change_req['employee_name']}"}
+
+
+@router.post("/change-requests/{request_id}/reject")
+async def reject_permission_change_request(
+    request_id: str,
+    data: dict = {},
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a permission change request. Admin only."""
+    db = get_db()
+    
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Only Admin can reject permission changes")
+    
+    change_req = await db.permission_change_requests.find_one({"id": request_id}, {"_id": 0})
+    if not change_req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if change_req["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"Request already {change_req['status']}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    await db.permission_change_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
+            "rejection_reason": data.get("reason", ""),
+            "rejected_at": now,
+            "updated_at": now
+        }}
+    )
+    
+    return {"message": f"Permission change rejected for {change_req['employee_name']}"}
