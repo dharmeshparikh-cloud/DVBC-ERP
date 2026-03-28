@@ -564,7 +564,7 @@ async def approve_go_live_request(
             "email": employee.get("email") or employee.get("personal_email"),
             "full_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
             "role": "employee",  # Default role for new employees
-            "password_hash": get_password_hash(temp_password),
+            "hashed_password": get_password_hash(temp_password),
             "is_active": True,
             "must_change_password": True,  # Force password change on first login
             "created_at": now,
@@ -925,7 +925,7 @@ async def generate_portal_access(
         "email": employee.get("email") or employee.get("personal_email"),
         "full_name": employee.get("full_name") or f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
         "role": "employee",
-        "password_hash": get_password_hash(temp_password),
+        "hashed_password": get_password_hash(temp_password),
         "is_active": True,
         "must_change_password": True,
         "created_at": now,
@@ -1107,7 +1107,7 @@ async def reset_employee_password(
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {
-            "password_hash": get_password_hash(temp_password),
+            "hashed_password": get_password_hash(temp_password),
             "must_change_password": True,
             "password_reset_at": now,
             "password_reset_by": current_user.id
