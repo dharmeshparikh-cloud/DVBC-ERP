@@ -161,6 +161,23 @@ const EmployeeMobileApp = () => {
     return (attendanceData?.records || []).find(r => r.date === today);
   }, [attendanceData]);
   
+  // Helper: Determine if check-in is approved/active
+  // Handles both old 'status' field and new 'approval_status' field
+  const isCheckInApproved = (record) => {
+    if (!record) return false;
+    // If explicit approval_status exists, use it
+    if (record.approval_status) {
+      return record.approval_status === 'approved';
+    }
+    // Fallback: if status is present/half_day (not absent), treat as approved
+    return record.status === 'present' || record.status === 'half_day';
+  };
+  
+  const isCheckInPending = (record) => {
+    if (!record) return false;
+    return record.approval_status === 'pending_approval';
+  };
+  
   const isConsultingEmployee = useMemo(() => {
     const dept = attendanceData?.employee?.department?.toLowerCase() || '';
     return dept.includes('consulting') || dept.includes('delivery');
@@ -292,7 +309,12 @@ const EmployeeMobileApp = () => {
     
     checkInMutation.mutate(payload, {
       onSuccess: (data) => {
-        if (data.approval_status === 'approved') {
+        // Handle both old status field and new approval_status field
+        const isApproved = data.approval_status === 'approved' || 
+                          data.status === 'present' || 
+                          data.status === 'half_day' ||
+                          !data.approval_status; // If no approval_status, assume approved
+        if (isApproved) {
           toast.success(`Check-in successful! Location: ${data.matched_location || 'Verified'}`);
         } else {
           toast.info('Check-in submitted for HR approval');
@@ -728,19 +750,19 @@ const EmployeeMobileApp = () => {
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     checkInStatus.check_out_time ? 'bg-zinc-500' :
-                    checkInStatus.approval_status === 'approved' ? 'bg-emerald-500' :
-                    checkInStatus.approval_status === 'pending_approval' ? 'bg-amber-500' : 'bg-red-500'
+                    isCheckInApproved(checkInStatus) ? 'bg-emerald-500' :
+                    isCheckInPending(checkInStatus) ? 'bg-amber-500' : 'bg-red-500'
                   }`}>
                     {checkInStatus.check_out_time ? <CheckCircle className="w-5 h-5" /> :
-                     checkInStatus.approval_status === 'approved' ? <CheckCircle className="w-5 h-5" /> :
-                     checkInStatus.approval_status === 'pending_approval' ? <Clock className="w-5 h-5" /> :
+                     isCheckInApproved(checkInStatus) ? <CheckCircle className="w-5 h-5" /> :
+                     isCheckInPending(checkInStatus) ? <Clock className="w-5 h-5" /> :
                      <XCircle className="w-5 h-5" />}
                   </div>
                   <div>
                     <p className="font-medium">
                       {checkInStatus.check_out_time ? 'Day Complete' :
-                       checkInStatus.approval_status === 'approved' ? 'Checked In' :
-                       checkInStatus.approval_status === 'pending_approval' ? 'Pending Approval' : 'Rejected'}
+                       isCheckInApproved(checkInStatus) ? 'Checked In' :
+                       isCheckInPending(checkInStatus) ? 'Pending Approval' : 'Rejected'}
                     </p>
                     <p className="text-xs text-blue-200">
                       {checkInStatus.work_location === 'in_office' ? 'Office' : 'On-Site'}
@@ -750,16 +772,16 @@ const EmployeeMobileApp = () => {
                 </div>
                 <span className={`text-xs px-3 py-1 rounded-full ${
                   checkInStatus.check_out_time ? 'bg-zinc-500/30' :
-                  checkInStatus.approval_status === 'approved' ? 'bg-emerald-500/30' :
-                  checkInStatus.approval_status === 'pending_approval' ? 'bg-amber-500/30' : 'bg-red-500/30'
+                  isCheckInApproved(checkInStatus) ? 'bg-emerald-500/30' :
+                  isCheckInPending(checkInStatus) ? 'bg-amber-500/30' : 'bg-red-500/30'
                 }`}>
                   {checkInStatus.check_out_time ? 'Complete' :
-                   checkInStatus.approval_status === 'approved' ? 'Active' :
-                   checkInStatus.approval_status === 'pending_approval' ? 'Pending' : 'Rejected'}
+                   isCheckInApproved(checkInStatus) ? 'Active' :
+                   isCheckInPending(checkInStatus) ? 'Pending' : 'Rejected'}
                 </span>
               </div>
               {/* Check-out button - only show if checked in and approved, not checked out yet */}
-              {checkInStatus.approval_status === 'approved' && !checkInStatus.check_out_time && (
+              {isCheckInApproved(checkInStatus) && !checkInStatus.check_out_time && (
                 <button 
                   onClick={() => setShowCheckOutModal(true)}
                   className="w-full flex items-center justify-center gap-2 py-2 bg-red-500/30 rounded-xl hover:bg-red-500/40 transition text-sm"
@@ -868,20 +890,20 @@ const EmployeeMobileApp = () => {
           {(attendanceData?.records || []).slice(0, 3).map((record, i) => (
             <div key={i} className="flex items-center gap-3 p-2 bg-zinc-50 rounded-xl">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                record.approval_status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
-                record.approval_status === 'pending_approval' ? 'bg-amber-100 text-amber-600' :
+                isCheckInApproved(record) ? 'bg-emerald-100 text-emerald-600' :
+                isCheckInPending(record) ? 'bg-amber-100 text-amber-600' :
                 record.approval_status === 'rejected' ? 'bg-red-100 text-red-600' :
                 'bg-blue-100 text-blue-600'
               }`}>
-                {record.approval_status === 'approved' ? <CheckCircle2 className="w-5 h-5" /> :
-                 record.approval_status === 'pending_approval' ? <Clock className="w-5 h-5" /> :
+                {isCheckInApproved(record) ? <CheckCircle2 className="w-5 h-5" /> :
+                 isCheckInPending(record) ? <Clock className="w-5 h-5" /> :
                  record.approval_status === 'rejected' ? <XCircle className="w-5 h-5" /> :
                  <CheckCircle2 className="w-5 h-5" />}
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-zinc-900">
                   {record.work_location === 'in_office' ? 'Office' : 'On-Site'}
-                  {record.approval_status === 'pending_approval' && ' (Pending)'}
+                  {isCheckInPending(record) && ' (Pending)'}
                 </p>
                 <p className="text-xs text-zinc-500">{record.date}</p>
               </div>

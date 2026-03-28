@@ -11,6 +11,14 @@ Establish a unified and strict governance model across the ERP. Build customized
 
 ## What's Been Implemented
 
+### Mobile App Attendance Status Fix (28 Mar 2026)
+- **Fixed**: Mobile app was showing "Rejected" for valid check-ins
+- **Root Cause**: App was checking `approval_status` field which didn't exist on normal check-ins
+- **Solution**: Added helper functions `isCheckInApproved()` and `isCheckInPending()` that:
+  - Check `approval_status` if it exists
+  - Fallback to `status === 'present' || status === 'half_day'` for approval
+- **Files Updated**: `/app/frontend/src/pages/EmployeeMobileApp.js`
+
 ### Button Uniformity & Duplicate Fix (28 Mar 2026)
 - **Fixed duplicate "Record Meeting" buttons** on Sales Funnel Step 2
   - Removed duplicate button from content area
