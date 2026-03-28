@@ -231,9 +231,22 @@ const CandidateOnboardingForm = () => {
 
   const handleFileUpload = async (docType, file) => {
     if (!file) return;
+    // Client-side file size check (5 MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum 5 MB.');
+      return;
+    }
+    // Client-side file type check
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Allowed: PDF, JPG, PNG, WEBP');
+      return;
+    }
     setSaving(true);
     try {
       await uploadMutation.mutateAsync({ docType, file });
+    } catch (err) {
+      // Error already handled by onError in uploadMutation
     } finally {
       setSaving(false);
     }
