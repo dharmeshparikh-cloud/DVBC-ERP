@@ -11,6 +11,20 @@ Establish a unified and strict governance model across the ERP. Build customized
 
 ## What's Been Implemented
 
+### Button Uniformity & Duplicate Fix (28 Mar 2026)
+- **Fixed duplicate "Record Meeting" buttons** on Sales Funnel Step 2
+  - Removed duplicate button from content area
+  - Single "Record Meeting" button now appears in footer area only
+  - When step is completed: Shows "Next Step" (outlined) + "Record Meeting" (primary blue)
+- **Standardized button styling across sales funnel pages**:
+  - Previous/Back buttons: Ghost variant with zinc colors
+  - Continue/Next buttons: Emerald green when step completed, Blue when pending
+  - Primary action buttons: Blue (Record Meeting) or Emerald (Proceed to Pricing)
+- **Improved navigation flow**:
+  - "Back to Funnel" button text when navigating from funnel context
+  - "Back to Leads" when no funnel context
+  - All back buttons consistent with `hover:bg-zinc-100 text-zinc-600` styling
+
 ### Sales Funnel (COMPLETE)
 - 9-step funnel: Lead -> Meeting -> Pricing -> SOW -> Proforma Invoice -> Agreement -> Payment -> Kickoff -> Project
 - Unified 9-step stepper header on ALL funnel pages
@@ -100,7 +114,10 @@ Establish a unified and strict governance model across the ERP. Build customized
 - `/app/backend/routers/agreements.py` - Simplified + /full endpoint
 - `/app/backend/routers/leads.py` - No agreement blocking
 - `/app/backend/routers/analytics.py` - Fixed analytics
+- `/app/frontend/src/pages/SalesFunnelOnboarding.js` - Main funnel page with unified button layout
 - `/app/frontend/src/pages/sales-funnel/AgreementView.js` - PDF template
+- `/app/frontend/src/pages/sales-funnel/MeetingRecord.js` - Standardized back & proceed buttons
+- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - Context-aware back navigation
 - `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - No team deployment
 - `/app/frontend/src/pages/sales-funnel/PaymentVerification.js` - Prefill
 
