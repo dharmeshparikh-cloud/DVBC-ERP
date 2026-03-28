@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends
 from .deps import get_db, get_current_user
 from .models import User
+from utils.timezone import today_ist
 
 router = APIRouter()
 
@@ -17,7 +18,7 @@ async def get_my_day_summary(current_user: User = Depends(get_current_user)):
     """Aggregate all daily workflow data for the logged-in user."""
     db = get_db()
     now = datetime.now(timezone.utc)
-    today_str = now.strftime("%Y-%m-%d")
+    today_str = today_ist()  # Use IST date to match self-check-in records
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
     
@@ -26,16 +27,29 @@ async def get_my_day_summary(current_user: User = Depends(get_current_user)):
     week_end = week_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
     user_id = current_user.id
-    emp_id = current_user.employee_id
+
+    # Look up the employee record to get the internal UUID (attendance uses emp["id"], not "EMP004")
+    emp_record = await db.employees.find_one(
+        {"$or": [{"user_id": user_id}, {"official_email": current_user.email}]},
+        {"_id": 0, "id": 1}
+    )
+    emp_id = emp_record["id"] if emp_record else current_user.employee_id
 
     # === 1. Attendance Status ===
     attendance_record = await db.attendance.find_one(
         {"employee_id": emp_id, "date": today_str},
         {"_id": 0}
     )
-    is_checked_in = bool(attendance_record and attendance_record.get("check_in"))
-    check_in_time = attendance_record.get("check_in") if attendance_record else None
-    check_out_time = attendance_record.get("check_out") if attendance_record else None
+    # Self-service check-in uses "check_in_time", manual HR entry uses "check_in"
+    is_checked_in = bool(attendance_record and (
+        attendance_record.get("check_in") or attendance_record.get("check_in_time")
+    ))
+    check_in_time = (
+        attendance_record.get("check_in") or attendance_record.get("check_in_time")
+    ) if attendance_record else None
+    check_out_time = (
+        attendance_record.get("check_out") or attendance_record.get("check_out_time")
+    ) if attendance_record else None
 
     # === 2. Today's Meetings ===
     all_meetings = await db.meetings.find(

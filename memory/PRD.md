@@ -160,6 +160,15 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Declaration fix**: Backend now sets `declaration_signed = True` when `declaration.signed` is present in submit data
 - **Auto Go-Live**: Completing onboarding now auto-creates a Go-Live request in the Approvals Center
 
+### MyDayBar Attendance Sync Fix (28 Mar 2026)
+- **Fixed**: MyDayBar showed "Not marked" / "Check In" even after user checked in via quick check-in
+- **Root Causes** (3 bugs):
+  1. Employee ID mismatch: Queried with display code (`EMP004`) instead of internal UUID from employees collection
+  2. Field name mismatch: Self check-in stores `check_in_time` but `my_day.py` looked for `check_in`
+  3. Timezone mismatch: Used UTC date instead of IST date for attendance query
+- **Fix**: Updated `my_day.py` to look up employee UUID, check both field names, and use `today_ist()`
+- **File**: `/app/backend/routers/my_day.py`
+
 ## P1 - Upcoming Tasks
 - Consultant Notifications when assigned to project/SOW
 
