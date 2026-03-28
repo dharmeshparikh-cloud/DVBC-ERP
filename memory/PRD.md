@@ -141,7 +141,12 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Library**: SheetJS (xlsx v0.18.5)
 - **File**: `/app/frontend/src/pages/onboarding/CandidateOnboardingForm.js`
 
-### Onboarding Document View & Thank You Page (28 Mar 2026)
+### CTC Approval Gate & Role Permissions (28 Mar 2026)
+- **CTC now requires Admin approval**: `POST /api/ctc/design` sets status to `pending` (was auto-approved)
+- **CTC Approval Dialog**: Enhanced with Employee Details section (name, code, department, designation, submitted by), CTC Overview (annual, previous, change %, effective month), salary components table, summary, and approve/reject with comments
+- **Go-Live approval opened to HR**: `approve/reject_go_live_request` now allows `hr_manager` role (was Admin-only)
+- **Go-Live visible to HR**: Pending Go-Live section and data query now available to HR roles in Approvals Center
+- **Admin notification**: Admins get notified when new CTC structures are pending approval
 - **Document View**: Added `GET /api/onboarding/public/{token}/documents/{document_id}` endpoint to serve uploaded docs
 - **Frontend View link**: Now points to the backend serving endpoint instead of broken `uploaded.url`
 - **Thank You page**: Enhanced with candidate name, position, submission date, document count, status badge, and "What Happens Next?" steps

@@ -295,13 +295,10 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
         "summary": breakdown["summary"],
         "retention_bonus": request.retention_bonus or 0,
         "retention_vesting_months": request.retention_vesting_months or 12,
-        "status": "approved",  # Auto-approved - no admin approval needed
+        "status": "pending",  # Requires Admin approval
         "created_by": current_user.id,
         "created_by_name": current_user.full_name,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "approved_at": datetime.now(timezone.utc).isoformat(),
-        "approved_by": current_user.id,
-        "approved_by_name": current_user.full_name,
         "remarks": request.remarks,
         "version": version,
         "previous_ctc": employee.get("salary", 0)
@@ -309,22 +306,26 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
     
     await db.ctc_structures.insert_one(ctc_structure)
     
-    # Update employee salary directly (no admin approval needed)
-    await db.employees.update_one(
-        {"id": request.employee_id},
-        {"$set": {
-            "salary": request.annual_ctc,
-            "ctc_designed": True,
-            "ctc_structure_id": ctc_structure["id"],
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
+    # Notify admins about pending CTC approval
+    admin_users = await db.users.find({"role": "admin", "is_active": True}, {"_id": 0, "id": 1}).to_list(100)
+    for admin in admin_users:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": admin["id"],
+            "type": "ctc_pending_approval",
+            "title": "CTC Approval Required",
+            "message": f"CTC structure designed for {ctc_structure['employee_name']} ({ctc_structure['department']}) - {request.annual_ctc:,.0f}/year. Awaiting approval.",
+            "reference_type": "ctc_structure",
+            "reference_id": ctc_structure["id"],
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
     
     return {
-        "message": "CTC structure saved and applied to employee",
+        "message": "CTC structure saved. Pending Admin approval.",
         "ctc_structure_id": ctc_structure["id"],
-        "status": "approved",
-        "redirect_to": "/document-center"  # Signal frontend to redirect
+        "status": "pending",
+        "redirect_to": "/document-center"
     }
 
 

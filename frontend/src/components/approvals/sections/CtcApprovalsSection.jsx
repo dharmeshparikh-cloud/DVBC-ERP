@@ -55,10 +55,11 @@ export const CtcApprovalsSection = memo(({
                   <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                     <span>Annual CTC: <strong className="text-purple-600">{formatCurrency(ctc.annual_ctc)}</strong></span>
                     <span className="mx-2">•</span>
-                    <span>Effective: {ctc.effective_date || 'N/A'}</span>
+                    <span>Effective: {ctc.effective_month || ctc.effective_date || 'N/A'}</span>
+                    {ctc.department && <><span className="mx-2">•</span><span>{ctc.department}</span></>}
                   </div>
                   <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                    Submitted by: {ctc.created_by || 'HR'} on {new Date(ctc.created_at).toLocaleDateString()}
+                    Submitted by: {ctc.created_by_name || ctc.created_by || 'HR'} on {new Date(ctc.created_at).toLocaleDateString()}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

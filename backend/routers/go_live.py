@@ -304,16 +304,18 @@ async def get_pending_go_live_requests(
     """
     Get all pending Go-Live requests.
     
-    ACCESS: Admin and HR Admin can view pending requests.
+    ACCESS: HR Manager, HR Admin, or Admin can view pending requests.
     """
     db = get_db()
     
     # Authorization
     hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
     admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    allowed_roles = list(set(hr_admin_roles + admin_roles + hr_roles))
     
-    if not has_role(current_user.role, hr_admin_roles + admin_roles):
-        raise HTTPException(status_code=403, detail="Only Admin can view pending Go-Live requests")
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR or Admin can view pending Go-Live requests")
     
     requests = await db.go_live_requests.find(
         {"status": "pending"},
@@ -468,7 +470,7 @@ async def approve_go_live_request(
     """
     Approve a Go-Live request.
     
-    ACCESS: Only Admin can approve Go-Live requests.
+    ACCESS: HR Manager, HR Admin, or Admin can approve Go-Live requests.
     
     WORKFLOW:
     1. Validates request exists and is pending
@@ -480,10 +482,12 @@ async def approve_go_live_request(
     """
     db = get_db()
     
-    # Authorization: Admin only
+    # Authorization: HR and Admin roles
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
     admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
-    if not has_role(current_user.role, admin_roles):
-        raise HTTPException(status_code=403, detail="Only Admin can approve Go-Live requests")
+    allowed_roles = list(set(hr_admin_roles + admin_roles + ["hr_manager"]))
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager or Admin can approve Go-Live requests")
     
     # Get request
     request = await db.go_live_requests.find_one({"id": request_id}, {"_id": 0})
@@ -773,14 +777,16 @@ async def reject_go_live_request(
     """
     Reject a Go-Live request.
     
-    ACCESS: Only Admin can reject Go-Live requests.
+    ACCESS: HR Manager, HR Admin, or Admin can reject Go-Live requests.
     """
     db = get_db()
     
-    # Authorization: Admin only
+    # Authorization: HR and Admin roles
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
     admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
-    if not has_role(current_user.role, admin_roles):
-        raise HTTPException(status_code=403, detail="Only Admin can reject Go-Live requests")
+    allowed_roles = list(set(hr_admin_roles + admin_roles + ["hr_manager"]))
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR Manager or Admin can reject Go-Live requests")
     
     # Get request
     request = await db.go_live_requests.find_one({"id": request_id}, {"_id": 0})

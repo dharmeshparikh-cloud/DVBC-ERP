@@ -100,7 +100,7 @@ const ApprovalsCenter = () => {
   const { data: myRequestsData = [], isLoading: myRequestsLoading, refetch: refetchMyRequests } = useMyRequests();
   const { data: allApprovalsData = [], refetch: refetchAllApprovals } = useAllApprovals(isManager);
   const { data: ctcApprovalsData = [], refetch: refetchCtc } = useCtcApprovals(isAdmin);
-  const { data: goLiveApprovalsData = [], refetch: refetchGoLive } = useGoLivePending(isAdmin);
+  const { data: goLiveApprovalsData = [], refetch: refetchGoLive } = useGoLivePending(isAdmin || isHR);
   const { data: permissionApprovalsData = [], refetch: refetchPermissions } = usePermissionRequests(isAdmin);
   const { data: modificationApprovalsData = [], refetch: refetchModifications } = useModificationRequests(isAdmin);
   const { data: bankApprovalsData = [], refetch: refetchBank } = useBankChangeRequests(isHR);
@@ -918,8 +918,8 @@ const ApprovalsCenter = () => {
         </CollapsibleSection>
       )}
 
-      {/* Go-Live Approvals Section - For Admin */}
-      {isAdmin && (
+      {/* Go-Live Approvals Section - For Admin and HR */}
+      {(isAdmin || isHR) && (
         <GoLiveApprovalsSection
           isDark={isDark}
           goLiveApprovals={goLiveApprovals}
@@ -1761,7 +1761,9 @@ const ApprovalsCenter = () => {
           </DialogHeader>
           {selectedCtc && (
             <div className="space-y-4">
+              {/* Employee Details */}
               <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <h4 className={`text-sm font-semibold mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Employee Details</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Employee</p>
@@ -1771,23 +1773,53 @@ const ApprovalsCenter = () => {
                     )}
                   </div>
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Annual CTC</p>
-                    <p className="font-bold text-purple-600 text-lg">{formatCurrency(selectedCtc.annual_ctc)}</p>
-                    {selectedCtc.previous_ctc && (
-                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                        Previous: {formatCurrency(selectedCtc.previous_ctc)}
-                      </p>
-                    )}
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Department</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.department || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Effective Month</p>
-                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.effective_month || selectedCtc.effective_date}</p>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Designation</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.designation || 'N/A'}</p>
                   </div>
                   <div>
                     <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Submitted By</p>
                     <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.created_by_name || selectedCtc.created_by || 'HR'}</p>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{new Date(selectedCtc.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                   </div>
                 </div>
+              </div>
+
+              {/* CTC Overview */}
+              <div className={`p-4 rounded-lg border-2 ${isDark ? 'bg-purple-900/10 border-purple-800' : 'bg-purple-50/50 border-purple-200'}`}>
+                <h4 className={`text-sm font-semibold mb-3 ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>CTC Overview</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Annual CTC</p>
+                    <p className="font-bold text-purple-600 text-lg">{formatCurrency(selectedCtc.annual_ctc)}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Previous CTC</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.previous_ctc ? formatCurrency(selectedCtc.previous_ctc) : 'First CTC'}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Effective Month</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.effective_month || selectedCtc.effective_date || 'N/A'}</p>
+                  </div>
+                </div>
+                {selectedCtc.previous_ctc > 0 && (
+                  <div className="mt-2">
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      Change: <span className={selectedCtc.annual_ctc > selectedCtc.previous_ctc ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
+                        {selectedCtc.annual_ctc > selectedCtc.previous_ctc ? '+' : ''}{formatCurrency(selectedCtc.annual_ctc - selectedCtc.previous_ctc)} ({((selectedCtc.annual_ctc - selectedCtc.previous_ctc) / selectedCtc.previous_ctc * 100).toFixed(1)}%)
+                      </span>
+                    </p>
+                  </div>
+                )}
+                {selectedCtc.remarks && (
+                  <div className="mt-2">
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Remarks</p>
+                    <p className={`text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>{selectedCtc.remarks}</p>
+                  </div>
+                )}
               </div>
 
               {/* CTC Components */}
