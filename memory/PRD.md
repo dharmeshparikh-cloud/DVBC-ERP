@@ -146,6 +146,9 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Frontend View link**: Now points to the backend serving endpoint instead of broken `uploaded.url`
 - **Thank You page**: Enhanced with candidate name, position, submission date, document count, status badge, and "What Happens Next?" steps
 - **Upload error handling**: Added client-side file size (5MB) and type validation before upload
+- **Submit redirect**: Added `justSubmitted` state to force Thank You page display immediately after submission
+- **Declaration fix**: Backend now sets `declaration_signed = True` when `declaration.signed` is present in submit data
+- **Auto Go-Live**: Completing onboarding now auto-creates a Go-Live request in the Approvals Center
 
 ## P1 - Upcoming Tasks
 - Consultant Notifications when assigned to project/SOW

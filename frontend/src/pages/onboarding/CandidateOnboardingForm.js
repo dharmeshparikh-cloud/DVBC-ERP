@@ -62,6 +62,7 @@ const CandidateOnboardingForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [lastSaved, setLastSaved] = useState(null);
   const [touchedFields, setTouchedFields] = useState({});
+  const [justSubmitted, setJustSubmitted] = useState(false);
   const formRef = useRef(null);
 
   // Form data - Simplified structure
@@ -203,6 +204,7 @@ const CandidateOnboardingForm = () => {
 
     try {
       await submitMutation.mutateAsync(submissionData);
+      setJustSubmitted(true);
       toast.success('Form submitted successfully! Thank you!');
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to submit form');
@@ -503,7 +505,7 @@ const CandidateOnboardingForm = () => {
   }
 
   // Already submitted
-  if (submission?.status === 'submitted') {
+  if (submission?.status === 'submitted' || justSubmitted) {
     const submittedAt = submission?.submitted_at
       ? new Date(submission.submitted_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
       : null;

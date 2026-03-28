@@ -764,11 +764,58 @@ async def complete_onboarding(
     # Invalidate Redis cache
     await CacheInvalidation.onboarding()
     
+    # AUTO-SUBMIT Go-Live request so it appears in Approvals Center immediately
+    go_live_request_id = str(uuid.uuid4())
+    go_live_request = {
+        "id": go_live_request_id,
+        "employee_id": employee_record_id,
+        "employee_code": None,
+        "employee_name": f"{candidate['first_name']} {candidate['last_name']}".strip(),
+        "department": hr_assigned["department"],
+        "designation": hr_assigned["designation"],
+        "submitted_by": current_user.id,
+        "submitted_by_name": current_user.full_name,
+        "submitted_at": now.isoformat(),
+        "status": "pending",
+        "checklist_snapshot": {},
+        "notes": "Auto-submitted after onboarding completion",
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+        "generated_employee_id": None,
+    }
+    await db.go_live_requests.insert_one(go_live_request)
+    
+    # Update employee go_live_status to pending
+    await db.employees.update_one(
+        {"id": employee_record_id},
+        {"$set": {
+            "go_live_status": "pending",
+            "go_live_requested_at": now.isoformat(),
+            "go_live_requested_by": current_user.id
+        }}
+    )
+    
+    # Create notification for admins about Go-Live request
+    admin_users = await db.users.find({"role": "admin", "is_active": True}, {"_id": 0, "id": 1}).to_list(100)
+    for admin in admin_users:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": admin["id"],
+            "type": "go_live_request",
+            "title": "Go-Live Approval Required",
+            "message": f"Go-Live request auto-submitted for {candidate['first_name']} {candidate['last_name']} ({hr_assigned['department']})",
+            "reference_type": "go_live",
+            "reference_id": go_live_request_id,
+            "is_read": False,
+            "created_at": now.isoformat()
+        })
+    
     return {
-        "message": "Onboarding completed successfully. Employee ID will be assigned after Go-Live approval.",
+        "message": "Onboarding completed successfully. Go-Live request submitted for approval.",
         "employee_id": None,
         "employee_id_pending": True,
-        "employee_record_id": employee_record_id
+        "employee_record_id": employee_record_id,
+        "go_live_request_id": go_live_request_id
     }
 
 
@@ -1153,6 +1200,9 @@ async def submit_public_submission(token: str, data: dict):
                 "I consent to the storage and processing of my personal data as per company policy."
             ]
         }
+        # Also set the boolean flag used by validation
+        if data["declaration"].get("signed"):
+            update_fields["declaration_signed"] = True
     
     # Check for duplicates before submission
     candidate_details = data.get("candidate_details") or submission.get("candidate_details")
