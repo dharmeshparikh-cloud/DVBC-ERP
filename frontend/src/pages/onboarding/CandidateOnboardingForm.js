@@ -10,11 +10,12 @@ import { Progress } from '../../components/ui/progress';
 import { 
   User, Building2, Phone, FileText, AlertTriangle,
   ChevronRight, ChevronLeft, Upload, Check, Loader2, 
-  Shield, CheckCircle2, Download, FileDown, Camera
+  Shield, CheckCircle2, Download, FileDown, Camera, FileUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import ProfilePhotoUpload from '../../components/ProfilePhotoUpload';
 
 const API = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -329,150 +330,120 @@ const CandidateOnboardingForm = () => {
     window.scrollTo(0, 0);
   };
 
-  // Download blank form as PDF
-  const downloadBlankForm = () => {
-    const content = `
-D&V BUSINESS CONSULTING - EMPLOYEE ONBOARDING FORM
-====================================================
+  // Excel field mapping - defines all form fields with section, label, and data path
+  const EXCEL_FIELDS = [
+    { section: 'Personal Details', label: 'First Name', path: 'candidate_details.first_name' },
+    { section: 'Personal Details', label: 'Last Name', path: 'candidate_details.last_name' },
+    { section: 'Personal Details', label: 'Date of Birth', path: 'candidate_details.date_of_birth' },
+    { section: 'Personal Details', label: 'Mobile Number', path: 'candidate_details.phone' },
+    { section: 'Personal Details', label: 'Email Address', path: 'candidate_details.email' },
+    { section: 'Personal Details', label: 'PAN Number', path: 'candidate_details.pan_number' },
+    { section: 'Personal Details', label: 'Aadhaar Number', path: 'candidate_details.aadhaar_number' },
+    { section: 'Current Address', label: 'Street', path: 'candidate_details.current_address.street' },
+    { section: 'Current Address', label: 'City', path: 'candidate_details.current_address.city' },
+    { section: 'Current Address', label: 'State', path: 'candidate_details.current_address.state' },
+    { section: 'Current Address', label: 'Pincode', path: 'candidate_details.current_address.pincode' },
+    { section: 'Permanent Address', label: 'Street', path: 'candidate_details.permanent_address.street' },
+    { section: 'Permanent Address', label: 'City', path: 'candidate_details.permanent_address.city' },
+    { section: 'Permanent Address', label: 'State', path: 'candidate_details.permanent_address.state' },
+    { section: 'Permanent Address', label: 'Pincode', path: 'candidate_details.permanent_address.pincode' },
+    { section: 'Bank Details', label: 'Account Holder Name', path: 'bank_details.account_holder_name' },
+    { section: 'Bank Details', label: 'Account Number', path: 'bank_details.account_number' },
+    { section: 'Bank Details', label: 'IFSC Code', path: 'bank_details.ifsc_code' },
+    { section: 'Bank Details', label: 'Bank Name', path: 'bank_details.bank_name' },
+    { section: 'Bank Details', label: 'Branch', path: 'bank_details.branch' },
+    { section: 'Emergency Contact', label: 'Name', path: 'emergency_contact.name' },
+    { section: 'Emergency Contact', label: 'Phone', path: 'emergency_contact.phone' },
+  ];
 
-PERSONAL DETAILS
-----------------
-First Name: _______________________
-Last Name: ________________________
-Date of Birth: ____________________
-Mobile Number: ____________________
-Email Address: ____________________
-PAN Number: _______________________
-Aadhaar Number: ___________________
-
-CURRENT ADDRESS
----------------
-Street: ___________________________
-City: _____________________________
-State: ____________________________
-Pincode: __________________________
-
-PERMANENT ADDRESS
------------------
-Street: ___________________________
-City: _____________________________
-State: ____________________________
-Pincode: __________________________
-
-BANK DETAILS
-------------
-Account Holder Name: ______________
-Account Number: ___________________
-IFSC Code: ________________________
-Bank Name: ________________________
-Branch: ___________________________
-
-EMERGENCY CONTACT
------------------
-Name: _____________________________
-Phone: ____________________________
-
-DOCUMENTS CHECKLIST
--------------------
-[ ] PAN Card
-[ ] Aadhaar Card
-[ ] CV/Resume
-[ ] Passport Photo
-
-DECLARATION
------------
-[ ] I confirm that all information provided is true and accurate.
-[ ] I agree to background verification.
-[ ] I will maintain confidentiality of company information.
-[ ] I agree to abide by company policies.
-[ ] I declare that I have no pending legal cases.
-[ ] I confirm no termination for misconduct from previous employment.
-
-Signature: _________________ Date: _________________
-
-====================================================
-Please fill this form and upload at: ${window.location.href}
-    `;
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'DV_Onboarding_Form_Blank.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Blank form downloaded!');
+  // Helper: get nested value from formData by dot path
+  const getNestedValue = (obj, path) => {
+    return path.split('.').reduce((curr, key) => curr?.[key], obj) || '';
   };
 
-  // Download filled form as PDF
-  const downloadFilledForm = () => {
+  // Helper: set nested value in formData by dot path
+  const setNestedValue = (obj, path, value) => {
+    const clone = JSON.parse(JSON.stringify(obj));
+    const keys = path.split('.');
+    let curr = clone;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!curr[keys[i]]) curr[keys[i]] = {};
+      curr = curr[keys[i]];
+    }
+    curr[keys[keys.length - 1]] = value;
+    return clone;
+  };
+
+  // Build Excel rows from field mapping
+  const buildExcelRows = (filled) => {
+    return EXCEL_FIELDS.map(f => ({
+      Section: f.section,
+      Field: f.label,
+      Value: filled ? String(getNestedValue(formData, f.path) ?? '') : '',
+    }));
+  };
+
+  // Download Excel (blank or filled)
+  const downloadExcel = (filled) => {
+    const rows = buildExcelRows(filled);
+    const ws = XLSX.utils.json_to_sheet(rows);
+    // Set column widths
+    ws['!cols'] = [{ wch: 20 }, { wch: 25 }, { wch: 40 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Onboarding Form');
     const cd = formData.candidate_details;
-    const bd = formData.bank_details;
-    const ec = formData.emergency_contact;
-    const docs = submission?.documents || [];
+    const filename = filled
+      ? `DV_Onboarding_${cd.first_name || 'Form'}_${cd.last_name || ''}_Filled.xlsx`
+      : 'DV_Onboarding_Form_Blank.xlsx';
+    XLSX.writeFile(wb, filename);
+    toast.success(filled ? 'Filled form downloaded!' : 'Blank form downloaded!');
+  };
 
-    const content = `
-D&V BUSINESS CONSULTING - EMPLOYEE ONBOARDING FORM (FILLED)
-============================================================
+  // Upload Excel and auto-fill form
+  const handleExcelUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+        if (!rows.length) { toast.error('Excel file is empty'); return; }
 
-PERSONAL DETAILS
-----------------
-First Name: ${cd.first_name || 'N/A'}
-Last Name: ${cd.last_name || 'N/A'}
-Date of Birth: ${cd.date_of_birth || 'N/A'}
-Mobile Number: ${cd.phone || 'N/A'}
-Email Address: ${cd.email || 'N/A'}
-PAN Number: ${cd.pan_number || 'N/A'}
-Aadhaar Number: ${cd.aadhaar_number || 'N/A'}
+        let updated = JSON.parse(JSON.stringify(formData));
+        let matched = 0;
+        rows.forEach(row => {
+          const section = (row.Section || '').trim();
+          const field = (row.Field || '').trim();
+          const value = row.Value != null ? String(row.Value).trim() : '';
+          if (!section || !field || !value) return;
 
-CURRENT ADDRESS
----------------
-Street: ${cd.current_address?.street || 'N/A'}
-City: ${cd.current_address?.city || 'N/A'}
-State: ${cd.current_address?.state || 'N/A'}
-Pincode: ${cd.current_address?.pincode || 'N/A'}
+          const mapping = EXCEL_FIELDS.find(
+            f => f.section.toLowerCase() === section.toLowerCase() && f.label.toLowerCase() === field.toLowerCase()
+          );
+          if (mapping) {
+            updated = setNestedValue(updated, mapping.path, value);
+            matched++;
+          }
+        });
 
-PERMANENT ADDRESS
------------------
-Street: ${cd.permanent_address?.street || 'N/A'}
-City: ${cd.permanent_address?.city || 'N/A'}
-State: ${cd.permanent_address?.state || 'N/A'}
-Pincode: ${cd.permanent_address?.pincode || 'N/A'}
+        if (matched === 0) {
+          toast.error('No matching fields found. Please use the blank form template.');
+          return;
+        }
 
-BANK DETAILS
-------------
-Account Holder Name: ${bd.account_holder_name || 'N/A'}
-Account Number: ${bd.account_number || 'N/A'}
-IFSC Code: ${bd.ifsc_code || 'N/A'}
-Bank Name: ${bd.bank_name || 'N/A'}
-Branch: ${bd.branch || 'N/A'}
-
-EMERGENCY CONTACT
------------------
-Name: ${ec.name || 'N/A'}
-Phone: ${ec.phone || 'N/A'}
-
-DOCUMENTS UPLOADED
-------------------
-${(docs || []).map(d => `[✓] ${d.type.replace('_', ' ').toUpperCase()}`).join('\n') || 'No documents uploaded'}
-
-DECLARATION
------------
-${DECLARATION_ITEMS.map(item => `[${formData.declarations[item.id] ? '✓' : ' '}] ${item.text}`).join('\n')}
-
-============================================================
-Form Generated: ${new Date().toLocaleString()}
-Submission Status: ${submission?.status || 'Draft'}
-    `;
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `DV_Onboarding_${cd.first_name || 'Form'}_${cd.last_name || ''}_Filled.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Filled form downloaded!');
+        setFormData(updated);
+        // Trigger a save after import
+        saveMutation.mutate(updated);
+        toast.success(`${matched} fields auto-filled from Excel!`);
+      } catch (err) {
+        toast.error('Failed to parse Excel file. Please use the correct template.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    // Reset input so same file can be re-uploaded
+    e.target.value = '';
   };
 
   // Copy same address
@@ -534,7 +505,7 @@ Submission Status: ${submission?.status || 'Draft'}
               Thank you! Your onboarding form has been submitted successfully.
               Our HR team will review your details and get back to you soon.
             </p>
-            <Button onClick={downloadFilledForm} variant="outline" className="w-full">
+            <Button onClick={() => downloadExcel(true)} variant="outline" className="w-full" data-testid="download-submitted-form-btn">
               <Download className="w-4 h-4 mr-2" />
               Download Your Submitted Form
             </Button>
@@ -558,15 +529,22 @@ Submission Status: ${submission?.status || 'Draft'}
           <h1 className="text-2xl font-bold text-neutral-900 mb-2">Employee Onboarding</h1>
           <p className="text-neutral-500">D&V Business Consulting</p>
           
-          {/* Download buttons */}
-          <div className="flex justify-center gap-3 mt-4">
-            <Button variant="outline" size="sm" onClick={downloadBlankForm}>
+          {/* Download & Upload buttons */}
+          <div className="flex flex-wrap justify-center gap-3 mt-4">
+            <Button variant="outline" size="sm" onClick={() => downloadExcel(false)} data-testid="download-blank-form-btn">
               <FileDown className="w-4 h-4 mr-2" />
               Download Blank Form
             </Button>
-            <Button variant="outline" size="sm" onClick={downloadFilledForm}>
+            <Button variant="outline" size="sm" onClick={() => downloadExcel(true)} data-testid="download-filled-form-btn">
               <Download className="w-4 h-4 mr-2" />
               Download Filled Form
+            </Button>
+            <Button variant="outline" size="sm" asChild data-testid="upload-excel-btn">
+              <label className="cursor-pointer">
+                <FileUp className="w-4 h-4 mr-2" />
+                Upload Filled Excel
+                <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleExcelUpload} />
+              </label>
             </Button>
           </div>
         </div>
