@@ -141,6 +141,11 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Library**: SheetJS (xlsx v0.18.5)
 - **File**: `/app/frontend/src/pages/onboarding/CandidateOnboardingForm.js`
 
+### Role Selection During Onboarding Completion (28 Mar 2026)
+- **Role dropdown in Complete Onboarding dialog**: HR selects system role (Employee, Consultant, Executive, HR Manager, etc.) before generating Employee ID
+- **Role threaded through full chain**: Complete endpoint → employee record → Go-Live request → user account creation
+- **Default**: Falls back to "employee" if no role selected
+
 ### CTC Approval Gate & Role Permissions (28 Mar 2026)
 - **CTC now requires Admin approval**: `POST /api/ctc/design` sets status to `pending` (was auto-approved)
 - **CTC Approval Dialog**: Enhanced with Employee Details section (name, code, department, designation, submitted by), CTC Overview (annual, previous, change %, effective month), salary components table, summary, and approve/reject with comments

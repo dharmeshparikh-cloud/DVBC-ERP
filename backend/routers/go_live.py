@@ -563,7 +563,7 @@ async def approve_go_live_request(
             "employee_id": final_employee_id,
             "email": employee.get("email") or employee.get("personal_email"),
             "full_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
-            "role": "employee",  # Default role for new employees
+            "role": request.get("role") or employee.get("role") or "employee",
             "hashed_password": get_password_hash(temp_password),
             "is_active": True,
             "must_change_password": True,  # Force password change on first login

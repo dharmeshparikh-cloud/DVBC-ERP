@@ -144,6 +144,7 @@ const SubmissionReview = () => {
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('employee');
   const [revisionReason, setRevisionReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
 
@@ -386,7 +387,8 @@ const SubmissionReview = () => {
   // Mutation for completing onboarding
   const completeMutation = useMutation({
     mutationFn: async () => {
-      const response = await axios.post(`${API}/onboarding/submissions/${submissionId}/complete`, {}, authHeaders);
+      const response = await axios.post(`${API}/onboarding/submissions/${submissionId}/complete`, 
+        { role: selectedRole }, authHeaders);
       return response.data;
     },
     onSuccess: (data) => {
@@ -1705,6 +1707,23 @@ const SubmissionReview = () => {
                 <span className="text-zinc-500">Official Email:</span>
                 <span className="font-medium">{hrAssignment.official_email}</span>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">System Role <span className="text-red-500">*</span></Label>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger data-testid="role-select">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="executive">Sales Executive</SelectItem>
+                  <SelectItem value="consultant">Consultant</SelectItem>
+                  <SelectItem value="hr_manager">HR Manager</SelectItem>
+                  <SelectItem value="hr_executive">HR Executive</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-zinc-400">This determines which pages and features the employee can access after login.</p>
             </div>
           </div>
           <DialogFooter>

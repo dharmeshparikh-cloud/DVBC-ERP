@@ -572,6 +572,7 @@ async def reject_submission(
 @router.post("/submissions/{submission_id}/complete")
 async def complete_onboarding(
     submission_id: str,
+    data: dict = {},
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -706,6 +707,7 @@ async def complete_onboarding(
         "is_active": True,
         "go_live_status": "not_submitted",
         "onboarding_complete": True,
+        "role": data.get("role", "employee"),
         
         # Tracking
         "onboarding_source": "self_service",
@@ -779,6 +781,7 @@ async def complete_onboarding(
         "status": "pending",
         "checklist_snapshot": {},
         "notes": "Auto-submitted after onboarding completion",
+        "role": data.get("role", "employee"),
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
         "generated_employee_id": None,
