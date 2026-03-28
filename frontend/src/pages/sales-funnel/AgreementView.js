@@ -65,18 +65,29 @@ const AgreementView = () => {
 
   const getAgreementHTML = () => {
     const schedule = paymentSchedule.installments || paymentSchedule.schedule_breakdown || [];
+    const numInstallments = schedule.length || 1;
+    
+    // OPTION B: Calculate installments from totalValue, NOT from schedule values
+    const perInstallmentBasic = totalValue / numInstallments;
+    const perInstallmentGST = Math.round(perInstallmentBasic * 0.18 * 100) / 100;
+    const perInstallmentNet = perInstallmentBasic + perInstallmentGST;
     
     // Helper function to format date as DD-MM-YYYY
     const formatDateDDMMYYYY = (dateStr) => {
       if (!dateStr) return '';
       try {
-        const dt = new Date(dateStr);
+        // Handle ISO format with T
+        let cleanDate = dateStr;
+        if (typeof dateStr === 'string' && dateStr.includes('T')) {
+          cleanDate = dateStr.split('T')[0];
+        }
+        const dt = new Date(cleanDate);
         const day = String(dt.getDate()).padStart(2, '0');
         const month = String(dt.getMonth() + 1).padStart(2, '0');
         const year = dt.getFullYear();
         return `${day}-${month}-${year}`;
       } catch (e) {
-        return dateStr;
+        return String(dateStr).substring(0, 10);
       }
     };
     
@@ -84,7 +95,11 @@ const AgreementView = () => {
     const calculateDueDate = (startDateStr, idx, totalInstallments, durationMonths) => {
       if (!startDateStr || totalInstallments <= 1) return '';
       try {
-        const startDt = new Date(startDateStr);
+        let cleanDate = startDateStr;
+        if (typeof startDateStr === 'string' && startDateStr.includes('T')) {
+          cleanDate = startDateStr.split('T')[0];
+        }
+        const startDt = new Date(cleanDate);
         const monthsPerInstallment = Math.floor(durationMonths / totalInstallments);
         const dueDt = new Date(startDt);
         dueDt.setMonth(dueDt.getMonth() + (idx * monthsPerInstallment));
@@ -94,35 +109,44 @@ const AgreementView = () => {
       }
     };
     
-    // Calculate totals
+    // Build installments from TOTAL VALUE (Option B)
     let totalBasic = 0;
     let totalGST = 0;
     let totalNet = 0;
     
-    const installmentsHTML = schedule.map((inst, idx) => {
-      const amount = inst.amount || inst.net || inst.basic || 0;
-      const label = inst.label || inst.frequency || `Installment ${idx + 1}`;
-      const gst = inst.gst || 0;
-      const basic = inst.basic || amount;
-      const dueDate = inst.due_date || calculateDueDate(startDate, idx, schedule.length, durationMonths);
+    const installmentsHTML = Array.from({ length: numInstallments }, (_, idx) => {
+      const label = (schedule[idx] && (schedule[idx].label || schedule[idx].frequency)) || `Installment ${idx + 1}`;
+      
+      // Use calculated values from totalValue (Option B)
+      const basic = perInstallmentBasic;
+      const gst = perInstallmentGST;
+      const net = perInstallmentNet;
       
       totalBasic += basic;
       totalGST += gst;
-      totalNet += amount;
+      totalNet += net;
+      
+      // Calculate due date
+      let dueDate = '';
+      if (schedule[idx] && schedule[idx].due_date) {
+        dueDate = formatDateDDMMYYYY(schedule[idx].due_date);
+      } else {
+        dueDate = calculateDueDate(startDate, idx, numInstallments, durationMonths);
+      }
       
       return `
       <tr>
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${idx + 1}</td>
         <td style="border:1px solid #d1d5db;padding:8px 12px;">${label}</td>
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(basic)}</td>
-        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${gst ? formatINR(gst) : '-'}</td>
-        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">${formatINR(amount)}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(gst)}</td>
+        <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">${formatINR(net)}</td>
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">${dueDate}</td>
       </tr>`;
     }).join('');
     
     // Add total row
-    const totalsRowHTML = schedule.length > 0 ? `
+    const totalsRowHTML = numInstallments > 0 ? `
       <tr style="background:#f3f4f6;font-weight:700;">
         <td colspan="2" style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">TOTAL</td>
         <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">${formatINR(totalBasic)}</td>

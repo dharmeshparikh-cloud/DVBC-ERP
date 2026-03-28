@@ -237,7 +237,7 @@ async def create_agreement(
                 agreement_number=agreement_number,
                 agreement_id=agreement_id,
                 agreement_type=data.title or "Consulting Services Agreement",
-                total_value=data.total_value,
+                total_value=total_value,  # Use calculated total_value, not data.total_value
                 currency="INR",
                 start_date=data.start_date or "TBD",
                 end_date=end_date_str,
@@ -1221,6 +1221,16 @@ async def send_agreement_email(
     
     # Build agreement HTML for PDF/DOCX
     schedule = payment_schedule.get("installments") or payment_schedule.get("schedule_breakdown") or []
+    num_installments = len(schedule) if schedule else 1
+    
+    # OPTION B: Calculate installments from total_value, NOT from schedule values
+    # Each installment basic = total_value / num_installments
+    # GST = 18% of basic
+    # Net = basic + GST
+    
+    per_installment_basic = total_value / num_installments if num_installments > 0 else total_value
+    per_installment_gst = round(per_installment_basic * 0.18, 2)
+    per_installment_net = per_installment_basic + per_installment_gst
     
     # Calculate due dates for installments
     from dateutil.relativedelta import relativedelta
@@ -1238,17 +1248,22 @@ async def send_agreement_email(
         if not date_str:
             return ''
         try:
+            # Handle ISO format with T and Z
             if isinstance(date_str, str):
+                if 'T' in date_str:
+                    date_str = date_str.split('T')[0]
                 dt = datetime.strptime(date_str, "%Y-%m-%d")
             else:
                 dt = date_str
             return dt.strftime("%d-%m-%Y")
         except Exception:
-            return date_str
+            return str(date_str)[:10] if date_str else ''
     
     start_dt = None
     try:
         if start_date:
+            if 'T' in start_date:
+                start_date = start_date.split('T')[0]
             start_dt = datetime.strptime(start_date, "%Y-%m-%d")
     except Exception:
         start_dt = datetime.now()
@@ -1257,39 +1272,44 @@ async def send_agreement_email(
     start_date_display = format_date_ddmmyyyy(start_date)
     end_date_display = format_date_ddmmyyyy(end_date)
     
-    # Calculate totals for payment schedule
+    # Build installments from TOTAL VALUE (Option B)
     total_basic = 0
     total_gst = 0
     total_net = 0
     
     installments_html = ""
-    for idx, inst in enumerate(schedule):
-        amount = inst.get("amount") or inst.get("net") or inst.get("basic") or 0
-        label = inst.get("label") or inst.get("frequency") or f"Installment {idx+1}"
-        gst = inst.get("gst", 0)
-        basic = inst.get("basic") or amount
+    for idx in range(num_installments):
+        # Use label from original schedule if available
+        label = schedule[idx].get("label") or schedule[idx].get("frequency") or f"Installment {idx+1}" if idx < len(schedule) else f"Installment {idx+1}"
+        
+        # Use calculated values from total_value
+        basic = per_installment_basic
+        gst = per_installment_gst
+        net = per_installment_net
         
         total_basic += basic
         total_gst += gst
-        total_net += amount
+        total_net += net
         
-        # Calculate due date - use from pricing plan if available, else calculate
-        due_date_str = inst.get("due_date") or ""
-        if not due_date_str and start_dt:
-            due_dt = calculate_due_date(start_dt, idx, len(schedule), duration_months)
+        # Calculate due date
+        due_date_str = ""
+        if idx < len(schedule) and schedule[idx].get("due_date"):
+            due_date_str = format_date_ddmmyyyy(schedule[idx].get("due_date"))
+        elif start_dt:
+            due_dt = calculate_due_date(start_dt, idx, num_installments, duration_months)
             due_date_str = due_dt.strftime("%d-%m-%Y")
         
         installments_html += f"""<tr>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{idx+1}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;">{label}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(basic)}</td>
-            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(gst) if gst else '-'}</td>
-            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">{fmt_inr(amount)}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(gst)}</td>
+            <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;font-weight:600;">{fmt_inr(net)}</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:center;">{due_date_str}</td>
         </tr>"""
     
     # Add total row
-    if schedule:
+    if num_installments > 0:
         installments_html += f"""<tr style="background:#f3f4f6;font-weight:700;">
             <td colspan="2" style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">TOTAL</td>
             <td style="border:1px solid #d1d5db;padding:8px 12px;text-align:right;">{fmt_inr(total_basic)}</td>
@@ -1626,8 +1646,8 @@ async def send_agreement_email(
         inv_table.rows[3].cells[0].text = "End Date"
         inv_table.rows[3].cells[1].text = end_date_display
         
-        # Payment schedule
-        if schedule:
+        # Payment schedule - Using Option B: total_value / num_installments
+        if num_installments > 0:
             doc.add_paragraph()
             doc.add_paragraph("Payment Schedule:").runs[0].bold = True
             pay_table = doc.add_table(rows=1, cols=6)
@@ -1642,25 +1662,33 @@ async def send_agreement_email(
             docx_total_basic = 0
             docx_total_gst = 0
             docx_total_net = 0
-            for idx, inst in enumerate(schedule):
-                amount = inst.get("amount") or inst.get("net") or inst.get("basic") or 0
-                label = inst.get("label") or inst.get("frequency") or f"Installment {idx+1}"
-                gst = inst.get("gst", 0)
-                basic = inst.get("basic") or amount
+            for idx in range(num_installments):
+                # Use label from original schedule if available
+                label = schedule[idx].get("label") or schedule[idx].get("frequency") or f"Installment {idx+1}" if idx < len(schedule) else f"Installment {idx+1}"
+                
+                # Use calculated values from total_value (Option B)
+                basic = per_installment_basic
+                gst = per_installment_gst
+                net = per_installment_net
+                
                 docx_total_basic += basic
                 docx_total_gst += gst
-                docx_total_net += amount
+                docx_total_net += net
+                
                 # Calculate due date
-                due_date_str = inst.get("due_date") or ""
-                if not due_date_str and start_dt:
-                    due_dt = calculate_due_date(start_dt, idx, len(schedule), duration_months)
+                due_date_str = ""
+                if idx < len(schedule) and schedule[idx].get("due_date"):
+                    due_date_str = format_date_ddmmyyyy(schedule[idx].get("due_date"))
+                elif start_dt:
+                    due_dt = calculate_due_date(start_dt, idx, num_installments, duration_months)
                     due_date_str = due_dt.strftime("%d-%m-%Y")
+                
                 row = pay_table.add_row().cells
                 row[0].text = str(idx + 1)
                 row[1].text = label
                 row[2].text = fmt_inr(basic)
-                row[3].text = fmt_inr(gst) if gst else "-"
-                row[4].text = fmt_inr(amount)
+                row[3].text = fmt_inr(gst)
+                row[4].text = fmt_inr(net)
                 row[5].text = due_date_str
             # Add total row
             total_row = pay_table.add_row().cells

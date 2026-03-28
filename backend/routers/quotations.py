@@ -181,7 +181,7 @@ async def create_quotation(
                 company=lead.get("company", "Unknown"),
                 quotation_number=quotation_number,
                 quotation_id=quotation_id,
-                total_amount=data.total,
+                total_amount=grand_total,  # Use calculated grand_total, not data.total
                 currency="INR",
                 valid_until=valid_until,
                 items_count=len(data.line_items or []),
