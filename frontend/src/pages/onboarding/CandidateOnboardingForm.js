@@ -504,24 +504,63 @@ const CandidateOnboardingForm = () => {
 
   // Already submitted
   if (submission?.status === 'submitted') {
+    const submittedAt = submission?.submitted_at
+      ? new Date(submission.submitted_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : null;
+    const docCount = (submission?.documents || []).length;
+
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle className="text-green-600 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5" />
-              Form Already Submitted
-            </CardTitle>
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4" data-testid="thank-you-page">
+        <Card className="max-w-lg w-full">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-3">
+              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+            <CardTitle className="text-green-700 text-xl">Thank You, {submission?.candidate_name}!</CardTitle>
+            <CardDescription>Your onboarding form has been submitted successfully.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-neutral-600">
-              Thank you! Your onboarding form has been submitted successfully.
-              Our HR team will review your details and get back to you soon.
-            </p>
+          <CardContent className="space-y-5">
+            {/* Submission Summary */}
+            <div className="bg-neutral-50 rounded-lg p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Position</span>
+                <span className="font-medium text-neutral-800">{submission?.offered_position}</span>
+              </div>
+              {submittedAt && (
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Submitted On</span>
+                  <span className="font-medium text-neutral-800">{submittedAt}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Documents Uploaded</span>
+                <span className="font-medium text-neutral-800">{docCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Status</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Pending HR Review</span>
+              </div>
+            </div>
+
+            {/* Next Steps */}
+            <div>
+              <h3 className="font-semibold text-neutral-800 mb-2 text-sm">What Happens Next?</h3>
+              <ol className="space-y-2 text-sm text-neutral-600 list-decimal list-inside">
+                <li>Our HR team will review your submission and verify your documents.</li>
+                <li>If any updates are needed, you'll receive an email with instructions.</li>
+                <li>Once approved, you'll receive your Employee ID and joining details.</li>
+              </ol>
+            </div>
+
+            {/* Download button */}
             <Button onClick={() => downloadExcel(true)} variant="outline" className="w-full" data-testid="download-submitted-form-btn">
               <Download className="w-4 h-4 mr-2" />
               Download Your Submitted Form
             </Button>
+
+            <p className="text-xs text-center text-neutral-400">
+              For questions, contact the HR team at the email provided in your invite.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -908,10 +947,11 @@ const CandidateOnboardingForm = () => {
                           <div className="flex items-center gap-2">
                             {uploaded && (
                               <a
-                                href={uploaded.url}
+                                href={`${API}/onboarding/public/${token}/documents/${uploaded.id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-sm text-amber-600 hover:underline"
+                                data-testid={`view-doc-${doc.type}`}
                               >
                                 View
                               </a>

@@ -141,6 +141,12 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Library**: SheetJS (xlsx v0.18.5)
 - **File**: `/app/frontend/src/pages/onboarding/CandidateOnboardingForm.js`
 
+### Onboarding Document View & Thank You Page (28 Mar 2026)
+- **Document View**: Added `GET /api/onboarding/public/{token}/documents/{document_id}` endpoint to serve uploaded docs
+- **Frontend View link**: Now points to the backend serving endpoint instead of broken `uploaded.url`
+- **Thank You page**: Enhanced with candidate name, position, submission date, document count, status badge, and "What Happens Next?" steps
+- **Upload error handling**: Added client-side file size (5MB) and type validation before upload
+
 ## P1 - Upcoming Tasks
 - Consultant Notifications when assigned to project/SOW
 

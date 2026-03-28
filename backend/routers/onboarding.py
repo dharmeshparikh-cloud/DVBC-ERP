@@ -13,6 +13,7 @@ PERFORMANCE OPTIMIZATION: December 2025
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.responses import FileResponse
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 import uuid
@@ -1019,6 +1020,7 @@ async def get_public_submission(token: str):
         "documents": submission["documents"],
         "declaration_signed": submission["declaration_signed"],
         "revision_history": submission.get("revision_history", []),
+        "submitted_at": submission.get("submitted_at"),
         "progress": calculate_submission_progress(submission)
     }
 
@@ -1265,8 +1267,28 @@ async def upload_public_document(
     }
 
 
+@router.get("/public/{token}/documents/{document_id}")
+async def view_public_document(token: str, document_id: str):
+    """Serve an uploaded document for preview/download."""
+    db = get_db()
 
-@router.post("/public/{token}/upload-photo")
+    submission = await db.onboarding_submissions.find_one({"token": token})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Invalid link")
+
+    doc = next((d for d in submission.get("documents", []) if d["id"] == document_id), None)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    file_path = os.path.join(ONBOARDING_DOCS_DIR, doc["stored_filename"])
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+
+    return FileResponse(
+        file_path,
+        media_type=doc.get("content_type", "application/octet-stream"),
+        filename=doc.get("original_filename", doc["stored_filename"]),
+    )
 async def upload_public_photo(
     token: str,
     file: UploadFile = File(...)
