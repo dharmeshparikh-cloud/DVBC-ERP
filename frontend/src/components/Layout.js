@@ -382,6 +382,8 @@ const Layout = () => {
   const guidedSalesItems = [
     { name: 'My Leads', href: '/leads', icon: Users, stage: 'LEAD' },
     { name: "Today's Follow-ups", href: '/follow-ups', icon: CalendarCheck, stage: null },
+    { name: 'Agreements', href: '/agreements', icon: FileSignature, stage: null },
+    { name: 'Onboarded Clients', href: '/onboarded-clients', icon: CheckCircle2, stage: null },
   ];
 
   // Sales items for MONITORING/CONTROL mode (Managers, Admins)
