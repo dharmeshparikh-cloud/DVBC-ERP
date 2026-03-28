@@ -716,7 +716,7 @@ async def send_follow_up_email(
     # Build branded HTML email with D&V logo and styled CTA buttons
     base_url = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
     if not base_url:
-        base_url = "https://onboarding-email-fix.preview.emergentagent.com"
+        base_url = "https://erp-checkin-bug.preview.emergentagent.com"
     close_link = f"{base_url}/api/follow-ups/{follow_up_id}/client-action?action=close"
     reschedule_link = f"{base_url}/api/follow-ups/{follow_up_id}/client-action?action=reschedule"
     logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
@@ -1004,7 +1004,7 @@ async def client_follow_up_action(
                 details += f"<br><br><div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;'><p style='margin:0 0 4px 0;color:#166534;font-size:12px;font-weight:600;'>Confirmed Schedule</p><p style='margin:0;color:#15803d;font-size:15px;font-weight:600;'>{due_display}</p></div>"
             return HTMLResponse(content=_build_action_page("Already Confirmed", details, "success"))
         # Show a date/time picker form instead of instant confirmation
-        base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://onboarding-email-fix.preview.emergentagent.com").rstrip("/")
+        base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-checkin-bug.preview.emergentagent.com").rstrip("/")
         submit_url = f"{base_url}/api/follow-ups/{follow_up_id}/client-reschedule"
         return HTMLResponse(content=_build_reschedule_page(client_name, due_display, submit_url))
     
@@ -1090,7 +1090,7 @@ def _build_action_page(title: str, message: str, action_type: str) -> str:
         "info": {"bg": "#2563eb", "icon": "&#8505;", "accent": "#eff6ff", "border": "#bfdbfe"},
     }
     c = colors.get(action_type, colors["info"])
-    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://onboarding-email-fix.preview.emergentagent.com").rstrip("/")
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-checkin-bug.preview.emergentagent.com").rstrip("/")
     logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
     
     return f"""<!DOCTYPE html>
@@ -1133,7 +1133,7 @@ def _build_action_page(title: str, message: str, action_type: str) -> str:
 
 def _build_reschedule_page(client_name: str, current_schedule: str, submit_url: str) -> str:
     """Build a branded HTML page with a date/time picker for client to reschedule."""
-    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://onboarding-email-fix.preview.emergentagent.com").rstrip("/")
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-checkin-bug.preview.emergentagent.com").rstrip("/")
     logo_url = f"{base_url}/api/follow-ups/assets/logo.png"
     
     # Calculate min date (tomorrow)
