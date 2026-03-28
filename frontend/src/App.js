@@ -98,15 +98,12 @@ const SalesTeamPerformance = lazy(() => import('./pages/SalesTeamPerformance'));
 const ConsultingDashboard = lazy(() => import('./pages/ConsultingDashboard'));
 const HRDashboard = lazy(() => import('./pages/HRDashboard'));
 const AdminMasters = lazy(() => import('./pages/AdminMasters'));
-const PermissionManager = lazy(() => import('./pages/PermissionManager'));
-const PermissionDashboard = lazy(() => import('./pages/PermissionDashboard'));
-const EmployeePermissions = lazy(() => import('./pages/EmployeePermissions'));
 const EmployeeAccessPermissions = lazy(() => import('./pages/EmployeeAccessPermissions'));
 const DepartmentAccessManager = lazy(() => import('./pages/DepartmentAccessManager'));
 const ExpenseApprovals = lazy(() => import('./pages/ExpenseApprovals'));
 const EmployeeScorecard = lazy(() => import('./pages/EmployeeScorecard'));
-const RoleManagement = lazy(() => import('./pages/RoleManagement'));
 const RBACAdmin = lazy(() => import('./pages/RBACAdmin'));
+const AccessAndRoles = lazy(() => import('./pages/AccessAndRoles'));
 const LetterheadSettings = lazy(() => import('./pages/LetterheadSettings'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Help = lazy(() => import('./pages/Help'));
@@ -350,8 +347,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="profile" element={<UserProfile />} />
         <Route path="user-management" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><UserManagement /></RoleGuard>} />
         <Route path="employees" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><Employees /></RoleGuard>} />
-        <Route path="password-management" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><EmployeeAccessPermissions /></RoleGuard>} />
-        <Route path="employee-access-permissions" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><EmployeeAccessPermissions /></RoleGuard>} />
+        <Route path="password-management" element={<Navigate to="/access-roles?tab=people" replace />} />
+        <Route path="employee-access-permissions" element={<Navigate to="/access-roles?tab=people" replace />} />
         <Route path="approvals" element={<ApprovalsCenter />} />
         <Route path="manager-leads" element={<RoleGuard allowedRoles={['sales_manager', 'manager', 'principal_consultant']} allowedDepts={['Sales']}><ManagerLeadsDashboard /></RoleGuard>} />
         <Route path="team-leads" element={<Navigate to="/manager-leads" replace />} />
@@ -371,14 +368,17 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="consulting-dashboard" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingDashboard /></RoleGuard>} />
         <Route path="hr-dashboard" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><HRDashboard /></RoleGuard>} />
         <Route path="admin-masters" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><AdminMasters /></RoleGuard>} />
-        <Route path="permission-manager" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><PermissionManager /></RoleGuard>} />
-        <Route path="permission-dashboard" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><PermissionDashboard /></RoleGuard>} />
-        <Route path="employee-permissions" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><EmployeeAccessPermissions /></RoleGuard>} />
-        <Route path="department-access" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><DepartmentAccessManager /></RoleGuard>} />
+        {/* Unified Access & Roles page */}
+        <Route path="access-roles" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><AccessAndRoles /></RoleGuard>} />
+        {/* Old routes redirect to unified page */}
+        <Route path="permission-manager" element={<Navigate to="/access-roles?tab=roles" replace />} />
+        <Route path="permission-dashboard" element={<Navigate to="/access-roles?tab=roles" replace />} />
+        <Route path="employee-permissions" element={<Navigate to="/access-roles?tab=people" replace />} />
+        <Route path="department-access" element={<Navigate to="/access-roles?tab=departments" replace />} />
+        <Route path="role-management" element={<Navigate to="/access-roles?tab=roles" replace />} />
+        <Route path="rbac-admin" element={<Navigate to="/access-roles?tab=roles" replace />} />
         <Route path="expense-approvals" element={<Navigate to="/approvals" replace />} />
         <Route path="employee-scorecard" element={<EmployeeScorecard />} />
-        <Route path="role-management" element={<RoleManagement />} />
-        <Route path="rbac-admin" element={<RBACAdmin />} />
         <Route path="settings" element={<Settings />} />
         <Route path="help" element={<Help />} />
         <Route path="letterhead-settings" element={<LetterheadSettings />} />

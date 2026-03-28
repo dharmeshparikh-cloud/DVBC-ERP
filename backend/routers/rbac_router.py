@@ -395,6 +395,75 @@ async def get_my_permissions(
     }
 
 
+# ==================== SIDEBAR ACCESS ENDPOINT ====================
+# This is the single source of truth for what sidebar sections a user can see.
+# Layout.js calls this to determine visibility — replaces hardcoded role arrays.
+
+SECTION_GROUP_MAP = {
+    "hr": "HR_ROLES",
+    "sales": "SALES_ROLES",
+    "consulting": "CONSULTING_ROLES",
+    "admin": "ADMIN_ROLES",
+    "finance": "FINANCE_ROLES",
+}
+
+@router.get("/my-access")
+async def get_my_access(current_user: User = Depends(get_current_user)):
+    """
+    Returns which sidebar sections and features the current user can access,
+    based on their role's membership in RBAC role groups (from DB).
+    This replaces ALL hardcoded role arrays in Layout.js.
+    """
+    user_role = current_user.role
+    
+    # Admin sees everything
+    if user_role == "admin":
+        return {
+            "role": user_role,
+            "sidebar_sections": {
+                "hr": True, "sales": True, "consulting": True,
+                "admin": True, "finance": True,
+            },
+            "role_groups": list(SECTION_GROUP_MAP.values()),
+        }
+    
+    sidebar = {}
+    matched_groups = []
+    
+    for section, group_name in SECTION_GROUP_MAP.items():
+        group_roles = rbac.get_role_group(group_name)
+        if user_role in group_roles:
+            sidebar[section] = True
+            matched_groups.append(group_name)
+        else:
+            sidebar[section] = False
+    
+    # Also check employee department as fallback
+    db = get_db()
+    emp = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0, "department": 1}
+    )
+    if emp and emp.get("department"):
+        dept = emp["department"]
+        dept_section_map = {
+            "HR": "hr", "Sales": "sales", "Consulting": "consulting",
+            "Delivery": "consulting", "Operations": "consulting",
+            "Admin": "admin", "Finance": "finance",
+        }
+        section = dept_section_map.get(dept)
+        if section and not sidebar.get(section):
+            sidebar[section] = True
+    
+    return {
+        "role": user_role,
+        "sidebar_sections": sidebar,
+        "role_groups": matched_groups,
+    }
+
+
+
+
 @router.get("/migration-status")
 async def get_migration_status(
     current_user: User = Depends(get_current_user)

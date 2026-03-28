@@ -417,8 +417,8 @@ from routers import stats as stats_router
 from routers import project_pnl as project_pnl_router
 
 # Administration routers
-from routers import role_management as role_management_router
 from routers import permission_config as permission_config_router
+# Deleted: role_management (replaced by RBAC unified system)
 from routers import department_access as department_access_router
 from routers import security as security_router
 from routers import rbac_router
@@ -442,7 +442,7 @@ from routers import gstin as gstin_router
 from routers import consultants as consultants_router
 from routers import reports as reports_router
 from routers import settings as settings_router
-from routers import roles as roles_router
+# Deleted: roles_router (replaced by RBAC unified system)
 from routers import my as my_router
 from routers import leave_requests as leave_requests_router
 
@@ -595,8 +595,8 @@ api_router.include_router(stats_router.router)
 api_router.include_router(project_pnl_router.router)
 
 # Administration
-api_router.include_router(role_management_router.router)
 api_router.include_router(permission_config_router.router)
+# Removed: role_management_router (RBAC unified)
 api_router.include_router(department_access_router.router)
 api_router.include_router(security_router.router)
 api_router.include_router(rbac_router.router)  # New RBAC Admin API
@@ -620,7 +620,7 @@ api_router.include_router(gstin_router.router)
 api_router.include_router(consultants_router.router)
 api_router.include_router(reports_router.router)
 api_router.include_router(settings_router.router)
-api_router.include_router(roles_router.router)
+# Removed: roles_router (RBAC unified)
 api_router.include_router(my_router.router)
 api_router.include_router(leave_requests_router.router)
 

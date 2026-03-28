@@ -93,15 +93,18 @@ const Layout = () => {
   // Sidebar visibility from centralized permissions API
   const [sidebarVisibility, setSidebarVisibility] = useState(null);
   
-  // Fetch department access and sidebar visibility on mount
+  // Fetch RBAC-based sidebar access on mount (single source of truth)
   useEffect(() => {
     const fetchAccessData = async () => {
       try {
         const API_URL = process.env.REACT_APP_BACKEND_URL;
         const token = localStorage.getItem('token');
         
-        // Fetch both department access and permissions in parallel
-        const [deptResponse, permResponse] = await Promise.all([
+        // Fetch RBAC access, department access, and permissions in parallel
+        const [rbacResponse, deptResponse, permResponse] = await Promise.all([
+          fetch(`${API_URL}/api/rbac/my-access`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
           fetch(`${API_URL}/api/department-access/my-access`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
@@ -110,15 +113,24 @@ const Layout = () => {
           })
         ]);
         
+        // RBAC-based sidebar is primary source
+        if (rbacResponse.ok) {
+          const rbacData = await rbacResponse.json();
+          setSidebarVisibility({
+            hr_section: rbacData.sidebar_sections?.hr || false,
+            sales_section: rbacData.sidebar_sections?.sales || false,
+            consulting_section: rbacData.sidebar_sections?.consulting || false,
+            admin_section: rbacData.sidebar_sections?.admin || false,
+            finance_section: rbacData.sidebar_sections?.finance || false,
+          });
+        }
+        
         if (deptResponse.ok) {
           const deptData = await deptResponse.json();
           setDepartmentAccess(deptData);
         }
         
-        if (permResponse.ok) {
-          const permData = await permResponse.json();
-          setSidebarVisibility(permData.sidebar_visibility);
-        }
+        // permResponse used for other permission flags if needed
       } catch (error) {
         console.error('Error fetching access data:', error);
       }
@@ -139,13 +151,12 @@ const Layout = () => {
   const canEditFlag = departmentAccess?.can_edit !== false; // Default to true if not set
   const isViewOnly = departmentAccess?.is_view_only || false;
   
-  // SIDEBAR VISIBILITY: Use centralized permissions API (PRIMARY), fallback to role-based
-  // This ensures HR Manager doesn't see Sales section, Sales Executive doesn't see HR section, etc.
+  // SIDEBAR VISIBILITY: Use RBAC API (PRIMARY), fallback to role-based
+  // When RBAC API returns data, it controls everything. Hardcoded arrays are last resort.
   const showHR = sidebarVisibility?.hr_section ?? (hasDepartment('HR') || safeRoleCheck(HR_ROLES_FALLBACK, role));
   const showSales = sidebarVisibility?.sales_section ?? (hasDepartment('Sales') || safeRoleCheck(SALES_ROLES_FALLBACK, role));
-  // Admin always sees Consulting section
   const showConsulting = role === 'admin' || (sidebarVisibility?.consulting_section ?? (hasDepartment('Consulting') || hasDepartment('Delivery') || hasDepartment('Operations') || safeRoleCheck(CONSULTING_ROLES_FALLBACK, role) || role === 'manager'));
-  const showFinance = hasDepartment('Finance');
+  const showFinance = sidebarVisibility?.finance_section ?? hasDepartment('Finance');
   const showAdmin = sidebarVisibility?.admin_section ?? (hasDepartment('Admin') || safeRoleCheck(ADMIN_ROLES_FALLBACK, role));
   const isConsultant = role === 'consultant';
   
@@ -310,7 +321,7 @@ const Layout = () => {
   const hrEmployeeItems = [
     { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
     { name: 'Employee Change Requests', href: '/employee-workflows', icon: ArrowRightLeft, requiresHRorAdmin: true },
-    { name: 'Access & Permissions', href: '/employee-access-permissions', icon: Shield, requiresHRorAdmin: true },
+    { name: 'Access & Permissions', href: '/access-roles?tab=people', icon: Shield, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
   ];
   
@@ -435,11 +446,7 @@ const Layout = () => {
     { name: 'ERP Workflow', href: '/workflow', icon: Map },
     { name: 'Admin Masters', href: '/admin-masters', icon: Settings },
     { name: 'User Management', href: '/user-management', icon: UserCog },
-    { name: 'Role Management', href: '/role-management', icon: Shield },
-    { name: 'Employee Permissions', href: '/employee-permissions', icon: UserCog },
-    { name: 'Dept Access Manager', href: '/department-access', icon: Building2 },
-    { name: 'Permission Dashboard', href: '/permission-dashboard', icon: Users },
-    { name: 'Permission Config', href: '/permission-manager', icon: Lock },
+    { name: 'Access & Roles', href: '/access-roles', icon: Shield },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
     { name: 'Project Payments', href: '/payments', icon: DollarSign },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
