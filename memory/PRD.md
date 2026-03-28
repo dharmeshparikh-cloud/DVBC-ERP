@@ -133,7 +133,13 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Fixed**: Reminder email generated broken link (`/onboarding/{token}` instead of `/onboarding/candidate/{token}`)
 - **Root Cause**: URL path mismatch — invite used `/onboarding/candidate/{token}` matching frontend route, but reminder omitted `/candidate/` segment
 - **Fix**: Updated `send_onboarding_reminder` in `onboarding.py` line 1658
-- **Verified**: Token consistency (non-expired stays same, expired regenerates correctly), public endpoint validates both paths
+
+### Onboarding Excel Download/Upload (28 Mar 2026)
+- **Download Blank Form**: Generates `.xlsx` with Section/Field/Value columns (22 fields, empty values)
+- **Download Filled Form**: Generates `.xlsx` pre-filled with current form data
+- **Upload Filled Excel**: Parses uploaded `.xlsx`, auto-fills matching fields, triggers auto-save
+- **Library**: SheetJS (xlsx v0.18.5)
+- **File**: `/app/frontend/src/pages/onboarding/CandidateOnboardingForm.js`
 
 ## P1 - Upcoming Tasks
 - Consultant Notifications when assigned to project/SOW
