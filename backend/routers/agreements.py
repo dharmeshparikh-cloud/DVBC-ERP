@@ -21,7 +21,7 @@ from services.funnel_notifications import agreement_created_email, get_agreement
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://funnel-sync-engine.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://onboarding-email-fix.preview.emergentagent.com").replace("/api", "")
 
 # RBAC: Role-based access for agreements
 # TODO: Make configurable via Role & Permission page

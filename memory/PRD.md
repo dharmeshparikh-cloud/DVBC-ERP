@@ -129,6 +129,12 @@ Establish a unified and strict governance model across the ERP. Build customized
 - `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - No team deployment
 - `/app/frontend/src/pages/sales-funnel/PaymentVerification.js` - Prefill
 
+### Onboarding Reminder Email Fix (28 Mar 2026)
+- **Fixed**: Reminder email generated broken link (`/onboarding/{token}` instead of `/onboarding/candidate/{token}`)
+- **Root Cause**: URL path mismatch — invite used `/onboarding/candidate/{token}` matching frontend route, but reminder omitted `/candidate/` segment
+- **Fix**: Updated `send_onboarding_reminder` in `onboarding.py` line 1658
+- **Verified**: Token consistency (non-expired stays same, expired regenerates correctly), public endpoint validates both paths
+
 ## P1 - Upcoming Tasks
 - Consultant Notifications when assigned to project/SOW
 

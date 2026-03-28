@@ -1,7 +1,7 @@
 # 🧪 MASTER QA TEST REPORT: Consulting Workflow
 **Date:** March 18-19, 2026  
 **Tester:** Automated E2E Testing  
-**App URL:** https://funnel-sync-engine.preview.emergentagent.com
+**App URL:** https://onboarding-email-fix.preview.emergentagent.com
 **Status:** ✅ ALL CRITICAL ISSUES FIXED
 
 ---

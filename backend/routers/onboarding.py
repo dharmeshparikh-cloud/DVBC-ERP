@@ -145,7 +145,7 @@ async def send_onboarding_invite(
     
     # Send email to candidate
     # Get base URL from environment
-    base_url = os.environ.get("FRONTEND_URL", "https://funnel-sync-engine.preview.emergentagent.com")
+    base_url = os.environ.get("FRONTEND_URL", "https://onboarding-email-fix.preview.emergentagent.com")
     onboarding_link = f"{base_url}/onboarding/candidate/{token}"
     
     try:
@@ -505,7 +505,7 @@ async def request_revision(
     
     # Send email to candidate
     try:
-        base_url = os.environ.get("FRONTEND_URL", "https://funnel-sync-engine.preview.emergentagent.com")
+        base_url = os.environ.get("FRONTEND_URL", "https://onboarding-email-fix.preview.emergentagent.com")
         onboarding_link = f"{base_url}/onboarding/candidate/{submission['token']}"
         
         await send_onboarding_revision_request_email(
@@ -1185,7 +1185,7 @@ async def submit_public_submission(token: str, data: dict):
         if invited_by_id:
             inviter = await db.employees.find_one({"id": invited_by_id}, {"email": 1, "full_name": 1})
             if inviter and inviter.get("email"):
-                base_url = os.environ.get("FRONTEND_URL", "https://funnel-sync-engine.preview.emergentagent.com")
+                base_url = os.environ.get("FRONTEND_URL", "https://onboarding-email-fix.preview.emergentagent.com")
                 review_link = f"{base_url}/onboarding/review/{submission['id']}"
                 
                 await send_onboarding_submission_notification_email(
@@ -1589,12 +1589,15 @@ async def send_onboarding_reminder(
     
     # Check token expiry
     token = submission.get("token")
-    expires_at = submission.get("expires_at")
+    link_expires = submission.get("link_expires_at")
     token_expired = False
     
-    if expires_at:
+    if link_expires:
         try:
-            exp_date = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if isinstance(link_expires, str):
+                exp_date = datetime.fromisoformat(link_expires.replace("Z", "+00:00"))
+            else:
+                exp_date = link_expires.replace(tzinfo=timezone.utc) if link_expires.tzinfo is None else link_expires
             if exp_date < datetime.now(timezone.utc):
                 token_expired = True
         except (ValueError, TypeError):
@@ -1609,7 +1612,7 @@ async def send_onboarding_reminder(
             {
                 "$set": {
                     "token": token,
-                    "expires_at": new_expires.isoformat()
+                    "link_expires_at": new_expires.isoformat()
                 }
             }
         )
@@ -1651,8 +1654,8 @@ async def send_onboarding_reminder(
     
     # Send reminder email
     try:
-        frontend_url = os.environ.get("FRONTEND_URL", "https://funnel-sync-engine.preview.emergentagent.com")
-        onboarding_link = f"{frontend_url}/onboarding/{token}"
+        frontend_url = os.environ.get("FRONTEND_URL", "https://onboarding-email-fix.preview.emergentagent.com")
+        onboarding_link = f"{frontend_url}/onboarding/candidate/{token}"
         
         email_body = f"""
         <html>
