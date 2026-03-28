@@ -33,8 +33,10 @@ const MyDayBar = () => {
       const res = await axios.get(`${API}/my-day/summary`);
       return res.data;
     },
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   });
 
   if (isLoading) {
