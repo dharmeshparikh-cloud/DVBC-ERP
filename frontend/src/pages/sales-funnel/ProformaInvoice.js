@@ -612,7 +612,7 @@ const ProformaInvoice = () => {
           loading={invoicesLoading}
           actions={<>
             <ViewToggle viewMode={viewMode} onChange={setViewMode} />
-            <Button onClick={handleBackToFlow} variant="outline" className="rounded-sm border-zinc-300" data-testid="back-to-flow-btn">
+            <Button onClick={handleBackToFlow} variant="outline" className="rounded-sm border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-testid="back-to-flow-btn">
               <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} /> Back to Funnel
             </Button>
             {canEdit && (

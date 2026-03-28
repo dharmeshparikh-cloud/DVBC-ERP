@@ -332,12 +332,13 @@ const SOWBuilderNew = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4" />
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Back
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">Scope of Work</h1>
-            <p className="text-sm text-zinc-500">
+            <h1 className="text-xl font-semibold dark:text-zinc-100">Scope of Work</h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {lead?.company || plan?.client_name || 'New SOW'}
               {existingSOW?.sow_number && ` • ${existingSOW.sow_number}`}
             </p>

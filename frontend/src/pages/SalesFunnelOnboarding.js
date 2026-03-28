@@ -12,7 +12,7 @@ import {
   FileCheck, CreditCard, Rocket, CheckCircle, 
   ChevronRight, ArrowLeft, Building2, Phone, Mail,
   Clock, AlertCircle, ExternalLink, Lock,
-  AlertTriangle, Plus, Edit2
+  AlertTriangle, Edit2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CelebrationOverlay from '../components/CelebrationOverlay';
@@ -726,24 +726,14 @@ const SalesFunnelOnboarding = () => {
                   </div>
                 )}
 
-                {/* Record Meeting Step - Meeting List + Add New */}
+                {/* Record Meeting Step - Meeting List Only (Action button moved to footer) */}
                 {currentStep === 1 && (
                   <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {funnelStatus.meeting_count > 0
-                          ? <span><strong>{funnelStatus.meeting_count}</strong> meeting{funnelStatus.meeting_count !== 1 ? 's' : ''} recorded</span>
-                          : 'No meetings recorded yet.'}
-                      </p>
-                      {!isReadOnly && <Button
-                        onClick={() => navigate(`/sales-funnel/meeting/record?leadId=${leadId}`)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                        data-testid="record-new-meeting-btn"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Record Meeting ({(funnelStatus.meeting_count || 0) + 1})
-                      </Button>}
-                    </div>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      {funnelStatus.meeting_count > 0
+                        ? <span><strong>{funnelStatus.meeting_count}</strong> meeting{funnelStatus.meeting_count !== 1 ? 's' : ''} recorded. Click on a meeting to view details or use the button below to record a new one.</span>
+                        : 'No meetings recorded yet. Click the button below to record your first meeting.'}
+                    </p>
                     {funnelStatus.meetings && funnelStatus.meetings.length > 0 && (
                       <div className="space-y-2">
                         {funnelStatus.meetings.map((m, idx) => (
@@ -859,23 +849,24 @@ const SalesFunnelOnboarding = () => {
                   </div>
                 )}
 
-                {/* Action Buttons */}
+                {/* Action Buttons - Unified Navigation */}
                 <div className="flex justify-between mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800">
                   <Button
                     variant="outline"
                     onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
                     disabled={currentStep === 0}
                     data-testid="prev-step-btn"
-                    className="border-zinc-200 dark:border-zinc-700"
+                    className="border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Previous Step
+                    Previous
                   </Button>
                   
                   {currentStep < 8 && (() => {
                     const nextStepId = FUNNEL_STEPS[currentStep + 1]?.id;
                     const isNextStepBlocked = isStepBlockedByAgreement(nextStepId);
                     const isCurrentCompleted = isStepCompleted(FUNNEL_STEPS[currentStep].id);
+                    const currentStepId = FUNNEL_STEPS[currentStep]?.id;
                     
                     // If navigating to next step would be blocked
                     if (isCurrentCompleted && isNextStepBlocked) {
@@ -891,13 +882,40 @@ const SalesFunnelOnboarding = () => {
                       );
                     }
                     
+                    // Special handling for Record Meeting step - show Record New Meeting button
+                    if (currentStepId === 'record_meeting' && !isReadOnly) {
+                      return (
+                        <div className="flex items-center gap-3">
+                          {isCurrentCompleted && (
+                            <Button
+                              variant="outline"
+                              onClick={handleContinue}
+                              data-testid="next-step-btn"
+                              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400"
+                            >
+                              Next Step
+                              <ChevronRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          )}
+                          <Button
+                            onClick={() => navigate(`/sales-funnel/meeting/record?leadId=${leadId}`)}
+                            data-testid="record-new-meeting-btn"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Record Meeting {funnelStatus.meeting_count > 0 ? `(${funnelStatus.meeting_count + 1})` : ''}
+                          </Button>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <Button
                         onClick={handleContinue}
                         data-testid="continue-btn"
                         className={isCurrentCompleted 
-                          ? 'bg-emerald-600 hover:bg-emerald-700' 
-                          : 'bg-blue-600 hover:bg-blue-700'
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }
                       >
                         {isCurrentCompleted ? (
@@ -907,7 +925,7 @@ const SalesFunnelOnboarding = () => {
                           </>
                         ) : (
                           <>
-                            Open {FUNNEL_STEPS[currentStep].title}
+                            {FUNNEL_STEPS[currentStep].title}
                             <ExternalLink className="w-4 h-4 ml-2" />
                           </>
                         )}

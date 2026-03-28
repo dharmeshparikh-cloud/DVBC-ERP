@@ -9,7 +9,7 @@ import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
 import { Textarea } from '../../components/ui/textarea';
-import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell, HelpCircle, FileText, Settings, Eye, EyeOff, FolderOpen, Save } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell, HelpCircle, FileText, Settings, Eye, EyeOff, FolderOpen, Save, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import useDraft from '../../hooks/useDraft';
@@ -786,12 +786,13 @@ const PricingPlanBuilder = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <Button
-            onClick={() => navigate('/leads')}
+            onClick={() => leadId ? navigate(`/sales-funnel-onboarding?leadId=${leadId}`) : navigate('/leads')}
             variant="ghost"
-            className="hover:bg-zinc-100 rounded-sm"
+            className="hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-sm text-zinc-600 dark:text-zinc-400"
+            data-testid="back-btn"
           >
             <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
-            Back to Leads
+            {leadId ? 'Back to Funnel' : 'Back to Leads'}
           </Button>
           <div className="flex items-center gap-3">
             <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={() => saveDraft({ totalInvestment, teamDeployment, formData, paymentPlan, leadId })} />
@@ -802,12 +803,12 @@ const PricingPlanBuilder = () => {
             )}
           </div>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+        <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 dark:text-zinc-100 mb-2">
           Create Pricing Plan
         </h1>
         {lead && (
-          <p className="text-zinc-500">
-            For: {lead.first_name} {lead.last_name} - {lead.company}
+          <p className="text-zinc-500 dark:text-zinc-400">
+            For: <span className="font-medium text-zinc-700 dark:text-zinc-300">{lead.first_name} {lead.last_name}</span> - {lead.company}
           </p>
         )}
       </div>
@@ -1612,12 +1613,14 @@ const PricingPlanBuilder = () => {
           </CardContent>
         </Card>
 
-        <div className="flex gap-4">
+        {/* Action Buttons - Consistent Footer */}
+        <div className="flex gap-4 pt-6 border-t border-zinc-200 dark:border-zinc-700">
           <Button
             type="button"
-            onClick={() => navigate('/leads')}
+            onClick={() => leadId ? navigate(`/sales-funnel-onboarding?leadId=${leadId}`) : navigate('/leads')}
             variant="outline"
-            className="flex-1 rounded-sm border-zinc-200"
+            className="flex-1 rounded-sm border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            data-testid="cancel-btn"
           >
             Cancel
           </Button>
@@ -1628,7 +1631,8 @@ const PricingPlanBuilder = () => {
               className="w-full bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
               data-testid="create-pricing-plan-btn"
             >
-              {loading ? 'Creating...' : 'Save & Continue to Scope Selection'}
+              {loading ? 'Creating...' : 'Save & Continue to Scope'}
+              <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
             {(teamDeployment.length === 0 || totalInvestment <= 0 || !paymentPlan.start_date) && (
               <p className="text-xs text-amber-600 text-center" data-testid="pricing-validation-msg">

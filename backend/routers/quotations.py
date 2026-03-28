@@ -18,7 +18,7 @@ from services.funnel_notifications import proforma_generated_email, get_sales_ma
 
 router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-governance-hub-3.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://funnel-sync-engine.preview.emergentagent.com").replace("/api", "")
 
 # RBAC: Role-based access for quotations/proforma invoices
 # TODO: Make configurable via Role & Permission page

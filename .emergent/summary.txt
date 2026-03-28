@@ -1,0 +1,135 @@
+<analysis>Here is the structured handover summary based on the provided LLM message history:
+
+**original_problem_statement**: Establish a unified and strict governance model across the ERP. Overhaul the funnel progression rules, revamp the Agreement and Proforma Invoice templates to dynamically inherit data, ensure accurate calculations, enforce a Single Source of Truth (SSOT), and establish clean data separation.
+
+**User's preferred language**: English
+*(INSTRUCTING NEXT AGENT: Always respond in the user's preferred language only)*
+
+**what currently exists?** 
+A full-stack ERP (React + FastAPI + MongoDB) with a recently completely wiped transactional database (all test leads/data deleted, configs/masters preserved). The Agreement system has been heavily overhauled: it now dynamically generates PDF (via  with base64 embedded logos) and DOCX (via ). Calculations strictly use Option B (Installment Amount = Total Investment / Number of Installments), bypassing team-rate discrepancies. A new Agreements Management SSOT table view has been added to the navigation for tracking versions and syncing.
+
+**Last working item**:
+    - Last item agent was working: The agent was analyzing  to tell the user which backend test failed (resulting in a 91% score) and was simultaneously investigating the frontend codebase to find and remove duplicate Record Meeting buttons across the lead/sales funnel pages.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N/A (Just started the search/analysis)
+    - Which testing method agent to use? Screenshot tool for frontend verification of button removal.
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**:
+  - Issue 1: Explain Backend Test Failure (91% score) & Remove Duplicate UI Buttons (P0)
+     - Attempted fixes: Agent ran  to find Record Meeting buttons and viewed .
+     - Next debug checklist: 
+       - Read  to identify exactly which 1 out of 11 backend tests failed and explain it to the user.
+       - Review the  results (files like , , etc.) to find where two Record Meeting buttons are rendered side-by-side. 
+       - Remove the redundant button to prevent user confusion.
+     - Why fix this issue and what will be achieved with the fix? Answers the user's direct, most recent questions and improves UI clarity.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Frontend (Screenshot)
+     - Blocked on other issue: None
+
+**In progress Task List**:
+*(None outside of the P0 issues above)*
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - (P1) Consultant Notifications: Trigger system notifications to consultants when assigned to a project/SOW. 
+    
+    Future Tasks:
+    - (P2) Refactor  (>2300 lines) into smaller, manageable components.
+    - (P2) Governance Dashboard UI for  endpoints.
+    - (P3) Enhancement: Add an onboarding timeline view in the Onboarded Clients page (showing dates/duration between funnel steps).
+
+**Completed work in this session**
+- Agreement Email generation via  (PDF) and  (DOCX) (DONE)
+- Added dynamic recipient selection modal for agreement emails (DONE)
+- Embedded base64 Company Logo and Consultant Obligations legal text to PDF/DOCX (DONE)
+- Fixed PDF aggressive  rules causing excessive whitespace (DONE)
+- Added 7-clause Key Payment Terms to Agreement and calculated accurate Due Dates (DONE)
+- Created SSOT Agreements Management Page with versioning and auto-sync (DONE)
+- Updated Sales Executive  sidebar to include Agreements and Onboarded Clients (DONE)
+- **DATABASE WIPE**: Executed script to safely delete ALL dummy/test lead transactional data while preserving master configs, users, and roles (DONE)
+- Fixed major calculation bug: Implemented Option B (Installments = Total Amount / Num Installments) to resolve 50k vs 98k mismatch (DONE)
+- Fixed bug where  was being passed to Proforma/Agreement emails instead of actual  (DONE)
+- Formatted all raw ISO dates to DD-MM-YYYY in templates (DONE)
+
+**Earlier issues found/mentioned but not fixed**
+None. 
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: None observed in this session.
+  - Recurrence count: 0
+  - Status: RESOLVED
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+- **Option B Calculations**: System now strictly dictates that . It deliberately ignores the  derived from team deployment to prevent value mismatches.
+- **Agreement Versioning**: Editing an agreement via the new SSOT portal increments its version ( -> ) and logs the changes.
+- **DOCX Generation**: Migrated from returning HTML masked as  to using the  library for genuine  file creation.
+
+**key DB schema**
+  - : Now tracks , , , and .
+  - : Stores , which serves as the ultimate source of truth for all downstream billing.
+
+**changes in tech stack**
+  - Confirmed usage of  for reliable word document generation.
+
+**All files of reference** 
+-  (Calculations & exports)
+-  (Frontend counterpart to PDF layout)
+-  (Required to answer user's question about the 91% score)
+-  (Role-based navigation)
+
+**Areas that need refactoring**:
+-  (>2300 lines)
+- Duplicate UI elements across Sales Funnel pages (Currently investigating).
+
+**key api endpoints**
+-  (Fetches all agreements for the SSOT list)
+-  (Syncs inherited pricing/SOW data and bumps version)
+-  (Generates files and emails them)
+
+**Critical Info for New Agent** 
+- **DATABASE IS EMPTY OF LEADS**: The previous agent successfully executed a massive cleanup script that wiped all test/dummy leads, meetings, agreements, and SOWs. To test any funnel flow moving forward, **you must create a fresh Lead**.
+- **Calculations**: Do not revert to calculating totals by multiplying team meeting rates. The user explicitly chose Option B (flat division of total investment).
+
+**documents and test reports created in this job**
+  - 
+  - 
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1. *Completed*: Requested dynamic recipient selection, legal text injection, and logo in PDFs.
+2. *Completed*: Reported page-break issues, LLP in name, and unsupported DOCX format.
+3. *Completed*: Requested fixing PDF whitespace and logo rendering.
+4. *Completed*: Provided 5 KEY PAYMENT TERMS to inject.
+5. *Completed*: Updated terms to 7 clauses.
+6. *Completed*: Requested DD-MM-YYYY dates, GST%, and TOTAL rows in tables.
+7. *Completed*: Requested new SSOT Agreements navigation page with versioning.
+8. *Completed*: Ordered a complete wipe of all test/dummy transactional data across the ERP.
+9. *Completed*: Pointed out missing pages in the Sales Executive sidebar; chose Option B for calculation mismatch.
+10. *Pending*: Asked what failed in the 91% backend test and requested removal of duplicate Record Meeting buttons.
+
+**Project Health Check:**
+- Broken: Duplicate buttons in UI.
+- Mocked: None
+
+**3rd Party Integrations** 
+- OpenAI GPT-4o-mini — uses Emergent LLM Key
+- Google Maps API (Places Autocomplete) — requires User API Key
+- SMTP Email (Google Workspace) — Uses internal backend .env credentials
+
+**Testing status**
+  - Testing agent used after significant changes: YES (iteration 245).
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: 
+  - Known regressions: None, but iteration 245 had a 91% backend pass rate that needs explaining.
+
+**Credentials to test flow:**
+- Admin:  / 
+- Sales:  / 
+- Consultant:  / 
+
+**What agent forgot to execute**
+The agent was asked a two-part question at the very end: 1) What failed in the 91% test? 2) Fix duplicate Record Meeting buttons. The agent started running queries but didn't conclude or execute the fixes before context ended. Start immediately by addressing these two items.</analysis>

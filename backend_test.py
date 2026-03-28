@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 class ConsultingWorkflowTester:
     def __init__(self):
-        self.base_url = "https://erp-governance-hub-3.preview.emergentagent.com/api"
+        self.base_url = "https://funnel-sync-engine.preview.emergentagent.com/api"
         self.token = None
         self.user_id = None
         self.tests_run = 0

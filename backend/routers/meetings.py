@@ -43,7 +43,7 @@ MOM_UPLOAD_DIR = "/app/uploads/mom_documents"
 os.makedirs(MOM_UPLOAD_DIR, exist_ok=True)
 
 # App URL for email links
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-governance-hub-3.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://funnel-sync-engine.preview.emergentagent.com").replace("/api", "")
 
 
 @router.post("", response_model=Meeting)
