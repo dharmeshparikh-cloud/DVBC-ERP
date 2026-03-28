@@ -115,6 +115,7 @@ const ConsentPage = lazy(() => import('./pages/ConsentPage'));
 const AdminDashboardMockups = lazy(() => import('./pages/admin/AdminDashboardMockups'));
 const HelpContentAdmin = lazy(() => import('./pages/admin/HelpContentAdmin'));
 const FlowDiagram = lazy(() => import('./pages/FlowDiagram'));
+const EmployeeFlowPage = lazy(() => import('./pages/EmployeeFlowPage'));
 const ProjectPayments = lazy(() => import('./pages/ProjectPayments'));
 const ProjectPaymentDetails = lazy(() => import('./pages/ProjectPaymentDetails'));
 
@@ -386,6 +387,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="admin-dashboard" element={<AdminDashboard />} />
         <Route path="office-locations" element={<OfficeLocationsSettings />} />
         <Route path="flow-diagram" element={<FlowDiagram />} />
+        <Route path="employee-flow" element={<EmployeeFlowPage />} />
+        <Route path="employee-flow/:employeeId" element={<EmployeeFlowPage />} />
         <Route path="workflow" element={<WorkflowPage />} />
         <Route path="tutorials" element={<OnboardingTutorial />} />
         {/* Sales Features accessible in Main ERP */}

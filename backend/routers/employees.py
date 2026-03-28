@@ -39,6 +39,121 @@ ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"]
 MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5MB for print quality passport photos
 
 
+
+@router.get("/flow-status/{employee_id_or_me}")
+async def get_employee_flow_status(employee_id_or_me: str, current_user: User = Depends(get_current_user)):
+    """Get full lifecycle flow status for an employee — used by the Employee Flow Chart page."""
+    db = get_db()
+
+    # Resolve employee
+    if employee_id_or_me == "me":
+        emp = await db.employees.find_one(
+            {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+            {"_id": 0}
+        )
+        user_record = await db.users.find_one({"id": current_user.id}, {"_id": 0, "hashed_password": 0, "password_hash": 0})
+    else:
+        # Admin/HR looking at specific employee by employee UUID or code
+        emp = await db.employees.find_one(
+            {"$or": [{"id": employee_id_or_me}, {"employee_code": employee_id_or_me}]},
+            {"_id": 0}
+        )
+        if emp and emp.get("user_id"):
+            user_record = await db.users.find_one({"id": emp["user_id"]}, {"_id": 0, "hashed_password": 0, "password_hash": 0})
+        else:
+            user_record = None
+
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    emp_id = emp["id"]
+    emp_name = f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip()
+
+    # Onboarding submission
+    onboarding = await db.onboarding_submissions.find_one(
+        {"$or": [
+            {"candidate_name": {"$regex": emp_name, "$options": "i"}},
+            {"employee_id": emp_id}
+        ]},
+        {"_id": 0, "id": 1, "status": 1, "role": 1, "employee_code": 1, "created_at": 1}
+    )
+
+    # Go-Live request
+    go_live = await db.go_live_requests.find_one(
+        {"$or": [
+            {"employee_id": emp_id},
+            {"employee_name": {"$regex": emp_name, "$options": "i"}}
+        ]},
+        {"_id": 0, "id": 1, "status": 1, "role": 1, "created_at": 1}
+    )
+
+    # CTC structures
+    active_ctc = await db.ctc_structures.find_one(
+        {"employee_id": emp_id, "status": "active"},
+        {"_id": 0}
+    )
+    pending_ctc = await db.ctc_structures.find_one(
+        {"employee_id": emp_id, "status": "pending"},
+        {"_id": 0}
+    )
+
+    # Permissions
+    perms = None
+    if user_record:
+        perm_doc = await db.permissions.find_one({"user_id": user_record["id"]}, {"_id": 0, "modules": 1})
+        perms = perm_doc.get("modules", {}) if perm_doc else {}
+
+    # Leave balance
+    leave_balance = await db.leave_balances.find_one({"employee_id": emp_id}, {"_id": 0, "id": 1})
+
+    # Today's attendance
+    from utils.timezone import today_ist
+    today = today_ist()
+    attendance = await db.attendance.find_one(
+        {"employee_id": emp_id, "date": today},
+        {"_id": 0, "status": 1, "check_in_time": 1}
+    )
+
+    # Payroll
+    payroll = await db.payroll_runs.find_one(
+        {"$or": [{"employee_id": emp_id}, {"employee_code": emp.get("employee_code")}]},
+        {"_id": 0, "id": 1, "month": 1, "status": 1}
+    )
+
+    return {
+        "employee": {
+            "id": emp_id,
+            "first_name": emp.get("first_name"),
+            "last_name": emp.get("last_name"),
+            "employee_code": emp.get("employee_code"),
+            "department": emp.get("department"),
+            "designation": emp.get("designation"),
+            "status": emp.get("status"),
+            "go_live_status": emp.get("go_live_status"),
+            "salary": emp.get("salary"),
+            "annual_ctc": emp.get("annual_ctc"),
+            "joining_date": emp.get("joining_date"),
+        },
+        "user": {
+            "id": user_record["id"] if user_record else None,
+            "employee_id": user_record.get("employee_id") if user_record else None,
+            "role": user_record.get("role") if user_record else None,
+            "is_active": user_record.get("is_active") if user_record else False,
+            "email": user_record.get("email") if user_record else None,
+        } if user_record else None,
+        "onboarding": onboarding,
+        "goLive": go_live,
+        "ctc": {
+            "active": active_ctc,
+            "pending": pending_ctc,
+        },
+        "permissions": perms,
+        "leaveBalance": leave_balance,
+        "attendance": attendance,
+        "payroll": payroll,
+    }
+
+
 @router.get("")
 async def get_employees(
     department: Optional[str] = None,
