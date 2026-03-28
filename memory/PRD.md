@@ -169,6 +169,14 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Fix**: Updated `my_day.py` to look up employee UUID, check both field names, and use `today_ist()`
 - **File**: `/app/backend/routers/my_day.py`
 
+### RBAC Wiring & Unified Access Page (28 Mar 2026)
+- **Wired RBAC**: Sidebar visibility now reads from `/api/rbac/my-access` endpoint (DB role groups) instead of hardcoded role arrays
+- **Unified Page**: Merged 7 permission pages into 1 "Access & Roles" page with 3 tabs (Roles & Groups, People Access, Department View)
+- **Deleted**: PermissionDashboard, PermissionManager, RoleManagement pages + role_management.py, roles.py backend routers
+- **Old routes**: All redirect to unified page with correct tab
+- **Dharmesh fixed**: Now sees both Sales (from department) + Consulting (from role) sidebar sections
+- **Files**: `AccessAndRoles.js`, `rbac_router.py` (my-access endpoint), `Layout.js` (RBAC fetch), `App.js` (routes), `server.py` (router cleanup)
+
 ## P1 - Upcoming Tasks
 - Consultant Notifications when assigned to project/SOW
 
