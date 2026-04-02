@@ -132,7 +132,7 @@ Add post-write verification to critical endpoints:
 
 | Setting | Value | Status |
 |---------|-------|--------|
-| Frontend API URL | `https://erp-checkin-bug.preview.emergentagent.com` | ✅ |
+| Frontend API URL | `https://role-security-2.preview.emergentagent.com` | ✅ |
 | Backend MongoDB | Connected | ✅ |
 | Redis Cache | Fallback to in-memory | ⚠️ |
 

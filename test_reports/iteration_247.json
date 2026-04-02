@@ -20,7 +20,7 @@
     "frontend": "100%"
   },
   "test_credentials": {
-    "onboarding_form_url": "https://erp-checkin-bug.preview.emergentagent.com/onboarding/candidate/7yTIXfE4EcicvaLPdP2KhMbVKFi1rSNfplA2fbB0WXk"
+    "onboarding_form_url": "https://role-security-2.preview.emergentagent.com/onboarding/candidate/7yTIXfE4EcicvaLPdP2KhMbVKFi1rSNfplA2fbB0WXk"
   },
   "seed_data_creation": "Created test Excel file for upload testing",
   "retest_needed": false,

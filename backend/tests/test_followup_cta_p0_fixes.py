@@ -12,7 +12,7 @@ import os
 import re
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-checkin-bug.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://role-security-2.preview.emergentagent.com').rstrip('/')
 
 class TestFollowUpCTAP0Fixes:
     """Test the 4 P0 fixes for Follow-up Email CTA flow"""
