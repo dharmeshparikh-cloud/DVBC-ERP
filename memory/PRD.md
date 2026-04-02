@@ -177,10 +177,27 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Dharmesh fixed**: Now sees both Sales (from department) + Consulting (from role) sidebar sections
 - **Files**: `AccessAndRoles.js`, `rbac_router.py` (my-access endpoint), `Layout.js` (RBAC fetch), `App.js` (routes), `server.py` (router cleanup)
 
+### Site Tree Excel Emailed (02 Apr 2026)
+- Generated comprehensive 4-sheet Excel (`DVBC_Site_Tree.xlsx`) with: All Routes (152), Page Connections (58 pages mapped), Security Summary (guarded vs unguarded), Sidebar Map (60 items with orphan detection)
+- Emailed to `dharmesh.parikh@dvconsulting.co.in`
+- Script: `/app/backend/scripts/generate_site_tree.py`
+
+### Clients Sidebar Fix (02 Apr 2026)
+- **Fixed**: "My Projects" in Consulting sidebar now routes to `/projects` (was incorrectly pointing to `/clients`)
+- **Fixed**: `/consulting/my-projects` redirect in App.js now goes to `/projects` instead of `/clients`
+- "Clients" remains correctly under Sales section in `fullSalesFlowItems`
+- **Files**: `Layout.js` (line 427), `App.js` (route redirect)
+
+## P0 - Security (Waiting for User Input)
+- 64 unguarded routes need RoleGuard in App.js — waiting for user to return RBAC Excel with YES/NO access matrix
+
 ## P1 - Upcoming Tasks
+- Onboarding Role Dropdown: Wire hardcoded dropdown in CandidateOnboardingForm.js to fetch from `/api/rbac/roles`
+- Sidebar Cleanup: Remove 15 duplicate links, 24 hidden pages, merge 7 fragmented page groups
 - Consultant Notifications when assigned to project/SOW
 
 ## P2 - Future/Backlog
-- Refactor ConsultingMeetings.js (>2300 lines)
+- Refactor ConsultingMeetings.js (>2300 lines) and EmployeeMobileApp.js (>1900 lines)
 - Governance Dashboard UI
 - Onboarding timeline view
+- Project-based dynamic cross-department permissions

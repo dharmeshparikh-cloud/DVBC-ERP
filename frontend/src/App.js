@@ -326,7 +326,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel-onboarding" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><SalesFunnelOnboarding /></RoleGuard>} />
         <Route path="consulting/projects" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingSOWList /></RoleGuard>} />
         {/* consulting/my-projects route removed - access via Clients page */}
-        <Route path="consulting/my-projects" element={<Navigate to="/clients" replace />} />
+        <Route path="consulting/my-projects" element={<Navigate to="/projects" replace />} />
         <Route path="consulting/assign-team/:projectId" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery']}><AssignTeam /></RoleGuard>} />
         <Route path="consulting/project-tasks/:sowId" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingProjectTasks /></RoleGuard>} />
         <Route path="consulting/sow-changes" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><SOWChangeRequests /></RoleGuard>} />

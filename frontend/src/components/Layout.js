@@ -424,7 +424,7 @@ const Layout = () => {
         // Consultant view - simplified with SSOT marker
         { name: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar, badge: 'SSOT' },
         { name: 'Meetings Calendar', href: '/meeting-calendar', icon: CalendarDays },
-        { name: 'My Projects', href: '/clients', icon: Briefcase },
+        { name: 'My Projects', href: '/projects', icon: Briefcase },
         { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Efforts Summary', href: '/consulting/efforts-summary', icon: BarChart3 },
         { name: 'Payments', href: '/payments', icon: DollarSign },
