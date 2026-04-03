@@ -409,6 +409,7 @@ const Layout = () => {
     { name: 'Invoices', href: '/invoices', icon: Receipt, stage: null },
     { name: 'Lead Follow-ups', href: '/follow-ups', icon: CalendarCheck, stage: null },
     { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3, stage: null },
+    { name: 'Targets', href: '/target-management', icon: Target, stage: null },
   ];
 
   // Select sales items based on mode
@@ -462,7 +463,7 @@ const Layout = () => {
     { name: 'My Leaves', href: '/my-leaves', icon: Calendar },
     { name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet },
     { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
-    // My Projects removed - access through Clients page
+    { name: 'Travel & Reimbursement', href: '/travel-reimbursement', icon: Car },
     { name: 'My Drafts', href: '/my-drafts', icon: FileText },
     { name: 'My Details', href: '/my-details', icon: UserCog },
     ...(canViewScorecard ? [{ name: 'My Scorecard', href: '/employee-scorecard', icon: Star }] : []),
@@ -472,8 +473,11 @@ const Layout = () => {
   // Communication items merged into workspace (visible for all users)
   const workspaceWithCommunication = [
     ...workspaceItems,
+    { name: 'Org Chart', href: '/org-chart', icon: GitBranch },
     { name: 'Team Chat', href: '/chat', icon: MessageCircle },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
+    { name: 'Help & Support', href: '/help', icon: HelpCircle },
+    { name: 'Tutorials', href: '/tutorials', icon: BookOpen },
   ];
 
   // Mobile bottom nav items

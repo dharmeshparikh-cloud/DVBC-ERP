@@ -276,7 +276,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route index element={getDefaultDashboard()} />
         <Route path="leads" element={<Leads />} />
         <Route path="projects" element={<Projects />} />
-        <Route path="all-projects" element={<AllProjects />} />
+        <Route path="all-projects" element={<Navigate to="/projects" replace />} />
         {/* sales-meetings route removed - meetings accessed via Lead funnel, MOM via dashboard */}
         <Route path="sales-meetings" element={<Navigate to="/leads" replace />} />
         <Route path="consulting-meetings" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager', 'admin']} allowedDepts={['Consulting', 'Delivery', 'Admin']}><ConsultingMeetings /></RoleGuard>} />
@@ -284,7 +284,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="meeting-calendar" element={<MeetingCalendar />} />
         <Route path="org-chart" element={<OrgChart />} />
         <Route path="leave-management" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><LeaveManagement /></RoleGuard>} />
-        <Route path="attendance" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><Attendance /></RoleGuard>} />
+        <Route path="attendance" element={<Navigate to="/leave-management" replace />} />
         <Route path="payroll" element={<Navigate to="/payroll-engine" replace />} />
         <Route path="payroll-engine" element={<RoleGuard allowedRoles={['admin', 'hr_manager']} allowedDepts={['HR', 'Finance', 'Admin']}><PayrollEngine /></RoleGuard>} />
         <Route path="ctc-designer" element={<CTCDesigner />} />
@@ -299,7 +299,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="my-details" element={<MyDetails />} />
         <Route path="my-drafts" element={<MyDrafts />} />
         <Route path="project-roadmap" element={<ProjectRoadmap />} />
-        <Route path="consultant-performance" element={<ConsultantPerformance />} />
+        <Route path="consultant-performance" element={<Navigate to="/consulting/efforts-summary" replace />} />
         <Route path="email-templates" element={<EmailTemplates />} />
         {/* Sales Funnel Routes - Protected by RoleGuard */}
         <Route path="sales-funnel/pricing-plans" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><PricingPlanBuilder /></RoleGuard>} />
@@ -324,18 +324,18 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/approvals" element={<RoleGuard allowedRoles={['sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><ManagerApprovals /></RoleGuard>} />
         <Route path="client-onboarding" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin', 'Consulting']}><ClientOnboarding /></RoleGuard>} />
         <Route path="sales-funnel-onboarding" element={<RoleGuard allowedRoles={['executive', 'sales_manager', 'manager', 'admin', 'principal_consultant']} allowedDepts={['Sales', 'Admin']}><SalesFunnelOnboarding /></RoleGuard>} />
-        <Route path="consulting/projects" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingSOWList /></RoleGuard>} />
+        <Route path="consulting/projects" element={<Navigate to="/consulting/sow-list" replace />} />
         {/* consulting/my-projects route removed - access via Clients page */}
         <Route path="consulting/my-projects" element={<Navigate to="/projects" replace />} />
         <Route path="consulting/assign-team/:projectId" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery']}><AssignTeam /></RoleGuard>} />
         <Route path="consulting/project-tasks/:sowId" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingProjectTasks /></RoleGuard>} />
         <Route path="consulting/sow-changes" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><SOWChangeRequests /></RoleGuard>} />
-        <Route path="consulting/payments" element={<RoleGuard allowedRoles={['principal_consultant', 'lead_consultant', 'project_manager']} allowedDepts={['Consulting', 'Finance']}><PaymentReminders /></RoleGuard>} />
+        <Route path="consulting/payments" element={<Navigate to="/payments" replace />} />
         <Route path="consulting/additional-meeting-requests" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Admin']}><AdditionalMeetingRequests /></RoleGuard>} />
-        <Route path="consulting/expenses" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'subject_matter_expert', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><ConsultantExpenses /></RoleGuard>} />
+        <Route path="consulting/expenses" element={<Navigate to="/my-expenses" replace />} />
         <Route path="consulting/efforts-summary" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager', 'admin', 'hr_manager', 'hr_executive']} allowedDepts={['Consulting', 'Delivery', 'Admin', 'Finance', 'HR']}><ConsultingEffortsSummary /></RoleGuard>} />
         <Route path="consultants" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'HR', 'Delivery']}><Consultants /></RoleGuard>} />
-        <Route path="consultant-dashboard" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><ConsultantDashboard /></RoleGuard>} />
+        <Route path="consultant-dashboard" element={<Navigate to="/" replace />} />
         <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
         <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
         <Route path="projects/:projectId/payments" element={<ProjectPaymentDetails />} />
@@ -356,7 +356,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="targets" element={<Navigate to="/target-management" replace />} />
         <Route path="clients" element={<Clients />} />
         <Route path="onboarded-clients" element={<OnboardedClients />} />
-        <Route path="expenses" element={<Expenses />} />
+        <Route path="expenses" element={<Navigate to="/my-expenses" replace />} />
         <Route path="travel-reimbursement" element={<TravelReimbursement />} />
         <Route path="reports" element={<Reports />} />
         <Route path="report-builder" element={<CustomReportBuilder />} />
@@ -365,8 +365,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="gantt-chart" element={<GanttChart />} />
         <Route path="downloads" element={<Downloads />} />
         <Route path="sales-dashboard" element={<RoleGuard allowedRoles={['sales_manager', 'executive', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales']}><SalesDashboard /></RoleGuard>} />
-        <Route path="consulting-dashboard" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingDashboard /></RoleGuard>} />
-        <Route path="hr-dashboard" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><HRDashboard /></RoleGuard>} />
+        <Route path="consulting-dashboard" element={<Navigate to="/projects" replace />} />
+        <Route path="hr-dashboard" element={<Navigate to="/employees" replace />} />
         <Route path="admin-masters" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><AdminMasters /></RoleGuard>} />
         {/* Unified Access & Roles page */}
         <Route path="access-roles" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><AccessAndRoles /></RoleGuard>} />
@@ -382,11 +382,11 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="settings" element={<Settings />} />
         <Route path="help" element={<Help />} />
         <Route path="letterhead-settings" element={<LetterheadSettings />} />
-        <Route path="admin-dashboard-mockups" element={<AdminDashboardMockups />} />
+        <Route path="admin-dashboard-mockups" element={<Navigate to="/ceo-report" replace />} />
         <Route path="help-admin" element={<HelpContentAdmin />} />
-        <Route path="admin-dashboard" element={<AdminDashboard />} />
+        <Route path="admin-dashboard" element={<Navigate to="/ceo-report" replace />} />
         <Route path="office-locations" element={<OfficeLocationsSettings />} />
-        <Route path="flow-diagram" element={<FlowDiagram />} />
+        <Route path="flow-diagram" element={<Navigate to="/workflow" replace />} />
         <Route path="employee-flow" element={<EmployeeFlowPage />} />
         <Route path="employee-flow/:employeeId" element={<EmployeeFlowPage />} />
         <Route path="workflow" element={<WorkflowPage />} />
@@ -402,9 +402,9 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="onboarding-hub" element={<OnboardingHub />} />
         <Route path="onboarding/review/:submissionId" element={<SubmissionReview />} />
         <Route path="new-joiner-pipeline" element={<NewJoinerPipeline />} />
-        <Route path="attendance-approvals" element={<HRAttendanceApprovals />} />
-        <Route path="hr-attendance-input" element={<HRManualEntry />} />
-        <Route path="hr-leave-input" element={<HRManualEntry />} />
+        <Route path="attendance-approvals" element={<Navigate to="/leave-management" replace />} />
+        <Route path="hr-attendance-input" element={<Navigate to="/hr-manual-entry" replace />} />
+        <Route path="hr-leave-input" element={<Navigate to="/hr-manual-entry" replace />} />
         <Route path="hr-manual-entry" element={<HRManualEntry />} />
         <Route path="payroll-summary-report" element={<PayrollSummaryReport />} />
         <Route path="attendance-leave-settings" element={<AttendanceLeaveSettings />} />
