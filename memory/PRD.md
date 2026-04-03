@@ -223,8 +223,19 @@ Establish a unified and strict governance model across the ERP. Build customized
 - **Testing**: 14/14 backend tests passed, all sidebar sections verified for Admin/Consultant roles
 - **File**: `Layout.js`
 
+### Sidebar Phase 2 Cleanup (03 Apr 2026)
+- **15 duplicate/legacy routes converted to redirects** in App.js:
+  - `/all-projects` → `/projects`, `/expenses` → `/my-expenses`, `/attendance` → `/leave-management`
+  - `/consulting/projects` → `/consulting/sow-list`, `/consulting/payments` → `/payments`, `/consulting/expenses` → `/my-expenses`
+  - `/admin-dashboard` → `/ceo-report`, `/consulting-dashboard` → `/projects`, `/hr-dashboard` → `/employees`
+  - `/consultant-dashboard` → `/`, `/attendance-approvals` → `/leave-management`, `/hr-attendance-input` → `/hr-manual-entry`
+  - `/flow-diagram` → `/workflow`, `/consultant-performance` → `/consulting/efforts-summary`
+- **5 useful pages added to sidebar**: Org Chart, Travel & Reimbursement, Targets (Sales), Help & Support, Tutorials
+- **Total redirects now: 45** (covering all legacy RBAC pages, duplicate routes, and obsolete dashboards)
+- **Testing**: 26/26 backend + frontend tests passed (`iteration_250.json`)
+- **Files**: `App.js`, `Layout.js`
+
 ## P1 - Upcoming Tasks
-- Sidebar Cleanup Phase 2: Merge remaining fragmented page groups, handle 24 orphaned routes
 - Consultant Notifications when assigned to project/SOW
 
 ## P2 - Future/Backlog
