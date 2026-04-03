@@ -188,6 +188,21 @@ Establish a unified and strict governance model across the ERP. Build customized
 - "Clients" remains correctly under Sales section in `fullSalesFlowItems`
 - **Files**: `Layout.js` (line 427), `App.js` (route redirect)
 
+### Org Chart Fix (02 Apr 2026)
+- **Fixed 3 bugs**: Status filter used `status: "active"` (most employees had `None` or `"onboarded"`) — changed to `is_active: true`
+- **Fixed mixed ID formats**: Seed employees stored `reporting_manager_id: "EMP001"` (display), onboarded stored `reporting_manager` as UUID — now resolves both
+- **Added `employee_id`** to tree nodes for display
+- Now shows full hierarchy: 6 employees, 4 departments, 2 managers
+- **File**: `/app/backend/routers/employees.py` (org-chart/hierarchy endpoint)
+
+### Help Page Content (02 Apr 2026)
+- Rewrote empty Help page with comprehensive ERP-specific content
+- **5 Module Guides** (expandable accordion): Sales, HR, Consulting, Self-Service, Admin — 5 FAQs each (25 total)
+- **5 General FAQs** (password reset, dark mode, mobile app, AI assistant, support)
+- **3 Quick Links**: Interactive Tutorials, Email Support, ERP Workflow
+- **Contact section** with real DVBC email and phone
+- **File**: `/app/frontend/src/pages/Help.js`
+
 ## P0 - Security (Waiting for User Input)
 - 64 unguarded routes need RoleGuard in App.js — waiting for user to return RBAC Excel with YES/NO access matrix
 

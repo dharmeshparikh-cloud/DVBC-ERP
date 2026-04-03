@@ -1387,17 +1387,42 @@ async def get_org_hierarchy(current_user: User = Depends(get_current_user)):
     db = get_db()
     
     employees = await db.employees.find(
-        {"status": "active"},
-        {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "designation": 1, "department": 1, "reporting_manager_id": 1, "role": 1}
+        {"is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "designation": 1, "department": 1, "reporting_manager_id": 1, "reporting_manager": 1, "role": 1}
     ).to_list(1000)
     
+    # Build lookup maps: employee_id (display) -> uuid, uuid -> employee
+    eid_to_uuid = {}
+    uuid_to_emp = {}
+    for emp in employees:
+        uuid_to_emp[emp["id"]] = emp
+        if emp.get("employee_id"):
+            eid_to_uuid[emp["employee_id"]] = emp["id"]
+    
+    # Normalize: resolve each employee's manager to a UUID
+    def get_manager_uuid(emp):
+        rm_id = emp.get("reporting_manager_id")
+        rm = emp.get("reporting_manager")
+        # reporting_manager_id might be display ID ("EMP001") or UUID
+        if rm_id:
+            if rm_id in uuid_to_emp:
+                return rm_id  # already a UUID
+            if rm_id in eid_to_uuid:
+                return eid_to_uuid[rm_id]  # convert display ID to UUID
+        # reporting_manager might be a UUID
+        if rm:
+            if rm in uuid_to_emp:
+                return rm
+        return None
+    
     # Build hierarchy tree
-    def build_tree(manager_id=None):
+    def build_tree(manager_uuid):
         children = []
         for emp in employees:
-            if emp.get("reporting_manager_id") == manager_id:
+            if get_manager_uuid(emp) == manager_uuid:
                 node = {
                     "id": emp["id"],
+                    "employee_id": emp.get("employee_id", ""),
                     "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
                     "designation": emp.get("designation", ""),
                     "department": emp.get("department", ""),
@@ -1410,9 +1435,10 @@ async def get_org_hierarchy(current_user: User = Depends(get_current_user)):
     # Find root nodes (no reporting manager)
     roots = []
     for emp in employees:
-        if not emp.get("reporting_manager_id"):
+        if get_manager_uuid(emp) is None:
             node = {
                 "id": emp["id"],
+                "employee_id": emp.get("employee_id", ""),
                 "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
                 "designation": emp.get("designation", ""),
                 "department": emp.get("department", ""),
