@@ -19,7 +19,7 @@ import { sanitizeDisplayText } from '../../utils/sanitize';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isActionAllowed, isProjectReadOnly, ACTIONS, getDisabledReason } from '../../utils/projectActions';
 
-const CONSULTANT_ROLES = [
+const CONSULTANT_ROLES_FALLBACK = [
   { value: 'lead_consultant', label: 'Lead Consultant' },
   { value: 'senior_consultant', label: 'Senior Consultant' },
   { value: 'consultant', label: 'Consultant' },
@@ -38,6 +38,21 @@ const AssignTeam = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedConsultant, setSelectedConsultant] = useState(null);
   const [selectedRole, setSelectedRole] = useState('consultant');
+
+  // Fetch consulting roles from RBAC API
+  const { data: consultingRoles = CONSULTANT_ROLES_FALLBACK } = useQuery({
+    queryKey: ['rbac-consulting-roles'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/rbac/roles`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      const roles = res.data?.roles || [];
+      const filtered = roles
+        .filter(r => r.is_active && r.department === 'Consulting')
+        .sort((a, b) => (b.level || 0) - (a.level || 0))
+        .map(r => ({ value: r.code, label: r.name }));
+      return filtered.length > 0 ? filtered : CONSULTANT_ROLES_FALLBACK;
+    },
+    staleTime: 30 * 1000,
+  });
 
   // Team Assignment permission - Only Admin, Manager, Project Manager, Principal Consultant can assign
   const canAssignTeam = ['admin', 'manager', 'project_manager', 'principal_consultant'].includes(user?.role);
@@ -297,7 +312,7 @@ const AssignTeam = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant="outline" className="text-xs">
-                        {CONSULTANT_ROLES.find(r => r.value === member.role)?.label || member.role}
+                        {consultingRoles.find(r => r.value === member.role)?.label || member.role}
                       </Badge>
                       {canRemoveConsultant && !isReadOnly && (
                         <Button
@@ -422,7 +437,7 @@ const AssignTeam = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CONSULTANT_ROLES.map(role => (
+                    {consultingRoles.map(role => (
                       <SelectItem key={role.value} value={role.value}>
                         {role.label}
                       </SelectItem>

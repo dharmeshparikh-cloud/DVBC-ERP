@@ -321,7 +321,6 @@ const Layout = () => {
   const hrEmployeeItems = [
     { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
     { name: 'Employee Change Requests', href: '/employee-workflows', icon: ArrowRightLeft, requiresHRorAdmin: true },
-    { name: 'Access & Permissions', href: '/access-roles?tab=people', icon: Shield, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
   ];
   
@@ -337,7 +336,6 @@ const Layout = () => {
   const hrPayrollItems = [
     { name: 'Payroll Engine', href: '/payroll-engine', icon: Calculator, requiresHRorAdmin: true },
     { name: 'Penalty & Compliance', href: '/penalty-management', icon: AlertTriangle, requiresHRorAdmin: true },
-    { name: 'Employee Efforts', href: '/consulting/efforts-summary', icon: BarChart3, requiresHRorAdmin: true },
     { name: 'CTC & Payroll', href: '/ctc-designer', icon: Wallet, requiresApproval: true },
     { name: 'Payroll Summary Report', href: '/payroll-summary-report', icon: FileText, requiresHRorAdmin: true },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },
@@ -448,7 +446,6 @@ const Layout = () => {
     { name: 'User Management', href: '/user-management', icon: UserCog },
     { name: 'Access & Roles', href: '/access-roles', icon: Shield },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
-    { name: 'Project Payments', href: '/payments', icon: DollarSign },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
     { name: 'CEO Report', href: '/ceo-report', icon: BarChart3 },
@@ -475,7 +472,6 @@ const Layout = () => {
   // Communication items merged into workspace (visible for all users)
   const workspaceWithCommunication = [
     ...workspaceItems,
-    ...(canViewApprovals ? [{ name: 'Approvals', href: '/approvals', icon: ClipboardCheck, badge: pendingCounts.total > 0 ? pendingCounts.total : null }] : []),
     { name: 'Team Chat', href: '/chat', icon: MessageCircle },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
   ];

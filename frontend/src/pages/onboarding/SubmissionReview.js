@@ -145,6 +145,20 @@ const SubmissionReview = () => {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState('employee');
+  
+  // Fetch roles from RBAC API (realtime)
+  const { data: rbacRoles = [] } = useQuery({
+    queryKey: ['rbac-roles-for-onboarding'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/rbac/roles`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      const roles = res.data?.roles || [];
+      // Filter: active, non-external, sorted by level desc
+      return roles
+        .filter(r => r.is_active && !r.is_external && r.code !== 'client')
+        .sort((a, b) => (b.level || 0) - (a.level || 0));
+    },
+    staleTime: 30 * 1000, // Refresh every 30s for realtime updates
+  });
   const [revisionReason, setRevisionReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
 
@@ -1715,12 +1729,20 @@ const SubmissionReview = () => {
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="executive">Sales Executive</SelectItem>
-                  <SelectItem value="consultant">Consultant</SelectItem>
-                  <SelectItem value="hr_manager">HR Manager</SelectItem>
-                  <SelectItem value="hr_executive">HR Executive</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  {rbacRoles.length > 0 ? (
+                    rbacRoles.map(r => (
+                      <SelectItem key={r.code} value={r.code}>
+                        {r.name} ({r.department})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="consultant">Consultant</SelectItem>
+                      <SelectItem value="hr_executive">HR Executive</SelectItem>
+                      <SelectItem value="sales_executive">Sales Executive</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
               <p className="text-xs text-zinc-400">This determines which pages and features the employee can access after login.</p>
