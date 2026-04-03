@@ -206,9 +206,25 @@ Establish a unified and strict governance model across the ERP. Build customized
 ## P0 - Security (Waiting for User Input)
 - 64 unguarded routes need RoleGuard in App.js — waiting for user to return RBAC Excel with YES/NO access matrix
 
+## P1 - Completed Tasks
+
+### Onboarding Role Dropdown Wired to RBAC (02 Apr 2026)
+- **SubmissionReview.js**: Hardcoded 6 roles replaced with dynamic fetch from `/api/rbac/roles` (30s staleTime for realtime)
+- **AssignTeam.js**: Hardcoded 4 consulting roles replaced with dynamic fetch filtered to Consulting department
+- Both have fallback to hardcoded roles if API fails
+- **Files**: `SubmissionReview.js`, `AssignTeam.js`
+
+### Sidebar Cleanup (02 Apr 2026)
+- Removed 4 duplicate links:
+  - "Employee Efforts" from HR Payroll (already in Consulting as "Efforts Summary")
+  - "Access & Permissions" from HR People (already in Admin as "Access & Roles")
+  - "Project Payments" from Admin (already in Consulting as "Payments")
+  - "Approvals" from Workspace (already in Admin as "Approvals Center")
+- **Testing**: 14/14 backend tests passed, all sidebar sections verified for Admin/Consultant roles
+- **File**: `Layout.js`
+
 ## P1 - Upcoming Tasks
-- Onboarding Role Dropdown: Wire hardcoded dropdown in CandidateOnboardingForm.js to fetch from `/api/rbac/roles`
-- Sidebar Cleanup: Remove 15 duplicate links, 24 hidden pages, merge 7 fragmented page groups
+- Sidebar Cleanup Phase 2: Merge remaining fragmented page groups, handle 24 orphaned routes
 - Consultant Notifications when assigned to project/SOW
 
 ## P2 - Future/Backlog
